@@ -1,0 +1,5 @@
+language: rust
+script:
+  - make prepare
+  - make check-lint
+  - make test
