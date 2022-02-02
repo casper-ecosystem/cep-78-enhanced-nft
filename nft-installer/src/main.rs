@@ -2,7 +2,6 @@
 #![no_std]
 
 extern crate alloc;
-
 use alloc::{boxed::Box, string::String, string::ToString, vec};
 use casper_contract::contract_api::{runtime, storage};
 
@@ -52,6 +51,29 @@ fn store() -> (ContractHash, ContractVersion) {
             EntryPointType::Contract,
         );
 
+        let burn = EntryPoint::new(
+            nft_contract::ENTRY_POINT_BURN,
+            vec![
+                Parameter::new(nft_contract::ARG_TOKEN_OWNER, CLType::PublicKey),
+                Parameter::new(nft_contract::ARG_TOKEN_ID, CLType::U256),
+            ],
+            CLType::Unit,
+            EntryPointAccess::Public,
+            EntryPointType::Contract,
+        );
+
+        let transfer = EntryPoint::new(
+            nft_contract::ENTRY_POINT_TRANSFER,
+            vec![
+                Parameter::new(nft_contract::ARG_TOKEN_OWNER, CLType::PublicKey),
+                Parameter::new(nft_contract::ARG_TOKEN_RECEIVER, CLType::PublicKey),
+                Parameter::new(nft_contract::ARG_TOKEN_ID, CLType::U256),
+            ],
+            CLType::Unit,
+            EntryPointAccess::Public,
+            EntryPointType::Contract,
+        );
+
         let balance_of = EntryPoint::new(
             nft_contract::ENTRY_POINT_BALANCE_OF,
             vec![Parameter::new(
@@ -66,6 +88,8 @@ fn store() -> (ContractHash, ContractVersion) {
         entry_points.add_entry_point(init_contract);
         entry_points.add_entry_point(set_variables);
         entry_points.add_entry_point(mint);
+        entry_points.add_entry_point(burn);
+        entry_points.add_entry_point(transfer);
         entry_points.add_entry_point(balance_of);
 
         entry_points
@@ -92,6 +116,7 @@ fn store() -> (ContractHash, ContractVersion) {
 pub extern "C" fn call() {
     let collection_name: String = runtime::get_named_arg(nft_contract::ARG_COLLECTION_NAME);
     let (contract_hash, contract_version) = store();
+
     // Store contract_hash and contract_version under the keys CONTRACT_NAME and CONTRACT_VERSION
     runtime::put_key(nft_contract::CONTRACT_NAME, contract_hash.into());
     runtime::put_key(

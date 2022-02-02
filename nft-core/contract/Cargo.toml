@@ -6,6 +6,7 @@ edition = "2018"
 [dependencies]
 casper-contract = "1.4.3"
 casper-types = "1.4.6"
+blake3 = {version="*",default-features=false,features=["pure"]}
 
 [[bin]]
 name = "nft_contract"
