@@ -24,16 +24,22 @@ use casper_types::{
 use blake3::Hasher;
 
 pub const ARG_COLLECTION_NAME: &str = "collection_name";
+pub const ARG_COLLECTION_SYMBOL: &str = "collection_symbol";
+pub const ARG_TOTAL_TOKEN_SUPPLY: &str = "total_token_supply"; // <-- Think about if mutable or not...
+
 pub const ARG_TOKEN_OWNER: &str = "token_owner";
 pub const ARG_TOKEN_NAME: &str = "token_name";
 pub const ARG_TOKEN_META: &str = "token_meta";
 pub const ARG_TOKEN_ID: &str = "token_id";
 pub const ARG_TOKEN_RECEIVER: &str = "token_receiver";
 
+pub const ARG_ALLOW_MINTING: &str = "allow_minting";
+
 // STORAGE is the list of all NFTS
 // Owners is a dictionary owner --> nfts
 pub const STORAGE: &str = "storage";
 pub const OWNERS: &str = "owners";
+pub const APPROVED_FOR_TRANSFER: &str = "approved_for_transfer";
 pub const LAST_TOKEN_ID: &str = "last_token_id";
 
 pub const INSTALLER: &str = "installer";
@@ -42,6 +48,9 @@ pub const HASH_KEY_NAME: &str = "nft_contract_package";
 pub const ACCESS_KEY_NAME: &str = "nft_contract_package_access";
 pub const CONTRACT_VERSION: &str = "contract_version";
 pub const COLLECTION_NAME: &str = "collection_name";
+pub const COLLECTION_SYMBOL: &str = "collection_symbol";
+pub const TOTAL_TOKEN_SUPPLY: &str = "total_token_supply";
+pub const ALLOW_MINTING: &str = "allow_minting";
 
 pub const ENTRY_POINT_INIT: &str = "init";
 pub const ENTRY_POINT_SET_VARIABLES: &str = "set_variables";
@@ -51,7 +60,7 @@ pub const ENTRY_POINT_TRANSFER: &str = "transfer";
 pub const ENTRY_POINT_BALANCE_OF: &str = "balance_of";
 
 #[repr(u16)]
-enum NFTCoreError {
+pub enum NFTCoreError {
     InvalidAccount = 1,
     MissingInstaller = 2,
     InvalidInstaller = 3,
@@ -72,6 +81,12 @@ enum NFTCoreError {
     InvalidCollectionName = 18,
     FailedToSerializeMetaData = 19,
     MissingAccount = 20,
+    MissingMintingStatus = 21,
+    InvalidMintingStatus = 22,
+    MissingCollectionSymbol = 23,
+    InvalidCollectionSymbol = 24,
+    MissingTotalTokenSupply = 25,
+    InvalidTotalTokenSupply = 26,
 }
 
 impl From<NFTCoreError> for ApiError {
@@ -80,217 +95,133 @@ impl From<NFTCoreError> for ApiError {
     }
 }
 
-struct NFT {
-    token_owner: PublicKey, //<--Turn into option with None representing Burnt token???
-    token_id: String,
-    token_name: String,
-    token_meta: String,
-}
+type TokenIDs = Vec<U256>;
 
-impl NFT {
-    fn new(
-        token_owner: PublicKey,
-        token_id: String,
-        token_name: String,
-        token_meta: String,
-    ) -> NFT {
-        NFT {
-            token_owner,
-            token_id,
-            token_name,
-            token_meta,
-        }
-    }
+// #[no_mangle]
+// fn burn() {
+//     //From token_owner get token_ids list and remove token from there
+//     // Get STORAGE and remove NFT from there.let
+//     let token_owner: PublicKey = runtime::get_named_arg(ARG_TOKEN_OWNER);
+//     let token_id: U256 = runtime::get_named_arg(ARG_TOKEN_ID);
 
-    fn new_without_id(token_owner: PublicKey, token_name: String, token_meta: String) -> NFT {
-        // Todo: think about better ways to generate token id.
-        let mut hasher = Hasher::new();
-        hasher.update(
-            &token_meta
-                .to_bytes()
-                .unwrap_or_revert_with(NFTCoreError::FailedToSerializeMetaData),
-        );
+//     let owners_seed_uref = get_uref_with_user_errors(
+//         OWNERS,
+//         NFTCoreError::MissingStorageUref,
+//         NFTCoreError::InvalidStorageUref,
+//     );
 
-        let token_id: [u8; 32] = hasher.finalize().into();
-        let token_id: String = String::from_utf8_lossy(&token_id).into();
+//     let mut token_ids: TokenIDs =
+//         storage::dictionary_get::<TokenIDs>(owners_seed_uref, &token_owner.to_string())
+//             .unwrap_or_revert_with(NFTCoreError::FailedToAccessOwnershipDictionary)
+//             .unwrap_or_revert_with(NFTCoreError::InvalidTokenOwner);
 
-        NFT {
-            token_owner,
-            token_id,
-            token_name,
-            token_meta,
-        }
-    }
+//     //Remove the token_id from the token_ids of the owner
+//     let index = token_ids
+//         .iter()
+//         .position(|id| *id == token_id)
+//         .unwrap_or_revert_with(NFTCoreError::InvalidTokenOwner);
 
-    fn id(&self) -> String {
-        self.token_id.clone()
-    }
-}
+//     token_ids.remove(index);
+//     storage::dictionary_put(owners_seed_uref, &token_owner.to_string(), token_ids);
 
-impl ToBytes for NFT {
-    fn to_bytes(&self) -> Result<Vec<u8>, bytesrepr::Error> {
-        let mut buffer = bytesrepr::allocate_buffer(self)?;
-        buffer.extend(self.token_owner.to_bytes()?);
-        buffer.extend(self.token_id.to_bytes()?);
-        buffer.extend(self.token_name.to_bytes()?);
-        buffer.extend(self.token_meta.to_bytes()?);
-        Ok(buffer)
-    }
+//     let storage_seed_uref = get_uref_with_user_errors(
+//         STORAGE,
+//         NFTCoreError::MissingStorageUref,
+//         NFTCoreError::InvalidStorageUref,
+//     );
 
-    fn serialized_length(&self) -> usize {
-        self.token_owner.serialized_length()
-            + self.token_id.serialized_length()
-            + self.token_name.serialized_length()
-            + self.token_meta.serialized_length()
-    }
-}
+//     //Remove from storage dictionary
+//     storage::dictionary_put(
+//         storage_seed_uref,
+//         &token_id.to_string(),
+//         Option::<U256>::None,
+//     );
+// }
 
-impl FromBytes for NFT {
-    fn from_bytes(bytes: &[u8]) -> Result<(Self, &[u8]), bytesrepr::Error> {
-        let (token_owner, remainder) = FromBytes::from_bytes(bytes)?;
-        let (token_id, remainder) = FromBytes::from_bytes(remainder)?;
-        let (token_name, remainder) = FromBytes::from_bytes(remainder)?;
-        let (token_meta, remainder) = FromBytes::from_bytes(remainder)?;
-        Ok((
-            NFT::new(token_owner, token_id, token_name, token_meta),
-            remainder,
-        ))
-    }
-}
+// #[no_mangle]
+// fn mint() {
+//     // Should the NFT immediately belong to the given owner, or should it
+//     // belong to the contract and then be transferred to an owner at a later time?
+//     let token_owner: PublicKey = runtime::get_named_arg(ARG_TOKEN_OWNER);
 
-impl CLTyped for NFT {
-    fn cl_type() -> CLType {
-        CLType::Any
-    }
-}
+//     let token_meta: String = runtime::get_named_arg(ARG_TOKEN_META);
 
-type TokenIDs = Vec<String>;
+//     let owner_account_hash = token_owner.to_account_hash();
+//     let nft = NFT::new_without_id(token_owner.clone(), token_name, token_meta);
 
-#[no_mangle]
-fn burn() {
-    //From token_owner get token_ids list and remove token from there
-    // Get STORAGE and remove NFT from there.let
-    let token_owner: PublicKey = runtime::get_named_arg(ARG_TOKEN_OWNER);
-    let token_id: U256 = runtime::get_named_arg(ARG_TOKEN_ID);
+//     let token_id = nft.id();
 
-    let owners_seed_uref = get_uref_with_user_errors(
-        OWNERS,
-        NFTCoreError::MissingStorageUref,
-        NFTCoreError::InvalidStorageUref,
-    );
+//     let storage_seed_uref = get_uref_with_user_errors(
+//         STORAGE,
+//         NFTCoreError::MissingStorageUref,
+//         NFTCoreError::InvalidStorageUref,
+//     );
 
-    let mut token_ids: TokenIDs =
-        storage::dictionary_get::<TokenIDs>(owners_seed_uref, &token_owner.to_string())
-            .unwrap_or_revert_with(NFTCoreError::FailedToAccessOwnershipDictionary)
-            .unwrap_or_revert_with(NFTCoreError::InvalidTokenOwner);
+//     // If nft with id already exists we revert and return with error
+//     if let Some(_) = storage::dictionary_get::<NFT>(storage_seed_uref, &nft.id().to_string())
+//         .unwrap_or_revert_with(NFTCoreError::FailedToAccessStorageDictionary)
+//     {
+//         runtime::revert(NFTCoreError::DuplicateMinted);
+//     }
 
-    //Remove the token_id from the token_ids of the owner
-    let index = token_ids
-        .iter()
-        .position(|id| *id == token_id)
-        .unwrap_or_revert_with(NFTCoreError::InvalidTokenOwner);
+//     let owners_seed_uref = get_uref_with_user_errors(
+//         OWNERS,
+//         NFTCoreError::MissingStorageUref,
+//         NFTCoreError::InvalidStorageUref,
+//     );
 
-    token_ids.remove(index);
-    storage::dictionary_put(owners_seed_uref, &token_owner.to_string(), token_ids);
+//     let current_token_ids: TokenIDs =
+//         match storage::dictionary_get::<TokenIDs>(owners_seed_uref, &token_owner.to_string())
+//             .unwrap_or_revert_with(NFTCoreError::FailedToAccessOwnershipDictionary)
+//         {
+//             Some(mut token_ids) => {
+//                 if token_ids.contains(&token_id) {
+//                     runtime::revert(NFTCoreError::DuplicateMinted)
+//                 }
+//                 token_ids.push(token_id);
+//                 token_ids
+//             }
+//             None => vec![token_id],
+//         };
 
-    let storage_seed_uref = get_uref_with_user_errors(
-        STORAGE,
-        NFTCoreError::MissingStorageUref,
-        NFTCoreError::InvalidStorageUref,
-    );
+//     //<ID,NFT>
 
-    //Remove from storage dictionary
-    storage::dictionary_put(
-        storage_seed_uref,
-        &token_id.to_string(),
-        Option::<U256>::None,
-    );
-}
+//     //128
+//     //0..128
+//     // List of token ids
+//     //<usize,NFT>
 
-#[no_mangle]
-fn mint() {
-    // Should the NFT immediately belong to the given owner, or should it
-    // belong to the contract and then be transferred to an owner at a later time?
-    let token_owner: PublicKey = runtime::get_named_arg(ARG_TOKEN_OWNER);
-    let token_name: String = runtime::get_named_arg(ARG_TOKEN_NAME);
-    let token_meta: String = runtime::get_named_arg(ARG_TOKEN_META);
+//     storage::dictionary_put(storage_seed_uref, &token_id.to_string(), nft);
+//     storage::dictionary_put(
+//         owners_seed_uref,
+//         &owner_account_hash.to_string(),
+//         current_token_ids,
+//     );
+// }
 
-    let owner_account_hash = token_owner.to_account_hash();
-    let nft = NFT::new_without_id(token_owner.clone(), token_name, token_meta);
+// // balance_of implies an amount and NFTs are not amount-based.
+// #[no_mangle]
+// fn balance_of() {
+//     let token_owner: PublicKey = runtime::get_named_arg(ARG_TOKEN_OWNER);
 
-    let token_id = nft.id();
+//     let owners_seed_uref = get_uref_with_user_errors(
+//         OWNERS,
+//         NFTCoreError::MissingStorageUref,
+//         NFTCoreError::InvalidStorageUref,
+//     );
 
-    let storage_seed_uref = get_uref_with_user_errors(
-        STORAGE,
-        NFTCoreError::MissingStorageUref,
-        NFTCoreError::InvalidStorageUref,
-    );
+//     let current_token_ids: TokenIDs =
+//         match storage::dictionary_get::<TokenIDs>(owners_seed_uref, &token_owner.to_string())
+//             .unwrap_or_revert_with(NFTCoreError::FailedToAccessOwnershipDictionary)
+//         {
+//             Some(token_ids) => token_ids,
+//             None => vec![],
+//         };
 
-    // If nft with id already exists we revert and return with error
-    if let Some(_) = storage::dictionary_get::<NFT>(storage_seed_uref, &nft.id().to_string())
-        .unwrap_or_revert_with(NFTCoreError::FailedToAccessStorageDictionary)
-    {
-        runtime::revert(NFTCoreError::DuplicateMinted);
-    }
-
-    let owners_seed_uref = get_uref_with_user_errors(
-        OWNERS,
-        NFTCoreError::MissingStorageUref,
-        NFTCoreError::InvalidStorageUref,
-    );
-
-    let current_token_ids: TokenIDs =
-        match storage::dictionary_get::<TokenIDs>(owners_seed_uref, &token_owner.to_string())
-            .unwrap_or_revert_with(NFTCoreError::FailedToAccessOwnershipDictionary)
-        {
-            Some(mut token_ids) => {
-                if token_ids.contains(&token_id) {
-                    runtime::revert(NFTCoreError::DuplicateMinted)
-                }
-                token_ids.push(token_id);
-                token_ids
-            }
-            None => vec![token_id],
-        };
-
-    //<ID,NFT>
-
-    //128
-    //0..128
-    // List of token ids
-    //<usize,NFT>
-
-    storage::dictionary_put(storage_seed_uref, &token_id.to_string(), nft);
-    storage::dictionary_put(
-        owners_seed_uref,
-        &owner_account_hash.to_string(),
-        current_token_ids,
-    );
-}
-
-// balance_of implies an amount and NFTs are not amount-based.
-#[no_mangle]
-fn balance_of() {
-    let token_owner: PublicKey = runtime::get_named_arg(ARG_TOKEN_OWNER);
-
-    let owners_seed_uref = get_uref_with_user_errors(
-        OWNERS,
-        NFTCoreError::MissingStorageUref,
-        NFTCoreError::InvalidStorageUref,
-    );
-
-    let current_token_ids: TokenIDs =
-        match storage::dictionary_get::<TokenIDs>(owners_seed_uref, &token_owner.to_string())
-            .unwrap_or_revert_with(NFTCoreError::FailedToAccessOwnershipDictionary)
-        {
-            Some(token_ids) => token_ids,
-            None => vec![],
-        };
-
-    let current_token_ids = CLValue::from_t(current_token_ids)
-        .unwrap_or_revert_with(NFTCoreError::FailedToConvertToCLValue);
-    runtime::ret(current_token_ids);
-}
+//     let current_token_ids = CLValue::from_t(current_token_ids)
+//         .unwrap_or_revert_with(NFTCoreError::FailedToConvertToCLValue);
+//     runtime::ret(current_token_ids);
+// }
 
 // All NFTs dictionary: <U256,NFT>
 // Owners dictionary: <Account,Vec<U256>>
@@ -313,68 +244,68 @@ fn get_tokens_with_collection_name() {
     //let all_tokens = storage::dictionary_get(storage_seed_uref, dictionary_item_key)
 }
 
-#[no_mangle]
-pub fn transfer() {
-    let token_owner: PublicKey = runtime::get_named_arg(ARG_TOKEN_OWNER);
-    let token_receiver: PublicKey = runtime::get_named_arg(ARG_TOKEN_RECEIVER);
-    let token_id: String = runtime::get_named_arg(ARG_TOKEN_ID);
+// #[no_mangle]
+// pub fn transfer() {
+//     let token_owner: PublicKey = runtime::get_named_arg(ARG_TOKEN_OWNER);
+//     let token_receiver: PublicKey = runtime::get_named_arg(ARG_TOKEN_RECEIVER);
+//     let token_id: String = runtime::get_named_arg(ARG_TOKEN_ID);
 
-    let owners_seed_uref = get_uref_with_user_errors(
-        OWNERS,
-        NFTCoreError::MissingStorageUref,
-        NFTCoreError::InvalidStorageUref,
-    );
+//     let owners_seed_uref = get_uref_with_user_errors(
+//         OWNERS,
+//         NFTCoreError::MissingStorageUref,
+//         NFTCoreError::InvalidStorageUref,
+//     );
 
-    let mut owner_token_ids =
-        storage::dictionary_get::<TokenIDs>(owners_seed_uref, &token_owner.to_string())
-            .unwrap_or_revert_with(NFTCoreError::FailedToAccessOwnershipDictionary)
-            .unwrap_or_revert_with(NFTCoreError::InvalidTokenOwner); //<-- Better error?
+//     let mut owner_token_ids =
+//         storage::dictionary_get::<TokenIDs>(owners_seed_uref, &token_owner.to_string())
+//             .unwrap_or_revert_with(NFTCoreError::FailedToAccessOwnershipDictionary)
+//             .unwrap_or_revert_with(NFTCoreError::InvalidTokenOwner); //<-- Better error?
 
-    // Check ownser actually owns the token with id. IF not we revert with error
-    let index = owner_token_ids
-        .iter()
-        .position(|id| *id == token_id)
-        .unwrap_or_revert_with(NFTCoreError::InvalidTokenOwner);
+//     // Check ownser actually owns the token with id. IF not we revert with error
+//     let index = owner_token_ids
+//         .iter()
+//         .position(|id| *id == token_id)
+//         .unwrap_or_revert_with(NFTCoreError::InvalidTokenOwner);
 
-    //Remove token from owner and modify
-    let _ = owner_token_ids.remove(index);
-    storage::dictionary_put(owners_seed_uref, &token_owner.to_string(), owner_token_ids);
+//     //Remove token from owner and modify
+//     let _ = owner_token_ids.remove(index);
+//     storage::dictionary_put(owners_seed_uref, &token_owner.to_string(), owner_token_ids);
 
-    // Check if receiver account exists and revert if not.
-    let account_key: Key = token_owner.to_account_hash().into();
-    if read_optional_account_with_user_errors(account_key, NFTCoreError::InvalidAccount).is_none() {
-        runtime::revert(NFTCoreError::MissingAccount);
-    }
+//     // Check if receiver account exists and revert if not.
+//     let account_key: Key = token_owner.to_account_hash().into();
+//     if read_optional_account_with_user_errors(account_key, NFTCoreError::InvalidAccount).is_none() {
+//         runtime::revert(NFTCoreError::MissingAccount);
+//     }
 
-    let receiver_tokens =
-        match storage::dictionary_get::<TokenIDs>(owners_seed_uref, &token_receiver.to_string())
-            .unwrap_or_revert_with(NFTCoreError::FailedToAccessOwnershipDictionary)
-        {
-            Some(mut token_ids) => {
-                // Add token to receiver token_ids
-                // Using a Vec to represent token_ids is not ideal as a token_id should
-                // only appear once. Logically a HashSet would be a better choice. However,
-                // this may not be ideal from a gas cost perspective.
+//     let receiver_tokens =
+//         match storage::dictionary_get::<TokenIDs>(owners_seed_uref, &token_receiver.to_string())
+//             .unwrap_or_revert_with(NFTCoreError::FailedToAccessOwnershipDictionary)
+//         {
+//             Some(mut token_ids) => {
+//                 // Add token to receiver token_ids
+//                 // Using a Vec to represent token_ids is not ideal as a token_id should
+//                 // only appear once. Logically a HashSet would be a better choice. However,
+//                 // this may not be ideal from a gas cost perspective.
 
-                if token_ids.contains(&token_id) {
-                    runtime::revert(NFTCoreError::DuplicateMinted); //<--- Create new error type!!
-                }
+//                 if token_ids.contains(&token_id) {
+//                     runtime::revert(NFTCoreError::DuplicateMinted); //<--- Create new error type!!
+//                 }
 
-                token_ids.push(token_id);
-                token_ids
-            }
-            None => {
-                // Create new token_ids vec
-                vec![token_id]
-            }
-        };
+//                 token_ids.push(token_id);
+//                 token_ids
+//             }
+//             None => {
+//                 // Create new token_ids vec
+//                 vec![token_id]
+//             }
+//         };
 
-    storage::dictionary_put(
-        owners_seed_uref,
-        &token_receiver.to_string(),
-        receiver_tokens,
-    );
-}
+//     storage::dictionary_put(
+//         owners_seed_uref,
+//         &token_receiver.to_string(),
+//         receiver_tokens,
+//     );
+// }
 
 #[no_mangle]
 pub fn init() {
@@ -388,20 +319,51 @@ pub fn init() {
         runtime::revert(NFTCoreError::InvalidAccount)
     }
 
-    // Setup the initial variables.
-    let collection_name: String = runtime::get_named_arg(ARG_COLLECTION_NAME);
-    let collection_name = storage::new_uref(collection_name);
-    let storage_seed_uref = storage::new_dictionary(STORAGE)
-        .unwrap_or_revert_with(NFTCoreError::FailedToCreateDictionary);
+    let collection_name: String = get_named_arg_with_user_errors(
+        ARG_COLLECTION_NAME,
+        NFTCoreError::MissingCollectionName,
+        NFTCoreError::InvalidCollectionName,
+    )
+    .unwrap_or_revert();
+
+    let collection_symbol: String = get_named_arg_with_user_errors(
+        ARG_COLLECTION_SYMBOL,
+        NFTCoreError::MissingCollectionSymbol,
+        NFTCoreError::InvalidCollectionSymbol,
+    )
+    .unwrap_or_revert();
+
+    let total_token_supply: U256 = get_named_arg_with_user_errors(
+        ARG_TOTAL_TOKEN_SUPPLY,
+        NFTCoreError::MissingTotalTokenSupply,
+        NFTCoreError::InvalidTotalTokenSupply,
+    )
+    .unwrap_or_revert();
+
+    let allow_minting: bool = get_named_arg_with_user_errors(
+        ARG_ALLOW_MINTING,
+        NFTCoreError::MissingMintingStatus,
+        NFTCoreError::InvalidMintingStatus,
+    )
+    .unwrap_or_revert();
+
+    let collection_name_uref = storage::new_uref(collection_name);
+    let collection_symbol_uref = storage::new_uref(collection_symbol);
+    let total_token_supply_uref = storage::new_uref(total_token_supply);
+
+    let allow_minting_uref = storage::new_uref(allow_minting);
+
     let owners_seed_uref = storage::new_dictionary(OWNERS)
         .unwrap_or_revert_with(NFTCoreError::FailedToCreateDictionary);
 
     let token_id_uref = storage::new_uref(U256::zero());
 
     runtime::put_key(LAST_TOKEN_ID, token_id_uref.into());
-    runtime::put_key(STORAGE, storage_seed_uref.into());
     runtime::put_key(OWNERS, owners_seed_uref.into());
-    runtime::put_key(COLLECTION_NAME, collection_name.into());
+    runtime::put_key(COLLECTION_NAME, collection_name_uref.into());
+    runtime::put_key(COLLECTION_SYMBOL, collection_symbol_uref.into());
+    runtime::put_key(TOTAL_TOKEN_SUPPLY, total_token_supply_uref.into());
+    runtime::put_key(ALLOW_MINTING, allow_minting_uref.into());
 }
 
 #[no_mangle]
@@ -419,16 +381,16 @@ pub fn set_variables() {
 
     // // Manipulate the mutable variables.
     // TODO: figure out what things are configurable
-    let collection_name: String = runtime::get_named_arg(ARG_COLLECTION_NAME);
+    let minting_status: bool = runtime::get_named_arg(ARG_ALLOW_MINTING);
 
-    let collection_name_uref = get_uref_with_user_errors(
-        COLLECTION_NAME,
-        NFTCoreError::MissingCollectionName,
-        NFTCoreError::InvalidCollectionName,
+    let allow_minting_uref = get_uref_with_user_errors(
+        ALLOW_MINTING,
+        NFTCoreError::MissingMintingStatus,
+        NFTCoreError::InvalidMintingStatus,
     );
 
     // TODO: should the collection name be mutable?
-    storage::write(collection_name_uref, collection_name);
+    storage::write(allow_minting_uref, minting_status);
 }
 
 fn get_named_arg_size(name: &str) -> Option<usize> {
@@ -447,7 +409,7 @@ fn get_named_arg_size(name: &str) -> Option<usize> {
     }
 }
 
-fn get_optional_named_arg_with_user_errors<T: FromBytes>(
+pub fn get_optional_named_arg_with_user_errors<T: FromBytes>(
     name: &str,
     missing: NFTCoreError,
     invalid: NFTCoreError,
@@ -459,7 +421,7 @@ fn get_optional_named_arg_with_user_errors<T: FromBytes>(
     }
 }
 
-fn get_named_arg_with_user_errors<T: FromBytes>(
+pub fn get_named_arg_with_user_errors<T: FromBytes>(
     name: &str,
     missing: NFTCoreError,
     invalid: NFTCoreError,
