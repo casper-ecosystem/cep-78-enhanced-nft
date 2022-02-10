@@ -2,6 +2,7 @@
 #![no_std]
 
 extern crate alloc;
+use alloc::collections::BTreeMap;
 use alloc::{boxed::Box, string::String, string::ToString, vec};
 use casper_contract::contract_api::{runtime, storage};
 
@@ -9,7 +10,7 @@ use casper_contract::unwrap_or_revert::UnwrapOrRevert;
 use casper_types::contracts::NamedKeys;
 use casper_types::{
     runtime_args, CLType, ContractHash, ContractVersion, EntryPoint, EntryPointAccess,
-    EntryPointType, EntryPoints, Parameter, RuntimeArgs, U256,
+    EntryPointType, EntryPoints, Key, Parameter, PublicKey, RuntimeArgs, U256,
 };
 
 use nft_contract::*;
@@ -40,8 +41,35 @@ fn store() -> (ContractHash, ContractVersion) {
             EntryPointType::Contract,
         );
 
+        let mint = EntryPoint::new(
+            ENTRY_POINT_MINT,
+            vec![Parameter::new(ARG_TOKEN_OWNER, CLType::PublicKey)],
+            CLType::Unit,
+            EntryPointAccess::Public,
+            EntryPointType::Contract,
+        );
+
+        let burn = EntryPoint::new(
+            ENTRY_POINT_BURN,
+            vec![
+                Parameter::new(ARG_TOKEN_OWNER, CLType::PublicKey),
+                Parameter::new(ARG_TOKEN_ID, CLType::U256),
+            ],
+            CLType::Unit,
+            EntryPointAccess::Public,
+            EntryPointType::Contract,
+        );
+
+        // let collection_name = EntryPoint::new(
+        //     ENTRY_POINT_COLLECTION_NAME,
+        //     vec![],
+        //     CLType::String,
+        //     EntryPointAccess::Public,
+        //     EntryPointType::Contract,
+        // );
+
         // let mint = EntryPoint::new(
-        //      ENTRY_POINT_MINT,
+        //     ENTRY_POINT_MINT,
         //     vec![
         //         Parameter::new( ARG_TOKEN_OWNER, CLType::PublicKey),
         //         Parameter::new( ARG_TOKEN_ID, CLType::U256),
@@ -89,8 +117,9 @@ fn store() -> (ContractHash, ContractVersion) {
 
         entry_points.add_entry_point(init_contract);
         entry_points.add_entry_point(set_variables);
-        // entry_points.add_entry_point(mint);
-        // entry_points.add_entry_point(burn);
+        entry_points.add_entry_point(mint);
+        entry_points.add_entry_point(burn);
+
         // entry_points.add_entry_point(transfer);
         // entry_points.add_entry_point(balance_of);
 
@@ -99,6 +128,17 @@ fn store() -> (ContractHash, ContractVersion) {
 
     let named_keys = {
         let mut named_keys = NamedKeys::new();
+
+        let _ = storage::new_dictionary(TOKEN_OWNERS).unwrap_or_revert();
+
+        let last_token_id = U256::zero();
+        let last_token_uref = storage::new_uref(last_token_id);
+
+        // let token_owner: BTreeMap<U256, PublicKey> = BTreeMap::new();
+        // let uref = storage::new_uref(token_owner);
+        // named_keys.insert(TOKEN_OWNERS.to_string(), uref.into());
+
+        named_keys.insert(NUMBER_OF_MINTED_TOKENS.to_string(), last_token_uref.into());
         named_keys.insert(INSTALLER.to_string(), runtime::get_caller().into());
         named_keys
     };
@@ -134,11 +174,12 @@ pub extern "C" fn call() {
     )
     .unwrap_or_revert();
 
-    let allow_minting: Option<bool> = get_optional_named_arg_with_user_errors(
+    let allow_minting: bool = get_optional_named_arg_with_user_errors(
         ARG_ALLOW_MINTING,
-        NFTCoreError::MissingMintingStatus,
+        NFTCoreError::MissingMintingStatus, // <-- Useless?
         NFTCoreError::InvalidMintingStatus,
-    );
+    )
+    .unwrap_or(true);
 
     let (contract_hash, contract_version) = store();
 
