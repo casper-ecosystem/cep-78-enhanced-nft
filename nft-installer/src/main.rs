@@ -128,17 +128,15 @@ fn store() -> (ContractHash, ContractVersion) {
 
     let named_keys = {
         let mut named_keys = NamedKeys::new();
-
         let _ = storage::new_dictionary(TOKEN_OWNERS).unwrap_or_revert();
 
-        let last_token_id = U256::zero();
-        let last_token_uref = storage::new_uref(last_token_id);
+        let number_minted_tokens = U256::zero();
+        let number_minted_tokens_uref = storage::new_uref(number_minted_tokens);
 
-        // let token_owner: BTreeMap<U256, PublicKey> = BTreeMap::new();
-        // let uref = storage::new_uref(token_owner);
-        // named_keys.insert(TOKEN_OWNERS.to_string(), uref.into());
-
-        named_keys.insert(NUMBER_OF_MINTED_TOKENS.to_string(), last_token_uref.into());
+        named_keys.insert(
+            NUMBER_OF_MINTED_TOKENS.to_string(),
+            number_minted_tokens_uref.into(),
+        );
         named_keys.insert(INSTALLER.to_string(), runtime::get_caller().into());
         named_keys
     };

@@ -33,6 +33,7 @@ pub const ARG_TOKEN_META: &str = "token_meta";
 
 pub const ARG_TOKEN_ID: &str = "token_id";
 pub const ARG_TOKEN_RECEIVER: &str = "token_receiver";
+pub const ARG_TOKEN_SENDER: &str = "token_sender";
 pub const ARG_ALLOW_MINTING: &str = "allow_minting";
 pub const ARG_PUBLIC_KEY: &str = "public_key";
 
@@ -504,7 +505,7 @@ fn burn() {
     storage::dictionary_put(
         token_owners_seed_uref,
         &token_id.to_string(),
-        Option::<PublicKey>::None, //<--  is this correct??
+        Option::<PublicKey>::None, //<-- is this correct??
     );
 
     //Remove from token_owners Vec
@@ -545,6 +546,31 @@ fn burn() {
         updated_owned_tokens.clone(),
     );
 }
+
+// #[no_mangle]
+// fn transfer() {
+//     let sender_public_key: PublicKey = get_named_arg_with_user_errors(
+//         ARG_TOKEN_SENDER,
+//         NFTCoreError::MissingPublicKey,
+//         NFTCoreError::InvalidPublicKey,
+//     )
+//     .unwrap_or_revert();
+
+//     let receiver_public_key: PublicKey = get_named_arg_with_user_errors(
+//         ARG_TOKEN_RECEIVER,
+//         NFTCoreError::MissingPublicKey,
+//         NFTCoreError::InvalidPublicKey,
+//     )
+//     .unwrap_or_revert();
+
+//     let token_id: U256 = get_optional_named_arg_with_user_errors(
+//         ARG_TOKEN_ID,
+//         NFTCoreError::MissingTokenID,
+//         NFTCoreError::InvalidTokenID,
+//     )
+//     .unwrap_or_revert();
+
+// }
 
 fn get_stored_value<T: CLTyped + FromBytes>(variable_name: &str) -> (T, URef) {
     let named_keys = runtime::list_named_keys();

@@ -129,7 +129,7 @@ mod tests {
         assert_eq!(
             query_result,
             U256::zero(),
-            "last_token_id initialized at installation should exist"
+            "number_of_minted_tokens initialized at installation should exist"
         );
     }
 
@@ -177,13 +177,85 @@ mod tests {
     }
 
     #[test]
-    fn mint_should_increment_last_token_id_by_one_and_add_public_key_to_token_owners() {
+    fn mint_should_increment_number_of_minted_tokens_by_one_and_add_public_key_to_token_owners() {
         let mut builder = InMemoryWasmTestBuilder::default();
         builder.run_genesis(&DEFAULT_RUN_GENESIS_REQUEST).commit();
 
         let install_request_builder =
             InstallerRequestBuilder::new(*DEFAULT_ACCOUNT_ADDR, NFT_CONTRACT_WASM)
-                .with_total_token_supply(U256::from(1));
+                .with_total_token_supply(U256::from(2));
+        builder
+            .exec(install_request_builder.build())
+            .expect_success()
+            .commit();
+
+        //Hmmm should we enforce that the caller is the minter
+        let (_, minter) = create_dummy_key_pair(PUBLICKEY1);
+
+        let mint_request = ExecuteRequestBuilder::contract_call_by_name(
+            *DEFAULT_ACCOUNT_ADDR,
+            CONTRACT_NAME,
+            ENTRY_POINT_MINT,
+            runtime_args! {
+                ARG_PUBLIC_KEY => minter.clone()
+            },
+        )
+        .build();
+        builder.exec(mint_request).expect_success().commit();
+
+        //Let's start querying
+        let account = builder.get_expected_account(*DEFAULT_ACCOUNT_ADDR);
+        let nft_contract_key = account
+            .named_keys()
+            .get(CONTRACT_NAME)
+            .expect("must have key in named keys");
+
+        //mint should have incremented number_of_minted_tokens by one
+        let query_result: U256 = query_stored_value(
+            &mut builder,
+            *nft_contract_key,
+            vec![NUMBER_OF_MINTED_TOKENS.to_string()],
+        );
+
+        assert_eq!(
+            query_result,
+            U256::one(),
+            "number_of_minted_tokens initialized at installation should have incremented by one"
+        );
+
+        //mint should add correct minter_public_key to TOKEN_OWNERS dictionary
+        let (_, minter) = create_dummy_key_pair(PUBLICKEY1); //<-- Choose MINTER2 for failing red test
+        let minter_public_key = get_dictionary_value_from_key::<PublicKey>(
+            &builder,
+            nft_contract_key,
+            TOKEN_OWNERS,
+            &U256::zero().to_string(),
+        );
+
+        assert_eq!(minter, minter_public_key);
+
+        // If total_token_supply is initialized to 1 the following test should fail.
+        // If we set total_token_supply > 1 it should pass
+        let mint_request = ExecuteRequestBuilder::contract_call_by_name(
+            *DEFAULT_ACCOUNT_ADDR,
+            CONTRACT_NAME,
+            ENTRY_POINT_MINT,
+            runtime_args! {
+                ARG_PUBLIC_KEY => minter.clone()
+            },
+        )
+        .build();
+        builder.exec(mint_request).expect_success().commit();
+    }
+
+    #[test]
+    fn burn_should_remove_public_key_as_owner_and_modify_owned_tokens_correctly() {
+        let mut builder = InMemoryWasmTestBuilder::default();
+        builder.run_genesis(&DEFAULT_RUN_GENESIS_REQUEST).commit();
+
+        let install_request_builder =
+            InstallerRequestBuilder::new(*DEFAULT_ACCOUNT_ADDR, NFT_CONTRACT_WASM)
+                .with_total_token_supply(U256::from(2)); //<-- we set higher
         builder
             .exec(install_request_builder.build())
             .expect_success()
@@ -200,51 +272,6 @@ mod tests {
         )
         .build();
         builder.exec(mint_request).expect_success().commit();
-
-        let account = builder.get_expected_account(*DEFAULT_ACCOUNT_ADDR);
-        let nft_contract_key = account
-            .named_keys()
-            .get(CONTRACT_NAME)
-            .expect("must have key in named keys");
-
-        //mint should have incremented last_token_id by one
-        let query_result: U256 = query_stored_value(
-            &mut builder,
-            *nft_contract_key,
-            vec![NUMBER_OF_MINTED_TOKENS.to_string()],
-        );
-
-        assert_eq!(
-            query_result,
-            U256::one(),
-            "last_token_id initialized at installation should have incremented by one"
-        );
-
-        //mint should add correct minter_public_key to TOKEN_OWNERS dictionary
-        let (_, minter) = create_dummy_key_pair(PUBLICKEY1); //<-- Choose MINTER2 for failing red test
-        let minter_public_key = get_dictionary_value_from_key::<PublicKey>(
-            &builder,
-            nft_contract_key,
-            TOKEN_OWNERS,
-            &U256::zero().to_string(),
-        );
-
-        assert_eq!(minter, minter_public_key);
-        let mint_request = ExecuteRequestBuilder::contract_call_by_name(
-            *DEFAULT_ACCOUNT_ADDR,
-            CONTRACT_NAME,
-            ENTRY_POINT_MINT,
-            runtime_args! {
-                ARG_PUBLIC_KEY => minter.clone()
-            },
-        )
-        .build();
-        builder.exec(mint_request).expect_success().commit();
-    }
-
-    #[test]
-    fn burn_should_remove_public_key_as_owner() {
-        //
     }
 
     // #[test]
