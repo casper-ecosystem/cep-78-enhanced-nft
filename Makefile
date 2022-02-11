@@ -3,11 +3,11 @@ prepare:
 
 build-contract:
 	cd nft-installer && cargo build --release --target wasm32-unknown-unknown
-	wasm-strip nft-installer/target/wasm32-unknown-unknown/release/contract.wasm 2>/dev/null | true
+	wasm-strip target/wasm32-unknown-unknown/release/nft-installer.wasm 2>/dev/null | true
 
 test: build-contract
 	mkdir -p nft-tests/wasm
-	cp nft-installer/target/wasm32-unknown-unknown/release/nft-installer.wasm nft-tests/wasm
+	cp target/wasm32-unknown-unknown/release/nft-installer.wasm nft-tests/wasm
 	cd nft-tests && cargo test
 
 clippy:

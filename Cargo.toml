@@ -1,0 +1,14 @@
+[workspace]
+members = [
+    "nft-tests",
+    "nft-installer",
+    "nft-core/contract",
+    "nft-core/tests"
+]
+
+default-members = [
+    "nft-installer",
+    "nft-tests",
+    "nft-core/contract",
+    "nft-core/tests"
+]

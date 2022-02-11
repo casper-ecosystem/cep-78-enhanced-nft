@@ -26,6 +26,7 @@ fn store() -> (ContractHash, ContractVersion) {
                 Parameter::new(ARG_COLLECTION_SYMBOL, CLType::String),
                 Parameter::new(ARG_TOTAL_TOKEN_SUPPLY, CLType::U256),
                 Parameter::new(ARG_ALLOW_MINTING, CLType::Bool),
+                Parameter::new(ARG_PUBLIC_MINTING, CLType::Bool),
             ],
             CLType::Unit,
             EntryPointAccess::Public,
@@ -128,15 +129,6 @@ fn store() -> (ContractHash, ContractVersion) {
 
     let named_keys = {
         let mut named_keys = NamedKeys::new();
-        let _ = storage::new_dictionary(TOKEN_OWNERS).unwrap_or_revert();
-
-        let number_minted_tokens = U256::zero();
-        let number_minted_tokens_uref = storage::new_uref(number_minted_tokens);
-
-        named_keys.insert(
-            NUMBER_OF_MINTED_TOKENS.to_string(),
-            number_minted_tokens_uref.into(),
-        );
         named_keys.insert(INSTALLER.to_string(), runtime::get_caller().into());
         named_keys
     };
@@ -179,6 +171,13 @@ pub extern "C" fn call() {
     )
     .unwrap_or(true);
 
+    let public_minting: bool = get_optional_named_arg_with_user_errors(
+        ARG_PUBLIC_MINTING,
+        NFTCoreError::MissingPublicMinting,
+        NFTCoreError::InvalidPublicMinting,
+    )
+    .unwrap_or(false);
+
     let (contract_hash, contract_version) = store();
 
     // Store contract_hash and contract_version under the keys CONTRACT_NAME and CONTRACT_VERSION
@@ -194,6 +193,7 @@ pub extern "C" fn call() {
              ARG_COLLECTION_SYMBOL => collection_symbol,
              ARG_TOTAL_TOKEN_SUPPLY => total_token_supply,
              ARG_ALLOW_MINTING => allow_minting,
+            ARG_PUBLIC_MINTING => public_minting,
         },
     );
 }

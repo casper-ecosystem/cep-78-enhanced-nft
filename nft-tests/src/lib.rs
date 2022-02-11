@@ -41,10 +41,13 @@ mod tests {
     const ARG_COLLECTION_SYMBOL: &str = "collection_symbol";
     const ARG_TOTAL_TOKEN_SUPPLY: &str = "total_token_supply";
     const ARG_ALLOW_MINTING: &str = "allow_minting";
+    const ARG_PUBLIC_MINTING: &str = "public_minting";
     const ARG_PUBLIC_KEY: &str = "public_key";
     const NUMBER_OF_MINTED_TOKENS: &str = "number_of_minted_tokens";
 
     const TOKEN_OWNERS: &str = "token_owners";
+    const OWNED_TOKENS: &str = "owned_tokens";
+    const BURNT_TOKENS: &str = "burnt_tokens";
 
     const ARG_TOKEN_OWNER: &str = "token_owner";
     const ARG_TOKEN_RECEIVER: &str = "token_receiver";
@@ -52,23 +55,22 @@ mod tests {
     const ARG_TOKEN_META: &str = "token_meta";
     const ARG_TOKEN_ID: &str = "token_id";
 
-    const PUBLICKEY1: [u8; 32] = [1u8; 32];
-    const PUBLICKEY2: [u8; 32] = [2u8; 32];
+    const ACCOUNT_USER_1: [u8; 32] = [1u8; 32];
+    const ACCOUNT_USER_2: [u8; 32] = [2u8; 32];
 
     #[test]
     fn should_install_contract() {
         let mut builder = InMemoryWasmTestBuilder::default();
         builder.run_genesis(&DEFAULT_RUN_GENESIS_REQUEST).commit();
 
-        let install_request_builder =
+        let install_request =
             InstallerRequestBuilder::new(*DEFAULT_ACCOUNT_ADDR, NFT_CONTRACT_WASM)
                 .with_collection_name(NFT_TEST_COLLECTION.to_string())
                 .with_collection_symbol(NFT_TEST_SYMBOL.to_string())
-                .with_total_token_supply(U256::from(1));
-        builder
-            .exec(install_request_builder.build())
-            .expect_success()
-            .commit();
+                .with_total_token_supply(U256::from(1))
+                .build();
+
+        builder.exec(install_request).expect_success().commit();
 
         let account = builder.get_expected_account(*DEFAULT_ACCOUNT_ADDR);
         let nft_contract_key = account
@@ -190,7 +192,7 @@ mod tests {
             .commit();
 
         //Hmmm should we enforce that the caller is the minter
-        let (_, minter) = create_dummy_key_pair(PUBLICKEY1);
+        let (_, minter) = create_dummy_key_pair(ACCOUNT_USER_1);
 
         let mint_request = ExecuteRequestBuilder::contract_call_by_name(
             *DEFAULT_ACCOUNT_ADDR,
@@ -224,7 +226,7 @@ mod tests {
         );
 
         //mint should add correct minter_public_key to TOKEN_OWNERS dictionary
-        let (_, minter) = create_dummy_key_pair(PUBLICKEY1); //<-- Choose MINTER2 for failing red test
+        let (_, minter) = create_dummy_key_pair(ACCOUNT_USER_1); //<-- Choose MINTER2 for failing red test
         let minter_public_key = get_dictionary_value_from_key::<PublicKey>(
             &builder,
             nft_contract_key,
@@ -233,6 +235,16 @@ mod tests {
         );
 
         assert_eq!(minter, minter_public_key);
+
+        let actual_token_ids = get_dictionary_value_from_key::<Vec<U256>>(
+            &builder,
+            nft_contract_key,
+            OWNED_TOKENS,
+            &minter.clone().to_string(),
+        );
+
+        let expected_token_ids = vec![U256::zero()];
+        assert_eq!(expected_token_ids, actual_token_ids);
 
         // If total_token_supply is initialized to 1 the following test should fail.
         // If we set total_token_supply > 1 it should pass
@@ -249,30 +261,569 @@ mod tests {
     }
 
     #[test]
-    fn burn_should_remove_public_key_as_owner_and_modify_owned_tokens_correctly() {
+    fn should_allow_public_minting_with_flag_set_to_true() {
+        let mut builder = InMemoryWasmTestBuilder::default();
+        builder.run_genesis(&DEFAULT_RUN_GENESIS_REQUEST).commit();
+
+        let install_request =
+            InstallerRequestBuilder::new(*DEFAULT_ACCOUNT_ADDR, NFT_CONTRACT_WASM)
+                .with_total_token_supply(U256::from(100u64))
+                .with_public_minting(Some(true))
+                .build();
+        builder.exec(install_request).expect_success().commit();
+
+        let installing_account = builder.get_expected_account(*DEFAULT_ACCOUNT_ADDR);
+        let nft_contract_key = installing_account
+            .named_keys()
+            .get(CONTRACT_NAME)
+            .expect("must have key in named keys");
+        let nft_contract_hash = nft_contract_key
+            .into_hash()
+            .expect("must convert to hash addr");
+
+        let (_account_1_secret_key, account_1_public_key) = create_dummy_key_pair(ACCOUNT_USER_1);
+
+        let transfer_to_account_1 = ExecuteRequestBuilder::transfer(
+            *DEFAULT_ACCOUNT_ADDR,
+            runtime_args! {
+                mint::ARG_AMOUNT => 100_000_000_000_000u64,
+                mint::ARG_TARGET => account_1_public_key.to_account_hash(),
+                mint::ARG_ID => Option::<u64>::None,
+            },
+        )
+        .build();
+
+        builder
+            .exec(transfer_to_account_1)
+            .expect_success()
+            .commit();
+
+        let public_minting_status = query_stored_value::<bool>(
+            &mut builder,
+            *nft_contract_key,
+            vec![ARG_PUBLIC_MINTING.to_string()],
+        );
+
+        assert!(
+            public_minting_status,
+            "public minting should be set to true"
+        );
+
+        let nft_mint_request = ExecuteRequestBuilder::contract_call_by_hash(
+            account_1_public_key.to_account_hash(),
+            ContractHash::new(nft_contract_hash),
+            ENTRY_POINT_MINT,
+            runtime_args! {
+                ARG_PUBLIC_KEY => account_1_public_key.clone()
+            },
+        )
+        .build();
+
+        builder.exec(nft_mint_request).expect_success().commit();
+
+        let minter_public_key = get_dictionary_value_from_key::<PublicKey>(
+            &builder,
+            nft_contract_key,
+            TOKEN_OWNERS,
+            &U256::zero().to_string(),
+        );
+
+        assert_eq!(account_1_public_key, minter_public_key);
+    }
+
+    #[test]
+    fn should_disallow_public_minting_with_flag_set_to_false() {
+        let mut builder = InMemoryWasmTestBuilder::default();
+        builder.run_genesis(&DEFAULT_RUN_GENESIS_REQUEST).commit();
+
+        let install_request =
+            InstallerRequestBuilder::new(*DEFAULT_ACCOUNT_ADDR, NFT_CONTRACT_WASM)
+                .with_total_token_supply(U256::from(100u64))
+                .with_public_minting(Some(false))
+                .build();
+        builder.exec(install_request).expect_success().commit();
+
+        let installing_account = builder.get_expected_account(*DEFAULT_ACCOUNT_ADDR);
+        let nft_contract_key = installing_account
+            .named_keys()
+            .get(CONTRACT_NAME)
+            .expect("must have key in named keys");
+        let nft_contract_hash = nft_contract_key
+            .into_hash()
+            .expect("must convert to hash addr");
+
+        let (_account_1_secret_key, account_1_public_key) = create_dummy_key_pair(ACCOUNT_USER_1);
+
+        let transfer_to_account_1 = ExecuteRequestBuilder::transfer(
+            *DEFAULT_ACCOUNT_ADDR,
+            runtime_args! {
+                mint::ARG_AMOUNT => 100_000_000_000_000u64,
+                mint::ARG_TARGET => account_1_public_key.to_account_hash(),
+                mint::ARG_ID => Option::<u64>::None,
+            },
+        )
+        .build();
+
+        builder
+            .exec(transfer_to_account_1)
+            .expect_success()
+            .commit();
+
+        let public_minting_status = query_stored_value::<bool>(
+            &mut builder,
+            *nft_contract_key,
+            vec![ARG_PUBLIC_MINTING.to_string()],
+        );
+
+        assert!(
+            !public_minting_status,
+            "public minting should be set to false"
+        );
+
+        let nft_mint_request = ExecuteRequestBuilder::contract_call_by_hash(
+            account_1_public_key.to_account_hash(),
+            ContractHash::new(nft_contract_hash),
+            ENTRY_POINT_MINT,
+            runtime_args! {
+                ARG_PUBLIC_KEY => account_1_public_key.clone()
+            },
+        )
+        .build();
+
+        builder.exec(nft_mint_request).expect_failure();
+    }
+
+    #[test]
+    fn should_disallow_minting_for_different_public_key_with_public_minting_set_to_true() {
+        let mut builder = InMemoryWasmTestBuilder::default();
+        builder.run_genesis(&DEFAULT_RUN_GENESIS_REQUEST).commit();
+
+        let install_request =
+            InstallerRequestBuilder::new(*DEFAULT_ACCOUNT_ADDR, NFT_CONTRACT_WASM)
+                .with_total_token_supply(U256::from(100u64))
+                .with_public_minting(Some(true))
+                .build();
+        builder.exec(install_request).expect_success().commit();
+
+        let installing_account = builder.get_expected_account(*DEFAULT_ACCOUNT_ADDR);
+        let nft_contract_key = installing_account
+            .named_keys()
+            .get(CONTRACT_NAME)
+            .expect("must have key in named keys");
+        let nft_contract_hash = nft_contract_key
+            .into_hash()
+            .expect("must convert to hash addr");
+
+        let (_account_1_secret_key, account_1_public_key) = create_dummy_key_pair(ACCOUNT_USER_1);
+        let (_account_2_secret_key, account_2_public_key) = create_dummy_key_pair(ACCOUNT_USER_2);
+
+        let transfer_to_account_1 = ExecuteRequestBuilder::transfer(
+            *DEFAULT_ACCOUNT_ADDR,
+            runtime_args! {
+                mint::ARG_AMOUNT => 100_000_000_000_000u64,
+                mint::ARG_TARGET => account_1_public_key.to_account_hash(),
+                mint::ARG_ID => Option::<u64>::None,
+            },
+        )
+        .build();
+
+        let transfer_to_account_2 = ExecuteRequestBuilder::transfer(
+            *DEFAULT_ACCOUNT_ADDR,
+            runtime_args! {
+                mint::ARG_AMOUNT => 100_000_000_000_000u64,
+                mint::ARG_TARGET => account_1_public_key.to_account_hash(),
+                mint::ARG_ID => Option::<u64>::None,
+            },
+        )
+        .build();
+
+        let transfer_requests = vec![transfer_to_account_1, transfer_to_account_2];
+
+        for request in transfer_requests {
+            builder.exec(request).expect_success().commit();
+        }
+
+        let public_minting_status = query_stored_value::<bool>(
+            &mut builder,
+            *nft_contract_key,
+            vec![ARG_PUBLIC_MINTING.to_string()],
+        );
+
+        assert!(
+            public_minting_status,
+            "public minting should be set to true"
+        );
+
+        let incorrect_nft_minting_request = ExecuteRequestBuilder::contract_call_by_hash(
+            account_1_public_key.to_account_hash(),
+            ContractHash::new(nft_contract_hash),
+            ENTRY_POINT_MINT,
+            runtime_args! {
+                ARG_PUBLIC_KEY => account_2_public_key.clone()
+            },
+        )
+        .build();
+
+        builder.exec(incorrect_nft_minting_request).expect_failure();
+    }
+
+    #[test]
+    fn should_burn_minted_token() {
+        const TOKEN_ID: U256 = U256::zero();
+
         let mut builder = InMemoryWasmTestBuilder::default();
         builder.run_genesis(&DEFAULT_RUN_GENESIS_REQUEST).commit();
 
         let install_request_builder =
             InstallerRequestBuilder::new(*DEFAULT_ACCOUNT_ADDR, NFT_CONTRACT_WASM)
-                .with_total_token_supply(U256::from(2)); //<-- we set higher
+                .with_total_token_supply(U256::from(100u64))
+                .build();
+
         builder
-            .exec(install_request_builder.build())
+            .exec(install_request_builder)
             .expect_success()
             .commit();
 
-        let (_, minter) = create_dummy_key_pair(PUBLICKEY1);
+        let installing_account = builder.get_expected_account(*DEFAULT_ACCOUNT_ADDR);
+        let nft_contract_key = installing_account
+            .named_keys()
+            .get(CONTRACT_NAME)
+            .expect("must have key in named keys");
+        let nft_contract_hash = nft_contract_key
+            .into_hash()
+            .expect("must convert to hash addr");
+
         let mint_request = ExecuteRequestBuilder::contract_call_by_name(
             *DEFAULT_ACCOUNT_ADDR,
             CONTRACT_NAME,
             ENTRY_POINT_MINT,
             runtime_args! {
-                ARG_PUBLIC_KEY => minter.clone()
+                ARG_PUBLIC_KEY => DEFAULT_ACCOUNT_PUBLIC_KEY.clone()
             },
         )
         .build();
+
         builder.exec(mint_request).expect_success().commit();
+
+        let actual_owned_tokens = get_dictionary_value_from_key::<Vec<U256>>(
+            &builder,
+            nft_contract_key,
+            OWNED_TOKENS,
+            &DEFAULT_ACCOUNT_PUBLIC_KEY.clone().to_string(),
+        );
+
+        let expected_owned_tokens = vec![U256::zero()];
+        assert_eq!(expected_owned_tokens, actual_owned_tokens);
+
+        let burn_request = ExecuteRequestBuilder::contract_call_by_name(
+            *DEFAULT_ACCOUNT_ADDR,
+            CONTRACT_NAME,
+            ENTRY_POINT_BURN,
+            runtime_args! {
+                ARG_PUBLIC_KEY => DEFAULT_ACCOUNT_PUBLIC_KEY.clone(),
+                ARG_TOKEN_ID => U256::zero(),
+            },
+        )
+        .build();
+
+        builder.exec(burn_request).expect_success().commit();
+
+        let is_token_burnt = get_dictionary_value_from_key::<()>(
+            &builder,
+            nft_contract_key,
+            BURNT_TOKENS,
+            &TOKEN_ID.to_string(),
+        );
     }
+
+    #[test]
+    fn should_not_burn_previously_burnt_token() {
+        const TOKEN_ID: U256 = U256::zero();
+
+        let mut builder = InMemoryWasmTestBuilder::default();
+        builder.run_genesis(&DEFAULT_RUN_GENESIS_REQUEST).commit();
+
+        let install_request_builder =
+            InstallerRequestBuilder::new(*DEFAULT_ACCOUNT_ADDR, NFT_CONTRACT_WASM)
+                .with_total_token_supply(U256::from(100u64))
+                .build();
+
+        builder
+            .exec(install_request_builder)
+            .expect_success()
+            .commit();
+
+        let installing_account = builder.get_expected_account(*DEFAULT_ACCOUNT_ADDR);
+        let nft_contract_key = installing_account
+            .named_keys()
+            .get(CONTRACT_NAME)
+            .expect("must have key in named keys");
+        let nft_contract_hash = nft_contract_key
+            .into_hash()
+            .expect("must convert to hash addr");
+
+        let mint_request = ExecuteRequestBuilder::contract_call_by_name(
+            *DEFAULT_ACCOUNT_ADDR,
+            CONTRACT_NAME,
+            ENTRY_POINT_MINT,
+            runtime_args! {
+                ARG_PUBLIC_KEY => DEFAULT_ACCOUNT_PUBLIC_KEY.clone()
+            },
+        )
+        .build();
+
+        builder.exec(mint_request).expect_success().commit();
+
+        let actual_owned_tokens = get_dictionary_value_from_key::<Vec<U256>>(
+            &builder,
+            nft_contract_key,
+            OWNED_TOKENS,
+            &DEFAULT_ACCOUNT_PUBLIC_KEY.clone().to_string(),
+        );
+
+        let expected_owned_tokens = vec![U256::zero()];
+        assert_eq!(expected_owned_tokens, actual_owned_tokens);
+
+        let burn_request = ExecuteRequestBuilder::contract_call_by_name(
+            *DEFAULT_ACCOUNT_ADDR,
+            CONTRACT_NAME,
+            ENTRY_POINT_BURN,
+            runtime_args! {
+                ARG_PUBLIC_KEY => DEFAULT_ACCOUNT_PUBLIC_KEY.clone(),
+                ARG_TOKEN_ID => U256::zero(),
+            },
+        )
+        .build();
+
+        builder.exec(burn_request).expect_success().commit();
+
+        let re_burn_request = ExecuteRequestBuilder::contract_call_by_name(
+            *DEFAULT_ACCOUNT_ADDR,
+            CONTRACT_NAME,
+            ENTRY_POINT_BURN,
+            runtime_args! {
+                ARG_PUBLIC_KEY => DEFAULT_ACCOUNT_PUBLIC_KEY.clone(),
+                ARG_TOKEN_ID => U256::zero(),
+            },
+        )
+        .build();
+
+        builder.exec(re_burn_request).expect_failure();
+
+        let error = builder.get_error().expect("must have error");
+        assert!(matches!(
+            error,
+            Error::Exec(execution::Error::Revert(ApiError::User(42)))
+        ))
+    }
+
+    #[test]
+    fn should_not_burn_un_minted_token() {
+        let mut builder = InMemoryWasmTestBuilder::default();
+        builder.run_genesis(&DEFAULT_RUN_GENESIS_REQUEST).commit();
+
+        let install_request_builder =
+            InstallerRequestBuilder::new(*DEFAULT_ACCOUNT_ADDR, NFT_CONTRACT_WASM)
+                .with_total_token_supply(U256::from(100u64))
+                .build();
+
+        builder
+            .exec(install_request_builder)
+            .expect_success()
+            .commit();
+
+        let installing_account = builder.get_expected_account(*DEFAULT_ACCOUNT_ADDR);
+        let nft_contract_key = installing_account
+            .named_keys()
+            .get(CONTRACT_NAME)
+            .expect("must have key in named keys");
+        let nft_contract_hash = nft_contract_key
+            .into_hash()
+            .expect("must convert to hash addr");
+
+        let burn_request = ExecuteRequestBuilder::contract_call_by_name(
+            *DEFAULT_ACCOUNT_ADDR,
+            CONTRACT_NAME,
+            ENTRY_POINT_BURN,
+            runtime_args! {
+                ARG_PUBLIC_KEY => DEFAULT_ACCOUNT_PUBLIC_KEY.clone(),
+                ARG_TOKEN_ID => U256::zero(),
+            },
+        )
+            .build();
+
+        builder.exec(burn_request).expect_failure();
+
+        let error = builder.get_error().expect("must have error");
+        assert!(matches!(
+            error,
+            Error::Exec(execution::Error::Revert(ApiError::User(28)))
+        ))
+    }
+
+    #[test]
+    fn should_disallow_burning_of_others_users_token() {
+        let mut builder = InMemoryWasmTestBuilder::default();
+        builder.run_genesis(&DEFAULT_RUN_GENESIS_REQUEST).commit();
+
+        let install_request_builder =
+            InstallerRequestBuilder::new(*DEFAULT_ACCOUNT_ADDR, NFT_CONTRACT_WASM)
+                .with_total_token_supply(U256::from(100u64))
+                .build();
+
+        builder
+            .exec(install_request_builder)
+            .expect_success()
+            .commit();
+
+        let installing_account = builder.get_expected_account(*DEFAULT_ACCOUNT_ADDR);
+        let nft_contract_key = installing_account
+            .named_keys()
+            .get(CONTRACT_NAME)
+            .expect("must have key in named keys");
+        let nft_contract_hash = nft_contract_key
+            .into_hash()
+            .expect("must convert to hash addr");
+
+        let (_,account_user_1) = create_dummy_key_pair(ACCOUNT_USER_1);
+
+        let transfer_to_account_1 = ExecuteRequestBuilder::transfer(
+            *DEFAULT_ACCOUNT_ADDR,
+            runtime_args! {
+                mint::ARG_AMOUNT => 100_000_000_000_000u64,
+                mint::ARG_TARGET => account_user_1.to_account_hash(),
+                mint::ARG_ID => Option::<u64>::None,
+            },
+        )
+            .build();
+
+        builder.exec(transfer_to_account_1).expect_success().commit();
+
+        let mint_request = ExecuteRequestBuilder::contract_call_by_name(
+            *DEFAULT_ACCOUNT_ADDR,
+            CONTRACT_NAME,
+            ENTRY_POINT_MINT,
+            runtime_args! {
+                ARG_PUBLIC_KEY => DEFAULT_ACCOUNT_PUBLIC_KEY.clone()
+            },
+        )
+            .build();
+
+        builder.exec(mint_request).expect_success().commit();
+
+        let actual_owned_tokens = get_dictionary_value_from_key::<Vec<U256>>(
+            &builder,
+            nft_contract_key,
+            OWNED_TOKENS,
+            &DEFAULT_ACCOUNT_PUBLIC_KEY.clone().to_string(),
+        );
+
+        let expected_owned_tokens = vec![U256::zero()];
+        assert_eq!(expected_owned_tokens, actual_owned_tokens);
+
+        let incorrect_burn_request = ExecuteRequestBuilder::contract_call_by_hash(
+            account_user_1.to_account_hash(),
+            ContractHash::new(nft_contract_hash),
+            ENTRY_POINT_BURN,
+            runtime_args! {
+                ARG_PUBLIC_KEY => DEFAULT_ACCOUNT_PUBLIC_KEY.clone(),
+                ARG_TOKEN_ID => U256::zero(),
+            },
+        )
+            .build();
+
+        builder.exec(incorrect_burn_request)
+            .expect_failure();
+
+        let error = builder.get_error().expect("must have error");
+        assert!(matches!(
+            error,
+            Error::Exec(execution::Error::Revert(ApiError::User(41)))
+        ))
+    }
+
+    #[test]
+    fn should_prevent_burning_on_owner_key_mismatch() {
+        let mut builder = InMemoryWasmTestBuilder::default();
+        builder.run_genesis(&DEFAULT_RUN_GENESIS_REQUEST).commit();
+
+        let install_request_builder =
+            InstallerRequestBuilder::new(*DEFAULT_ACCOUNT_ADDR, NFT_CONTRACT_WASM)
+                .with_total_token_supply(U256::from(100u64))
+                .build();
+
+        builder
+            .exec(install_request_builder)
+            .expect_success()
+            .commit();
+
+        let installing_account = builder.get_expected_account(*DEFAULT_ACCOUNT_ADDR);
+        let nft_contract_key = installing_account
+            .named_keys()
+            .get(CONTRACT_NAME)
+            .expect("must have key in named keys");
+        let nft_contract_hash = nft_contract_key
+            .into_hash()
+            .expect("must convert to hash addr");
+
+        let (_,account_user_1) = create_dummy_key_pair(ACCOUNT_USER_1);
+
+        let transfer_to_account_1 = ExecuteRequestBuilder::transfer(
+            *DEFAULT_ACCOUNT_ADDR,
+            runtime_args! {
+                mint::ARG_AMOUNT => 100_000_000_000_000u64,
+                mint::ARG_TARGET => account_user_1.to_account_hash(),
+                mint::ARG_ID => Option::<u64>::None,
+            },
+        )
+            .build();
+
+        builder.exec(transfer_to_account_1).expect_success().commit();
+
+        let mint_request = ExecuteRequestBuilder::contract_call_by_name(
+            *DEFAULT_ACCOUNT_ADDR,
+            CONTRACT_NAME,
+            ENTRY_POINT_MINT,
+            runtime_args! {
+                ARG_PUBLIC_KEY => DEFAULT_ACCOUNT_PUBLIC_KEY.clone()
+            },
+        )
+            .build();
+
+        builder.exec(mint_request).expect_success().commit();
+
+        let actual_owned_tokens = get_dictionary_value_from_key::<Vec<U256>>(
+            &builder,
+            nft_contract_key,
+            OWNED_TOKENS,
+            &DEFAULT_ACCOUNT_PUBLIC_KEY.clone().to_string(),
+        );
+
+        let expected_owned_tokens = vec![U256::zero()];
+        assert_eq!(expected_owned_tokens, actual_owned_tokens);
+
+        let incorrect_burn_request = ExecuteRequestBuilder::contract_call_by_hash(
+            account_user_1.to_account_hash(),
+            ContractHash::new(nft_contract_hash),
+            ENTRY_POINT_BURN,
+            runtime_args! {
+                ARG_PUBLIC_KEY => account_user_1,
+                ARG_TOKEN_ID => U256::zero()
+            }
+        ).build();
+
+        builder
+            .exec(incorrect_burn_request)
+            .expect_failure();
+
+        let error = builder.get_error().expect("must get error");
+        assert!(matches!(
+            error,
+            Error::Exec(execution::Error::Revert(ApiError::User(6)))
+        ))
+    }
+
+
 
     // #[test]
     // fn minted_tokens_dictionary_should_exist() {
@@ -514,12 +1065,15 @@ mod tests {
             .expect("must get value")
     }
 
+    #[derive(Debug)]
     struct InstallerRequestBuilder {
         account_hash: AccountHash,
         session_file: String,
         collection_name: CLValue,
         collection_symbol: CLValue,
         total_token_supply: CLValue,
+        allow_minting: CLValue,
+        public_minting: CLValue,
     }
 
     impl InstallerRequestBuilder {
@@ -539,6 +1093,8 @@ mod tests {
                     .expect("collection_symbol is legit CLValue"),
                 total_token_supply: CLValue::from_t(U256::zero())
                     .expect("total_token_supply is legit CLValue"),
+                allow_minting: CLValue::from_t(Some(true)).unwrap(),
+                public_minting: CLValue::from_t(Some(false)).unwrap(),
             }
         }
 
@@ -585,11 +1141,25 @@ mod tests {
             self
         }
 
+        fn with_allowing_minting(mut self, allow_minting: Option<bool>) -> Self {
+            self.allow_minting =
+                CLValue::from_t(allow_minting).expect("allow minting is legit CLValue");
+            self
+        }
+
+        fn with_public_minting(mut self, public_minting: Option<bool>) -> Self {
+            self.public_minting =
+                CLValue::from_t(public_minting).expect("public minting is legit CLValue");
+            self
+        }
+
         fn build(self) -> ExecuteRequest {
             let mut runtime_args = RuntimeArgs::new();
             runtime_args.insert_cl_value(ARG_COLLECTION_NAME, self.collection_name);
             runtime_args.insert_cl_value(ARG_COLLECTION_SYMBOL, self.collection_symbol);
             runtime_args.insert_cl_value(ARG_TOTAL_TOKEN_SUPPLY, self.total_token_supply);
+            runtime_args.insert_cl_value(ARG_ALLOW_MINTING, self.allow_minting);
+            runtime_args.insert_cl_value(ARG_PUBLIC_MINTING, self.public_minting);
             ExecuteRequestBuilder::standard(self.account_hash, &self.session_file, runtime_args)
                 .build()
         }

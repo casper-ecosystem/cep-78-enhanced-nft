@@ -2,6 +2,4 @@
 #![no_main]
 
 #[no_mangle]
-pub extern "C" fn call() {
-
-}
+pub extern "C" fn call() {}
