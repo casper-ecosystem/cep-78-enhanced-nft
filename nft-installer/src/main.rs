@@ -44,7 +44,10 @@ fn store() -> (ContractHash, ContractVersion) {
 
         let mint = EntryPoint::new(
             ENTRY_POINT_MINT,
-            vec![Parameter::new(ARG_TOKEN_OWNER, CLType::PublicKey)],
+            vec![
+                Parameter::new(ARG_TOKEN_OWNER, CLType::PublicKey),
+                Parameter::new(ARG_TOKEN_META_DATA, CLType::String),
+            ],
             CLType::Unit,
             EntryPointAccess::Public,
             EntryPointType::Contract,
@@ -61,68 +64,23 @@ fn store() -> (ContractHash, ContractVersion) {
             EntryPointType::Contract,
         );
 
-        // let collection_name = EntryPoint::new(
-        //     ENTRY_POINT_COLLECTION_NAME,
-        //     vec![],
-        //     CLType::String,
-        //     EntryPointAccess::Public,
-        //     EntryPointType::Contract,
-        // );
-
-        // let mint = EntryPoint::new(
-        //     ENTRY_POINT_MINT,
-        //     vec![
-        //         Parameter::new( ARG_TOKEN_OWNER, CLType::PublicKey),
-        //         Parameter::new( ARG_TOKEN_ID, CLType::U256),
-        //         Parameter::new( ARG_TOKEN_NAME, CLType::String),
-        //         Parameter::new( ARG_TOKEN_META, CLType::String),
-        //     ],
-        //     CLType::Unit,
-        //     EntryPointAccess::Public,
-        //     EntryPointType::Contract,
-        // );
-
-        // let burn = EntryPoint::new(
-        //      ENTRY_POINT_BURN,
-        //     vec![
-        //         Parameter::new( ARG_TOKEN_OWNER, CLType::PublicKey),
-        //         Parameter::new( ARG_TOKEN_ID, CLType::U256),
-        //     ],
-        //     CLType::Unit,
-        //     EntryPointAccess::Public,
-        //     EntryPointType::Contract,
-        // );
-
-        // let transfer = EntryPoint::new(
-        //      ENTRY_POINT_TRANSFER,
-        //     vec![
-        //         Parameter::new( ARG_TOKEN_OWNER, CLType::PublicKey),
-        //         Parameter::new( ARG_TOKEN_RECEIVER, CLType::PublicKey),
-        //         Parameter::new( ARG_TOKEN_ID, CLType::U256),
-        //     ],
-        //     CLType::Unit,
-        //     EntryPointAccess::Public,
-        //     EntryPointType::Contract,
-        // );
-
-        // let balance_of = EntryPoint::new(
-        //      ENTRY_POINT_BALANCE_OF,
-        //     vec![Parameter::new(
-        //          ARG_TOKEN_OWNER,
-        //         CLType::PublicKey,
-        //     )],
-        //     CLType::List(Box::new(CLType::U256)),
-        //     EntryPointAccess::Public,
-        //     EntryPointType::Contract,
-        // );
+        let transfer = EntryPoint::new(
+            ENTRY_POINT_TRANSFER,
+            vec![
+                Parameter::new(ARG_TOKEN_ID, CLType::U256),
+                Parameter::new(ARG_TOKEN_SENDER, CLType::PublicKey),
+                Parameter::new(ARG_TOKEN_RECEIVER, CLType::PublicKey),
+            ],
+            CLType::Unit,
+            EntryPointAccess::Public,
+            EntryPointType::Contract,
+        );
 
         entry_points.add_entry_point(init_contract);
         entry_points.add_entry_point(set_variables);
         entry_points.add_entry_point(mint);
         entry_points.add_entry_point(burn);
-
-        // entry_points.add_entry_point(transfer);
-        // entry_points.add_entry_point(balance_of);
+        entry_points.add_entry_point(transfer);
 
         entry_points
     };
@@ -173,7 +131,7 @@ pub extern "C" fn call() {
 
     let public_minting: bool = get_optional_named_arg_with_user_errors(
         ARG_PUBLIC_MINTING,
-        NFTCoreError::MissingPublicMinting,
+        NFTCoreError::MissingPublicMinting, // <-- Useless?
         NFTCoreError::InvalidPublicMinting,
     )
     .unwrap_or(false);
@@ -193,7 +151,7 @@ pub extern "C" fn call() {
              ARG_COLLECTION_SYMBOL => collection_symbol,
              ARG_TOTAL_TOKEN_SUPPLY => total_token_supply,
              ARG_ALLOW_MINTING => allow_minting,
-            ARG_PUBLIC_MINTING => public_minting,
+             ARG_PUBLIC_MINTING => public_minting,
         },
     );
 }
