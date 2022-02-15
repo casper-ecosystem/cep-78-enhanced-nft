@@ -40,6 +40,7 @@ pub const ARG_ALLOW_MINTING: &str = "allow_minting";
 pub const ARG_PUBLIC_MINTING: &str = "public_minting";
 pub const ARG_PUBLIC_KEY: &str = "public_key";
 pub const ARG_TOKEN_META_DATA: &str = "token_meta_data";
+pub const ARG_APPROVE_TRANSFER_FOR_PUBLIC_KEY: &str = "approve_transfer_for_public_key";
 
 // STORAGE is the list of all NFTS
 // Owners is a dictionary owner --> nfts
@@ -68,6 +69,7 @@ pub const ENTRY_POINT_SET_VARIABLES: &str = "set_variables";
 pub const ENTRY_POINT_MINT: &str = "mint";
 pub const ENTRY_POINT_BURN: &str = "burn";
 pub const ENTRY_POINT_TRANSFER: &str = "transfer";
+pub const ENTRY_POINT_APPROVE_TRANSFER: &str = "approve_transfer";
 pub const ENTRY_POINT_BALANCE_OF: &str = "balance_of";
 pub const ENTRY_POINT_COLLECTION_NAME: &str = "collection_name";
 pub const ENTRY_POINT_SET_ALLOW_MINTING: &str = "set_allow_minting";
@@ -123,6 +125,10 @@ pub enum NFTCoreError {
     InvalidNumberOfMintedTokens = 46,
     MissingTokenMetaData = 47,
     InvalidTokenMetaData = 48,
+    MissingApprovedPublicKey = 49,
+    InvalidApprovedPublicKey = 50,
+    MissingApprovedTokensDictionary = 51,
+    TokenAlreadyApproved = 52,
 }
 
 impl From<NFTCoreError> for ApiError {
@@ -193,6 +199,9 @@ pub fn init() {
     let owned_tokens_seed_uref = storage::new_dictionary(OWNED_TOKENS)
         .unwrap_or_revert_with(NFTCoreError::FailedToCreateDictionary);
 
+    let approved_for_transfer_seed_uref = storage::new_dictionary(APPROVED_FOR_TRANSFER)
+        .unwrap_or_revert_with(NFTCoreError::FailedToCreateDictionary);
+
     let burn_tokens_uref = storage::new_dictionary(BURNT_TOKENS)
         .unwrap_or_revert_with(NFTCoreError::FailedToCreateDictionary);
 
@@ -202,6 +211,10 @@ pub fn init() {
     runtime::put_key(TOKEN_OWNERS, token_owners_seed_uref.into());
     runtime::put_key(TOKEN_META_DATA, token_meta_data_seed_uref.into());
     runtime::put_key(OWNED_TOKENS, owned_tokens_seed_uref.into());
+    runtime::put_key(
+        APPROVED_FOR_TRANSFER,
+        approved_for_transfer_seed_uref.into(),
+    );
     runtime::put_key(BURNT_TOKENS, burn_tokens_uref.into());
     runtime::put_key(COLLECTION_NAME, collection_name_uref.into());
     runtime::put_key(COLLECTION_SYMBOL, collection_symbol_uref.into());
@@ -307,38 +320,24 @@ pub fn mint() {
         }
     }
 
-    let token_owners_seed_uref = get_uref_with_user_errors(
+    //Revert if owner already exists, or store minter as owner under token_id
+    match get_dictionary_value_from_key::<PublicKey>(
         TOKEN_OWNERS,
-        NFTCoreError::MissingStorageUref,
-        NFTCoreError::InvalidStorageUref,
-    );
-
-    match storage::dictionary_get::<PublicKey>(
-        token_owners_seed_uref,
         &number_of_minted_tokens.to_string(),
     ) {
-        Ok(None) => storage::dictionary_put(
+        (Some(_), token_owners_seed_uref) => runtime::revert(NFTCoreError::FatalTokenIDDuplication),
+        (None, token_owners_seed_uref) => storage::dictionary_put(
             token_owners_seed_uref,
             &number_of_minted_tokens.to_string(),
             minter_public_key.clone(),
         ),
-        Ok(Some(_)) => runtime::revert(NFTCoreError::FatalTokenIDDuplication),
-        Err(error) => runtime::revert(error),
     };
 
-    let owned_tokens_seed_uref = get_uref_with_user_errors(
-        OWNED_TOKENS,
-        NFTCoreError::MissingStorageUref,
-        NFTCoreError::InvalidStorageUref,
-    );
+    let (mut maybe_owned_tokens, owned_tokens_seed_uref) =
+        get_dictionary_value_from_key::<Vec<U256>>(OWNED_TOKENS, &minter_public_key.to_string());
 
-    let updated_owned_tokens = match storage::dictionary_get::<Vec<U256>>(
-        owned_tokens_seed_uref,
-        &minter_public_key.to_string(),
-    ) {
-        Ok(Some(mut owned_tokens)) => {
-            //This would be an fatal error due to faulty implementation logic.
-            // So perhaps this should be in the text fixture instead?
+    let updated_owned_tokens = match maybe_owned_tokens {
+        Some(mut owned_tokens) => {
             if owned_tokens.contains(&number_of_minted_tokens) {
                 runtime::revert(NFTCoreError::FatalTokenIDDuplication); //<<--- change to correct error
             }
@@ -346,8 +345,7 @@ pub fn mint() {
             owned_tokens.push(number_of_minted_tokens);
             owned_tokens
         }
-        Ok(None) => vec![number_of_minted_tokens],
-        Err(error) => runtime::revert(error),
+        None => vec![number_of_minted_tokens],
     };
 
     //Store the new value
@@ -378,39 +376,27 @@ fn burn() {
     )
     .unwrap_or_revert();
 
+    //Revert if burner is not caller
     if runtime::get_caller() != burner_public_key.to_account_hash() {
         runtime::revert(NFTCoreError::InvalidBurner)
     }
 
-    let token_owners_seed_uref = get_uref_with_user_errors(
-        TOKEN_OWNERS,
-        NFTCoreError::MissingStorageUref,
-        NFTCoreError::InvalidStorageUref,
-    );
-
-    match storage::dictionary_get::<PublicKey>(token_owners_seed_uref, &token_id.to_string()) {
-        Ok(Some(token_owner_public_key)) => {
+    // Revert if burner is not token_owner
+    match get_dictionary_value_from_key::<PublicKey>(TOKEN_OWNERS, &token_id.to_string()) {
+        (Some(token_owner_public_key), _) => {
             if token_owner_public_key != burner_public_key {
                 runtime::revert(NFTCoreError::InvalidTokenOwner)
             }
         }
-        Ok(None) => runtime::revert(NFTCoreError::InvalidTokenID),
-        Err(error) => runtime::revert(error),
+        (None, _) => runtime::revert(NFTCoreError::InvalidTokenID),
     };
 
-    let burnt_tokens_seed_uref = get_uref_with_user_errors(
-        BURNT_TOKENS,
-        NFTCoreError::MissingStorageUref,
-        NFTCoreError::InvalidStorageUref,
-    );
-
-    match storage::dictionary_get::<()>(burnt_tokens_seed_uref, &token_id.to_string()) {
-        // Ok implies a value underneath the item key implying a token has been burnt.
-        Ok(Some(_)) => runtime::revert(NFTCoreError::PreviouslyBurntToken),
-        Ok(None) => storage::dictionary_put(burnt_tokens_seed_uref, &token_id.to_string(), ()),
-        // Err implies that the value was never written and can be burnt.
-        Err(error) => runtime::revert(error),
-    };
+    match get_dictionary_value_from_key::<()>(BURNT_TOKENS, &token_id.to_string()) {
+        (Some(_), _) => runtime::revert(NFTCoreError::PreviouslyBurntToken),
+        (None, burnt_tokens_seed_uref) => {
+            storage::dictionary_put(burnt_tokens_seed_uref, &token_id.to_string(), ())
+        }
+    }
 }
 
 #[no_mangle]
@@ -422,18 +408,9 @@ fn transfer() {
     )
     .unwrap_or_revert();
 
-    let burnt_tokens_seed_uref = get_uref_with_user_errors(
-        BURNT_TOKENS,
-        NFTCoreError::MissingStorageUref,
-        NFTCoreError::InvalidStorageUref,
-    );
-
-    // Error out if we are trying to burn token
-    if let Some(()) = storage::dictionary_get::<()>(burnt_tokens_seed_uref, &token_id.to_string())
-        .unwrap_or_revert_with(NFTCoreError::MissingStorageUref)
-    {
+    if let (Some(_), _) = get_dictionary_value_from_key::<()>(BURNT_TOKENS, &token_id.to_string()) {
         runtime::revert(NFTCoreError::PreviouslyBurntToken);
-    };
+    }
 
     let sender_public_key: PublicKey = get_named_arg_with_user_errors(
         ARG_TOKEN_SENDER,
@@ -449,15 +426,8 @@ fn transfer() {
     )
     .unwrap_or_revert();
 
-    let token_owners_seed_uref = get_uref_with_user_errors(
-        TOKEN_OWNERS,
-        NFTCoreError::MissingStorageUref,
-        NFTCoreError::InvalidStorageUref,
-    );
-
-    //Change token owner dictionary
-    match storage::dictionary_get::<PublicKey>(token_owners_seed_uref, &token_id.to_string()) {
-        Ok(Some(token_actual_owner_public_key)) => {
+    match get_dictionary_value_from_key::<PublicKey>(TOKEN_OWNERS, &token_id.to_string()) {
+        (Some(token_actual_owner_public_key), token_owners_seed_uref) => {
             if token_actual_owner_public_key != sender_public_key {
                 runtime::revert(NFTCoreError::InvalidTokenOwner)
             }
@@ -468,24 +438,11 @@ fn transfer() {
                 receiver_public_key.clone(),
             );
         }
-        Ok(None) => {
-            runtime::print("-------------------------invalid token in Ok(None)");
-            runtime::revert(NFTCoreError::InvalidTokenID)
-        }
-        Err(error) => runtime::revert(error),
-    };
+        (None, _) => runtime::revert(NFTCoreError::InvalidTokenID),
+    }
 
-    let owned_tokens_seed_uref = get_uref_with_user_errors(
-        OWNED_TOKENS,
-        NFTCoreError::MissingStorageUref,
-        NFTCoreError::InvalidStorageUref,
-    );
-
-    match storage::dictionary_get::<Vec<U256>>(
-        owned_tokens_seed_uref,
-        &sender_public_key.to_string(),
-    ) {
-        Ok(Some(mut owned_tokens)) => {
+    match get_dictionary_value_from_key::<Vec<U256>>(OWNED_TOKENS, &sender_public_key.to_string()) {
+        (Some(mut owned_tokens), owned_tokens_seed_uref) => {
             if let Some(id) = owned_tokens.iter().position(|id| *id == token_id) {
                 owned_tokens.remove(id);
             } else {
@@ -498,15 +455,12 @@ fn transfer() {
                 owned_tokens,
             );
         }
-        Ok(None) => runtime::revert(NFTCoreError::InvalidTokenID),
-        Err(error) => runtime::revert(error),
-    };
+        (None, owned_tokens_seed_uref) => runtime::revert(NFTCoreError::InvalidTokenID),
+    }
 
-    match storage::dictionary_get::<Vec<U256>>(
-        owned_tokens_seed_uref,
-        &receiver_public_key.to_string(),
-    ) {
-        Ok(Some(mut owned_tokens)) => {
+    match get_dictionary_value_from_key::<Vec<U256>>(OWNED_TOKENS, &receiver_public_key.to_string())
+    {
+        (Some(mut owned_tokens), owned_tokens_seed_uref) => {
             if let Some(_) = owned_tokens.iter().position(|id| *id == token_id) {
                 runtime::revert(NFTCoreError::FatalTokenIDDuplication)
             } else {
@@ -519,7 +473,7 @@ fn transfer() {
                 owned_tokens,
             );
         }
-        Ok(None) => {
+        (None, owned_tokens_seed_uref) => {
             let owned_tokens = vec![token_id];
             storage::dictionary_put(
                 owned_tokens_seed_uref,
@@ -527,8 +481,69 @@ fn transfer() {
                 owned_tokens,
             );
         }
-        Err(error) => runtime::revert(error),
-    };
+    }
+}
+
+#[no_mangle]
+fn approve_transfer() {
+    let token_owner = get_named_arg_with_user_errors::<PublicKey>(
+        ARG_TOKEN_OWNER,
+        NFTCoreError::MissingTokenOwner,
+        NFTCoreError::InvalidTokenOwner,
+    )
+    .unwrap_or_revert();
+
+    //Revert if incorrect caller
+    if token_owner.to_account_hash() != runtime::get_caller() {
+        runtime::revert(NFTCoreError::InvalidAccount);
+    }
+
+    let token_id = get_named_arg_with_user_errors::<U256>(
+        ARG_TOKEN_ID,
+        NFTCoreError::MissingTokenID,
+        NFTCoreError::InvalidTokenID,
+    )
+    .unwrap_or_revert();
+
+    if let (Some(_), _) = get_dictionary_value_from_key::<()>(BURNT_TOKENS, &token_id.to_string()) {
+        runtime::revert(NFTCoreError::PreviouslyBurntToken);
+    }
+
+    let (number_of_minted_tokens, _) = get_stored_value_with_user_errors::<U256>(
+        NUMBER_OF_MINTED_TOKENS,
+        NFTCoreError::MissingNumberOfMintedTokens,
+        NFTCoreError::InvalidNumberOfMintedTokens,
+    );
+
+    // Revert if token_id is out of bounds
+    if token_id >= number_of_minted_tokens {
+        runtime::revert(NFTCoreError::InvalidTokenID);
+    }
+
+    let token_owner = get_named_arg_with_user_errors::<PublicKey>(
+        ARG_TOKEN_OWNER,
+        NFTCoreError::MissingTokenOwner,
+        NFTCoreError::InvalidTokenOwner,
+    )
+    .unwrap_or_revert();
+
+    let approve_for_public_key = get_named_arg_with_user_errors::<PublicKey>(
+        ARG_APPROVE_TRANSFER_FOR_PUBLIC_KEY,
+        NFTCoreError::MissingApprovedPublicKey,
+        NFTCoreError::InvalidApprovedPublicKey,
+    )
+    .unwrap_or_revert();
+
+    if token_owner == approve_for_public_key {
+        runtime::revert(NFTCoreError::InvalidAccount); //Do we need a better error here?
+    }
+
+    match get_dictionary_value_from_key::<PublicKey>(APPROVED_FOR_TRANSFER, &token_id.to_string()) {
+        (Some(approved), _) => runtime::revert(NFTCoreError::TokenAlreadyApproved),
+        (None, approved_uref) => {
+            storage::dictionary_put(approved_uref, &token_id.to_string(), approve_for_public_key);
+        }
+    }
 }
 
 // #[no_mangle]
@@ -554,14 +569,32 @@ fn transfer() {
 //     storage::write(uref, value);
 // }
 
-// This is using list_named_keys
+////////////////////////////////////////////////////////////////////////////////
+//////////////////////////////// Helper methods ////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////
+
+fn get_dictionary_value_from_key<T: CLTyped + FromBytes>(
+    dictionary_name: &str,
+    key: &str,
+) -> (Option<T>, URef) {
+    let seed_uref = get_uref_with_user_errors(
+        dictionary_name,
+        NFTCoreError::MissingStorageUref,
+        NFTCoreError::InvalidStorageUref,
+    );
+
+    match storage::dictionary_get::<T>(seed_uref, key) {
+        Ok(value) => (value, seed_uref),
+        Err(error) => runtime::revert(error),
+    }
+}
+
 fn get_stored_value_with_user_errors<T: CLTyped + FromBytes>(
     name: &str,
     missing: NFTCoreError,
     invalid: NFTCoreError,
 ) -> (T, URef) {
     let uref = get_uref_with_user_errors(name, missing, invalid);
-
     (read_with_user_errors(uref, missing, invalid), uref)
 }
 

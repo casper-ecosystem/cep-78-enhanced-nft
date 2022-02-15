@@ -34,6 +34,7 @@ mod tests {
     pub const ENTRY_POINT_MINT: &str = "mint";
     pub const ENTRY_POINT_BURN: &str = "burn";
     pub const ENTRY_POINT_TRANSFER: &str = "transfer";
+    const ENTRY_POINT_APPROVE_TRANSFER: &str = "approve_transfer";
     pub const ENTRY_POINT_BALANCE_OF: &str = "balance_of";
 
     const ARG_COLLECTION_NAME: &str = "collection_name";
@@ -45,17 +46,17 @@ mod tests {
     const NUMBER_OF_MINTED_TOKENS: &str = "number_of_minted_tokens";
     const ARG_TOKEN_META_DATA: &str = "token_meta_data";
     const TOKEN_META_DATA: &str = "token_meta_data";
+    pub const ARG_TOKEN_OWNER: &str = "token_owner";
 
     const TOKEN_OWNERS: &str = "token_owners";
     const OWNED_TOKENS: &str = "owned_tokens";
     const BURNT_TOKENS: &str = "burnt_tokens";
+    const APPROVED_FOR_TRANSFER: &str = "approved_for_transfer";
 
-    //const ARG_TOKEN_OWNER: &str = "token_owner";
     const ARG_TOKEN_SENDER: &str = "token_sender";
     const ARG_TOKEN_RECEIVER: &str = "token_receiver";
-    // const ARG_TOKEN_NAME: &str = "token_name";
-    // const ARG_TOKEN_META: &str = "token_meta";
     const ARG_TOKEN_ID: &str = "token_id";
+    const ARG_APPROVE_TRANSFER_FOR_PUBLIC_KEY: &str = "approve_transfer_for_public_key";
 
     const ACCOUNT_USER_1: [u8; 32] = [1u8; 32];
     const ACCOUNT_USER_2: [u8; 32] = [2u8; 32];
@@ -1017,6 +1018,74 @@ mod tests {
 
         let expected_owned_tokens = vec![U256::zero()]; //Change zero() to one() for red test
         assert_eq!(actual_owned_tokens, expected_owned_tokens);
+    }
+
+    #[test]
+    fn approve_token_for_transfer_should_add_entry_to_approved_dictionary() {
+        let mut builder = InMemoryWasmTestBuilder::default();
+        builder.run_genesis(&DEFAULT_RUN_GENESIS_REQUEST).commit();
+
+        let install_request =
+            InstallerRequestBuilder::new(*DEFAULT_ACCOUNT_ADDR, NFT_CONTRACT_WASM)
+                .with_collection_name(NFT_TEST_COLLECTION.to_string())
+                .with_collection_symbol(NFT_TEST_SYMBOL.to_string())
+                .with_total_token_supply(U256::one())
+                .build();
+
+        builder.exec(install_request).expect_success().commit();
+
+        let account = builder.get_expected_account(*DEFAULT_ACCOUNT_ADDR);
+        let nft_contract_hash = account
+            .named_keys()
+            .get(CONTRACT_NAME)
+            .cloned()
+            .and_then(Key::into_hash)
+            .map(ContractHash::new)
+            .expect("failed to find nft contract");
+
+        let token_owner = DEFAULT_ACCOUNT_PUBLIC_KEY.clone();
+        let mint_request = ExecuteRequestBuilder::contract_call_by_hash(
+            *DEFAULT_ACCOUNT_ADDR,
+            nft_contract_hash,
+            ENTRY_POINT_MINT,
+            runtime_args! {
+                ARG_PUBLIC_KEY => token_owner.clone(),
+                ARG_TOKEN_META_DATA=>TEST_META_DATA.to_string(),
+            },
+        )
+        .build();
+
+        builder.exec(mint_request).expect_success().commit();
+
+        let (_, approve_public_key) = create_dummy_key_pair(ACCOUNT_USER_1);
+        let approve_request = ExecuteRequestBuilder::contract_call_by_hash(
+            *DEFAULT_ACCOUNT_ADDR,
+            nft_contract_hash,
+            ENTRY_POINT_APPROVE_TRANSFER,
+            runtime_args! {
+                ARG_TOKEN_ID => U256::zero(),
+                ARG_TOKEN_OWNER => token_owner.clone(),
+                ARG_APPROVE_TRANSFER_FOR_PUBLIC_KEY => approve_public_key.clone()
+            },
+        )
+        .build();
+
+        builder.exec(approve_request).expect_success().commit();
+
+        let installing_account = builder.get_expected_account(*DEFAULT_ACCOUNT_ADDR);
+        let nft_contract_key = installing_account
+            .named_keys()
+            .get(CONTRACT_NAME)
+            .expect("must have key in named keys");
+
+        let actual_approved_public_key: PublicKey = get_dictionary_value_from_key(
+            &builder,
+            nft_contract_key,
+            APPROVED_FOR_TRANSFER,
+            &U256::zero().to_string(),
+        );
+
+        assert_eq!(actual_approved_public_key, approve_public_key);
     }
     ////////////////////////////////////////////////////////////////////////////////
     //////////////////////////////// Helper methods ////////////////////////////////

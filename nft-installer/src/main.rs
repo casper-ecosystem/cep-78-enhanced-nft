@@ -76,11 +76,24 @@ fn store() -> (ContractHash, ContractVersion) {
             EntryPointType::Contract,
         );
 
+        let approve_token_for_transfer = EntryPoint::new(
+            ENTRY_POINT_APPROVE_TRANSFER,
+            vec![
+                Parameter::new(ARG_TOKEN_ID, CLType::U256),
+                Parameter::new(ARG_TOKEN_OWNER, CLType::PublicKey),
+                Parameter::new(ARG_APPROVE_TRANSFER_FOR_PUBLIC_KEY, CLType::PublicKey),
+            ],
+            CLType::Unit,
+            EntryPointAccess::Public,
+            EntryPointType::Contract,
+        );
+
         entry_points.add_entry_point(init_contract);
         entry_points.add_entry_point(set_variables);
         entry_points.add_entry_point(mint);
         entry_points.add_entry_point(burn);
         entry_points.add_entry_point(transfer);
+        entry_points.add_entry_point(approve_token_for_transfer);
 
         entry_points
     };
