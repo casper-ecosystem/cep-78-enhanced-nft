@@ -10,7 +10,7 @@ use casper_contract::unwrap_or_revert::UnwrapOrRevert;
 use casper_types::contracts::NamedKeys;
 use casper_types::{
     runtime_args, CLType, ContractHash, ContractVersion, EntryPoint, EntryPointAccess,
-    EntryPointType, EntryPoints, Key, Parameter, PublicKey, RuntimeArgs, U256,
+    EntryPointType, EntryPoints, Key, Parameter, RuntimeArgs, U256,
 };
 
 use nft_contract::*;
@@ -44,10 +44,7 @@ fn store() -> (ContractHash, ContractVersion) {
 
         let mint = EntryPoint::new(
             ENTRY_POINT_MINT,
-            vec![
-                Parameter::new(ARG_TOKEN_OWNER, CLType::PublicKey),
-                Parameter::new(ARG_TOKEN_META_DATA, CLType::String),
-            ],
+            vec![Parameter::new(ARG_TOKEN_META_DATA, CLType::String)],
             CLType::Unit,
             EntryPointAccess::Public,
             EntryPointType::Contract,
@@ -55,10 +52,7 @@ fn store() -> (ContractHash, ContractVersion) {
 
         let burn = EntryPoint::new(
             ENTRY_POINT_BURN,
-            vec![
-                Parameter::new(ARG_TOKEN_OWNER, CLType::PublicKey),
-                Parameter::new(ARG_TOKEN_ID, CLType::U256),
-            ],
+            vec![Parameter::new(ARG_TOKEN_ID, CLType::U256)],
             CLType::Unit,
             EntryPointAccess::Public,
             EntryPointType::Contract,
@@ -68,20 +62,19 @@ fn store() -> (ContractHash, ContractVersion) {
             ENTRY_POINT_TRANSFER,
             vec![
                 Parameter::new(ARG_TOKEN_ID, CLType::U256),
-                Parameter::new(ARG_TOKEN_SENDER, CLType::PublicKey),
-                Parameter::new(ARG_TOKEN_RECEIVER, CLType::PublicKey),
+                Parameter::new(ARG_FROM_ACCOUNT_HASH, CLType::String),
+                Parameter::new(ARG_TO_ACCOUNT_HASH, CLType::String),
             ],
             CLType::Unit,
             EntryPointAccess::Public,
             EntryPointType::Contract,
         );
 
-        let approve_token_for_transfer = EntryPoint::new(
-            ENTRY_POINT_APPROVE_TRANSFER,
+        let approve = EntryPoint::new(
+            ENTRY_POINT_APPROVE,
             vec![
                 Parameter::new(ARG_TOKEN_ID, CLType::U256),
-                Parameter::new(ARG_TOKEN_OWNER, CLType::PublicKey),
-                Parameter::new(ARG_APPROVE_TRANSFER_FOR_PUBLIC_KEY, CLType::PublicKey),
+                Parameter::new(ARG_APPROVE_TRANSFER_FOR_ACCOUNT_HASH, CLType::String),
             ],
             CLType::Unit,
             EntryPointAccess::Public,
@@ -93,7 +86,7 @@ fn store() -> (ContractHash, ContractVersion) {
         entry_points.add_entry_point(mint);
         entry_points.add_entry_point(burn);
         entry_points.add_entry_point(transfer);
-        entry_points.add_entry_point(approve_token_for_transfer);
+        entry_points.add_entry_point(approve);
 
         entry_points
     };
