@@ -681,18 +681,22 @@ fn owner_of() {
     )
     .unwrap_or_revert();
 
-    let number_of_minted_tokens = get_stored_value_with_user_errors::<U256>(
+    let (number_of_minted_tokens, _) = get_stored_value_with_user_errors::<U256>(
         NUMBER_OF_MINTED_TOKENS,
         NFTCoreError::MissingNumberOfMintedTokens,
         NFTCoreError::InvalidNumberOfMintedTokens,
     );
+
+    if token_id <= number_of_minted_tokens {
+        runtime::revert(NFTCoreError::InvalidTokenID); // Do we really want to revert here?
+    }
 
     let (maybe_token_owner, _) =
         get_dictionary_value_from_key::<String>(TOKEN_OWNERS, &token_id.to_string());
 
     let token_owner = match maybe_token_owner {
         Some(token_owner) => token_owner,
-        None => "".to_string(), //<-- Is this a good account_hash to return if token does not exist?
+        None => "".to_string(),
     };
 
     let token_owner_cl_value =
