@@ -2,25 +2,22 @@
 
 extern crate alloc;
 
-use alloc::format;
+//use alloc::format;
 use alloc::string::{String, ToString};
 use alloc::{vec, vec::Vec};
-use casper_types::account::Account;
-use casper_types::{CLType, U256};
+use casper_types::U256;
 use core::mem::MaybeUninit;
 
-use casper_contract::contract_api::runtime::revert;
 use casper_contract::{
-    contract_api::{self, runtime, storage, system},
+    contract_api::{self, runtime, storage},
     ext_ffi,
     unwrap_or_revert::UnwrapOrRevert,
 };
-use casper_types::bytesrepr::Error;
 use casper_types::{
     account::AccountHash,
     api_error,
     bytesrepr::{self, FromBytes, ToBytes},
-    ApiError, BlockTime, CLTyped, CLValue, Key, URef, U512,
+    ApiError, CLTyped, CLValue, Key, URef,
 };
 
 //use sha2::{Digest, Sha256};
@@ -312,7 +309,7 @@ pub fn mint() {
         (None, token_meta_data_seed_uref) => storage::dictionary_put(
             token_meta_data_seed_uref,
             &number_of_minted_tokens.to_string(),
-            token_meta_data.clone(),
+            token_meta_data,
         ),
     }
 
@@ -330,8 +327,8 @@ pub fn mint() {
     };
 
     // Update owned tokens dictionary
-    let (mut maybe_owned_tokens, owned_tokens_seed_uref) =
-        get_dictionary_value_from_key::<Vec<U256>>(OWNED_TOKENS, &caller.to_string());
+    let (maybe_owned_tokens, owned_tokens_seed_uref) =
+        get_dictionary_value_from_key::<Vec<U256>>(OWNED_TOKENS, &caller);
 
     let updated_owned_tokens = match maybe_owned_tokens {
         Some(mut owned_tokens) => {
@@ -346,14 +343,10 @@ pub fn mint() {
     };
 
     //Store the udated owned tokens vec in dictionary
-    storage::dictionary_put(
-        owned_tokens_seed_uref,
-        &caller.to_string(),
-        updated_owned_tokens.clone(),
-    );
+    storage::dictionary_put(owned_tokens_seed_uref, &caller, updated_owned_tokens);
 
     // Increment number_of_minted_tokens by one
-    number_of_minted_tokens = number_of_minted_tokens + U256::one();
+    number_of_minted_tokens += U256::one();
     storage::write(number_of_minted_tokens_uref, number_of_minted_tokens);
 }
 
@@ -557,7 +550,7 @@ fn transfer() {
     let caller = runtime::get_caller().to_string();
 
     // Check if caller is approved to execute transfer
-    let (is_approved, approved_uref, maybe_approved_uref) =
+    let (is_approved, _, _) =
         match get_dictionary_value_from_key::<String>(APPROVED_FOR_TRANSFER, &token_id.to_string())
         {
             (Some(approved_account_hash), approved_uref) => (
@@ -597,7 +590,7 @@ fn transfer() {
     }
 
     // Update to_account owned_tokens. Revert if owned_tokens list is not found
-    match get_dictionary_value_from_key::<Vec<U256>>(OWNED_TOKENS, &from_account_hash.to_string()) {
+    match get_dictionary_value_from_key::<Vec<U256>>(OWNED_TOKENS, &from_account_hash) {
         (Some(mut owned_tokens), owned_tokens_seed_uref) => {
             // Check that token_id is in owned tokens list. If so remove token_id from list
             // If not revert.
@@ -618,27 +611,19 @@ fn transfer() {
     }
 
     // Update to_account owned_tokens
-    match get_dictionary_value_from_key::<Vec<U256>>(OWNED_TOKENS, &to_account_hash.to_string()) {
+    match get_dictionary_value_from_key::<Vec<U256>>(OWNED_TOKENS, &to_account_hash) {
         (Some(mut owned_tokens), owned_tokens_seed_uref) => {
-            if let Some(_) = owned_tokens.iter().position(|id| *id == token_id) {
+            if owned_tokens.iter().any(|id| *id == token_id) {
                 runtime::revert(NFTCoreError::FatalTokenIDDuplication)
             } else {
                 owned_tokens.push(token_id);
             }
 
-            storage::dictionary_put(
-                owned_tokens_seed_uref,
-                &to_account_hash.to_string(),
-                owned_tokens,
-            );
+            storage::dictionary_put(owned_tokens_seed_uref, &to_account_hash, owned_tokens);
         }
         (None, owned_tokens_seed_uref) => {
             let owned_tokens = vec![token_id];
-            storage::dictionary_put(
-                owned_tokens_seed_uref,
-                &to_account_hash.to_string(),
-                owned_tokens,
-            );
+            storage::dictionary_put(owned_tokens_seed_uref, &to_account_hash, owned_tokens);
         }
     }
 
@@ -663,7 +648,7 @@ fn balance_of() {
         get_dictionary_value_from_key::<Vec<U256>>(OWNED_TOKENS, &account_hash);
 
     let balance = match maybe_owned_tokens {
-        Some(owned_tokens) => owned_tokens.iter().count(),
+        Some(owned_tokens) => owned_tokens.len(),
         None => 0,
     };
 
@@ -724,10 +709,7 @@ fn token_exists() {
     let token_exists = if token_id < number_of_minted_tokens {
         let (maybe_burnt, _) =
             get_dictionary_value_from_key::<()>(BURNT_TOKENS, &token_id.to_string());
-        match maybe_burnt {
-            Some(_) => false,
-            None => true,
-        }
+        maybe_burnt.is_none()
     } else {
         false
     };
@@ -747,9 +729,7 @@ fn get_approved() {
     )
     .unwrap_or_revert();
 
-    if let (Some(burnt), _) =
-        get_dictionary_value_from_key::<()>(BURNT_TOKENS, &token_id.to_string())
-    {
+    if let (Some(_), _) = get_dictionary_value_from_key::<()>(BURNT_TOKENS, &token_id.to_string()) {
         runtime::revert(NFTCoreError::PreviouslyBurntToken);
     }
 
@@ -882,27 +862,27 @@ pub fn get_named_arg_with_user_errors<T: FromBytes>(
 // Test1: check to see if created account exists
 // Test2: check to see if not-created account exists
 
-fn read_optional_account_with_user_errors(key: Key, invalid: NFTCoreError) -> Option<Account> {
-    let (key_ptr, key_size, _bytes) = to_ptr(key);
+// fn read_optional_account_with_user_errors(key: Key, invalid: NFTCoreError) -> Option<Account> {
+//     let (key_ptr, key_size, _bytes) = to_ptr(key);
 
-    let value_size = {
-        let mut value_size = MaybeUninit::uninit();
-        let ret = unsafe { ext_ffi::casper_read_value(key_ptr, key_size, value_size.as_mut_ptr()) };
-        match api_error::result_from(ret) {
-            Ok(_) => unsafe { value_size.assume_init() },
-            Err(ApiError::ValueNotFound) => return None,
-            Err(e) => runtime::revert(e),
-        }
-    };
+//     let value_size = {
+//         let mut value_size = MaybeUninit::uninit();
+//         let ret = unsafe { ext_ffi::casper_read_value(key_ptr, key_size, value_size.as_mut_ptr()) };
+//         match api_error::result_from(ret) {
+//             Ok(_) => unsafe { value_size.assume_init() },
+//             Err(ApiError::ValueNotFound) => return None,
+//             Err(e) => runtime::revert(e),
+//         }
+//     };
 
-    let value_bytes = read_host_buffer(value_size).unwrap_or_revert();
-    match bytesrepr::deserialize::<Account>(value_bytes) {
-        Ok(account) => return Some(account),
-        Err(_) => {
-            runtime::revert(invalid);
-        }
-    }
-}
+//     let value_bytes = read_host_buffer(value_size).unwrap_or_revert();
+//     match bytesrepr::deserialize::<Account>(value_bytes) {
+//         Ok(account) => Some(account),
+//         Err(_) => {
+//             runtime::revert(invalid);
+//         }
+//     }
+// }
 
 fn get_account_hash_with_user_errors(
     name: &str,

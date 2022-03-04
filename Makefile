@@ -11,18 +11,22 @@ test: build-contract
 	cd nft-tests && cargo test
 
 clippy:
-	cd contract && cargo clippy --all-targets -- -D warnings
-	cd tests && cargo clippy --all-targets -- -D warnings
+	cd nft-core/contract && cargo clippy --all-targets -- -D warnings
+	cd nft-installer && cargo clippy --all-targets -- -D warnings
+	cd nft-tests && cargo clippy --all-targets -- -D warnings
 
 check-lint: clippy
-	cd contract && cargo fmt -- --check
-	cd tests && cargo fmt -- --check
+	cd nft-core/contract && cargo fmt -- --check
+	cd nft-installer && cargo fmt -- --check
+	cd nft-tests && cargo fmt -- --check
 
 lint: clippy
-	cd contract && cargo fmt
-	cd tests && cargo fmt
+	cd nft-core/contract && cargo fmt
+	cd nft-installer && cargo fmt
+	cd nft-tests && cargo fmt
 
 clean:
+	cd nft-core/contract && cargo clean
 	cd nft-installer && cargo clean
 	cd nft-tests && cargo clean
 	rm -rf nft-tests/wasm
