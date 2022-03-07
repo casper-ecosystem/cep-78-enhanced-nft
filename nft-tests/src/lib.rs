@@ -168,6 +168,10 @@ mod tests {
         )
         .build();
         builder.exec(init_request).expect_failure();
+
+        let error = builder.get_error().expect("must have error");
+
+        assert_expected_error(error, 58u16);
     }
 
     #[test]
