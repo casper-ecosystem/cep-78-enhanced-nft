@@ -51,6 +51,16 @@ fn store() -> (ContractHash, ContractVersion) {
             EntryPointType::Contract,
         );
 
+        // Meant to be called post installation.
+        // When a token is minted the calling account is listed as its owner, is assigned an U256
+        // ID equal to the current number_of_minted_tokens. After, the number_of_minted_tokens is
+        // increamented by one. Before minting the token the entrypoint checks if number_of_minted_tokens
+        // exceed the total_token_supply. If so, it reverts the minting with an error TokenSupplyDepleted.
+        // The mint entrypoint also checks whether the calling account is the managing account (the installer)
+        // If not, and if public_minting is set to false, it reverts with the error InvalidAccount.
+        // The newly minted token is automatically assigned a U256 ID equal to the current number_of_minted_tokens.
+        // The account is listed as the token owner, as well as added to the accounts list of owned tokens.
+        // After minting is successful the number_of_minted_tokens is incremented by one.
         let mint = EntryPoint::new(
             ENTRY_POINT_MINT,
             vec![Parameter::new(ARG_TOKEN_META_DATA, CLType::String)],
@@ -58,6 +68,12 @@ fn store() -> (ContractHash, ContractVersion) {
             EntryPointAccess::Public,
             EntryPointType::Contract,
         );
+
+        // Meant to be called post installation.
+        // Looks up the owner of the supplied token_id arg. If caller is not owner we revert with error
+        // InvalidTokenOwner. If token id is invalid (e.g. out of bounds) it reverts with error  InvalidTokenID.
+        // If token is listed as already burnt we revert with error PreviouslyBurntTOken. If not the token is
+        // listed as burnt.
 
         let burn = EntryPoint::new(
             ENTRY_POINT_BURN,
@@ -67,6 +83,11 @@ fn store() -> (ContractHash, ContractVersion) {
             EntryPointType::Contract,
         );
 
+        // Meant to be called post installation.
+        // Looks up the owner of the supplied token_id arg. If caller is not owner we revert with error
+        // InvalidTokenOwner. If token id is invalid (e.g. out of bounds) it reverts with error  InvalidTokenID.
+        // If token is listed as already burnt we revert with error PreviouslyBurntTOken. If not the token is
+        // listed as burnt.
         let transfer = EntryPoint::new(
             ENTRY_POINT_TRANSFER,
             vec![
