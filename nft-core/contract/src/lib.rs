@@ -132,6 +132,7 @@ pub enum NFTCoreError {
     InvalidApproveAll = 54,
     MissingOperator = 55,
     InvalidOperator = 56,
+    Phantom = 57,
 }
 
 impl From<NFTCoreError> for ApiError {
@@ -142,6 +143,12 @@ impl From<NFTCoreError> for ApiError {
 
 #[no_mangle]
 pub fn init() {
+    let x = get_uref_with_user_errors(
+        ARG_COLLECTION_NAME,
+        NFTCoreError::Phantom,
+        NFTCoreError::Phantom,
+    );
+
     let installing_account = get_account_hash_with_user_errors(
         INSTALLER,
         NFTCoreError::MissingInstaller,
@@ -243,7 +250,6 @@ pub fn set_variables() {
     if let Some(allow_minting) = get_optional_named_arg_with_user_errors::<bool>(
         ARG_ALLOW_MINTING,
         NFTCoreError::MissingAllowMinting, // Think about if these are appropriate errors...
-        NFTCoreError::InvalidAllowMinting,
     ) {
         let allow_minting_uref = get_uref_with_user_errors(
             ALLOW_MINTING,
@@ -364,6 +370,7 @@ fn burn() {
     // Revert if caller is not token_owner. This seems to be the only check we need to do.
     match get_dictionary_value_from_key::<String>(TOKEN_OWNERS, &token_id.to_string()) {
         (Some(token_owner_account_hash), _) => {
+            // ??? Do we want to allow the approved account (the operator to burn its tokens?)
             if token_owner_account_hash != caller {
                 runtime::revert(NFTCoreError::InvalidTokenOwner)
             }
@@ -722,12 +729,9 @@ fn token_exists() {
 // Returns approved account_hash from token_id, throws error if token id is not valid
 #[no_mangle]
 fn get_approved() {
-    let token_id = get_optional_named_arg_with_user_errors::<U256>(
-        ARG_TOKEN_ID,
-        NFTCoreError::MissingTokenID,
-        NFTCoreError::InvalidTokenID,
-    )
-    .unwrap_or_revert();
+    let token_id =
+        get_optional_named_arg_with_user_errors::<U256>(ARG_TOKEN_ID, NFTCoreError::InvalidTokenID)
+            .unwrap_or_revert();
 
     if let (Some(_), _) = get_dictionary_value_from_key::<()>(BURNT_TOKENS, &token_id.to_string()) {
         runtime::revert(NFTCoreError::PreviouslyBurntToken);
@@ -817,10 +821,9 @@ fn get_named_arg_size(name: &str) -> Option<usize> {
 
 pub fn get_optional_named_arg_with_user_errors<T: FromBytes>(
     name: &str,
-    missing: NFTCoreError,
     invalid: NFTCoreError,
 ) -> Option<T> {
-    match get_named_arg_with_user_errors(name, missing, invalid) {
+    match get_named_arg_with_user_errors(name, NFTCoreError::Phantom, invalid) {
         Ok(val) => val,
         Err(err @ NFTCoreError::InvalidInstaller) => runtime::revert(err),
         Err(e) => runtime::revert(e),

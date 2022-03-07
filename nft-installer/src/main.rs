@@ -19,6 +19,9 @@ fn store() -> (ContractHash, ContractVersion) {
     let entry_points = {
         let mut entry_points = EntryPoints::new();
 
+        // Required to be called during the session where the contract is installed immedetialy after
+        // the contract has been installed but before exiting. All parameters are required.
+        // This entrypoint is intended to be called exactly once and will error if called more than once.
         let init_contract = EntryPoint::new(
             ENTRY_POINT_INIT,
             vec![
@@ -33,7 +36,13 @@ fn store() -> (ContractHash, ContractVersion) {
             EntryPointType::Contract,
         );
 
-        // TODO: update once we've figured out what variables can be set.
+        // Meant to be called by the managing account post installation
+        // if a variable needs to be changed. Each parameter of the entrypoint
+        // should only be passed if that variable is changed.
+        // For instance if the allow_minting variable is being changed and nothing else
+        // the managing account would send the new allow_minting value as the only argument.
+        // If no arguments are provided it is essentially a no-operation, however there
+        // is still a gas cost.
         let set_variables = EntryPoint::new(
             ENTRY_POINT_SET_VARIABLES,
             vec![Parameter::new(ARG_ALLOW_MINTING, CLType::Bool)],
@@ -130,14 +139,12 @@ pub extern "C" fn call() {
 
     let allow_minting: bool = get_optional_named_arg_with_user_errors(
         ARG_ALLOW_MINTING,
-        NFTCoreError::MissingMintingStatus, // <-- Useless?
         NFTCoreError::InvalidMintingStatus,
     )
     .unwrap_or(true);
 
     let public_minting: bool = get_optional_named_arg_with_user_errors(
         ARG_PUBLIC_MINTING,
-        NFTCoreError::MissingPublicMinting, // <-- Useless?
         NFTCoreError::InvalidPublicMinting,
     )
     .unwrap_or(false);
