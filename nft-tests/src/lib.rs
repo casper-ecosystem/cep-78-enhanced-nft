@@ -142,6 +142,35 @@ mod tests {
     }
 
     #[test]
+    fn calling_init_entrypoint_after_intallation_should_error() {
+        let mut builder = InMemoryWasmTestBuilder::default();
+        builder.run_genesis(&DEFAULT_RUN_GENESIS_REQUEST).commit();
+
+        let install_request_builder =
+            InstallerRequestBuilder::new(*DEFAULT_ACCOUNT_ADDR, NFT_CONTRACT_WASM)
+                .with_total_token_supply(U256::from(2u64));
+        builder
+            .exec(install_request_builder.build())
+            .expect_success()
+            .commit();
+
+        let init_request = ExecuteRequestBuilder::contract_call_by_name(
+            *DEFAULT_ACCOUNT_ADDR,
+            CONTRACT_NAME,
+            ENTRY_POINT_INIT,
+            runtime_args! {
+                ARG_COLLECTION_NAME => "collection_name".to_string(),
+                ARG_COLLECTION_SYMBOL => "collection_symbol".to_string(),
+                ARG_TOTAL_TOKEN_SUPPLY => "total_token_supply".to_string(),
+                ARG_ALLOW_MINTING => true,
+                ARG_PUBLIC_MINTING => false,
+            },
+        )
+        .build();
+        builder.exec(init_request).expect_failure();
+    }
+
+    #[test]
     fn should_default_allow_minting() {
         let mut builder = InMemoryWasmTestBuilder::default();
         builder.run_genesis(&DEFAULT_RUN_GENESIS_REQUEST).commit();

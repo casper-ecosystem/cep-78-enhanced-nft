@@ -19,8 +19,9 @@ fn store() -> (ContractHash, ContractVersion) {
     let entry_points = {
         let mut entry_points = EntryPoints::new();
 
-        // Required to be called during the session where the contract is installed immedetialy after
-        // the contract has been installed but before exiting. All parameters are required.
+        // This entrypoint initializes the contract and is required to be called during the session
+        // where the contract is installed; immedetialy after the contract has been installed but before
+        // exiting session. All parameters are required.
         // This entrypoint is intended to be called exactly once and will error if called more than once.
         let init_contract = EntryPoint::new(
             ENTRY_POINT_INIT,
@@ -36,6 +37,7 @@ fn store() -> (ContractHash, ContractVersion) {
             EntryPointType::Contract,
         );
 
+        // This entrypoint exposes all variables that can be changed post installation.
         // Meant to be called by the managing account post installation
         // if a variable needs to be changed. Each parameter of the entrypoint
         // should only be passed if that variable is changed.
@@ -51,6 +53,7 @@ fn store() -> (ContractHash, ContractVersion) {
             EntryPointType::Contract,
         );
 
+        // This entrypoint mints a new token with provided metadata.
         // Meant to be called post installation.
         // When a token is minted the calling account is listed as its owner, is assigned an U256
         // ID equal to the current number_of_minted_tokens. After, the number_of_minted_tokens is
@@ -70,6 +73,8 @@ fn store() -> (ContractHash, ContractVersion) {
         );
 
         // Meant to be called post installation.
+        // This entrypoint burns the token with provided token_id, after which it is no longer possible to
+        // transfer it.
         // Looks up the owner of the supplied token_id arg. If caller is not owner we revert with error
         // InvalidTokenOwner. If token id is invalid (e.g. out of bounds) it reverts with error  InvalidTokenID.
         // If token is listed as already burnt we revert with error PreviouslyBurntTOken. If not the token is
@@ -100,6 +105,10 @@ fn store() -> (ContractHash, ContractVersion) {
             EntryPointType::Contract,
         );
 
+        // Meant to be called post installation.
+        // This entrypoint approves another account (an operator) to transfer tokens. It reverts
+        // if token_id is invalid, and if caller is not the owner of the token or of token has already
+        // been burnt, or if caller tries to approve themselves as an operator.
         let approve = EntryPoint::new(
             ENTRY_POINT_APPROVE,
             vec![

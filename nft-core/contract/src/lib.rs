@@ -133,6 +133,7 @@ pub enum NFTCoreError {
     MissingOperator = 55,
     InvalidOperator = 56,
     Phantom = 57,
+    ContractAlreadyInitialized = 58,
 }
 
 impl From<NFTCoreError> for ApiError {
@@ -143,11 +144,9 @@ impl From<NFTCoreError> for ApiError {
 
 #[no_mangle]
 pub fn init() {
-    let x = get_uref_with_user_errors(
-        ARG_COLLECTION_NAME,
-        NFTCoreError::Phantom,
-        NFTCoreError::Phantom,
-    );
+    if named_uref_exists(ARG_COLLECTION_NAME) {
+        runtime::revert(NFTCoreError::ContractAlreadyInitialized);
+    }
 
     let installing_account = get_account_hash_with_user_errors(
         INSTALLER,
@@ -901,6 +900,25 @@ fn get_uref_with_user_errors(name: &str, missing: NFTCoreError, invalid: NFTCore
     let key = get_key_with_user_errors(name, missing, invalid);
     key.into_uref()
         .unwrap_or_revert_with(NFTCoreError::UnexpectedKeyVariant)
+}
+
+fn named_uref_exists(name: &str) -> bool {
+    let (name_ptr, name_size, _bytes) = to_ptr(name);
+    let mut key_bytes = vec![0u8; Key::max_serialized_length()];
+    let mut total_bytes: usize = 0;
+    let ret = unsafe {
+        ext_ffi::casper_get_key(
+            name_ptr,
+            name_size,
+            key_bytes.as_mut_ptr(),
+            key_bytes.len(),
+            &mut total_bytes as *mut usize,
+        )
+    };
+    match api_error::result_from(ret) {
+        Ok(_) => true,
+        Err(_) => false,
+    }
 }
 
 fn get_key_with_user_errors(name: &str, missing: NFTCoreError, invalid: NFTCoreError) -> Key {
