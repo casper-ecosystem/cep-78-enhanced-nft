@@ -51,13 +51,11 @@ mod tests {
     const OWNED_TOKENS: &str = "owned_tokens";
     const BURNT_TOKENS: &str = "burnt_tokens";
     const APPROVED_FOR_TRANSFER: &str = "approved_for_transfer";
-    const TEST_DIC: &str = "test_dic";
 
     const ARG_TO_ACCOUNT_HASH: &str = "to_account_hash";
     pub const ARG_FROM_ACCOUNT_HASH: &str = "from_account_hash";
     const ARG_TOKEN_ID: &str = "token_id";
     const ARG_APPROVE_TRANSFER_FOR_ACCOUNT_HASH: &str = "approve_transfer_for_account_hash";
-    const ENTRY_POINT_TEST: &str = "test";
 
     const ACCOUNT_USER_1: [u8; 32] = [1u8; 32];
     const ACCOUNT_USER_2: [u8; 32] = [2u8; 32];
@@ -126,7 +124,15 @@ mod tests {
             vec![ARG_ALLOW_MINTING.to_string()],
         );
 
-        assert!(query_result);
+        assert!(query_result, "Allow minting should default to true");
+
+        let query_result: bool = query_stored_value(
+            &mut builder,
+            *nft_contract_key,
+            vec![ARG_PUBLIC_MINTING.to_string()],
+        );
+
+        assert!(!query_result, "public minting should default to false");
 
         let query_result: U256 = query_stored_value(
             &mut builder,
@@ -174,16 +180,18 @@ mod tests {
         assert_expected_error(error, 58u16);
     }
 
-    #[test]
-    fn should_default_allow_minting() {
-        let mut builder = InMemoryWasmTestBuilder::default();
-        builder.run_genesis(&DEFAULT_RUN_GENESIS_REQUEST).commit();
+    // This test is already done should_install_contract() test.
+    // On the other hand we do not test setting allow_minting to false and public minting to true
+    // #[test]
+    // fn should_default_allow_minting() {
+    //     let mut builder = InMemoryWasmTestBuilder::default();
+    //     builder.run_genesis(&DEFAULT_RUN_GENESIS_REQUEST).commit();
 
-        let install_builder =
-            InstallerRequestBuilder::new(*DEFAULT_ACCOUNT_ADDR, NFT_CONTRACT_WASM);
-        // The allow_minting arg is defaulted to true if user does not provide value.
-        builder.exec(install_builder.build()).expect_success();
-    }
+    //     let install_builder =
+    //         InstallerRequestBuilder::new(*DEFAULT_ACCOUNT_ADDR, NFT_CONTRACT_WASM);
+    //     // The allow_minting arg is defaulted to true if user does not provide value.
+    //     builder.exec(install_builder.build()).expect_success();
+    // }
 
     #[test]
     fn should_reject_invalid_typed_name() {
@@ -309,9 +317,6 @@ mod tests {
             .exec(install_request_builder.build())
             .expect_success()
             .commit();
-
-        //Hmmm should we enforce that the caller is the minter
-        let (_, minter) = create_dummy_key_pair(ACCOUNT_USER_1);
 
         let mint_request = ExecuteRequestBuilder::contract_call_by_name(
             *DEFAULT_ACCOUNT_ADDR,
@@ -1186,6 +1191,20 @@ mod tests {
 
         // Create to_account and transfer minted token using operator
         let (_, to_account_hash) = create_dummy_key_pair(ACCOUNT_USER_2);
+        let transfer_to_to_account = ExecuteRequestBuilder::transfer(
+            *DEFAULT_ACCOUNT_ADDR,
+            runtime_args! {
+                mint::ARG_AMOUNT => 100_000_000_000_000u64,
+                mint::ARG_TARGET => to_account_hash.to_account_hash(),
+                mint::ARG_ID => Option::<u64>::None,
+            },
+        )
+        .build();
+        builder
+            .exec(transfer_to_to_account)
+            .expect_success()
+            .commit();
+
         let transfer_request = ExecuteRequestBuilder::contract_call_by_hash(
             operator.to_account_hash(),
             nft_contract_hash,

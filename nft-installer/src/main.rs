@@ -2,15 +2,14 @@
 #![no_std]
 
 extern crate alloc;
-use alloc::collections::BTreeMap;
-use alloc::{boxed::Box, string::String, string::ToString, vec};
+use alloc::{string::String, string::ToString, vec};
 use casper_contract::contract_api::{runtime, storage};
 
 use casper_contract::unwrap_or_revert::UnwrapOrRevert;
 use casper_types::contracts::NamedKeys;
 use casper_types::{
     runtime_args, CLType, ContractHash, ContractVersion, EntryPoint, EntryPointAccess,
-    EntryPointType, EntryPoints, Key, Parameter, RuntimeArgs, U256,
+    EntryPointType, EntryPoints, Parameter, RuntimeArgs, U256,
 };
 
 use nft_contract::*;
@@ -107,8 +106,8 @@ fn store() -> (ContractHash, ContractVersion) {
 
         // Meant to be called post installation.
         // This entrypoint approves another account (an operator) to transfer tokens. It reverts
-        // if token_id is invalid, and if caller is not the owner of the token or of token has already
-        // been burnt, or if caller tries to approve themselves as an operator.
+        // if token_id is invalid, if caller is not the owner of the token or of token has already
+        // been burnt, and if caller tries to approve themselves as an operator.
         let approve = EntryPoint::new(
             ENTRY_POINT_APPROVE,
             vec![

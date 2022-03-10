@@ -1,4 +1,5 @@
 #![no_std]
+#![no_main]
 
 extern crate alloc;
 
@@ -144,6 +145,9 @@ impl From<NFTCoreError> for ApiError {
 
 #[no_mangle]
 pub fn init() {
+    // We only allow the init() entrypoint to be called once.
+    // If ARG_COLLECTION_NAME uref already exists we revert since this implies that
+    // the init() entrypoint has already been called.
     if named_uref_exists(ARG_COLLECTION_NAME) {
         runtime::revert(NFTCoreError::ContractAlreadyInitialized);
     }
@@ -556,16 +560,19 @@ fn transfer() {
     let caller = runtime::get_caller().to_string();
 
     // Check if caller is approved to execute transfer
-    let (is_approved, _, _) =
-        match get_dictionary_value_from_key::<String>(APPROVED_FOR_TRANSFER, &token_id.to_string())
-        {
-            (Some(approved_account_hash), approved_uref) => (
-                approved_account_hash == caller,
-                approved_uref,
-                Some(approved_account_hash),
-            ),
-            (None, approved_uref) => (false, approved_uref, None),
-        };
+    let is_approved = match get_dictionary_value_from_key::<Option<String>>(
+        APPROVED_FOR_TRANSFER,
+        &token_id.to_string(),
+    ) {
+        (Some(maybe_approved_account_hash), _) => {
+            if let Some(approved_account_hash) = maybe_approved_account_hash {
+                approved_account_hash == caller
+            } else {
+                false
+            }
+        }
+        (None, _) => false,
+    };
 
     // Revert if caller is not owner or not approved. (CEP47 transfer logic looks incorrect to me...)
     if caller != token_owner && !is_approved {
@@ -632,11 +639,6 @@ fn transfer() {
             storage::dictionary_put(owned_tokens_seed_uref, &to_account_hash, owned_tokens);
         }
     }
-
-    // // Finally we must changed the approved dictionary if token_id mapped to an approved account_hash
-    // if maybe_approved_uref.is_some() {
-    //     storage::dictionary_put(approved_uref, &token_id.to_string(), Option::<String>::None);
-    // }
 }
 
 // Returns the length of the Vec<U256> in OWNED_TOKENS dictionary. If key is not found
@@ -915,10 +917,8 @@ fn named_uref_exists(name: &str) -> bool {
             &mut total_bytes as *mut usize,
         )
     };
-    match api_error::result_from(ret) {
-        Ok(_) => true,
-        Err(_) => false,
-    }
+
+    api_error::result_from(ret).is_ok()
 }
 
 fn get_key_with_user_errors(name: &str, missing: NFTCoreError, invalid: NFTCoreError) -> Key {
