@@ -76,7 +76,6 @@ mod tests {
         builder.exec(install_request).expect_success().commit();
 
         let account = builder.get_expected_account(*DEFAULT_ACCOUNT_ADDR);
-
         let nft_contract_key = account
             .named_keys()
             .get(CONTRACT_NAME)
@@ -223,6 +222,37 @@ mod tests {
                     CLValue::from_t::<String>("".to_string()).expect("expected CLValue"),
                 );
         assert_expected_invalid_installer_request(install_request_builder, 26);
+    }
+
+    #[test]
+    fn should_disallaw_minting_when_allow_minting_is_set_to_false() {
+        let mut builder = InMemoryWasmTestBuilder::default();
+        builder.run_genesis(&DEFAULT_RUN_GENESIS_REQUEST).commit();
+
+        let install_request_builder =
+            InstallerRequestBuilder::new(*DEFAULT_ACCOUNT_ADDR, NFT_CONTRACT_WASM)
+                .with_total_token_supply(U256::from(2u64))
+                .with_allowing_minting(Some(false));
+
+        builder
+            .exec(install_request_builder.build())
+            .expect_success()
+            .commit();
+
+        let mint_request = ExecuteRequestBuilder::contract_call_by_name(
+            *DEFAULT_ACCOUNT_ADDR,
+            CONTRACT_NAME,
+            ENTRY_POINT_MINT,
+            runtime_args! {
+                ARG_TOKEN_META_DATA=>TEST_META_DATA.to_string(),
+            },
+        )
+        .build();
+        builder.exec(mint_request).expect_failure();
+
+        // Error should be MintingIsPaused=59
+        let actual_error = builder.get_error().expect("must have error");
+        assert_expected_error(actual_error, 59u16);
     }
 
     #[test]

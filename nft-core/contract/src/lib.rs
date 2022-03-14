@@ -38,7 +38,7 @@ pub const ARG_ALLOW_MINTING: &str = "allow_minting";
 pub const ARG_PUBLIC_MINTING: &str = "public_minting";
 pub const ARG_ACCOUNT_HASH: &str = "account_hash";
 pub const ARG_TOKEN_META_DATA: &str = "token_meta_data";
-pub const ARG_APPROVE_TRANSFER_FOR_ACCOUNT_HASH: &str = "approve_transfer_for_account_hash";
+pub const ARG_APPROVE_TRANSFER_FOR_ACCOUNT_HASH: &str = "approve_transfer_for_account_hash"; //Change name?
 pub const ARG_APPROVE_ALL: &str = "approve_all";
 pub const ARG_OPERATOR: &str = "operator";
 
@@ -73,6 +73,10 @@ pub const ENTRY_POINT_APPROVE: &str = "approve";
 pub const ENTRY_POINT_BALANCE_OF: &str = "balance_of";
 pub const ENTRY_POINT_COLLECTION_NAME: &str = "collection_name";
 pub const ENTRY_POINT_SET_ALLOW_MINTING: &str = "set_allow_minting";
+pub const ENTRY_POINT_OWNER_OF: &str = "owner_of";
+pub const ENTRY_POINT_GET_APPROVED: &str = "get_approved";
+pub const ENTRY_POINT_METADATA: &str = "metadata";
+pub const ENTRY_POINT_OWNED_TOKENS: &str = "owned_tokens";
 
 #[repr(u16)]
 #[derive(Clone, Copy)]
@@ -135,6 +139,7 @@ pub enum NFTCoreError {
     InvalidOperator = 56,
     Phantom = 57,
     ContractAlreadyInitialized = 58,
+    MintingIsPaused = 59,
 }
 
 impl From<NFTCoreError> for ApiError {
@@ -265,11 +270,20 @@ pub fn set_variables() {
 
 #[no_mangle]
 pub fn mint() {
+    if let (false, _) = get_stored_value_with_user_errors::<bool>(
+        ALLOW_MINTING,
+        NFTCoreError::MissingAllowMinting,
+        NFTCoreError::InvalidAllowMinting,
+    ) {
+        runtime::revert(NFTCoreError::MintingIsPaused);
+    }
+
     let (total_token_supply, _): (U256, URef) = get_stored_value_with_user_errors(
         TOTAL_TOKEN_SUPPLY,
         NFTCoreError::MissingTotalTokenSupply,
         NFTCoreError::InvalidTotalTokenSupply,
     );
+
     let (mut number_of_minted_tokens, number_of_minted_tokens_uref) =
         get_stored_value_with_user_errors::<U256>(
             NUMBER_OF_MINTED_TOKENS,
@@ -384,6 +398,8 @@ fn burn() {
     // It makes sense to keep this token as owned by the caller. It just happens that the caller
     // owns a burnt token. That's all. Similarly, we should probably also not change the owned_tokens
     // dictionary.
+
+    // Should an operator be allow to burn tokens?
 
     // Mark the token as burnt by adding the token_id to the burnt tokens dictionary.
     match get_dictionary_value_from_key::<()>(BURNT_TOKENS, &token_id.to_string()) {
@@ -500,31 +516,6 @@ fn set_approval_for_all() {
 
 #[no_mangle]
 fn transfer() {
-    ////////////////////////////
-    // ERC721 transfer logic
-    // throw if _from is not _owner
-    // throw is _token_id is not a valid token id.
-    // throw if _to is the zero address  This probably is there to prevent the transfer function to be used to burn tokens.
-
-    // Proceed with transfer if
-    //  caller == owner || caller is approved || caller is approved address
-    // If not we throw error
-    //////////////////////////////
-
-    // Stragegy
-    // Is token burnt?
-    // get token_owner
-    // Is caller = spender token_owner? If yes go ahead and do the transfer
-    // Is caller approved?
-    // The idea is that you can transfer the token to the receiver if the caller is either the token owner or if you are approved
-
-    //caller, sender, receiver
-
-    // if caller == owner we can transfer
-    // If caller != owner but
-
-    // sender != caller && caller is not approved
-
     // Get token_id argument
     let token_id: U256 = get_named_arg_with_user_errors(
         ARG_TOKEN_ID,
@@ -574,7 +565,7 @@ fn transfer() {
         (None, _) => false,
     };
 
-    // Revert if caller is not owner or not approved. (CEP47 transfer logic looks incorrect to me...)
+    // Revert if caller is not owner and not approved. (CEP47 transfer logic looks incorrect to me...)
     if caller != token_owner && !is_approved {
         runtime::revert(NFTCoreError::InvalidAccount);
     }
@@ -655,15 +646,45 @@ fn balance_of() {
     let (maybe_owned_tokens, _) =
         get_dictionary_value_from_key::<Vec<U256>>(OWNED_TOKENS, &account_hash);
 
+    // The number of owned tokens is the the length of the owned_tokens array
+    // If no array is found we return 0.
     let balance = match maybe_owned_tokens {
         Some(owned_tokens) => owned_tokens.len(),
         None => 0,
     };
 
+    // Convert balance usize to CLValue::U256
     let balance_cl_value = CLValue::from_t(U256::from(balance))
         .unwrap_or_revert_with(NFTCoreError::FailedToConvertToCLValue);
     runtime::ret(balance_cl_value);
 }
+
+// // Returns the length of the Vec<U256> in OWNED_TOKENS dictionary. If key is not found
+// // it returns 0.
+// #[no_mangle]
+// fn owned_tokens() {
+//     let account_hash = get_named_arg_with_user_errors::<String>(
+//         ARG_ACCOUNT_HASH,
+//         NFTCoreError::MissingAccountHash,
+//         NFTCoreError::InvalidAccountHash,
+//     )
+//     .unwrap_or_revert();
+
+//     let (maybe_owned_tokens, _) =
+//         get_dictionary_value_from_key::<Vec<U256>>(OWNED_TOKENS, &account_hash);
+
+//     // The number of owned tokens is the the length of the owned_tokens array
+//     // If no array is found we return 0.
+//     let balance = match maybe_owned_tokens {
+//         Some(owned_tokens) => owned_tokens.len(),
+//         None => 0,
+//     };
+
+//     // Convert balance usize to CLValue::U256
+//     let balance_cl_value = CLValue::from_t(U256::from(balance))
+//         .unwrap_or_revert_with(NFTCoreError::FailedToConvertToCLValue);
+//     runtime::ret(balance_cl_value);
+// }
 
 #[no_mangle]
 fn owner_of() {
@@ -680,8 +701,9 @@ fn owner_of() {
         NFTCoreError::InvalidNumberOfMintedTokens,
     );
 
-    if token_id <= number_of_minted_tokens {
-        runtime::revert(NFTCoreError::InvalidTokenID); // Do we really want to revert here?
+    // Check if token_id is out of bounds.
+    if token_id >= number_of_minted_tokens {
+        runtime::revert(NFTCoreError::InvalidTokenID);
     }
 
     let (maybe_token_owner, _) =
@@ -698,9 +720,8 @@ fn owner_of() {
     runtime::ret(token_owner_cl_value);
 }
 
-// Returns true if token has been minted and not burnt; false otherwise
 #[no_mangle]
-fn token_exists() {
+fn metadata() {
     let token_id = get_named_arg_with_user_errors::<U256>(
         ARG_TOKEN_ID,
         NFTCoreError::MissingTokenID,
@@ -714,18 +735,52 @@ fn token_exists() {
         NFTCoreError::InvalidNumberOfMintedTokens,
     );
 
-    let token_exists = if token_id < number_of_minted_tokens {
-        let (maybe_burnt, _) =
-            get_dictionary_value_from_key::<()>(BURNT_TOKENS, &token_id.to_string());
-        maybe_burnt.is_none()
-    } else {
-        false
-    };
+    // Check if token_id is out of bounds.
+    if token_id >= number_of_minted_tokens {
+        runtime::revert(NFTCoreError::InvalidTokenID);
+    }
 
-    let token_exists_cl_value =
-        CLValue::from_t(token_exists).unwrap_or_revert_with(NFTCoreError::FailedToConvertToCLValue);
-    runtime::ret(token_exists_cl_value);
+    let (maybe_token_metadata, _) =
+        get_dictionary_value_from_key::<String>(TOKEN_META_DATA, &token_id.to_string());
+
+    if let Some(metadata) = maybe_token_metadata {
+        let metadata_cl_value =
+            CLValue::from_t(metadata).unwrap_or_revert_with(NFTCoreError::FailedToConvertToCLValue);
+
+        runtime::ret(metadata_cl_value);
+    } else {
+        runtime::revert(NFTCoreError::InvalidTokenID) //<-- better error!
+    }
 }
+
+// Returns true if token has been minted and not burnt; false otherwise
+// #[no_mangle]
+// fn token_exists() {
+//     let token_id = get_named_arg_with_user_errors::<U256>(
+//         ARG_TOKEN_ID,
+//         NFTCoreError::MissingTokenID,
+//         NFTCoreError::InvalidTokenID,
+//     )
+//     .unwrap_or_revert();
+
+//     let (number_of_minted_tokens, _) = get_stored_value_with_user_errors::<U256>(
+//         NUMBER_OF_MINTED_TOKENS,
+//         NFTCoreError::MissingNumberOfMintedTokens,
+//         NFTCoreError::InvalidNumberOfMintedTokens,
+//     );
+
+//     let token_exists = if token_id < number_of_minted_tokens {
+//         let (maybe_burnt, _) =
+//             get_dictionary_value_from_key::<()>(BURNT_TOKENS, &token_id.to_string());
+//         maybe_burnt.is_none()
+//     } else {
+//         false
+//     };
+
+//     let token_exists_cl_value =
+//         CLValue::from_t(token_exists).unwrap_or_revert_with(NFTCoreError::FailedToConvertToCLValue);
+//     runtime::ret(token_exists_cl_value);
+// }
 
 // Returns approved account_hash from token_id, throws error if token id is not valid
 #[no_mangle]
@@ -743,7 +798,7 @@ fn get_approved() {
 
     let approved = match maybe_approved {
         Some(approved) => approved,
-        None => runtime::revert(NFTCoreError::InvalidTokenID),
+        None => runtime::revert(NFTCoreError::InvalidTokenID), //This should never happen though...
     };
 
     let approved_cl_value =

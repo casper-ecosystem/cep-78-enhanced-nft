@@ -36,14 +36,15 @@ fn store() -> (ContractHash, ContractVersion) {
             EntryPointType::Contract,
         );
 
-        // This entrypoint exposes all variables that can be changed post installation.
-        // Meant to be called by the managing account post installation
+        // This entrypoint exposes all variables that can be changed by managing account post installation.
+        // Meant to be called by the managing account (INSTALLER) post installation
         // if a variable needs to be changed. Each parameter of the entrypoint
         // should only be passed if that variable is changed.
         // For instance if the allow_minting variable is being changed and nothing else
         // the managing account would send the new allow_minting value as the only argument.
         // If no arguments are provided it is essentially a no-operation, however there
         // is still a gas cost.
+        // By switching allow_minting to false we pause minting.
         let set_variables = EntryPoint::new(
             ENTRY_POINT_SET_VARIABLES,
             vec![Parameter::new(ARG_ALLOW_MINTING, CLType::Bool)],
@@ -54,9 +55,10 @@ fn store() -> (ContractHash, ContractVersion) {
 
         // This entrypoint mints a new token with provided metadata.
         // Meant to be called post installation.
-        // When a token is minted the calling account is listed as its owner, is assigned an U256
-        // ID equal to the current number_of_minted_tokens. After, the number_of_minted_tokens is
-        // increamented by one. Before minting the token the entrypoint checks if number_of_minted_tokens
+        // Reverts with MintingIsPaused error if allow_minting is false.
+        // When a token is minted the calling account is listed as its owner and the token is automatically
+        // assigned an U256 ID equal to the current number_of_minted_tokens.
+        // Before minting the token the entrypoint checks if number_of_minted_tokens
         // exceed the total_token_supply. If so, it reverts the minting with an error TokenSupplyDepleted.
         // The mint entrypoint also checks whether the calling account is the managing account (the installer)
         // If not, and if public_minting is set to false, it reverts with the error InvalidAccount.
@@ -71,14 +73,12 @@ fn store() -> (ContractHash, ContractVersion) {
             EntryPointType::Contract,
         );
 
-        // Meant to be called post installation.
-        // This entrypoint burns the token with provided token_id, after which it is no longer possible to
-        // transfer it.
+        // This entrypoint burns the token with provided token_id argument, after which it is no longer
+        // possible to transfer it.
         // Looks up the owner of the supplied token_id arg. If caller is not owner we revert with error
         // InvalidTokenOwner. If token id is invalid (e.g. out of bounds) it reverts with error  InvalidTokenID.
-        // If token is listed as already burnt we revert with error PreviouslyBurntTOken. If not the token is
-        // listed as burnt.
-
+        // If token is listed as already burnt we revert with error PreviouslyBurntTOken. If not the token is then
+        // registered as burnt.
         let burn = EntryPoint::new(
             ENTRY_POINT_BURN,
             vec![Parameter::new(ARG_TOKEN_ID, CLType::U256)],
@@ -87,11 +87,10 @@ fn store() -> (ContractHash, ContractVersion) {
             EntryPointType::Contract,
         );
 
-        // Meant to be called post installation.
-        // Looks up the owner of the supplied token_id arg. If caller is not owner we revert with error
-        // InvalidTokenOwner. If token id is invalid (e.g. out of bounds) it reverts with error  InvalidTokenID.
-        // If token is listed as already burnt we revert with error PreviouslyBurntTOken. If not the token is
-        // listed as burnt.
+        // This entrypoint transfers ownership of token from one account to another.
+        // It looks up the owner of the supplied token_id arg. Revert if token is already burnt, token_id
+        // is unvalid, or if caller is not owner and not approved operator.
+        // If token id is invalid it reverts with error InvalidTokenID.
         let transfer = EntryPoint::new(
             ENTRY_POINT_TRANSFER,
             vec![
@@ -104,10 +103,9 @@ fn store() -> (ContractHash, ContractVersion) {
             EntryPointType::Contract,
         );
 
-        // Meant to be called post installation.
         // This entrypoint approves another account (an operator) to transfer tokens. It reverts
-        // if token_id is invalid, if caller is not the owner of the token or of token has already
-        // been burnt, and if caller tries to approve themselves as an operator.
+        // if token_id is invalid, if caller is not the owner, if token has already
+        // been burnt, or if caller tries to approve themselves as an operator.
         let approve = EntryPoint::new(
             ENTRY_POINT_APPROVE,
             vec![
@@ -119,12 +117,61 @@ fn store() -> (ContractHash, ContractVersion) {
             EntryPointType::Contract,
         );
 
+        // This entrypoint returns the token owner given a token_id. It reverts if token_id
+        // is invalid. A burnt token still has an associated owner.
+        let owner_of = EntryPoint::new(
+            ENTRY_POINT_OWNER_OF,
+            vec![Parameter::new(ARG_TOKEN_ID, CLType::U256)],
+            CLType::String,
+            EntryPointAccess::Public,
+            EntryPointType::Contract,
+        );
+
+        // Given the token_id this entrypoint returns the operator, if any.
+        // Reverts if token has been burnt.
+        let get_approved = EntryPoint::new(
+            ENTRY_POINT_GET_APPROVED,
+            vec![Parameter::new(ARG_TOKEN_ID, CLType::U256)],
+            CLType::String,
+            EntryPointAccess::Public,
+            EntryPointType::Contract,
+        );
+
+        // Given the owner account_hash this entrypoint returns number of owned tokens
+        let balance_of = EntryPoint::new(
+            ENTRY_POINT_BALANCE_OF,
+            vec![Parameter::new(ARG_ACCOUNT_HASH, CLType::String)],
+            CLType::U256,
+            EntryPointAccess::Public,
+            EntryPointType::Contract,
+        );
+
+        // // Given the owner account_hash this entrypoint returns number of owned tokens
+        // let owned_tokens = EntryPoint::new(
+        //     ENTRY_POINT_OWNED_TOKENS,
+        //     vec![Parameter::new(ARG_ACCOUNT_HASH, CLType::String)],
+        //     EntryPointAccess::Public,
+        //     EntryPointType::Contract,
+        // );
+
+        // Given the owner account_hash this entrypoint returns number of owned tokens
+        let metadata = EntryPoint::new(
+            ENTRY_POINT_METADATA,
+            vec![Parameter::new(ARG_TOKEN_ID, CLType::U256)],
+            CLType::String,
+            EntryPointAccess::Public,
+            EntryPointType::Contract,
+        );
+
         entry_points.add_entry_point(init_contract);
         entry_points.add_entry_point(set_variables);
         entry_points.add_entry_point(mint);
         entry_points.add_entry_point(burn);
         entry_points.add_entry_point(transfer);
         entry_points.add_entry_point(approve);
+        entry_points.add_entry_point(owner_of);
+        entry_points.add_entry_point(balance_of);
+        entry_points.add_entry_point(metadata);
 
         entry_points
     };
