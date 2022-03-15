@@ -1,0 +1,9 @@
+[package]
+name = "tests"
+version = "0.1.0"
+edition = "2018"
+
+[dependencies]
+casper-engine-test-support = { version = "2.0.3", features = ["test-support"] }
+casper-execution-engine = "1.4.3"
+casper-types = "1.4.5"
