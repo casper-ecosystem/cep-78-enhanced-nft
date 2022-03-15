@@ -1,0 +1,163 @@
+---
+kind: pipeline
+type: docker
+name: cargo-test
+
+environment:
+  RUSTC_WRAPPER: '/root/.cargo/bin/cachepot'
+  CACHEPOT_BUCKET: 'drone-sccache'
+  CACHEPOT_S3_KEY_PREFIX: casper-ecosystem-nft-redesign
+  CACHEPOT_REGION: 'us-east-2'
+  CARGO_INCREMENTAL: '0'
+
+__buildenv: &buildenv
+  image: casperlabs/node-build-u1804
+  volumes:
+  - name: rustup
+    path: "/root/.rustup"
+  - name: cargo
+    path: "/root/.cargo"
+  - name: drone
+    path: "/drone"
+  environment:
+    AWS_ACCESS_KEY_ID:
+      from_secret: cachepot_aws_ak
+    AWS_SECRET_ACCESS_KEY:
+      from_secret: cachepot_aws_sk
+
+steps:
+- name: prepare
+  <<: *buildenv
+  commands:
+  - make prepare
+
+- name: check-lint
+  <<: *buildenv
+  commands:
+  - make check-lint
+
+# The below is duplicated for pull and push 
+# due to environment bug with caching. 
+- name: cargo-test-pr
+  <<: *buildenv
+  environment:
+    SCCACHE_S3_PUBLIC: true
+  commands:
+  - make test
+  - cachepot --show-stats
+  when:
+    event:
+    - pull_request
+
+- name: cargo-test-push
+  <<: *buildenv
+  commands:
+  - make test
+  - cachepot --show-stats
+  when:
+    event:
+    - push
+
+- name: notify
+  image: plugins/slack
+  settings:
+    webhook:
+      from_secret: slack_webhook
+    template:
+    - |
+      Nft-Redesign Pipeline Status: *{{ uppercasefirst build.status }}*
+      Drone Build: <{{ build.link }}|#{{ build.number }}>
+      Commit Link: <https://github.com/{{repo.owner}}/{{repo.name}}/commit/{{build.commit}}|{{ truncate build.commit 10 }}>
+  when:
+    event:
+    - push
+    status:
+    - failure
+    branch:
+    - main
+
+volumes:
+- name: rustup
+  temp: {}
+- name: cargo
+  temp: {}
+- name: drone
+  temp: {}
+
+trigger:
+  branch:
+  - main
+  event:
+    include:
+    - pull_request
+    - push
+    exclude:
+    - tag
+    - cron
+
+---
+kind: pipeline
+type: docker
+name: nightly-testing
+
+environment:
+  RUSTC_WRAPPER: '/root/.cargo/bin/cachepot'
+  CACHEPOT_BUCKET: 'drone-sccache'
+  CACHEPOT_S3_KEY_PREFIX: casper-ecosystem-nft-redesign
+  CACHEPOT_REGION: 'us-east-2'
+  CARGO_INCREMENTAL: '0'
+
+__buildenv: &buildenv
+  image: casperlabs/node-build-u1804
+  volumes:
+  - name: rustup
+    path: "/root/.rustup"
+  - name: cargo
+    path: "/root/.cargo"
+  - name: drone
+    path: "/drone"
+  environment:
+    AWS_ACCESS_KEY_ID:
+      from_secret: cachepot_aws_ak
+    AWS_SECRET_ACCESS_KEY:
+      from_secret: cachepot_aws_sk
+
+steps:
+- name: prepare
+  <<: *buildenv
+  commands:
+  - make prepare
+
+- name: test
+  <<: *buildenv
+  commands:
+  - make test
+  - cachepot --show-stats
+
+- name: notify
+  image: plugins/slack
+  settings:
+    webhook:
+      from_secret: slack_webhook_nightly
+    template:
+    - |
+      Nft-Redesign Nightly Test Status: *{{ uppercasefirst build.status }}*
+      Repo: {{ repo.name }}
+      Author: {{ build.author }}
+      Drone Build: <{{ build.link }}|#{{ build.number }}>
+      Commit Link: <https://github.com/{{repo.owner}}/{{repo.name}}/commit/{{build.commit}}|{{ truncate build.commit 10 }}>
+  when:
+    status:
+    - failure
+    - success
+
+volumes:
+- name: rustup
+  temp: {}
+- name: cargo
+  temp: {}
+- name: drone
+  temp: {}
+
+trigger:
+  cron: [ nightly-tests-cron ]
