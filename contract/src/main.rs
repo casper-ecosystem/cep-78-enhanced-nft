@@ -4,6 +4,10 @@
 #[cfg(not(target_arch = "wasm32"))]
 compile_error!("target arch should be wasm32: compile with '--target wasm32-unknown-unknown'");
 
+mod constants;
+mod error;
+mod utils;
+
 extern crate alloc;
 use alloc::{string::String, string::ToString, vec, vec::Vec};
 
@@ -13,144 +17,16 @@ use casper_types::{
     EntryPointType, EntryPoints, Parameter, RuntimeArgs, U256,
 };
 
-use core::mem::MaybeUninit;
-
 use casper_contract::{
-    contract_api::{self, runtime, storage},
-    ext_ffi,
+    contract_api::{runtime, storage},
     unwrap_or_revert::UnwrapOrRevert,
 };
 
-use casper_types::{
-    account::AccountHash,
-    api_error,
-    bytesrepr::{self, FromBytes, ToBytes},
-    ApiError, CLTyped, CLValue, Key, URef,
-};
+use casper_types::{CLValue, URef};
 
-pub const ARG_COLLECTION_NAME: &str = "collection_name";
-pub const ARG_COLLECTION_SYMBOL: &str = "collection_symbol";
-pub const ARG_TOTAL_TOKEN_SUPPLY: &str = "total_token_supply"; // <-- Think about if mutable or not...
-
-pub const ARG_TOKEN_OWNER: &str = "token_owner";
-pub const ARG_TOKEN_NAME: &str = "token_name";
-
-pub const ARG_TOKEN_ID: &str = "token_id";
-pub const ARG_TO_ACCOUNT_HASH: &str = "to_account_hash";
-pub const ARG_FROM_ACCOUNT_HASH: &str = "from_account_hash";
-pub const ARG_ALLOW_MINTING: &str = "allow_minting";
-pub const ARG_PUBLIC_MINTING: &str = "public_minting";
-pub const ARG_ACCOUNT_HASH: &str = "account_hash";
-pub const ARG_TOKEN_META_DATA: &str = "token_meta_data";
-pub const ARG_APPROVE_TRANSFER_FOR_ACCOUNT_HASH: &str = "approve_transfer_for_account_hash"; //Change name?
-pub const ARG_APPROVE_ALL: &str = "approve_all";
-pub const ARG_OPERATOR: &str = "operator";
-
-// STORAGE is the list of all NFTS
-// Owners is a dictionary owner --> nfts
-//pub const STORAGE: &str = "storage";
-//pub const OWNERS: &str = "owners";
-pub const APPROVED_FOR_TRANSFER: &str = "approved_for_transfer"; //Change name?
-pub const NUMBER_OF_MINTED_TOKENS: &str = "number_of_minted_tokens";
-
-pub const INSTALLER: &str = "installer";
-pub const CONTRACT_NAME: &str = "nft_contract";
-pub const HASH_KEY_NAME: &str = "nft_contract_package";
-pub const ACCESS_KEY_NAME: &str = "nft_contract_package_access";
-pub const CONTRACT_VERSION: &str = "contract_version";
-pub const COLLECTION_NAME: &str = "collection_name";
-pub const COLLECTION_SYMBOL: &str = "collection_symbol";
-pub const TOTAL_TOKEN_SUPPLY: &str = "total_token_supply";
-pub const ALLOW_MINTING: &str = "allow_minting";
-pub const PUBLIC_MINTING: &str = "public_minting";
-pub const TOKEN_OWNERS: &str = "token_owners";
-pub const TOKEN_META_DATA: &str = "token_meta_data";
-pub const OWNED_TOKENS: &str = "owned_tokens";
-pub const BURNT_TOKENS: &str = "burnt_tokens";
-
-pub const ENTRY_POINT_INIT: &str = "init";
-pub const ENTRY_POINT_SET_VARIABLES: &str = "set_variables";
-pub const ENTRY_POINT_MINT: &str = "mint";
-pub const ENTRY_POINT_BURN: &str = "burn";
-pub const ENTRY_POINT_TRANSFER: &str = "transfer";
-pub const ENTRY_POINT_APPROVE: &str = "approve";
-pub const ENTRY_POINT_BALANCE_OF: &str = "balance_of";
-pub const ENTRY_POINT_COLLECTION_NAME: &str = "collection_name";
-pub const ENTRY_POINT_SET_ALLOW_MINTING: &str = "set_allow_minting";
-pub const ENTRY_POINT_OWNER_OF: &str = "owner_of";
-pub const ENTRY_POINT_GET_APPROVED: &str = "get_approved";
-pub const ENTRY_POINT_METADATA: &str = "metadata";
-pub const ENTRY_POINT_OWNED_TOKENS: &str = "owned_tokens";
-
-#[repr(u16)]
-#[derive(Clone, Copy)]
-pub enum NFTCoreError {
-    InvalidAccount = 1,
-    MissingInstaller = 2,
-    InvalidInstaller = 3,
-    UnexpectedKeyVariant = 4,
-    MissingTokenOwner = 5,
-    InvalidTokenOwner = 6,
-    FailedToGetArgBytes = 7,
-    FailedToCreateDictionary = 8,
-    MissingStorageUref = 9,
-    InvalidStorageUref = 10,
-    MissingOwnersUref = 11,
-    InvalidOwnersUref = 12,
-    FailedToAccessStorageDictionary = 13,
-    FailedToAccessOwnershipDictionary = 14,
-    DuplicateMinted = 15,
-    FailedToConvertToCLValue = 16,
-    MissingCollectionName = 17,
-    InvalidCollectionName = 18,
-    FailedToSerializeMetaData = 19,
-    MissingAccount = 20,
-    MissingMintingStatus = 21,
-    InvalidMintingStatus = 22,
-    MissingCollectionSymbol = 23,
-    InvalidCollectionSymbol = 24,
-    MissingTotalTokenSupply = 25,
-    InvalidTotalTokenSupply = 26,
-    MissingTokenID = 27,
-    InvalidTokenID = 28,
-    MissingTokenOwners = 29,
-    MissingAccountHash = 30,
-    InvalidAccountHash = 31,
-    TokenSupplyDepleted = 32,
-    MissingOwnedTokensDictionary = 33,
-    TokenAlreadyBelongsToMinterFatal = 34,
-    FatalTokenIDDuplication = 35,
-    InvalidMinter = 36,
-    MissingPublicMinting = 37,
-    InvalidPublicMinting = 38,
-    MissingInstallerKey = 39,
-    FailedToConvertToAccountHash = 40,
-    InvalidBurner = 41,
-    PreviouslyBurntToken = 42,
-    MissingAllowMinting = 43,
-    InvalidAllowMinting = 44,
-    MissingNumberOfMintedTokens = 45,
-    InvalidNumberOfMintedTokens = 46,
-    MissingTokenMetaData = 47,
-    InvalidTokenMetaData = 48,
-    MissingApprovedAccountHash = 49,
-    InvalidApprovedAccountHash = 50,
-    MissingApprovedTokensDictionary = 51,
-    TokenAlreadyApproved = 52,
-    MissingApproveAll = 53,
-    InvalidApproveAll = 54,
-    MissingOperator = 55,
-    InvalidOperator = 56,
-    Phantom = 57,
-    ContractAlreadyInitialized = 58,
-    MintingIsPaused = 59,
-}
-
-impl From<NFTCoreError> for ApiError {
-    fn from(e: NFTCoreError) -> Self {
-        ApiError::User(e as u16)
-    }
-}
+use constants::*;
+use error::NFTCoreError;
+use utils::*;
 
 #[no_mangle]
 pub fn init() {
@@ -534,6 +410,19 @@ fn transfer() {
     }
 
     // Get token_owner and revert if not found (all tokens must have an owner)
+    // let token_owner = {
+    //     let token_owner_account_hash_string =
+    //         match get_dictionary_value_from_key::<String>(TOKEN_OWNERS, &token_id.to_string()) {
+    //             (Some(token_owner), _) => token_owner,
+    //             (None, _) => runtime::revert(NFTCoreError::InvalidTokenID),
+    //         };
+
+    //     match AccountHash::from_formatted_str(&token_owner_account_hash_string) {
+    //         Ok(token_owner_account_hash) => token_owner_account_hash,
+    //         Err(_) => runtime::revert(NFTCoreError::FailureToParseAccountHash),
+    //     }
+    // };
+
     let token_owner =
         match get_dictionary_value_from_key::<String>(TOKEN_OWNERS, &token_id.to_string()) {
             (Some(token_owner), _) => token_owner,
@@ -1045,226 +934,4 @@ pub extern "C" fn call() {
              ARG_PUBLIC_MINTING => public_minting,
         },
     );
-}
-
-////////////////////////////////////////////////////////////////////////////////
-//////////////////////////////// Helper methods ////////////////////////////////
-////////////////////////////////////////////////////////////////////////////////
-
-fn get_dictionary_value_from_key<T: CLTyped + FromBytes>(
-    dictionary_name: &str,
-    key: &str,
-) -> (Option<T>, URef) {
-    let seed_uref = get_uref_with_user_errors(
-        dictionary_name,
-        NFTCoreError::MissingStorageUref,
-        NFTCoreError::InvalidStorageUref,
-    );
-
-    match storage::dictionary_get::<T>(seed_uref, key) {
-        Ok(value) => (value, seed_uref),
-        Err(error) => runtime::revert(error),
-    }
-}
-
-fn get_stored_value_with_user_errors<T: CLTyped + FromBytes>(
-    name: &str,
-    missing: NFTCoreError,
-    invalid: NFTCoreError,
-) -> (T, URef) {
-    let uref = get_uref_with_user_errors(name, missing, invalid);
-    (read_with_user_errors(uref, missing, invalid), uref)
-}
-
-fn get_named_arg_size(name: &str) -> Option<usize> {
-    let mut arg_size: usize = 0;
-    let ret = unsafe {
-        ext_ffi::casper_get_named_arg_size(
-            name.as_bytes().as_ptr(),
-            name.len(),
-            &mut arg_size as *mut usize,
-        )
-    };
-    match api_error::result_from(ret) {
-        Ok(_) => Some(arg_size),
-        Err(ApiError::MissingArgument) => None,
-        Err(e) => runtime::revert(e),
-    }
-}
-
-pub fn get_optional_named_arg_with_user_errors<T: FromBytes>(
-    name: &str,
-    invalid: NFTCoreError,
-) -> Option<T> {
-    match get_named_arg_with_user_errors(name, NFTCoreError::Phantom, invalid) {
-        Ok(val) => val,
-        Err(err @ NFTCoreError::InvalidInstaller) => runtime::revert(err),
-        Err(e) => runtime::revert(e),
-    }
-}
-
-pub fn get_named_arg_with_user_errors<T: FromBytes>(
-    name: &str,
-    missing: NFTCoreError,
-    invalid: NFTCoreError,
-) -> Result<T, NFTCoreError> {
-    let arg_size = get_named_arg_size(name).ok_or(missing)?;
-    let arg_bytes = if arg_size > 0 {
-        let res = {
-            let data_non_null_ptr = contract_api::alloc_bytes(arg_size);
-            let ret = unsafe {
-                ext_ffi::casper_get_named_arg(
-                    name.as_bytes().as_ptr(),
-                    name.len(),
-                    data_non_null_ptr.as_ptr(),
-                    arg_size,
-                )
-            };
-            let data =
-                unsafe { Vec::from_raw_parts(data_non_null_ptr.as_ptr(), arg_size, arg_size) };
-            api_error::result_from(ret).map(|_| data)
-        };
-        // Assumed to be safe as `get_named_arg_size` checks the argument already
-        res.unwrap_or_revert_with(NFTCoreError::FailedToGetArgBytes)
-    } else {
-        // Avoids allocation with 0 bytes and a call to get_named_arg
-        Vec::new()
-    };
-
-    bytesrepr::deserialize(arg_bytes).map_err(|_| invalid)
-}
-
-// Todo: write tests
-// Test1: check to see if created account exists
-// Test2: check to see if not-created account exists
-
-// fn read_optional_account_with_user_errors(key: Key, invalid: NFTCoreError) -> Option<Account> {
-//     let (key_ptr, key_size, _bytes) = to_ptr(key);
-
-//     let value_size = {
-//         let mut value_size = MaybeUninit::uninit();
-//         let ret = unsafe { ext_ffi::casper_read_value(key_ptr, key_size, value_size.as_mut_ptr()) };
-//         match api_error::result_from(ret) {
-//             Ok(_) => unsafe { value_size.assume_init() },
-//             Err(ApiError::ValueNotFound) => return None,
-//             Err(e) => runtime::revert(e),
-//         }
-//     };
-
-//     let value_bytes = read_host_buffer(value_size).unwrap_or_revert();
-//     match bytesrepr::deserialize::<Account>(value_bytes) {
-//         Ok(account) => Some(account),
-//         Err(_) => {
-//             runtime::revert(invalid);
-//         }
-//     }
-// }
-
-fn get_account_hash_with_user_errors(
-    name: &str,
-    missing: NFTCoreError,
-    invalid: NFTCoreError,
-) -> AccountHash {
-    let key = get_key_with_user_errors(name, missing, invalid);
-    key.into_account()
-        .unwrap_or_revert_with(NFTCoreError::UnexpectedKeyVariant)
-}
-
-fn get_uref_with_user_errors(name: &str, missing: NFTCoreError, invalid: NFTCoreError) -> URef {
-    let key = get_key_with_user_errors(name, missing, invalid);
-    key.into_uref()
-        .unwrap_or_revert_with(NFTCoreError::UnexpectedKeyVariant)
-}
-
-fn named_uref_exists(name: &str) -> bool {
-    let (name_ptr, name_size, _bytes) = to_ptr(name);
-    let mut key_bytes = vec![0u8; Key::max_serialized_length()];
-    let mut total_bytes: usize = 0;
-    let ret = unsafe {
-        ext_ffi::casper_get_key(
-            name_ptr,
-            name_size,
-            key_bytes.as_mut_ptr(),
-            key_bytes.len(),
-            &mut total_bytes as *mut usize,
-        )
-    };
-
-    api_error::result_from(ret).is_ok()
-}
-
-fn get_key_with_user_errors(name: &str, missing: NFTCoreError, invalid: NFTCoreError) -> Key {
-    let (name_ptr, name_size, _bytes) = to_ptr(name);
-    let mut key_bytes = vec![0u8; Key::max_serialized_length()];
-    let mut total_bytes: usize = 0;
-    let ret = unsafe {
-        ext_ffi::casper_get_key(
-            name_ptr,
-            name_size,
-            key_bytes.as_mut_ptr(),
-            key_bytes.len(),
-            &mut total_bytes as *mut usize,
-        )
-    };
-    match api_error::result_from(ret) {
-        Ok(_) => {}
-        Err(ApiError::MissingKey) => runtime::revert(missing),
-        Err(e) => runtime::revert(e),
-    }
-    key_bytes.truncate(total_bytes);
-
-    bytesrepr::deserialize(key_bytes).unwrap_or_revert_with(invalid)
-}
-
-fn read_with_user_errors<T: CLTyped + FromBytes>(
-    uref: URef,
-    missing: NFTCoreError,
-    invalid: NFTCoreError,
-) -> T {
-    let key: Key = uref.into();
-    let (key_ptr, key_size, _bytes) = to_ptr(key);
-
-    let value_size = {
-        let mut value_size = MaybeUninit::uninit();
-        let ret = unsafe { ext_ffi::casper_read_value(key_ptr, key_size, value_size.as_mut_ptr()) };
-        match api_error::result_from(ret) {
-            Ok(_) => unsafe { value_size.assume_init() },
-            Err(ApiError::ValueNotFound) => runtime::revert(missing),
-            Err(e) => runtime::revert(e),
-        }
-    };
-
-    let value_bytes = read_host_buffer(value_size).unwrap_or_revert();
-
-    bytesrepr::deserialize(value_bytes).unwrap_or_revert_with(invalid)
-}
-
-fn read_host_buffer_into(dest: &mut [u8]) -> Result<usize, ApiError> {
-    let mut bytes_written = MaybeUninit::uninit();
-    let ret = unsafe {
-        ext_ffi::casper_read_host_buffer(dest.as_mut_ptr(), dest.len(), bytes_written.as_mut_ptr())
-    };
-    // NOTE: When rewriting below expression as `result_from(ret).map(|_| unsafe { ... })`, and the
-    // caller ignores the return value, execution of the contract becomes unstable and ultimately
-    // leads to `Unreachable` error.
-    api_error::result_from(ret)?;
-    Ok(unsafe { bytes_written.assume_init() })
-}
-
-fn read_host_buffer(size: usize) -> Result<Vec<u8>, ApiError> {
-    let mut dest: Vec<u8> = if size == 0 {
-        Vec::new()
-    } else {
-        let bytes_non_null_ptr = contract_api::alloc_bytes(size);
-        unsafe { Vec::from_raw_parts(bytes_non_null_ptr.as_ptr(), size, size) }
-    };
-    read_host_buffer_into(&mut dest)?;
-    Ok(dest)
-}
-
-fn to_ptr<T: ToBytes>(t: T) -> (*const u8, usize, Vec<u8>) {
-    let bytes = t.into_bytes().unwrap_or_revert();
-    let ptr = bytes.as_ptr();
-    let size = bytes.len();
-    (ptr, size, bytes)
 }
