@@ -125,7 +125,10 @@ fn should_not_burn_previously_burnt_token() {
     );
 
     let expected_owned_tokens = vec![U256::zero()];
-    assert_eq!(expected_owned_tokens, actual_owned_tokens);
+    assert_eq!(
+        expected_owned_tokens, actual_owned_tokens,
+        "1----------------1"
+    );
 
     let burn_request = ExecuteRequestBuilder::contract_call_by_name(
         *DEFAULT_ACCOUNT_ADDR,

@@ -85,15 +85,24 @@ pub extern "C" fn init() {
     // for future use).
     // Initialize contract with URefs for all invariant values, which can never be changed.
     runtime::put_key(COLLECTION_NAME, storage::new_uref(collection_name).into());
-    runtime::put_key(COLLECTION_SYMBOL, storage::new_uref(collection_symbol).into());
-    runtime::put_key(TOTAL_TOKEN_SUPPLY, storage::new_uref(total_token_supply).into());
+    runtime::put_key(
+        COLLECTION_SYMBOL,
+        storage::new_uref(collection_symbol).into(),
+    );
+    runtime::put_key(
+        TOTAL_TOKEN_SUPPLY,
+        storage::new_uref(total_token_supply).into(),
+    );
     // Initialize contract with variables which must be present but maybe set to
     // different values after initialization.
     runtime::put_key(ALLOW_MINTING, storage::new_uref(allow_minting).into());
     runtime::put_key(PUBLIC_MINTING, storage::new_uref(public_minting).into());
     // This is an internal variable that the installing account cannot change
     // but is incremented by the contract itself.
-    runtime::put_key(NUMBER_OF_MINTED_TOKENS, storage::new_uref(U256::zero()).into());
+    runtime::put_key(
+        NUMBER_OF_MINTED_TOKENS,
+        storage::new_uref(U256::zero()).into(),
+    );
 
     // Create the data dictionaries to store essential values, topically.
     storage::new_dictionary(TOKEN_OWNERS)
@@ -201,35 +210,31 @@ pub extern "C" fn mint() {
     )
     .unwrap_or_revert();
 
-    // Set token_meta data dictionary and revert if token_metadata already exists (unnecessary check??)
-    match get_dictionary_value_from_key::<String>(
-        TOKEN_META_DATA,
-        &next_index.to_string(),
-    ) {
-        (Some(_), _) => runtime::revert(NFTCoreError::FatalTokenIdDuplication),
-        (None, token_meta_data_seed_uref) => storage::dictionary_put(
-            token_meta_data_seed_uref,
-            &next_index.to_string(),
-            token_meta_data,
-        ),
-    }
+    upsert_dictionary_value_from_key(TOKEN_META_DATA, &next_index.to_string(), token_meta_data);
+    upsert_dictionary_value_from_key(TOKEN_OWNERS, &next_index.to_string(), caller.clone());
 
-    //Revert if owner already exists (fatal error of contract implementation), or store minter as owner under token_id
-    match get_dictionary_value_from_key::<String>(
-        TOKEN_OWNERS,
-        &next_index.to_string(),
-    ) {
-        (Some(_), _) => runtime::revert(NFTCoreError::FatalTokenIdDuplication),
-        (None, token_owners_seed_uref) => storage::dictionary_put(
-            token_owners_seed_uref,
-            &next_index.to_string(),
-            caller.clone(),
-        ),
-    };
+    // // Set token_meta data dictionary and revert if token_metadata already exists (unnecessary check??)
+    // match get_dictionary_value_from_key::<String>(TOKEN_META_DATA, &next_index.to_string()) {
+    //     Some(_) => runtime::revert(NFTCoreError::FatalTokenIdDuplication),
+    //     None => storage::dictionary_put(
+    //         token_meta_data_seed_uref,
+    //         &next_index.to_string(),
+    //         token_meta_data,
+    //     ),
+    // }
+
+    // //Revert if owner already exists (fatal error of contract implementation), or store minter as owner under token_id
+    // match get_dictionary_value_from_key::<String>(TOKEN_OWNERS, &next_index.to_string()) {
+    //     (Some(_), _) => runtime::revert(NFTCoreError::FatalTokenIdDuplication),
+    //     (None, token_owners_seed_uref) => storage::dictionary_put(
+    //         token_owners_seed_uref,
+    //         &next_index.to_string(),
+    //         caller.clone(),
+    //     ),
+    // };
 
     // Update owned tokens dictionary
-    let (maybe_owned_tokens, owned_tokens_seed_uref) =
-        get_dictionary_value_from_key::<Vec<U256>>(OWNED_TOKENS, &caller);
+    let maybe_owned_tokens = get_dictionary_value_from_key::<Vec<U256>>(OWNED_TOKENS, &caller);
 
     let updated_owned_tokens = match maybe_owned_tokens {
         Some(mut owned_tokens) => {
@@ -244,7 +249,7 @@ pub extern "C" fn mint() {
     };
 
     //Store the udated owned tokens vec in dictionary
-    storage::dictionary_put(owned_tokens_seed_uref, &caller, updated_owned_tokens);
+    upsert_dictionary_value_from_key(OWNED_TOKENS, &caller, updated_owned_tokens);
 
     // Increment number_of_minted_tokens by one
     next_index += U256::one();
@@ -263,15 +268,15 @@ pub extern "C" fn burn() {
     let caller: String = runtime::get_caller().to_string();
 
     // Revert if caller is not token_owner. This seems to be the only check we need to do.
+    // TODO: Decide whether an approved operator should be allowed to burn token?
     match get_dictionary_value_from_key::<String>(TOKEN_OWNERS, &token_id.to_string()) {
         Some(token_owner_account_hash) => {
             if token_owner_account_hash != caller {
                 runtime::revert(NFTCoreError::InvalidTokenOwner)
             }
         }
-        None => runtime::revert(NFTCoreError::InvalidTokenID)
+        None => runtime::revert(NFTCoreError::InvalidTokenID),
     }
-
 
     // It makes sense to keep this token as owned by the caller. It just happens that the caller
     // owns a burnt token. That's all. Similarly, we should probably also not change the owned_tokens
@@ -279,9 +284,12 @@ pub extern "C" fn burn() {
 
     // Should an operator be allow to burn tokens?
 
+    if get_dictionary_value_from_key::<()>(BURNT_TOKENS, &token_id.to_string()).is_some() {
+        runtime::revert(NFTCoreError::PreviouslyBurntToken);
+    }
+
     // Mark the token as burnt by adding the token_id to the burnt tokens dictionary.
     upsert_dictionary_value_from_key::<()>(BURNT_TOKENS, &token_id.to_string(), ())
-
 
     // Should we also update approved dictionary?
 }
@@ -310,8 +318,8 @@ pub extern "C" fn approve() {
 
     let token_owner =
         match get_dictionary_value_from_key::<String>(TOKEN_OWNERS, &token_id.to_string()) {
-            DictionaryEntry::DoesExist(token_owner) => token_owner,
-            DictionaryEntry::DoesNotExist(_) => runtime::revert(NFTCoreError::InvalidAccountHash)
+            Some(token_owner) => token_owner,
+            None => runtime::revert(NFTCoreError::InvalidAccountHash),
         };
 
     // Revert if caller is not the token_owner.
@@ -320,7 +328,7 @@ pub extern "C" fn approve() {
     }
 
     // We assume a burnt token cannot be approved
-    if let DictionaryEntry::DoesExist(_) = get_dictionary_value_from_key::<()>(BURNT_TOKENS, &token_id.to_string()) {
+    if get_dictionary_value_from_key::<()>(BURNT_TOKENS, &token_id.to_string()).is_some() {
         runtime::revert(NFTCoreError::PreviouslyBurntToken);
     }
 
@@ -374,7 +382,7 @@ pub extern "C" fn set_approval_for_all() {
         NFTCoreError::InvalidStorageUref,
     );
 
-    if let (Some(owned_tokens), _) =
+    if let Some(owned_tokens) =
         get_dictionary_value_from_key::<Vec<U256>>(APPROVED_FOR_TRANSFER, &caller)
     {
         // Depending on approve_all we either approve all or disapprove all.
@@ -399,7 +407,7 @@ pub extern "C" fn transfer() {
     .unwrap_or_revert();
 
     // We assume we cannot transfer burnt tokens
-    if let (Some(_), _) = get_dictionary_value_from_key::<()>(BURNT_TOKENS, &token_id.to_string()) {
+    if get_dictionary_value_from_key::<()>(BURNT_TOKENS, &token_id.to_string()).is_some() {
         runtime::revert(NFTCoreError::PreviouslyBurntToken);
     }
 
@@ -419,8 +427,8 @@ pub extern "C" fn transfer() {
 
     let token_owner =
         match get_dictionary_value_from_key::<String>(TOKEN_OWNERS, &token_id.to_string()) {
-            (Some(token_owner), _) => token_owner,
-            (None, _) => runtime::revert(NFTCoreError::InvalidTokenID),
+            Some(token_owner) => token_owner,
+            None => runtime::revert(NFTCoreError::InvalidTokenID),
         };
 
     let from_account_hash = get_named_arg_with_user_errors::<String>(
@@ -442,14 +450,14 @@ pub extern "C" fn transfer() {
         APPROVED_FOR_TRANSFER,
         &token_id.to_string(),
     ) {
-        (Some(maybe_approved_account_hash), _) => {
+        Some(maybe_approved_account_hash) => {
             if let Some(approved_account_hash) = maybe_approved_account_hash {
                 approved_account_hash == caller
             } else {
                 false
             }
         }
-        (None, _) => false,
+        None => false,
     };
 
     // Revert if caller is not owner and not approved. (CEP47 transfer logic looks incorrect to me...)
@@ -466,7 +474,12 @@ pub extern "C" fn transfer() {
 
     // Updated token_owners dictionary. Revert if token_owner not found.
     match get_dictionary_value_from_key::<String>(TOKEN_OWNERS, &token_id.to_string()) {
-        (Some(token_actual_owner_account_hash), token_owners_seed_uref) => {
+        Some(token_actual_owner_account_hash) => {
+            let token_owners_seed_uref = get_uref(
+                TOKEN_OWNERS,
+                NFTCoreError::MissingStorageUref,
+                NFTCoreError::InvalidStorageUref,
+            );
             if token_actual_owner_account_hash != from_account_hash {
                 runtime::revert(NFTCoreError::InvalidTokenOwner)
             }
@@ -477,14 +490,21 @@ pub extern "C" fn transfer() {
                 to_account_hash.clone(),
             );
         }
-        (None, _) => runtime::revert(NFTCoreError::InvalidTokenID),
+        None => runtime::revert(NFTCoreError::InvalidTokenID),
     }
 
     // Update to_account owned_tokens. Revert if owned_tokens list is not found
     match get_dictionary_value_from_key::<Vec<U256>>(OWNED_TOKENS, &from_account_hash) {
-        (Some(mut owned_tokens), owned_tokens_seed_uref) => {
+        Some(mut owned_tokens) => {
             // Check that token_id is in owned tokens list. If so remove token_id from list
             // If not revert.
+
+            let owned_tokens_seed_uref = get_uref(
+                OWNED_TOKENS,
+                NFTCoreError::MissingStorageUref,
+                NFTCoreError::InvalidStorageUref,
+            );
+
             if let Some(id) = owned_tokens.iter().position(|id| *id == token_id) {
                 owned_tokens.remove(id);
             } else {
@@ -498,12 +518,18 @@ pub extern "C" fn transfer() {
                 owned_tokens,
             );
         }
-        (None, _) => runtime::revert(NFTCoreError::InvalidTokenID), // Better error?
+        None => runtime::revert(NFTCoreError::InvalidTokenID), // Better error?
     }
 
     // Update to_account owned_tokens
     match get_dictionary_value_from_key::<Vec<U256>>(OWNED_TOKENS, &to_account_hash) {
-        (Some(mut owned_tokens), owned_tokens_seed_uref) => {
+        Some(mut owned_tokens) => {
+            let owned_tokens_seed_uref = get_uref(
+                OWNED_TOKENS,
+                NFTCoreError::MissingStorageUref,
+                NFTCoreError::InvalidStorageUref,
+            );
+
             if owned_tokens.iter().any(|id| *id == token_id) {
                 runtime::revert(NFTCoreError::FatalTokenIdDuplication)
             } else {
@@ -512,7 +538,13 @@ pub extern "C" fn transfer() {
 
             storage::dictionary_put(owned_tokens_seed_uref, &to_account_hash, owned_tokens);
         }
-        (None, owned_tokens_seed_uref) => {
+        None => {
+            let owned_tokens_seed_uref = get_uref(
+                OWNED_TOKENS,
+                NFTCoreError::MissingStorageUref,
+                NFTCoreError::InvalidStorageUref,
+            );
+
             let owned_tokens = vec![token_id];
             storage::dictionary_put(owned_tokens_seed_uref, &to_account_hash, owned_tokens);
         }
@@ -529,7 +561,6 @@ pub extern "C" fn balance_of() {
         NFTCoreError::InvalidAccountHash,
     )
     .unwrap_or_revert();
-
 
     // The number of owned tokens is the the length of the owned_tokens array
     // If no array is found we return 0.

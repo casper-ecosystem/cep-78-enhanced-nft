@@ -15,11 +15,10 @@ use casper_types::{
 
 use crate::error::NFTCoreError;
 
-
-pub(crate) fn upsert_dictionary_value_from_key<T: CLTyped + FromBytes>(
+pub(crate) fn upsert_dictionary_value_from_key<T: CLTyped + FromBytes + ToBytes>(
     dictionary_name: &str,
     key: &str,
-    value: T
+    value: T,
 ) {
     let seed_uref = get_uref(
         dictionary_name,
@@ -27,13 +26,9 @@ pub(crate) fn upsert_dictionary_value_from_key<T: CLTyped + FromBytes>(
         NFTCoreError::InvalidStorageUref,
     );
 
+    // TODO: Write a test for this upsert method.
     match storage::dictionary_get::<T>(seed_uref, key) {
-        Ok(Some(_)) => runtime::revert(NFTCoreError::FatalTokenIdDuplication),
-        Ok(None) => storage::dictionary_put(
-            dictionary_seed_uref,
-            key,
-            value,
-        ),
+        Ok(None | Some(_)) => storage::dictionary_put(seed_uref, key, value),
         Err(error) => runtime::revert(error),
     }
 }
@@ -53,7 +48,6 @@ pub(crate) fn get_dictionary_value_from_key<T: CLTyped + FromBytes>(
         Err(error) => runtime::revert(error),
     }
 }
-
 
 pub(crate) fn get_stored_value_with_user_errors<T: CLTyped + FromBytes>(
     name: &str,
@@ -132,11 +126,7 @@ pub(crate) fn get_account_hash(
         .unwrap_or_revert_with(NFTCoreError::UnexpectedKeyVariant)
 }
 
-pub(crate) fn get_uref(
-    name: &str,
-    missing: NFTCoreError,
-    invalid: NFTCoreError,
-) -> URef {
+pub(crate) fn get_uref(name: &str, missing: NFTCoreError, invalid: NFTCoreError) -> URef {
     let key = get_key_with_user_errors(name, missing, invalid);
     key.into_uref()
         .unwrap_or_revert_with(NFTCoreError::UnexpectedKeyVariant)
