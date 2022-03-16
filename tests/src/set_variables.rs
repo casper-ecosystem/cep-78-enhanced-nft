@@ -4,18 +4,18 @@ use casper_engine_test_support::{
 };
 use casper_types::{runtime_args, ContractHash, Key, RuntimeArgs, U256};
 
-use super::{
+use crate::utility::{
     constants::{
         ACCOUNT_USER_1, ARG_ALLOW_MINTING, CONTRACT_NAME, ENTRY_POINT_SET_VARIABLES,
         NFT_CONTRACT_WASM, NFT_TEST_COLLECTION, NFT_TEST_SYMBOL,
     },
     installer_request_builder::InstallerRequestBuilder,
-    utils,
+    support,
 };
 
 #[test]
 fn only_installer_should_be_able_to_toggle_allow_minting() {
-    let (_, other_user_public_key) = utils::create_dummy_key_pair(ACCOUNT_USER_1); //<-- Choose MINTER2 for failing red test
+    let (_, other_user_public_key) = support::create_dummy_key_pair(ACCOUNT_USER_1); //<-- Choose MINTER2 for failing red test
     let other_user_account = other_user_public_key.to_account_hash();
     let mut builder = InMemoryWasmTestBuilder::default();
     builder.run_genesis(&DEFAULT_RUN_GENESIS_REQUEST).commit();

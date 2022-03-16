@@ -37,7 +37,7 @@ pub enum NFTCoreError {
     TokenSupplyDepleted = 32,
     MissingOwnedTokensDictionary = 33,
     TokenAlreadyBelongsToMinterFatal = 34,
-    FatalTokenIDDuplication = 35,
+    FatalTokenIdDuplication = 35,
     InvalidMinter = 36,
     MissingPublicMinting = 37,
     InvalidPublicMinting = 38,
@@ -63,6 +63,7 @@ pub enum NFTCoreError {
     ContractAlreadyInitialized = 58,
     MintingIsPaused = 59,
     FailureToParseAccountHash = 60,
+    VacantValueInDictionary = 61,
 }
 
 impl From<NFTCoreError> for ApiError {

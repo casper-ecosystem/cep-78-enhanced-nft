@@ -4,18 +4,17 @@ use casper_engine_test_support::{
 };
 use casper_types::{runtime_args, system::mint, ContractHash, Key, RuntimeArgs, U256};
 
-use crate::tests::{
+use crate::utility::{
     constants::{
-        ACCOUNT_USER_1, APPROVED_FOR_TRANSFER, ARG_APPROVE_TRANSFER_FOR_ACCOUNT_HASH,
-        ARG_FROM_ACCOUNT_HASH, ARG_TOKEN_ID, ARG_TOKEN_META_DATA, ARG_TO_ACCOUNT_HASH,
-        CONTRACT_NAME, ENTRY_POINT_APPROVE, ENTRY_POINT_MINT, NFT_CONTRACT_WASM,
-        NFT_TEST_COLLECTION, NFT_TEST_SYMBOL, OWNED_TOKENS, TEST_META_DATA, TOKEN_OWNERS,
+        ACCOUNT_USER_1, ACCOUNT_USER_2, APPROVED_FOR_TRANSFER,
+        ARG_APPROVE_TRANSFER_FOR_ACCOUNT_HASH, ARG_FROM_ACCOUNT_HASH, ARG_TOKEN_ID,
+        ARG_TOKEN_META_DATA, ARG_TO_ACCOUNT_HASH, CONTRACT_NAME, ENTRY_POINT_APPROVE,
+        ENTRY_POINT_MINT, ENTRY_POINT_TRANSFER, NFT_CONTRACT_WASM, NFT_TEST_COLLECTION,
+        NFT_TEST_SYMBOL, OWNED_TOKENS, TEST_META_DATA, TOKEN_OWNERS,
     },
     installer_request_builder::InstallerRequestBuilder,
-    utils,
+    support,
 };
-
-use super::constants::{ACCOUNT_USER_2, ENTRY_POINT_TRANSFER};
 
 #[test]
 fn should_transfer_token_from_sender_to_receiver() {
@@ -56,7 +55,7 @@ fn should_transfer_token_from_sender_to_receiver() {
 
     builder.exec(mint_request).expect_success().commit();
 
-    let (_, token_receiver) = utils::create_dummy_key_pair(ACCOUNT_USER_1);
+    let (_, token_receiver) = support::create_dummy_key_pair(ACCOUNT_USER_1);
     let transfer_request = ExecuteRequestBuilder::contract_call_by_hash(
         *DEFAULT_ACCOUNT_ADDR,
         nft_contract_hash,
@@ -77,7 +76,7 @@ fn should_transfer_token_from_sender_to_receiver() {
         .get(CONTRACT_NAME)
         .expect("must have key in named keys");
 
-    let actual_token_owner: String = utils::get_dictionary_value_from_key(
+    let actual_token_owner: String = support::get_dictionary_value_from_key(
         &builder,
         nft_contract_key,
         TOKEN_OWNERS,
@@ -89,7 +88,7 @@ fn should_transfer_token_from_sender_to_receiver() {
         token_receiver.to_account_hash().to_string()
     ); // Change  token_receiver to token_owner for red test
 
-    let actual_owned_tokens: Vec<U256> = utils::get_dictionary_value_from_key(
+    let actual_owned_tokens: Vec<U256> = support::get_dictionary_value_from_key(
         &builder,
         nft_contract_key,
         OWNED_TOKENS,
@@ -135,7 +134,7 @@ fn approve_token_for_transfer_should_add_entry_to_approved_dictionary() {
 
     builder.exec(mint_request).expect_success().commit();
 
-    let (_, approve_public_key) = utils::create_dummy_key_pair(ACCOUNT_USER_1);
+    let (_, approve_public_key) = support::create_dummy_key_pair(ACCOUNT_USER_1);
     let approve_request = ExecuteRequestBuilder::contract_call_by_hash(
             *DEFAULT_ACCOUNT_ADDR,
             nft_contract_hash,
@@ -145,7 +144,7 @@ fn approve_token_for_transfer_should_add_entry_to_approved_dictionary() {
                 ARG_APPROVE_TRANSFER_FOR_ACCOUNT_HASH => approve_public_key.to_account_hash().to_string()
             },
         )
-        .build();
+            .build();
     builder.exec(approve_request).expect_success().commit();
 
     let installing_account = builder.get_expected_account(*DEFAULT_ACCOUNT_ADDR);
@@ -154,7 +153,7 @@ fn approve_token_for_transfer_should_add_entry_to_approved_dictionary() {
         .get(CONTRACT_NAME)
         .expect("must have key in named keys");
 
-    let actual_approved_account_hash: Option<String> = utils::get_dictionary_value_from_key(
+    let actual_approved_account_hash: Option<String> = support::get_dictionary_value_from_key(
         &builder,
         nft_contract_key,
         APPROVED_FOR_TRANSFER,
@@ -203,7 +202,7 @@ fn should_be_able_to_transfer_token_using_approved_operator() {
     builder.exec(mint_request).expect_success().commit();
 
     // Create operator account and transfer funds
-    let (_, operator) = utils::create_dummy_key_pair(ACCOUNT_USER_1);
+    let (_, operator) = support::create_dummy_key_pair(ACCOUNT_USER_1);
     let transfer_to_operator = ExecuteRequestBuilder::transfer(
         *DEFAULT_ACCOUNT_ADDR,
         runtime_args! {
@@ -229,7 +228,7 @@ fn should_be_able_to_transfer_token_using_approved_operator() {
     builder.exec(approve_request).expect_success().commit();
 
     // Create to_account and transfer minted token using operator
-    let (_, to_account_hash) = utils::create_dummy_key_pair(ACCOUNT_USER_2);
+    let (_, to_account_hash) = support::create_dummy_key_pair(ACCOUNT_USER_2);
     let transfer_to_to_account = ExecuteRequestBuilder::transfer(
         *DEFAULT_ACCOUNT_ADDR,
         runtime_args! {

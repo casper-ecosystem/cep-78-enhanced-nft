@@ -15,29 +15,53 @@ use casper_types::{
 
 use crate::error::NFTCoreError;
 
-pub(crate) fn get_dictionary_value_from_key<T: CLTyped + FromBytes>(
+
+pub(crate) fn upsert_dictionary_value_from_key<T: CLTyped + FromBytes>(
     dictionary_name: &str,
     key: &str,
-) -> (Option<T>, URef) {
-    let seed_uref = get_uref_with_user_errors(
+    value: T
+) {
+    let seed_uref = get_uref(
         dictionary_name,
         NFTCoreError::MissingStorageUref,
         NFTCoreError::InvalidStorageUref,
     );
 
     match storage::dictionary_get::<T>(seed_uref, key) {
-        Ok(value) => (value, seed_uref),
+        Ok(Some(_)) => runtime::revert(NFTCoreError::FatalTokenIdDuplication),
+        Ok(None) => storage::dictionary_put(
+            dictionary_seed_uref,
+            key,
+            value,
+        ),
         Err(error) => runtime::revert(error),
     }
 }
+
+pub(crate) fn get_dictionary_value_from_key<T: CLTyped + FromBytes>(
+    dictionary_name: &str,
+    key: &str,
+) -> Option<T> {
+    let seed_uref = get_uref(
+        dictionary_name,
+        NFTCoreError::MissingStorageUref,
+        NFTCoreError::InvalidStorageUref,
+    );
+
+    match storage::dictionary_get::<T>(seed_uref, key) {
+        Ok(maybe_value) => maybe_value,
+        Err(error) => runtime::revert(error),
+    }
+}
+
 
 pub(crate) fn get_stored_value_with_user_errors<T: CLTyped + FromBytes>(
     name: &str,
     missing: NFTCoreError,
     invalid: NFTCoreError,
-) -> (T, URef) {
-    let uref = get_uref_with_user_errors(name, missing, invalid);
-    (read_with_user_errors(uref, missing, invalid), uref)
+) -> T {
+    let uref = get_uref(name, missing, invalid);
+    read_with_user_errors(uref, missing, invalid)
 }
 
 pub(crate) fn get_named_arg_size(name: &str) -> Option<usize> {
@@ -98,7 +122,7 @@ pub(crate) fn get_named_arg_with_user_errors<T: FromBytes>(
     bytesrepr::deserialize(arg_bytes).map_err(|_| invalid)
 }
 
-pub(crate) fn get_account_hash_with_user_errors(
+pub(crate) fn get_account_hash(
     name: &str,
     missing: NFTCoreError,
     invalid: NFTCoreError,
@@ -108,7 +132,7 @@ pub(crate) fn get_account_hash_with_user_errors(
         .unwrap_or_revert_with(NFTCoreError::UnexpectedKeyVariant)
 }
 
-pub(crate) fn get_uref_with_user_errors(
+pub(crate) fn get_uref(
     name: &str,
     missing: NFTCoreError,
     invalid: NFTCoreError,

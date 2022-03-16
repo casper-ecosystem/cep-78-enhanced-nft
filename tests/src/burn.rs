@@ -4,13 +4,13 @@ use casper_engine_test_support::{
 };
 use casper_types::{runtime_args, system::mint, ContractHash, RuntimeArgs, U256};
 
-use crate::tests::{
+use crate::utility::{
     constants::{
         ACCOUNT_USER_1, ARG_TOKEN_ID, ARG_TOKEN_META_DATA, BURNT_TOKENS, CONTRACT_NAME,
         ENTRY_POINT_BURN, ENTRY_POINT_MINT, NFT_CONTRACT_WASM, OWNED_TOKENS, TEST_META_DATA,
     },
     installer_request_builder::InstallerRequestBuilder,
-    utils,
+    support,
 };
 
 #[test]
@@ -48,7 +48,7 @@ fn should_burn_minted_token() {
 
     builder.exec(mint_request).expect_success().commit();
 
-    let actual_owned_tokens = utils::get_dictionary_value_from_key::<Vec<U256>>(
+    let actual_owned_tokens = support::get_dictionary_value_from_key::<Vec<U256>>(
         &builder,
         nft_contract_key,
         OWNED_TOKENS,
@@ -73,7 +73,7 @@ fn should_burn_minted_token() {
 
     builder.exec(burn_request).expect_success().commit();
 
-    let _ = utils::get_dictionary_value_from_key::<()>(
+    let _ = support::get_dictionary_value_from_key::<()>(
         &builder,
         nft_contract_key,
         BURNT_TOKENS,
@@ -114,7 +114,7 @@ fn should_not_burn_previously_burnt_token() {
 
     builder.exec(mint_request).expect_success().commit();
 
-    let actual_owned_tokens = utils::get_dictionary_value_from_key::<Vec<U256>>(
+    let actual_owned_tokens = support::get_dictionary_value_from_key::<Vec<U256>>(
         &builder,
         nft_contract_key,
         OWNED_TOKENS,
@@ -152,7 +152,7 @@ fn should_not_burn_previously_burnt_token() {
     builder.exec(re_burn_request).expect_failure();
 
     let actual_error = builder.get_error().expect("must have error");
-    utils::assert_expected_error(actual_error, 42u16);
+    support::assert_expected_error(actual_error, 42u16);
 }
 
 #[test]
@@ -183,7 +183,7 @@ fn should_not_burn_un_minted_token() {
     builder.exec(burn_request).expect_failure();
 
     let actual_error = builder.get_error().expect("must have error");
-    utils::assert_expected_error(actual_error, 28u16);
+    support::assert_expected_error(actual_error, 28u16);
 }
 
 #[test]
@@ -210,7 +210,7 @@ fn should_disallow_burning_of_others_users_token() {
         .into_hash()
         .expect("must convert to hash addr");
 
-    let (_, account_user_1) = utils::create_dummy_key_pair(ACCOUNT_USER_1);
+    let (_, account_user_1) = support::create_dummy_key_pair(ACCOUNT_USER_1);
 
     let transfer_to_account_1 = ExecuteRequestBuilder::transfer(
         *DEFAULT_ACCOUNT_ADDR,
@@ -239,7 +239,7 @@ fn should_disallow_burning_of_others_users_token() {
 
     builder.exec(mint_request).expect_success().commit();
 
-    let actual_owned_tokens = utils::get_dictionary_value_from_key::<Vec<U256>>(
+    let actual_owned_tokens = support::get_dictionary_value_from_key::<Vec<U256>>(
         &builder,
         nft_contract_key,
         OWNED_TOKENS,
@@ -266,7 +266,7 @@ fn should_disallow_burning_of_others_users_token() {
 
     let error = builder.get_error().expect("must have error");
 
-    utils::assert_expected_error(error, 6u16);
+    support::assert_expected_error(error, 6u16);
 }
 
 #[test]
@@ -293,7 +293,7 @@ fn should_prevent_burning_on_owner_key_mismatch() {
         .into_hash()
         .expect("must convert to hash addr");
 
-    let (_, account_user_1) = utils::create_dummy_key_pair(ACCOUNT_USER_1);
+    let (_, account_user_1) = support::create_dummy_key_pair(ACCOUNT_USER_1);
 
     let transfer_to_account_1 = ExecuteRequestBuilder::transfer(
         *DEFAULT_ACCOUNT_ADDR,
@@ -322,7 +322,7 @@ fn should_prevent_burning_on_owner_key_mismatch() {
 
     builder.exec(mint_request).expect_success().commit();
 
-    let actual_owned_tokens = utils::get_dictionary_value_from_key::<Vec<U256>>(
+    let actual_owned_tokens = support::get_dictionary_value_from_key::<Vec<U256>>(
         &builder,
         nft_contract_key,
         OWNED_TOKENS,
@@ -348,5 +348,5 @@ fn should_prevent_burning_on_owner_key_mismatch() {
     builder.exec(incorrect_burn_request).expect_failure();
 
     let actual_error = builder.get_error().expect("must get error");
-    utils::assert_expected_error(actual_error, 6u16);
+    support::assert_expected_error(actual_error, 6u16);
 }

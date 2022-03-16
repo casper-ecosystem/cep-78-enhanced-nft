@@ -4,14 +4,14 @@ use casper_engine_test_support::{
 };
 use casper_types::{runtime_args, CLValue, RuntimeArgs, U256};
 
-use super::{
+use crate::utility::{
     constants::{
         ARG_ALLOW_MINTING, ARG_COLLECTION_NAME, ARG_COLLECTION_SYMBOL, ARG_PUBLIC_MINTING,
         ARG_TOTAL_TOKEN_SUPPLY, CONTRACT_NAME, ENTRY_POINT_INIT, NFT_CONTRACT_WASM,
         NFT_TEST_COLLECTION, NFT_TEST_SYMBOL, NUMBER_OF_MINTED_TOKENS,
     },
     installer_request_builder::InstallerRequestBuilder,
-    utils,
+    support,
 };
 
 #[test]
@@ -33,7 +33,7 @@ fn should_install_contract() {
         .get(CONTRACT_NAME)
         .expect("must have key in named keys");
 
-    let query_result: String = utils::query_stored_value(
+    let query_result: String = support::query_stored_value(
         &mut builder,
         *nft_contract_key,
         vec![ARG_COLLECTION_NAME.to_string()],
@@ -45,7 +45,7 @@ fn should_install_contract() {
         "collection_name initialized at installation should exist"
     );
 
-    let query_result: String = utils::query_stored_value(
+    let query_result: String = support::query_stored_value(
         &mut builder,
         *nft_contract_key,
         vec![ARG_COLLECTION_SYMBOL.to_string()],
@@ -57,7 +57,7 @@ fn should_install_contract() {
         "collection_symbol initialized at installation should exist"
     );
 
-    let query_result: U256 = utils::query_stored_value(
+    let query_result: U256 = support::query_stored_value(
         &mut builder,
         *nft_contract_key,
         vec![ARG_TOTAL_TOKEN_SUPPLY.to_string()],
@@ -69,7 +69,7 @@ fn should_install_contract() {
         "total_token_supply initialized at installation should exist"
     );
 
-    let query_result: bool = utils::query_stored_value(
+    let query_result: bool = support::query_stored_value(
         &mut builder,
         *nft_contract_key,
         vec![ARG_ALLOW_MINTING.to_string()],
@@ -77,7 +77,7 @@ fn should_install_contract() {
 
     assert!(query_result, "Allow minting should default to true");
 
-    let query_result: bool = utils::query_stored_value(
+    let query_result: bool = support::query_stored_value(
         &mut builder,
         *nft_contract_key,
         vec![ARG_PUBLIC_MINTING.to_string()],
@@ -85,7 +85,7 @@ fn should_install_contract() {
 
     assert!(!query_result, "public minting should default to false");
 
-    let query_result: U256 = utils::query_stored_value(
+    let query_result: U256 = support::query_stored_value(
         &mut builder,
         *nft_contract_key,
         vec![NUMBER_OF_MINTED_TOKENS.to_string()],
@@ -128,7 +128,7 @@ fn calling_init_entrypoint_after_intallation_should_error() {
 
     let error = builder.get_error().expect("must have error");
 
-    utils::assert_expected_error(error, 58u16);
+    support::assert_expected_error(error, 58u16);
 }
 
 #[test]
@@ -139,7 +139,7 @@ fn should_reject_invalid_typed_name() {
                 CLValue::from_t::<U256>(U256::zero()).expect("expected CLValue"),
             );
 
-    utils::assert_expected_invalid_installer_request(install_request_builder, 18);
+    support::assert_expected_invalid_installer_request(install_request_builder, 18);
 }
 
 #[test]
@@ -150,7 +150,7 @@ fn should_reject_invalid_typed_symbol() {
                 CLValue::from_t::<U256>(U256::zero()).expect("expected CLValue"),
             );
 
-    utils::assert_expected_invalid_installer_request(install_request_builder, 24);
+    support::assert_expected_invalid_installer_request(install_request_builder, 24);
 }
 
 #[test]
@@ -160,5 +160,5 @@ fn should_reject_invalid_typed_total_token_supply() {
             .with_invalid_total_token_supply(
                 CLValue::from_t::<String>("".to_string()).expect("expected CLValue"),
             );
-    utils::assert_expected_invalid_installer_request(install_request_builder, 26);
+    support::assert_expected_invalid_installer_request(install_request_builder, 26);
 }

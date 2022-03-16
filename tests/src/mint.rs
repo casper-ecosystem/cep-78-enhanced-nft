@@ -4,17 +4,14 @@ use casper_engine_test_support::{
 };
 use casper_types::{runtime_args, system::mint, ContractHash, RuntimeArgs, U256};
 
-use crate::tests::constants::{
-    ACCOUNT_USER_1, ACCOUNT_USER_2, ARG_PUBLIC_MINTING, NUMBER_OF_MINTED_TOKENS, OWNED_TOKENS,
-    TOKEN_META_DATA, TOKEN_OWNERS,
-};
-
-use super::{
+use crate::utility::{
     constants::{
-        ARG_TOKEN_META_DATA, CONTRACT_NAME, ENTRY_POINT_MINT, NFT_CONTRACT_WASM, TEST_META_DATA,
+        ACCOUNT_USER_1, ACCOUNT_USER_2, ARG_PUBLIC_MINTING, ARG_TOKEN_META_DATA, CONTRACT_NAME,
+        ENTRY_POINT_MINT, NFT_CONTRACT_WASM, NUMBER_OF_MINTED_TOKENS, OWNED_TOKENS, TEST_META_DATA,
+        TOKEN_META_DATA, TOKEN_OWNERS,
     },
     installer_request_builder::InstallerRequestBuilder,
-    utils,
+    support,
 };
 
 #[test]
@@ -45,7 +42,7 @@ fn should_disallow_minting_when_allow_minting_is_set_to_false() {
 
     // Error should be MintingIsPaused=59
     let actual_error = builder.get_error().expect("must have error");
-    utils::assert_expected_error(actual_error, 59u16);
+    support::assert_expected_error(actual_error, 59u16);
 }
 
 #[test]
@@ -80,7 +77,7 @@ fn mint_should_increment_number_of_minted_tokens_by_one_and_add_public_key_to_to
         .expect("must have key in named keys");
 
     //mint should have incremented number_of_minted_tokens by one
-    let query_result: U256 = utils::query_stored_value(
+    let query_result: U256 = support::query_stored_value(
         &mut builder,
         *nft_contract_key,
         vec![NUMBER_OF_MINTED_TOKENS.to_string()],
@@ -92,7 +89,7 @@ fn mint_should_increment_number_of_minted_tokens_by_one_and_add_public_key_to_to
         "number_of_minted_tokens initialized at installation should have incremented by one"
     );
 
-    let minter_account_hash = utils::get_dictionary_value_from_key::<String>(
+    let minter_account_hash = support::get_dictionary_value_from_key::<String>(
         &builder,
         nft_contract_key,
         TOKEN_OWNERS,
@@ -104,7 +101,7 @@ fn mint_should_increment_number_of_minted_tokens_by_one_and_add_public_key_to_to
         minter_account_hash
     );
 
-    let actual_token_ids = utils::get_dictionary_value_from_key::<Vec<U256>>(
+    let actual_token_ids = support::get_dictionary_value_from_key::<Vec<U256>>(
         &builder,
         nft_contract_key,
         OWNED_TOKENS,
@@ -159,7 +156,7 @@ fn mint_should_correctly_set_meta_data() {
         .get(CONTRACT_NAME)
         .expect("must have key in named keys");
 
-    let actual_token_meta_data = utils::get_dictionary_value_from_key::<String>(
+    let actual_token_meta_data = support::get_dictionary_value_from_key::<String>(
         &builder,
         nft_contract_key,
         TOKEN_META_DATA,
@@ -190,7 +187,7 @@ fn should_allow_public_minting_with_flag_set_to_true() {
         .expect("must convert to hash addr");
 
     let (_account_1_secret_key, account_1_public_key) =
-        utils::create_dummy_key_pair(ACCOUNT_USER_1);
+        support::create_dummy_key_pair(ACCOUNT_USER_1);
 
     let transfer_to_account_1 = ExecuteRequestBuilder::transfer(
         *DEFAULT_ACCOUNT_ADDR,
@@ -207,7 +204,7 @@ fn should_allow_public_minting_with_flag_set_to_true() {
         .expect_success()
         .commit();
 
-    let public_minting_status = utils::query_stored_value::<bool>(
+    let public_minting_status = support::query_stored_value::<bool>(
         &mut builder,
         *nft_contract_key,
         vec![ARG_PUBLIC_MINTING.to_string()],
@@ -230,7 +227,7 @@ fn should_allow_public_minting_with_flag_set_to_true() {
 
     builder.exec(nft_mint_request).expect_success().commit();
 
-    let minter_public_key = utils::get_dictionary_value_from_key::<String>(
+    let minter_public_key = support::get_dictionary_value_from_key::<String>(
         &builder,
         nft_contract_key,
         TOKEN_OWNERS,
@@ -264,7 +261,7 @@ fn should_disallow_public_minting_with_flag_set_to_false() {
         .expect("must convert to hash addr");
 
     let (_account_1_secret_key, account_1_public_key) =
-        utils::create_dummy_key_pair(ACCOUNT_USER_1);
+        support::create_dummy_key_pair(ACCOUNT_USER_1);
 
     let transfer_to_account_1 = ExecuteRequestBuilder::transfer(
         *DEFAULT_ACCOUNT_ADDR,
@@ -281,7 +278,7 @@ fn should_disallow_public_minting_with_flag_set_to_false() {
         .expect_success()
         .commit();
 
-    let public_minting_status = utils::query_stored_value::<bool>(
+    let public_minting_status = support::query_stored_value::<bool>(
         &mut builder,
         *nft_contract_key,
         vec![ARG_PUBLIC_MINTING.to_string()],
@@ -326,8 +323,8 @@ fn should_allow_minting_for_different_public_key_with_public_minting_set_to_true
         .expect("must convert to hash addr");
 
     let (_account_1_secret_key, account_1_public_key) =
-        utils::create_dummy_key_pair(ACCOUNT_USER_1);
-    let (_account_2_secret_key, _) = utils::create_dummy_key_pair(ACCOUNT_USER_2);
+        support::create_dummy_key_pair(ACCOUNT_USER_1);
+    let (_account_2_secret_key, _) = support::create_dummy_key_pair(ACCOUNT_USER_2);
 
     let transfer_to_account_1 = ExecuteRequestBuilder::transfer(
         *DEFAULT_ACCOUNT_ADDR,
@@ -354,7 +351,7 @@ fn should_allow_minting_for_different_public_key_with_public_minting_set_to_true
         builder.exec(request).expect_success().commit();
     }
 
-    let public_minting_status = utils::query_stored_value::<bool>(
+    let public_minting_status = support::query_stored_value::<bool>(
         &mut builder,
         *nft_contract_key,
         vec![ARG_PUBLIC_MINTING.to_string()],

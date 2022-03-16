@@ -160,4 +160,4 @@ volumes:
   temp: {}
 
 trigger:
-  cron: [ nightly-tests-cron ]
+  cron: [ nightly-nft_tests-cron ]
