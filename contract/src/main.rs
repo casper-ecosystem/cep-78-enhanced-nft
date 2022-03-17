@@ -303,13 +303,13 @@ pub extern "C" fn burn() {
     upsert_dictionary_value_from_key::<()>(BURNT_TOKENS, &token_id.to_string(), ());
 
     // Should we also update approved dictionary?
-
     let updated_balance = match get_dictionary_value_from_key::<U256>(BALANCES, &caller) {
         Some(balance) => {
             if balance > U256::zero() {
                 balance - U256::one()
             } else {
-                U256::zero()
+                // This should never happen if contract is implemented correctly.
+                runtime::revert(NFTCoreError::FatalTokenIdDuplication);
             }
         }
         None => {

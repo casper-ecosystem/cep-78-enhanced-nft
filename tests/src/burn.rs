@@ -6,7 +6,7 @@ use casper_types::{runtime_args, system::mint, ContractHash, RuntimeArgs, U256};
 
 use crate::utility::{
     constants::{
-        ACCOUNT_USER_1, ARG_TOKEN_ID, ARG_TOKEN_META_DATA, BURNT_TOKENS, CONTRACT_NAME,
+        ACCOUNT_USER_1, ARG_TOKEN_ID, ARG_TOKEN_META_DATA, BALANCES, BURNT_TOKENS, CONTRACT_NAME,
         ENTRY_POINT_BURN, ENTRY_POINT_MINT, NFT_CONTRACT_WASM, OWNED_TOKENS, TEST_META_DATA,
     },
     installer_request_builder::InstallerRequestBuilder,
@@ -61,6 +61,18 @@ fn should_burn_minted_token() {
     let expected_owned_tokens = vec![U256::zero()];
     assert_eq!(expected_owned_tokens, actual_owned_tokens);
 
+    // This will error of token is not registered as
+    let actual_balance_before_burn = support::get_dictionary_value_from_key::<U256>(
+        &builder,
+        nft_contract_key,
+        BALANCES,
+        &DEFAULT_ACCOUNT_ADDR.clone().to_string(),
+    );
+
+    let expected_balance_before_burn = U256::one();
+
+    assert_eq!(actual_balance_before_burn, expected_balance_before_burn);
+
     let burn_request = ExecuteRequestBuilder::contract_call_by_name(
         *DEFAULT_ACCOUNT_ADDR,
         CONTRACT_NAME,
@@ -73,12 +85,25 @@ fn should_burn_minted_token() {
 
     builder.exec(burn_request).expect_success().commit();
 
+    // This will error of token is not registered as
     let _ = support::get_dictionary_value_from_key::<()>(
         &builder,
         nft_contract_key,
         BURNT_TOKENS,
         &TOKEN_ID.to_string(),
     );
+
+    // This will error of token is not registered as
+    let actual_balance = support::get_dictionary_value_from_key::<U256>(
+        &builder,
+        nft_contract_key,
+        BALANCES,
+        &DEFAULT_ACCOUNT_ADDR.clone().to_string(),
+    );
+
+    let expected_balance = U256::zero();
+
+    assert_eq!(actual_balance, expected_balance);
 }
 
 #[test]
@@ -125,10 +150,7 @@ fn should_not_burn_previously_burnt_token() {
     );
 
     let expected_owned_tokens = vec![U256::zero()];
-    assert_eq!(
-        expected_owned_tokens, actual_owned_tokens,
-        "1----------------1"
-    );
+    assert_eq!(expected_owned_tokens, actual_owned_tokens);
 
     let burn_request = ExecuteRequestBuilder::contract_call_by_name(
         *DEFAULT_ACCOUNT_ADDR,
