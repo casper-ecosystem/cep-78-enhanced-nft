@@ -61,7 +61,6 @@ fn should_burn_minted_token() {
     let expected_owned_tokens = vec![U256::zero()];
     assert_eq!(expected_owned_tokens, actual_owned_tokens);
 
-    // This will error of token is not registered as
     let actual_balance_before_burn = support::get_dictionary_value_from_key::<U256>(
         &builder,
         nft_contract_key,
@@ -85,7 +84,7 @@ fn should_burn_minted_token() {
 
     builder.exec(burn_request).expect_success().commit();
 
-    // This will error of token is not registered as
+    // This will error of token is not registered as burnt.
     let _ = support::get_dictionary_value_from_key::<()>(
         &builder,
         nft_contract_key,
