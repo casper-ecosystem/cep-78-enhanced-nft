@@ -64,6 +64,9 @@ pub enum NFTCoreError {
     MintingIsPaused = 59,
     FailureToParseAccountHash = 60,
     VacantValueInDictionary = 61,
+    MissingOwnershipMode = 62,
+    InvalidOwnershipMode = 63,
+    InvalidTokenMinter = 64,
 }
 
 impl From<NFTCoreError> for ApiError {

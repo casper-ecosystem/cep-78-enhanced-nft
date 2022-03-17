@@ -46,6 +46,7 @@ pub(crate) fn create_dummy_key_pair(account_string: [u8; 32]) -> (SecretKey, Pub
 pub(crate) fn assert_expected_invalid_installer_request(
     install_request_builder: InstallerRequestBuilder,
     expected_error_code: u16,
+    reason: &str,
 ) {
     let mut builder = InMemoryWasmTestBuilder::default();
 
@@ -55,17 +56,21 @@ pub(crate) fn assert_expected_invalid_installer_request(
         .expect_failure(); // Should test against expected error
 
     let error = builder.get_error().expect("should have an error");
-    assert_expected_error(error, expected_error_code);
+    assert_expected_error(error, expected_error_code, reason);
 }
 
-pub(crate) fn assert_expected_error(actual_error: EngineStateError, error_code: u16) {
+pub(crate) fn assert_expected_error(actual_error: EngineStateError, error_code: u16, reason: &str) {
     let actual = format!("{:?}", actual_error);
     let expected = format!(
         "{:?}",
         EngineStateError::Exec(execution::Error::Revert(ApiError::User(error_code)))
     );
 
-    assert_eq!(actual, expected, "Error should match {}", error_code)
+    assert_eq!(
+        actual, expected,
+        "Error should match {} with reason: {}",
+        error_code, reason
+    )
 }
 
 pub(crate) fn query_stored_value<T: CLTyped + FromBytes>(

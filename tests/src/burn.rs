@@ -176,7 +176,11 @@ fn should_not_burn_previously_burnt_token() {
     builder.exec(re_burn_request).expect_failure();
 
     let actual_error = builder.get_error().expect("must have error");
-    support::assert_expected_error(actual_error, 42u16);
+    support::assert_expected_error(
+        actual_error,
+        42u16,
+        "should disallow burning of previously burnt token",
+    );
 }
 
 #[test]
@@ -207,7 +211,11 @@ fn should_not_burn_un_minted_token() {
     builder.exec(burn_request).expect_failure();
 
     let actual_error = builder.get_error().expect("must have error");
-    support::assert_expected_error(actual_error, 28u16);
+    support::assert_expected_error(
+        actual_error,
+        28u16,
+        "should disallow burning of unminted token",
+    );
 }
 
 #[test]
@@ -290,7 +298,7 @@ fn should_disallow_burning_of_others_users_token() {
 
     let error = builder.get_error().expect("must have error");
 
-    support::assert_expected_error(error, 6u16);
+    support::assert_expected_error(error, 6u16, "should disallow burning of other users' token");
 }
 
 #[test]
@@ -372,5 +380,9 @@ fn should_prevent_burning_on_owner_key_mismatch() {
     builder.exec(incorrect_burn_request).expect_failure();
 
     let actual_error = builder.get_error().expect("must get error");
-    support::assert_expected_error(actual_error, 6u16);
+    support::assert_expected_error(
+        actual_error,
+        6u16,
+        "should disallow burning on mismatch of owner key",
+    );
 }

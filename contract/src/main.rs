@@ -10,11 +10,9 @@ mod utils;
 
 extern crate alloc;
 use alloc::{string::String, string::ToString, vec, vec::Vec};
+use core::convert::TryFrom;
 
-use casper_types::{
-    contracts::NamedKeys, runtime_args, CLType, CLValue, ContractHash, ContractVersion, EntryPoint,
-    EntryPointAccess, EntryPointType, EntryPoints, Parameter, RuntimeArgs, U256,
-};
+use casper_types::{contracts::NamedKeys, runtime_args, CLType, CLValue, ContractHash, ContractVersion, EntryPoint, EntryPointAccess, EntryPointType, EntryPoints, Parameter, RuntimeArgs, U256, CLTyped, PublicKey};
 
 use casper_contract::{
     contract_api::{
@@ -23,10 +21,35 @@ use casper_contract::{
     },
     unwrap_or_revert::UnwrapOrRevert,
 };
+use casper_types::bytesrepr::FromBytes;
 
 use constants::*;
 use error::NFTCoreError;
 use utils::*;
+
+
+#[repr(u8)]
+enum OwnershipMode {
+    Minter = 0, // The minter owns it and can never transfer it.
+    Assigned = 1, // The minter assigns it to an address and can never be transferred.
+    TransferableUnchecked = 2, // The NFT can be transferred even to an recipient that does not exist.
+    TransferableChecked = 3, // The NFT can be transferred but only to a recipient that does exist.
+    // Maybe Shared(u8) // Shares of the NFT can be transferred and ownership is determined by the share.
+}
+
+impl TryFrom<u8> for OwnershipMode {
+    type Error = NFTCoreError;
+
+    fn try_from(value: u8) -> Result<Self, Self::Error> {
+        match value {
+            0 => Ok(OwnershipMode::Minter),
+            1 => Ok(OwnershipMode::Assigned),
+            2 => Ok(OwnershipMode::TransferableUnchecked),
+            3 => Ok(OwnershipMode::TransferableChecked),
+            _ => Err(NFTCoreError::InvalidOwnershipMode)
+        }
+    }
+}
 
 #[no_mangle]
 pub extern "C" fn init() {
@@ -84,6 +107,19 @@ pub extern "C" fn init() {
     )
     .unwrap_or_revert();
 
+    let ownership_mode = {
+        let ownership_value = get_named_arg_with_user_errors(
+            ARG_OWNERSHIP_MODE,
+            NFTCoreError::MissingOwnershipMode,
+            NFTCoreError::InvalidOwnershipMode,
+        ).unwrap_or_revert();
+
+        let ownership_mode = OwnershipMode::try_from(ownership_value)
+            .unwrap_or_revert_with(NFTCoreError::InvalidOwnershipMode);
+        ownership_mode
+    };
+
+
     // Put all created URefs into the contract's context (necessary to retain access rights,
     // for future use).
     // Initialize contract with URefs for all invariant values, which can never be changed.
@@ -95,6 +131,10 @@ pub extern "C" fn init() {
     runtime::put_key(
         TOTAL_TOKEN_SUPPLY,
         storage::new_uref(total_token_supply).into(),
+    );
+    runtime::put_key(
+        OWNERSHIP_MODE,
+        storage::new_uref(ownership_mode).into()
     );
     // Initialize contract with variables which must be present but maybe set to
     // different values after initialization.
@@ -164,6 +204,27 @@ pub extern "C" fn mint() {
         runtime::revert(NFTCoreError::MintingIsPaused);
     }
 
+    let ownership_mode = get_stored_value_with_user_errors::<OwnershipMode>(
+        OWNERSHIP_MODE,
+        NFTCoreError::MissingOwnershipMode,
+        NFTCoreError::InvalidOwnershipMode
+    );
+
+    let token_owner = match ownership_mode {
+        OwnershipMode::Minter => {
+            let token_owner = runtime::get_named_arg::<PublicKey>(ARG_TOKEN_OWNER).to_account_hash();
+            if runtime::get_caller() != token_owner {
+                runtime::revert(NFTCoreError::InvalidTokenOwner)
+            }
+            token_owner
+        }
+        OwnershipMode::Assigned => {
+            let token_owner = runtime::get_named_arg::<PublicKey>(ARG_TOKEN_OWNER).to_account_hash();
+        }
+        _ => ()
+    };
+
+
     let total_token_supply = get_stored_value_with_user_errors::<U256>(
         TOTAL_TOKEN_SUPPLY,
         NFTCoreError::MissingTotalTokenSupply,
@@ -190,10 +251,9 @@ pub extern "C" fn mint() {
     let installer_account_hash = runtime::get_key(INSTALLER)
         .unwrap_or_revert_with(NFTCoreError::MissingInstallerKey)
         .into_account()
-        .unwrap_or_revert_with(NFTCoreError::FailedToConvertToAccountHash)
-        .to_string();
+        .unwrap_or_revert_with(NFTCoreError::FailedToConvertToAccountHash);
 
-    let caller = runtime::get_caller().to_string();
+    let caller = runtime::get_caller();
 
     let public_minting = get_stored_value_with_user_errors::<bool>(
         PUBLIC_MINTING,

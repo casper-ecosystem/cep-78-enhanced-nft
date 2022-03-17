@@ -99,7 +99,7 @@ fn should_install_contract() {
 }
 
 #[test]
-fn calling_init_entrypoint_after_intallation_should_error() {
+fn should_only_allow_init_during_installation_session() {
     let mut builder = InMemoryWasmTestBuilder::default();
     builder.run_genesis(&DEFAULT_RUN_GENESIS_REQUEST).commit();
 
@@ -128,37 +128,116 @@ fn calling_init_entrypoint_after_intallation_should_error() {
 
     let error = builder.get_error().expect("must have error");
 
-    support::assert_expected_error(error, 58u16);
+    support::assert_expected_error(
+        error,
+        58u16,
+        "should not allow calls to init() after installation",
+    );
 }
 
 #[test]
-fn should_reject_invalid_typed_name() {
+fn should_install_with_allow_minting_set_to_false() {
+    let mut builder = InMemoryWasmTestBuilder::default();
+    builder.run_genesis(&DEFAULT_RUN_GENESIS_REQUEST).commit();
+
+    let install_request = InstallerRequestBuilder::new(*DEFAULT_ACCOUNT_ADDR, NFT_CONTRACT_WASM)
+        .with_collection_name(NFT_TEST_COLLECTION.to_string())
+        .with_collection_symbol(NFT_TEST_SYMBOL.to_string())
+        .with_total_token_supply(U256::from(1u64))
+        .build();
+
+
+}
+
+
+
+#[test]
+fn should_reject_invalid_collection_name() {
     let install_request_builder =
         InstallerRequestBuilder::new(*DEFAULT_ACCOUNT_ADDR, NFT_CONTRACT_WASM)
             .with_invalid_collection_name(
                 CLValue::from_t::<U256>(U256::zero()).expect("expected CLValue"),
             );
 
-    support::assert_expected_invalid_installer_request(install_request_builder, 18);
+    support::assert_expected_invalid_installer_request(
+        install_request_builder,
+        18,
+        "should reject installation when given an invalid collection name",
+    );
 }
 
 #[test]
-fn should_reject_invalid_typed_symbol() {
+fn should_reject_invalid_collection_symbol() {
     let install_request_builder =
         InstallerRequestBuilder::new(*DEFAULT_ACCOUNT_ADDR, NFT_CONTRACT_WASM)
             .with_invalid_collection_symbol(
                 CLValue::from_t::<U256>(U256::zero()).expect("expected CLValue"),
             );
 
-    support::assert_expected_invalid_installer_request(install_request_builder, 24);
+    support::assert_expected_invalid_installer_request(
+        install_request_builder,
+        24,
+        "should reject installation when given an invalid collection symbol",
+    );
 }
 
 #[test]
-fn should_reject_invalid_typed_total_token_supply() {
+fn should_reject_non_numerical_total_token_supply_value() {
     let install_request_builder =
         InstallerRequestBuilder::new(*DEFAULT_ACCOUNT_ADDR, NFT_CONTRACT_WASM)
             .with_invalid_total_token_supply(
                 CLValue::from_t::<String>("".to_string()).expect("expected CLValue"),
             );
-    support::assert_expected_invalid_installer_request(install_request_builder, 26);
+    support::assert_expected_invalid_installer_request(
+        install_request_builder,
+        26,
+        "should reject installation when given an invalid total supply value",
+    );
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+struct NFTContract<T, U> {
+    token: T,
+    metadata: U
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

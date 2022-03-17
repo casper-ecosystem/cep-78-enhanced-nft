@@ -42,7 +42,11 @@ fn should_disallow_minting_when_allow_minting_is_set_to_false() {
 
     // Error should be MintingIsPaused=59
     let actual_error = builder.get_error().expect("must have error");
-    support::assert_expected_error(actual_error, 59u16);
+    support::assert_expected_error(
+        actual_error,
+        59u16,
+        "should now allow minting when minting is disabled",
+    );
 }
 
 #[test]

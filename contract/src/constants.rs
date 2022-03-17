@@ -31,6 +31,7 @@ pub const CONTRACT_VERSION: &str = "contract_version";
 pub const COLLECTION_NAME: &str = "collection_name";
 pub const COLLECTION_SYMBOL: &str = "collection_symbol";
 pub const TOTAL_TOKEN_SUPPLY: &str = "total_token_supply";
+pub const OWNERSHIP_MODE: &str = "ownership_mode";
 pub const ALLOW_MINTING: &str = "allow_minting";
 pub const PUBLIC_MINTING: &str = "public_minting";
 pub const TOKEN_OWNERS: &str = "token_owners";
@@ -38,6 +39,7 @@ pub const TOKEN_META_DATA: &str = "token_meta_data";
 pub const OWNED_TOKENS: &str = "owned_tokens";
 pub const BURNT_TOKENS: &str = "burnt_tokens";
 pub const BALANCES: &str = "balances";
+pub const IS_TRANSFERRABLE: &str = "is_trasnferrable";
 
 pub const ENTRY_POINT_INIT: &str = "init";
 pub const ENTRY_POINT_SET_VARIABLES: &str = "set_variables";
