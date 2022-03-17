@@ -17,7 +17,10 @@ use casper_types::{
 };
 
 use casper_contract::{
-    contract_api::{runtime, storage},
+    contract_api::{
+        runtime,
+        storage::{self},
+    },
     unwrap_or_revert::UnwrapOrRevert,
 };
 
@@ -115,6 +118,7 @@ pub extern "C" fn init() {
         .unwrap_or_revert_with(NFTCoreError::FailedToCreateDictionary);
     storage::new_dictionary(BURNT_TOKENS)
         .unwrap_or_revert_with(NFTCoreError::FailedToCreateDictionary);
+    storage::new_dictionary(BALANCES).unwrap_or_revert_with(NFTCoreError::FailedToCreateDictionary);
 }
 
 // set_variables allows the user to set any variable or any combination of variables simultaneously.
@@ -251,6 +255,13 @@ pub extern "C" fn mint() {
     //Store the udated owned tokens vec in dictionary
     upsert_dictionary_value_from_key(OWNED_TOKENS, &caller, updated_owned_tokens);
 
+    //Incremenet the balance of caller account by one.
+    let updated_balance = match get_dictionary_value_from_key::<U256>(BALANCES, &caller) {
+        Some(balance) => balance + U256::one(),
+        None => U256::one(),
+    };
+    upsert_dictionary_value_from_key(BALANCES, &caller, updated_balance);
+
     // Increment number_of_minted_tokens by one
     next_index += U256::one();
     storage::write(number_of_minted_tokens_uref, next_index);
@@ -289,9 +300,25 @@ pub extern "C" fn burn() {
     }
 
     // Mark the token as burnt by adding the token_id to the burnt tokens dictionary.
-    upsert_dictionary_value_from_key::<()>(BURNT_TOKENS, &token_id.to_string(), ())
+    upsert_dictionary_value_from_key::<()>(BURNT_TOKENS, &token_id.to_string(), ());
 
     // Should we also update approved dictionary?
+
+    let updated_balance = match get_dictionary_value_from_key::<U256>(BALANCES, &caller) {
+        Some(balance) => {
+            if balance > U256::zero() {
+                balance - U256::one()
+            } else {
+                U256::zero()
+            }
+        }
+        None => {
+            // This should never happen if contract is implemented correctly.
+            runtime::revert(NFTCoreError::FatalTokenIdDuplication);
+        }
+    };
+
+    upsert_dictionary_value_from_key(BALANCES, &caller, updated_balance);
 }
 
 // approve marks a token as approved for transfer by an account
@@ -450,19 +477,13 @@ pub extern "C" fn transfer() {
         APPROVED_FOR_TRANSFER,
         &token_id.to_string(),
     ) {
-        Some(maybe_approved_account_hash) => {
-            if let Some(approved_account_hash) = maybe_approved_account_hash {
-                approved_account_hash == caller
-            } else {
-                false
-            }
-        }
-        None => false,
+        Some(Some(approved_account_hash)) => approved_account_hash == caller,
+        _ => false,
     };
 
     // Revert if caller is not owner and not approved. (CEP47 transfer logic looks incorrect to me...)
     if caller != token_owner && !is_approved {
-        runtime::revert(NFTCoreError::InvalidAccount);
+        runtime::revert(NFTCoreError::InvalidAccount); // InvalidCaller better error?
     }
 
     let to_account_hash: String = get_named_arg_with_user_errors(
@@ -521,6 +542,24 @@ pub extern "C" fn transfer() {
         None => runtime::revert(NFTCoreError::InvalidTokenID), // Better error?
     }
 
+    // Update the from_account balance
+    let updated_from_account_balance =
+        match get_dictionary_value_from_key::<U256>(BALANCES, &from_account_hash) {
+            Some(balance) => {
+                if balance > U256::zero() {
+                    balance - U256::one()
+                } else {
+                    // This should never happen...
+                    runtime::revert(NFTCoreError::FatalTokenIdDuplication);
+                }
+            }
+            None => {
+                // This should never happen...
+                runtime::revert(NFTCoreError::FatalTokenIdDuplication);
+            }
+        };
+    upsert_dictionary_value_from_key(BALANCES, &from_account_hash, updated_from_account_balance);
+
     // Update to_account owned_tokens
     match get_dictionary_value_from_key::<Vec<U256>>(OWNED_TOKENS, &to_account_hash) {
         Some(mut owned_tokens) => {
@@ -549,6 +588,14 @@ pub extern "C" fn transfer() {
             storage::dictionary_put(owned_tokens_seed_uref, &to_account_hash, owned_tokens);
         }
     }
+
+    // Update the to_account balance
+    let updated_to_account_balance =
+        match get_dictionary_value_from_key::<U256>(BALANCES, &to_account_hash) {
+            Some(balance) => balance + U256::one(),
+            None => U256::one(),
+        };
+    upsert_dictionary_value_from_key(BALANCES, &to_account_hash, updated_to_account_balance);
 }
 
 // Returns the length of the Vec<U256> in OWNED_TOKENS dictionary. If key is not found
@@ -562,17 +609,27 @@ pub extern "C" fn balance_of() {
     )
     .unwrap_or_revert();
 
-    // The number of owned tokens is the the length of the owned_tokens array
-    // If no array is found we return 0.
-    let count = match get_dictionary_value_from_key::<Vec<U256>>(OWNED_TOKENS, &account_hash) {
-        Some(owned_tokens) => owned_tokens.len(),
-        None => 0,
+    let balance = match get_dictionary_value_from_key(BALANCES, &account_hash) {
+        Some(balance) => balance,
+        None => U256::zero(),
     };
 
     // Convert balance usize to CLValue::U256
-    let balance_cl_value = CLValue::from_t(U256::from(count))
-        .unwrap_or_revert_with(NFTCoreError::FailedToConvertToCLValue);
+    let balance_cl_value =
+        CLValue::from_t(balance).unwrap_or_revert_with(NFTCoreError::FailedToConvertToCLValue);
     runtime::ret(balance_cl_value);
+
+    // // The number of owned tokens is the the length of the owned_tokens array
+    // // If no array is found we return 0.
+    // let count = match get_dictionary_value_from_key::<Vec<U256>>(OWNED_TOKENS, &account_hash) {
+    //     Some(owned_tokens) => owned_tokens.len(),
+    //     None => 0,
+    // };
+
+    // // Convert balance usize to CLValue::U256
+    // let balance_cl_value = CLValue::from_t(U256::from(count))
+    //     .unwrap_or_revert_with(NFTCoreError::FailedToConvertToCLValue);
+    // runtime::ret(balance_cl_value);
 }
 
 // Returns the length of the Vec<U256> in OWNED_TOKENS dictionary. If key is not found
@@ -698,7 +755,7 @@ pub extern "C" fn get_approved() {
         get_optional_named_arg_with_user_errors::<U256>(ARG_TOKEN_ID, NFTCoreError::InvalidTokenID)
             .unwrap_or_revert();
 
-    if let Some(_) = get_dictionary_value_from_key::<()>(BURNT_TOKENS, &token_id.to_string()) {
+    if get_dictionary_value_from_key::<()>(BURNT_TOKENS, &token_id.to_string()).is_some() {
         runtime::revert(NFTCoreError::PreviouslyBurntToken);
     }
 

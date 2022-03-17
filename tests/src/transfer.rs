@@ -8,7 +8,7 @@ use crate::utility::{
     constants::{
         ACCOUNT_USER_1, ACCOUNT_USER_2, APPROVED_FOR_TRANSFER,
         ARG_APPROVE_TRANSFER_FOR_ACCOUNT_HASH, ARG_FROM_ACCOUNT_HASH, ARG_TOKEN_ID,
-        ARG_TOKEN_META_DATA, ARG_TO_ACCOUNT_HASH, CONTRACT_NAME, ENTRY_POINT_APPROVE,
+        ARG_TOKEN_META_DATA, ARG_TO_ACCOUNT_HASH, BALANCES, CONTRACT_NAME, ENTRY_POINT_APPROVE,
         ENTRY_POINT_MINT, ENTRY_POINT_TRANSFER, NFT_CONTRACT_WASM, NFT_TEST_COLLECTION,
         NFT_TEST_SYMBOL, OWNED_TOKENS, TEST_META_DATA, TOKEN_OWNERS,
     },
@@ -55,6 +55,18 @@ fn should_transfer_token_from_sender_to_receiver() {
 
     builder.exec(mint_request).expect_success().commit();
 
+    //let account = builder.get_expected_account(*DEFAULT_ACCOUNT_ADDR);
+    let installing_account = builder.get_expected_account(*DEFAULT_ACCOUNT_ADDR);
+    let nft_contract_key = installing_account
+        .named_keys()
+        .get(CONTRACT_NAME)
+        .expect("must have key in named keys");
+
+    let actual_owner_balance: U256 =
+        support::get_dictionary_value_from_key(&builder, nft_contract_key, BALANCES, &token_owner);
+    let expected_owner_balance = U256::one();
+    assert_eq!(actual_owner_balance, expected_owner_balance);
+
     let (_, token_receiver) = support::create_dummy_key_pair(ACCOUNT_USER_1);
     let transfer_request = ExecuteRequestBuilder::contract_call_by_hash(
         *DEFAULT_ACCOUNT_ADDR,
@@ -62,19 +74,12 @@ fn should_transfer_token_from_sender_to_receiver() {
         ENTRY_POINT_TRANSFER,
         runtime_args! {
             ARG_TOKEN_ID => U256::zero(),// We need mint to return the token_id!!
-            ARG_FROM_ACCOUNT_HASH => token_owner,
+            ARG_FROM_ACCOUNT_HASH => token_owner.clone(),
             ARG_TO_ACCOUNT_HASH => token_receiver.to_account_hash().to_string(),
         },
     )
     .build();
     builder.exec(transfer_request).expect_success().commit();
-
-    //let account = builder.get_expected_account(*DEFAULT_ACCOUNT_ADDR);
-    let installing_account = builder.get_expected_account(*DEFAULT_ACCOUNT_ADDR);
-    let nft_contract_key = installing_account
-        .named_keys()
-        .get(CONTRACT_NAME)
-        .expect("must have key in named keys");
 
     let actual_token_owner: String = support::get_dictionary_value_from_key(
         &builder,
@@ -97,6 +102,20 @@ fn should_transfer_token_from_sender_to_receiver() {
 
     let expected_owned_tokens = vec![U256::zero()]; //Change zero() to one() for red test
     assert_eq!(actual_owned_tokens, expected_owned_tokens);
+
+    let actual_sender_balance: U256 =
+        support::get_dictionary_value_from_key(&builder, nft_contract_key, BALANCES, &token_owner);
+    let expected_sender_balance = U256::zero();
+    assert_eq!(actual_sender_balance, expected_sender_balance);
+
+    let actual_receiver_balance: U256 = support::get_dictionary_value_from_key(
+        &builder,
+        nft_contract_key,
+        BALANCES,
+        &token_receiver.to_account_hash().to_string(),
+    );
+    let expected_receiver_balance = U256::one();
+    assert_eq!(actual_receiver_balance, expected_receiver_balance);
 }
 
 #[test]
