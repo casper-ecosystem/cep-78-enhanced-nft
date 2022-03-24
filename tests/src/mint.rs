@@ -1,14 +1,14 @@
 use casper_engine_test_support::{
     ExecuteRequestBuilder, InMemoryWasmTestBuilder, DEFAULT_ACCOUNT_ADDR,
-    DEFAULT_RUN_GENESIS_REQUEST,
+    DEFAULT_ACCOUNT_PUBLIC_KEY, DEFAULT_RUN_GENESIS_REQUEST,
 };
-use casper_types::{runtime_args, system::mint, ContractHash, RuntimeArgs, U256};
+use casper_types::{runtime_args, system::mint, ContractHash, PublicKey, RuntimeArgs, U256};
 
 use crate::utility::{
     constants::{
-        ACCOUNT_USER_1, ACCOUNT_USER_2, ARG_PUBLIC_MINTING, ARG_TOKEN_META_DATA, BALANCES,
-        CONTRACT_NAME, ENTRY_POINT_MINT, NFT_CONTRACT_WASM, NUMBER_OF_MINTED_TOKENS, OWNED_TOKENS,
-        TEST_META_DATA, TOKEN_META_DATA, TOKEN_OWNERS,
+        ACCOUNT_USER_1, ACCOUNT_USER_2, ARG_PUBLIC_MINTING, ARG_TOKEN_META_DATA, ARG_TOKEN_OWNER,
+        BALANCES, CONTRACT_NAME, ENTRY_POINT_MINT, NFT_CONTRACT_WASM, NUMBER_OF_MINTED_TOKENS,
+        OWNED_TOKENS, TEST_META_DATA, TOKEN_META_DATA, TOKEN_OWNERS,
     },
     installer_request_builder::InstallerRequestBuilder,
     support,
@@ -62,11 +62,13 @@ fn mint_should_increment_number_of_minted_tokens_by_one_and_add_public_key_to_to
         .expect_success()
         .commit();
 
+    let token_owner = DEFAULT_ACCOUNT_PUBLIC_KEY.clone();
     let mint_request = ExecuteRequestBuilder::contract_call_by_name(
         *DEFAULT_ACCOUNT_ADDR,
         CONTRACT_NAME,
         ENTRY_POINT_MINT,
         runtime_args! {
+            ARG_TOKEN_OWNER => token_owner,
             ARG_TOKEN_META_DATA=>TEST_META_DATA.to_string(),
         },
     )
@@ -93,23 +95,20 @@ fn mint_should_increment_number_of_minted_tokens_by_one_and_add_public_key_to_to
         "number_of_minted_tokens initialized at installation should have incremented by one"
     );
 
-    let minter_account_hash = support::get_dictionary_value_from_key::<String>(
+    let minter_account_hash = support::get_dictionary_value_from_key::<PublicKey>(
         &builder,
         nft_contract_key,
         TOKEN_OWNERS,
         &U256::zero().to_string(),
     );
 
-    assert_eq!(
-        DEFAULT_ACCOUNT_ADDR.clone().to_string(),
-        minter_account_hash
-    );
+    assert_eq!(DEFAULT_ACCOUNT_PUBLIC_KEY.clone(), minter_account_hash);
 
     let actual_token_ids = support::get_dictionary_value_from_key::<Vec<U256>>(
         &builder,
         nft_contract_key,
         OWNED_TOKENS,
-        &DEFAULT_ACCOUNT_ADDR.clone().to_string(),
+        &DEFAULT_ACCOUNT_PUBLIC_KEY.clone().to_string(),
     );
 
     let expected_token_ids = vec![U256::zero()];
@@ -122,6 +121,7 @@ fn mint_should_increment_number_of_minted_tokens_by_one_and_add_public_key_to_to
         CONTRACT_NAME,
         ENTRY_POINT_MINT,
         runtime_args! {
+            ARG_TOKEN_OWNER => DEFAULT_ACCOUNT_PUBLIC_KEY.clone(),
             ARG_TOKEN_META_DATA=>TEST_META_DATA.to_string(),
         },
     )
@@ -147,6 +147,7 @@ fn mint_should_correctly_set_meta_data() {
         CONTRACT_NAME,
         ENTRY_POINT_MINT,
         runtime_args! {
+            ARG_TOKEN_OWNER => DEFAULT_ACCOUNT_PUBLIC_KEY.clone(),
             ARG_TOKEN_META_DATA=> TEST_META_DATA.to_string(),
         },
     )
@@ -183,11 +184,13 @@ fn mint_should_correctly_update_balances() {
         .expect_success()
         .commit();
 
+    let token_owner = DEFAULT_ACCOUNT_PUBLIC_KEY.clone();
     let mint_request = ExecuteRequestBuilder::contract_call_by_name(
         *DEFAULT_ACCOUNT_ADDR,
         CONTRACT_NAME,
         ENTRY_POINT_MINT,
         runtime_args! {
+            ARG_TOKEN_OWNER => token_owner,
             ARG_TOKEN_META_DATA=> TEST_META_DATA.to_string(),
         },
     )
@@ -201,7 +204,7 @@ fn mint_should_correctly_update_balances() {
         .get(CONTRACT_NAME)
         .expect("must have key in named keys");
 
-    let token_owner = DEFAULT_ACCOUNT_ADDR.clone().to_string();
+    let token_owner = DEFAULT_ACCOUNT_PUBLIC_KEY.clone().to_string();
 
     let actual_minter_balance = support::get_dictionary_value_from_key::<U256>(
         &builder,
@@ -267,6 +270,7 @@ fn should_allow_public_minting_with_flag_set_to_true() {
         ContractHash::new(nft_contract_hash),
         ENTRY_POINT_MINT,
         runtime_args! {
+            ARG_TOKEN_OWNER => account_1_public_key.clone(),
             ARG_TOKEN_META_DATA=>TEST_META_DATA.to_string(),
         },
     )
@@ -274,17 +278,14 @@ fn should_allow_public_minting_with_flag_set_to_true() {
 
     builder.exec(nft_mint_request).expect_success().commit();
 
-    let minter_public_key = support::get_dictionary_value_from_key::<String>(
+    let minter_public_key = support::get_dictionary_value_from_key::<PublicKey>(
         &builder,
         nft_contract_key,
         TOKEN_OWNERS,
         &U256::zero().to_string(),
     );
 
-    assert_eq!(
-        account_1_public_key.to_account_hash().to_string(),
-        minter_public_key
-    );
+    assert_eq!(account_1_public_key, minter_public_key);
 }
 
 #[test]
@@ -414,6 +415,7 @@ fn should_allow_minting_for_different_public_key_with_public_minting_set_to_true
         ContractHash::new(nft_contract_hash),
         ENTRY_POINT_MINT,
         runtime_args! {
+            ARG_TOKEN_OWNER => account_1_public_key,
             ARG_TOKEN_META_DATA=>TEST_META_DATA.to_string(),
         },
     )

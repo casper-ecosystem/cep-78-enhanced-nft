@@ -1,11 +1,23 @@
+//use std::convert::TryFrom;
+
 use casper_engine_test_support::ExecuteRequestBuilder;
 use casper_execution_engine::core::engine_state::ExecuteRequest;
 use casper_types::{account::AccountHash, CLValue, RuntimeArgs, U256};
 
 use super::constants::{
-    ARG_ALLOW_MINTING, ARG_COLLECTION_NAME, ARG_COLLECTION_SYMBOL, ARG_PUBLIC_MINTING,
-    ARG_TOTAL_TOKEN_SUPPLY,
+    ARG_ALLOW_MINTING, ARG_COLLECTION_NAME, ARG_COLLECTION_SYMBOL, ARG_OWNERSHIP_MODE,
+    ARG_PUBLIC_MINTING, ARG_TOTAL_TOKEN_SUPPLY,
 };
+
+#[repr(u8)]
+#[derive(Debug)]
+pub enum OwnershipMode {
+    Minter = 0,                // The minter owns it and can never transfer it.
+    Assigned = 1,              // The minter assigns it to an address and can never be transferred.
+    TransferableUnchecked = 2, // The NFT can be transferred even to an recipient that does not exist.
+    TransferableChecked = 3, // The NFT can be transferred but only to a recipient that does exist.
+                             // Maybe Shared(u8) // Shares of the NFT can be transferred and ownership is determined by the share.
+}
 
 #[derive(Debug)]
 pub(crate) struct InstallerRequestBuilder {
@@ -16,6 +28,7 @@ pub(crate) struct InstallerRequestBuilder {
     total_token_supply: CLValue,
     allow_minting: CLValue,
     public_minting: CLValue,
+    ownership_mode: CLValue,
 }
 
 impl InstallerRequestBuilder {
@@ -35,6 +48,7 @@ impl InstallerRequestBuilder {
                 .expect("total_token_supply is legit CLValue"),
             allow_minting: CLValue::from_t(Some(true)).unwrap(),
             public_minting: CLValue::from_t(Some(false)).unwrap(),
+            ownership_mode: CLValue::from_t(OwnershipMode::Minter as u8).unwrap(),
         }
     }
 
@@ -101,6 +115,7 @@ impl InstallerRequestBuilder {
         runtime_args.insert_cl_value(ARG_TOTAL_TOKEN_SUPPLY, self.total_token_supply);
         runtime_args.insert_cl_value(ARG_ALLOW_MINTING, self.allow_minting);
         runtime_args.insert_cl_value(ARG_PUBLIC_MINTING, self.public_minting);
+        runtime_args.insert_cl_value(ARG_OWNERSHIP_MODE, self.ownership_mode);
         ExecuteRequestBuilder::standard(self.account_hash, &self.session_file, runtime_args).build()
     }
 }

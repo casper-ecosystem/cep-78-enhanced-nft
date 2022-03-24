@@ -6,6 +6,7 @@ pub const ARG_TOTAL_TOKEN_SUPPLY: &str = "total_token_supply"; // <-- Think abou
 // pub const ARG_TOKEN_NAME: &str = "token_name";
 
 pub const ARG_TOKEN_ID: &str = "token_id";
+pub const ARG_TOKEN_OWNER: &str = "token_owner";
 pub const ARG_TO_ACCOUNT_HASH: &str = "to_account_hash";
 pub const ARG_FROM_ACCOUNT_HASH: &str = "from_account_hash";
 pub const ARG_ALLOW_MINTING: &str = "allow_minting";
@@ -15,6 +16,7 @@ pub const ARG_TOKEN_META_DATA: &str = "token_meta_data";
 pub const ARG_APPROVE_TRANSFER_FOR_ACCOUNT_HASH: &str = "approve_transfer_for_account_hash"; //Change name?
 pub const ARG_APPROVE_ALL: &str = "approve_all";
 pub const ARG_OPERATOR: &str = "operator";
+pub const ARG_OWNERSHIP_MODE: &str = "ownership_mode";
 
 // STORAGE is the list of all NFTS
 // Owners is a dictionary owner --> nfts
@@ -39,7 +41,7 @@ pub const TOKEN_META_DATA: &str = "token_meta_data";
 pub const OWNED_TOKENS: &str = "owned_tokens";
 pub const BURNT_TOKENS: &str = "burnt_tokens";
 pub const BALANCES: &str = "balances";
-pub const IS_TRANSFERRABLE: &str = "is_trasnferrable";
+//pub const IS_TRANSFERRABLE: &str = "is_transferrable";
 
 pub const ENTRY_POINT_INIT: &str = "init";
 pub const ENTRY_POINT_SET_VARIABLES: &str = "set_variables";

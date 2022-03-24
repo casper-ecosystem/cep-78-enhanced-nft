@@ -135,6 +135,7 @@ fn should_only_allow_init_during_installation_session() {
     );
 }
 
+// This test needs some love...
 #[test]
 fn should_install_with_allow_minting_set_to_false() {
     let mut builder = InMemoryWasmTestBuilder::default();
@@ -146,10 +147,8 @@ fn should_install_with_allow_minting_set_to_false() {
         .with_total_token_supply(U256::from(1u64))
         .build();
 
-
+    builder.exec(install_request).expect_success().commit();
 }
-
-
 
 #[test]
 fn should_reject_invalid_collection_name() {
@@ -195,49 +194,7 @@ fn should_reject_non_numerical_total_token_supply_value() {
     );
 }
 
-
-
-
-
-
-
-
-
-
-
-
-
-struct NFTContract<T, U> {
-    token: T,
-    metadata: U
-}
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+// struct NFTContract<T, U> {
+//     token: T,
+//     metadata: U,
+// }

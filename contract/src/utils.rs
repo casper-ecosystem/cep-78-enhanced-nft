@@ -1,4 +1,4 @@
-use core::mem::MaybeUninit;
+use core::{convert::TryInto, mem::MaybeUninit};
 
 use alloc::{vec, vec::Vec};
 use casper_contract::{
@@ -13,7 +13,9 @@ use casper_types::{
     ApiError, CLTyped, Key, URef,
 };
 
-use crate::error::NFTCoreError;
+use core::convert::TryFrom;
+
+use crate::{constants::OWNERSHIP_MODE, error::NFTCoreError};
 
 pub(crate) fn upsert_dictionary_value_from_key<T: CLTyped + FromBytes + ToBytes>(
     dictionary_name: &str,
@@ -31,6 +33,38 @@ pub(crate) fn upsert_dictionary_value_from_key<T: CLTyped + FromBytes + ToBytes>
         Ok(None | Some(_)) => storage::dictionary_put(seed_uref, key, value),
         Err(error) => runtime::revert(error),
     }
+}
+
+#[repr(u8)]
+pub enum OwnershipMode {
+    Minter = 0,                // The minter owns it and can never transfer it.
+    Assigned = 1,              // The minter assigns it to an address and can never be transferred.
+    TransferableUnchecked = 2, // The NFT can be transferred even to an recipient that does not exist.
+    TransferableChecked = 3, // The NFT can be transferred but only to a recipient that does exist.
+                             // Maybe Shared(u8) // Shares of the NFT can be transferred and ownership is determined by the share.
+}
+
+impl TryFrom<u8> for OwnershipMode {
+    type Error = NFTCoreError;
+
+    fn try_from(value: u8) -> Result<Self, Self::Error> {
+        match value {
+            0 => Ok(OwnershipMode::Minter),
+            1 => Ok(OwnershipMode::Assigned),
+            2 => Ok(OwnershipMode::TransferableUnchecked),
+            3 => Ok(OwnershipMode::TransferableChecked),
+            _ => Err(NFTCoreError::InvalidOwnershipMode),
+        }
+    }
+}
+
+pub(crate) fn get_ownership_mode() -> Result<OwnershipMode, NFTCoreError> {
+    get_stored_value_with_user_errors::<u8>(
+        OWNERSHIP_MODE,
+        NFTCoreError::MissingOwnershipMode,
+        NFTCoreError::InvalidOwnershipMode,
+    )
+    .try_into()
 }
 
 pub(crate) fn get_dictionary_value_from_key<T: CLTyped + FromBytes>(
