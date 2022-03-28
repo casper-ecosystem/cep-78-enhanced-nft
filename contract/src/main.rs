@@ -13,11 +13,7 @@ use core::convert::TryInto;
 
 use alloc::{string::String, string::ToString, vec, vec::Vec};
 
-use casper_types::{
-    account::AccountHash, contracts::NamedKeys, runtime_args, CLType, CLValue, ContractHash,
-    ContractVersion, EntryPoint, EntryPointAccess, EntryPointType, EntryPoints, Parameter,
-    PublicKey, RuntimeArgs, U256,
-};
+use casper_types::{account::AccountHash, contracts::NamedKeys, runtime_args, CLType, CLValue, ContractHash, ContractVersion, EntryPoint, EntryPointAccess, EntryPointType, EntryPoints, Parameter, PublicKey, RuntimeArgs, U256, Key};
 
 use casper_contract::{
     contract_api::{
@@ -26,6 +22,7 @@ use casper_contract::{
     },
     unwrap_or_revert::UnwrapOrRevert,
 };
+use casper_contract::contract_api::system;
 
 use constants::*;
 use error::NFTCoreError;
@@ -108,7 +105,6 @@ pub extern "C" fn init() {
         TOTAL_TOKEN_SUPPLY,
         storage::new_uref(total_token_supply).into(),
     );
-
     runtime::put_key(
         OWNERSHIP_MODE,
         storage::new_uref(ownership_mode as u8).into(),
@@ -136,7 +132,7 @@ pub extern "C" fn init() {
         .unwrap_or_revert_with(NFTCoreError::FailedToCreateDictionary);
     storage::new_dictionary(BURNT_TOKENS)
         .unwrap_or_revert_with(NFTCoreError::FailedToCreateDictionary);
-    storage::new_dictionary(BALANCES).unwrap_or_revert_with(NFTCoreError::FailedToCreateDictionary);
+    storage::new_dictionary(TOKEN_COUNTS).unwrap_or_revert_with(NFTCoreError::FailedToCreateDictionary);
 }
 
 // set_variables allows the user to set any variable or any combination of variables simultaneously.
@@ -172,25 +168,18 @@ pub extern "C" fn set_variables() {
 
 #[no_mangle]
 pub extern "C" fn mint() {
+    // The contract owner can toggle the minting behavior on and off over time.
+    // The contract is toggled on by default.
     let minting_status = get_stored_value_with_user_errors::<bool>(
         ALLOW_MINTING,
         NFTCoreError::MissingAllowMinting,
         NFTCoreError::InvalidAllowMinting,
     );
 
+    // If contract minting behavior is currently toggled off; exit.
     if !minting_status {
         runtime::revert(NFTCoreError::MintingIsPaused);
     }
-
-    let ownership_mode = utils::get_ownership_mode().unwrap_or_revert();
-    let token_owner = runtime::get_named_arg::<PublicKey>(ARG_TOKEN_OWNER);
-
-    // If OwnershipMode is Minter then token owner must be caller.
-    if let OwnershipMode::Minter = ownership_mode {
-        if runtime::get_caller() != token_owner.to_account_hash() {
-            runtime::revert(NFTCoreError::InvalidTokenOwner)
-        }
-    };
 
     let total_token_supply = get_stored_value_with_user_errors::<U256>(
         TOTAL_TOKEN_SUPPLY,
@@ -204,34 +193,45 @@ pub extern "C" fn mint() {
         NFTCoreError::InvalidNumberOfMintedTokens,
     );
 
-    let number_of_minted_tokens_uref = get_uref(
-        NUMBER_OF_MINTED_TOKENS,
-        NFTCoreError::MissingTotalTokenSupply,
-        NFTCoreError::InvalidTotalTokenSupply,
-    );
-
-    // Revert if we do not have any more tokens to mint
+    // Revert if the token supply has been exhausted.
     if next_index >= total_token_supply {
         runtime::revert(NFTCoreError::TokenSupplyDepleted);
     }
 
-    let installer_account_hash = runtime::get_key(INSTALLER)
-        .unwrap_or_revert_with(NFTCoreError::MissingInstallerKey)
-        .into_account()
-        .unwrap_or_revert_with(NFTCoreError::FailedToConvertToAccountHash);
-
     let caller = runtime::get_caller();
 
-    let public_minting = get_stored_value_with_user_errors::<bool>(
+    let private_minting = !get_stored_value_with_user_errors::<bool>(
         PUBLIC_MINTING,
         NFTCoreError::MissingPublicMinting,
         NFTCoreError::InvalidPublicMinting,
     );
 
-    // Revert if public minting is disallowed and caller is not installer
-    if !public_minting && (caller != installer_account_hash) {
-        runtime::revert(NFTCoreError::InvalidMinter)
+    if private_minting {
+        let installer_account_hash = runtime::get_key(INSTALLER)
+            .unwrap_or_revert_with(NFTCoreError::MissingInstallerKey)
+            .into_account()
+            .unwrap_or_revert_with(NFTCoreError::FailedToConvertToAccountHash);
+
+        // Revert if private minting is required and caller is not installer.
+        if caller != installer_account_hash {
+            runtime::revert(NFTCoreError::InvalidMinter)
+        }
     }
+
+    // The contract's ownership behavior (determined at installation) determines,
+    // who owns the NFT we are about to mint.
+    let ownership_mode = utils::get_ownership_mode().unwrap_or_revert();
+    let token_owner = {
+        match ownership_mode {
+            OwnershipMode::Minter => caller,
+            OwnershipMode::Assigned | OwnershipMode::TransferableUnchecked => runtime::get_named_arg::<PublicKey>(ARG_TOKEN_OWNER).to_account_hash(),
+            OwnershipMode::TransferableChecked => {
+                // TODO: We need to be able to determine account existence, which would need to be
+                let foo = storage::read_foo(token_owner_key)
+                runtime::revert("This is unsupported currently, I know, sucks to suck.")
+            },
+        }
+    };
 
     // Get token metadata
     let token_meta_data: String = get_named_arg_with_user_errors(
@@ -241,13 +241,18 @@ pub extern "C" fn mint() {
     )
     .unwrap_or_revert();
 
-    upsert_dictionary_value_from_key(TOKEN_META_DATA, &next_index.to_string(), token_meta_data);
-    upsert_dictionary_value_from_key(TOKEN_OWNERS, &next_index.to_string(), token_owner.clone());
+    let dictionary_item_key = &next_index.to_string();
+
+    let token_owner_key = Key::Account(token_owner);
+    let token_owner_dictionary_item_key =  token_owner_key.to_string();
+
+    upsert_dictionary_value_from_key(TOKEN_OWNERS, dictionary_item_key, token_owner_key);
+    upsert_dictionary_value_from_key(TOKEN_META_DATA, dictionary_item_key, token_meta_data);
 
     // Update owned tokens dictionary
     let maybe_owned_tokens = get_dictionary_value_from_key::<Vec<U256>>(
         OWNED_TOKENS,
-        &token_owner.to_account_hash().to_string(),
+        &token_owner_dictionary_item_key,
     );
 
     let updated_owned_tokens = match maybe_owned_tokens {
@@ -262,20 +267,38 @@ pub extern "C" fn mint() {
         None => vec![next_index],
     };
 
-    //Store the udated owned tokens vec in dictionary
-    upsert_dictionary_value_from_key(OWNED_TOKENS, &token_owner.to_string(), updated_owned_tokens);
+    // Update the value under the owned_tokens_uref.
+    let owned_tokens_uref = match runtime::get_key(&token_owner_dictionary_item_key) {
+        Some(key) => {
+            let owned_tokens_uref = key.into_uref().unwrap_or_revert();
+            storage::write(owned_tokens_uref, updated_owned_tokens);
+            owned_tokens_uref
+        },
+        None => {
+            let uref = storage::new_uref(updated_owned_tokens.clone());
+            upsert_dictionary_value_from_key(OWNED_TOKENS, &token_owner_dictionary_item_key, uref);
+            uref
+        }
+    };
 
-    //Incremenet the balance of caller account by one.
-    let updated_balance =
-        match get_dictionary_value_from_key::<U256>(BALANCES, &token_owner.to_string()) {
+    //Increment the count of owned tokens.
+    let updated_token_count =
+        match get_dictionary_value_from_key::<U256>(TOKEN_COUNTS, &token_owner_dictionary_item_key) {
             Some(balance) => balance + U256::one(),
             None => U256::one(),
         };
-    upsert_dictionary_value_from_key(BALANCES, &token_owner.to_string(), updated_balance);
+    upsert_dictionary_value_from_key(TOKEN_COUNTS, &token_owner_dictionary_item_key, updated_token_count);
 
     // Increment number_of_minted_tokens by one
     next_index += U256::one();
+    let number_of_minted_tokens_uref = get_uref(
+        NUMBER_OF_MINTED_TOKENS,
+        NFTCoreError::MissingTotalTokenSupply,
+        NFTCoreError::InvalidTotalTokenSupply,
+    );
     storage::write(number_of_minted_tokens_uref, next_index);
+    // Return the URef under which the minter's owned token indexes with read ONLY access.
+    runtime::ret(CLValue::from_t(owned_tokens_uref.into_read()).unwrap_or_revert())
 }
 
 #[no_mangle]
@@ -317,7 +340,7 @@ pub extern "C" fn burn() {
 
     // Should we also update approved dictionary?
     let updated_balance =
-        match get_dictionary_value_from_key::<U256>(BALANCES, &token_owner.to_string()) {
+        match get_dictionary_value_from_key::<U256>(TOKEN_COUNTS, &token_owner.to_string()) {
             Some(balance) => {
                 if balance > U256::zero() {
                     balance - U256::one()
@@ -332,7 +355,7 @@ pub extern "C" fn burn() {
             }
         };
 
-    upsert_dictionary_value_from_key(BALANCES, &caller.to_string(), updated_balance);
+    upsert_dictionary_value_from_key(TOKEN_COUNTS, &caller.to_string(), updated_balance);
 }
 
 // approve marks a token as approved for transfer by an account
@@ -558,7 +581,7 @@ pub extern "C" fn transfer() {
 
     // Update the from_account balance
     let updated_from_account_balance =
-        match get_dictionary_value_from_key::<U256>(BALANCES, &from_public_key.to_string()) {
+        match get_dictionary_value_from_key::<U256>(TOKEN_COUNTS, &from_public_key.to_string()) {
             Some(balance) => {
                 if balance > U256::zero() {
                     balance - U256::one()
@@ -573,7 +596,7 @@ pub extern "C" fn transfer() {
             }
         };
     upsert_dictionary_value_from_key(
-        BALANCES,
+        TOKEN_COUNTS,
         &from_public_key.to_string(),
         updated_from_account_balance,
     );
@@ -620,12 +643,12 @@ pub extern "C" fn transfer() {
 
     // Update the to_account balance
     let updated_to_account_balance =
-        match get_dictionary_value_from_key::<U256>(BALANCES, &to_account_public_key.to_string()) {
+        match get_dictionary_value_from_key::<U256>(TOKEN_COUNTS, &to_account_public_key.to_string()) {
             Some(balance) => balance + U256::one(),
             None => U256::one(),
         };
     upsert_dictionary_value_from_key(
-        BALANCES,
+        TOKEN_COUNTS,
         &to_account_public_key.to_string(),
         updated_to_account_balance,
     );
@@ -642,7 +665,7 @@ pub extern "C" fn balance_of() {
     )
     .unwrap_or_revert();
 
-    let balance = match get_dictionary_value_from_key(BALANCES, &account_hash) {
+    let balance = match get_dictionary_value_from_key(TOKEN_COUNTS, &account_hash) {
         Some(balance) => balance,
         None => U256::zero(),
     };

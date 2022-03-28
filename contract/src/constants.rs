@@ -40,7 +40,7 @@ pub const TOKEN_OWNERS: &str = "token_owners";
 pub const TOKEN_META_DATA: &str = "token_meta_data";
 pub const OWNED_TOKENS: &str = "owned_tokens";
 pub const BURNT_TOKENS: &str = "burnt_tokens";
-pub const BALANCES: &str = "balances";
+pub const TOKEN_COUNTS: &str = "balances";
 //pub const IS_TRANSFERRABLE: &str = "is_transferrable";
 
 pub const ENTRY_POINT_INIT: &str = "init";
