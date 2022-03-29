@@ -13,11 +13,7 @@ use core::convert::TryInto;
 
 use alloc::{string::String, string::ToString, vec, vec::Vec};
 
-use casper_types::{
-    account::AccountHash, contracts::NamedKeys, runtime_args, CLType, CLValue, ContractHash,
-    ContractVersion, EntryPoint, EntryPointAccess, EntryPointType, EntryPoints, Key, Parameter,
-    PublicKey, RuntimeArgs, U256,
-};
+use casper_types::{account::AccountHash, contracts::NamedKeys, runtime_args, CLType, CLValue, ContractHash, ContractVersion, EntryPoint, EntryPointAccess, EntryPointType, EntryPoints, Key, Parameter, PublicKey, RuntimeArgs, U256, URef};
 
 use casper_contract::contract_api::system;
 use casper_contract::{
@@ -236,9 +232,6 @@ pub extern "C" fn mint() {
             }
             OwnershipMode::TransferableChecked => {
                 // // TODO: We need to be able to determine account existence, which would need to be
-                // let foo = storage::read_foo(token_owner_key)
-                // runtime::revert("This is unsupported currently, I know, sucks to suck.")
-
                 runtime::get_named_arg::<PublicKey>(ARG_TOKEN_OWNER).to_account_hash()
             }
         }
@@ -252,55 +245,57 @@ pub extern "C" fn mint() {
     )
     .unwrap_or_revert();
 
+    // This is the token ID.
     let dictionary_item_key = &next_index.to_string();
 
     let token_owner_key = Key::Account(token_owner);
-    let token_owner_dictionary_item_key = token_owner_key.to_string();
 
     upsert_dictionary_value_from_key(TOKEN_OWNERS, dictionary_item_key, token_owner_key);
     upsert_dictionary_value_from_key(TOKEN_META_DATA, dictionary_item_key, token_meta_data);
-    upsert_dictionary_value_from_key(TOKEN_ISSUERS, &next_index.to_string(), caller);
+    upsert_dictionary_value_from_key(TOKEN_ISSUERS, dictionary_item_key, caller);
+
+    let owned_tokens_key = token_owner.to_string();
 
     // Update owned tokens dictionary
-    let maybe_owned_tokens =
-        get_dictionary_value_from_key::<Vec<U256>>(OWNED_TOKENS, &token_owner_dictionary_item_key);
+    let maybe_owned_tokens_uref =
+        get_dictionary_value_from_key::<URef>(OWNED_TOKENS, &owned_tokens_key);
 
-    let updated_owned_tokens = match maybe_owned_tokens {
-        Some(mut owned_tokens) => {
+    // Update the value under the owned_tokens_uref.
+    let owned_tokens_uref = match maybe_owned_tokens_uref {
+        Some(owned_tokens_uref) => {
+            // Read the current list of owned tokens underneath the owned tokens
+            // URef.
+            let mut owned_tokens: Vec<U256>= storage::read(owned_tokens_uref)
+                .unwrap_or_revert()
+                .unwrap_or_revert_with(NFTCoreError::MissingOwnedTokens);
+
+            // Check that we are not minting a duplicate token.
             if owned_tokens.contains(&next_index) {
                 runtime::revert(NFTCoreError::FatalTokenIdDuplication); //<<---better error?
             }
 
             owned_tokens.push(next_index);
-            owned_tokens
-        }
-        None => vec![next_index],
-    };
-
-    // Update the value under the owned_tokens_uref.
-    let owned_tokens_uref = match runtime::get_key(&token_owner_dictionary_item_key) {
-        Some(key) => {
-            let owned_tokens_uref = key.into_uref().unwrap_or_revert();
-            storage::write(owned_tokens_uref, updated_owned_tokens);
+            storage::write(owned_tokens_uref, owned_tokens);
             owned_tokens_uref
+
         }
         None => {
-            let uref = storage::new_uref(updated_owned_tokens.clone());
-            upsert_dictionary_value_from_key(OWNED_TOKENS, &token_owner_dictionary_item_key, uref);
-            uref
-        }
+            let owned_tokens_uref = storage::new_uref(vec![next_index]);
+            upsert_dictionary_value_from_key(OWNED_TOKENS, &owned_tokens_key, owned_tokens_uref);
+            owned_tokens_uref
+        },
     };
 
     //Increment the count of owned tokens.
     let updated_token_count =
-        match get_dictionary_value_from_key::<U256>(TOKEN_COUNTS, &token_owner_dictionary_item_key)
+        match get_dictionary_value_from_key::<U256>(TOKEN_COUNTS, &owned_tokens_key)
         {
             Some(balance) => balance + U256::one(),
             None => U256::one(),
         };
     upsert_dictionary_value_from_key(
         TOKEN_COUNTS,
-        &token_owner_dictionary_item_key,
+        &owned_tokens_key,
         updated_token_count,
     );
 

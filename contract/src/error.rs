@@ -67,6 +67,7 @@ pub enum NFTCoreError {
     MissingOwnershipMode = 62,
     InvalidOwnershipMode = 63,
     InvalidTokenMinter = 64,
+    MissingOwnedTokens = 65,
 }
 
 impl From<NFTCoreError> for ApiError {

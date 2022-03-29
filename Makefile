@@ -3,11 +3,14 @@ prepare:
 
 build-contract:
 	cd contract && cargo build --release --target wasm32-unknown-unknown
+	cd mint_session && cargo build --release --target wasm32-unknown-unknown
 	wasm-strip contract/target/wasm32-unknown-unknown/release/contract.wasm 2>/dev/null | true
+	wasm-strip mint_session/target/wasm32-unknown-unknown/release/mint.wasm 2>/dev/null | true
 
 test: build-contract
 	mkdir -p tests/wasm
 	cp contract/target/wasm32-unknown-unknown/release/contract.wasm tests/wasm
+	cp mint_session/target/wasm32-unknown-unknown/release/mint.wasm tests/wasm
 	cd tests && cargo test
 
 clippy:
