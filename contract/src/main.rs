@@ -13,8 +13,13 @@ use core::convert::TryInto;
 
 use alloc::{string::String, string::ToString, vec, vec::Vec};
 
-use casper_types::{account::AccountHash, contracts::NamedKeys, runtime_args, CLType, CLValue, ContractHash, ContractVersion, EntryPoint, EntryPointAccess, EntryPointType, EntryPoints, Parameter, PublicKey, RuntimeArgs, U256, Key};
+use casper_types::{
+    account::AccountHash, contracts::NamedKeys, runtime_args, CLType, CLValue, ContractHash,
+    ContractVersion, EntryPoint, EntryPointAccess, EntryPointType, EntryPoints, Key, Parameter,
+    PublicKey, RuntimeArgs, U256,
+};
 
+use casper_contract::contract_api::system;
 use casper_contract::{
     contract_api::{
         runtime,
@@ -22,7 +27,6 @@ use casper_contract::{
     },
     unwrap_or_revert::UnwrapOrRevert,
 };
-use casper_contract::contract_api::system;
 
 use constants::*;
 use error::NFTCoreError;
@@ -124,6 +128,8 @@ pub extern "C" fn init() {
     // Create the data dictionaries to store essential values, topically.
     storage::new_dictionary(TOKEN_OWNERS)
         .unwrap_or_revert_with(NFTCoreError::FailedToCreateDictionary);
+    storage::new_dictionary(TOKEN_ISSUERS)
+        .unwrap_or_revert_with(NFTCoreError::FailedToCreateDictionary);
     storage::new_dictionary(TOKEN_META_DATA)
         .unwrap_or_revert_with(NFTCoreError::FailedToCreateDictionary);
     storage::new_dictionary(OWNED_TOKENS)
@@ -132,7 +138,8 @@ pub extern "C" fn init() {
         .unwrap_or_revert_with(NFTCoreError::FailedToCreateDictionary);
     storage::new_dictionary(BURNT_TOKENS)
         .unwrap_or_revert_with(NFTCoreError::FailedToCreateDictionary);
-    storage::new_dictionary(TOKEN_COUNTS).unwrap_or_revert_with(NFTCoreError::FailedToCreateDictionary);
+    storage::new_dictionary(TOKEN_COUNTS)
+        .unwrap_or_revert_with(NFTCoreError::FailedToCreateDictionary);
 }
 
 // set_variables allows the user to set any variable or any combination of variables simultaneously.
@@ -224,12 +231,16 @@ pub extern "C" fn mint() {
     let token_owner = {
         match ownership_mode {
             OwnershipMode::Minter => caller,
-            OwnershipMode::Assigned | OwnershipMode::TransferableUnchecked => runtime::get_named_arg::<PublicKey>(ARG_TOKEN_OWNER).to_account_hash(),
+            OwnershipMode::Assigned | OwnershipMode::TransferableUnchecked => {
+                runtime::get_named_arg::<PublicKey>(ARG_TOKEN_OWNER).to_account_hash()
+            }
             OwnershipMode::TransferableChecked => {
-                // TODO: We need to be able to determine account existence, which would need to be
-                let foo = storage::read_foo(token_owner_key)
-                runtime::revert("This is unsupported currently, I know, sucks to suck.")
-            },
+                // // TODO: We need to be able to determine account existence, which would need to be
+                // let foo = storage::read_foo(token_owner_key)
+                // runtime::revert("This is unsupported currently, I know, sucks to suck.")
+
+                runtime::get_named_arg::<PublicKey>(ARG_TOKEN_OWNER).to_account_hash()
+            }
         }
     };
 
@@ -244,16 +255,15 @@ pub extern "C" fn mint() {
     let dictionary_item_key = &next_index.to_string();
 
     let token_owner_key = Key::Account(token_owner);
-    let token_owner_dictionary_item_key =  token_owner_key.to_string();
+    let token_owner_dictionary_item_key = token_owner_key.to_string();
 
     upsert_dictionary_value_from_key(TOKEN_OWNERS, dictionary_item_key, token_owner_key);
     upsert_dictionary_value_from_key(TOKEN_META_DATA, dictionary_item_key, token_meta_data);
+    upsert_dictionary_value_from_key(TOKEN_ISSUERS, &next_index.to_string(), caller);
 
     // Update owned tokens dictionary
-    let maybe_owned_tokens = get_dictionary_value_from_key::<Vec<U256>>(
-        OWNED_TOKENS,
-        &token_owner_dictionary_item_key,
-    );
+    let maybe_owned_tokens =
+        get_dictionary_value_from_key::<Vec<U256>>(OWNED_TOKENS, &token_owner_dictionary_item_key);
 
     let updated_owned_tokens = match maybe_owned_tokens {
         Some(mut owned_tokens) => {
@@ -273,7 +283,7 @@ pub extern "C" fn mint() {
             let owned_tokens_uref = key.into_uref().unwrap_or_revert();
             storage::write(owned_tokens_uref, updated_owned_tokens);
             owned_tokens_uref
-        },
+        }
         None => {
             let uref = storage::new_uref(updated_owned_tokens.clone());
             upsert_dictionary_value_from_key(OWNED_TOKENS, &token_owner_dictionary_item_key, uref);
@@ -283,11 +293,16 @@ pub extern "C" fn mint() {
 
     //Increment the count of owned tokens.
     let updated_token_count =
-        match get_dictionary_value_from_key::<U256>(TOKEN_COUNTS, &token_owner_dictionary_item_key) {
+        match get_dictionary_value_from_key::<U256>(TOKEN_COUNTS, &token_owner_dictionary_item_key)
+        {
             Some(balance) => balance + U256::one(),
             None => U256::one(),
         };
-    upsert_dictionary_value_from_key(TOKEN_COUNTS, &token_owner_dictionary_item_key, updated_token_count);
+    upsert_dictionary_value_from_key(
+        TOKEN_COUNTS,
+        &token_owner_dictionary_item_key,
+        updated_token_count,
+    );
 
     // Increment number_of_minted_tokens by one
     next_index += U256::one();
@@ -642,11 +657,13 @@ pub extern "C" fn transfer() {
     }
 
     // Update the to_account balance
-    let updated_to_account_balance =
-        match get_dictionary_value_from_key::<U256>(TOKEN_COUNTS, &to_account_public_key.to_string()) {
-            Some(balance) => balance + U256::one(),
-            None => U256::one(),
-        };
+    let updated_to_account_balance = match get_dictionary_value_from_key::<U256>(
+        TOKEN_COUNTS,
+        &to_account_public_key.to_string(),
+    ) {
+        Some(balance) => balance + U256::one(),
+        None => U256::one(),
+    };
     upsert_dictionary_value_from_key(
         TOKEN_COUNTS,
         &to_account_public_key.to_string(),

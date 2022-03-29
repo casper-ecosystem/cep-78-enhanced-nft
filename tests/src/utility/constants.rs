@@ -23,6 +23,7 @@ pub(crate) const NUMBER_OF_MINTED_TOKENS: &str = "number_of_minted_tokens";
 pub(crate) const ARG_TOKEN_META_DATA: &str = "token_meta_data";
 pub(crate) const TOKEN_META_DATA: &str = "token_meta_data";
 pub(crate) const ARG_TOKEN_OWNER: &str = "token_owner";
+pub const TOKEN_ISSUERS: &str = "token_issuers";
 
 pub(crate) const ARG_OWNERSHIP_MODE: &str = "ownership_mode";
 pub(crate) const TOKEN_OWNERS: &str = "token_owners";

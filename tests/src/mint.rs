@@ -8,7 +8,7 @@ use crate::utility::{
     constants::{
         ACCOUNT_USER_1, ACCOUNT_USER_2, ARG_PUBLIC_MINTING, ARG_TOKEN_META_DATA, ARG_TOKEN_OWNER,
         BALANCES, CONTRACT_NAME, ENTRY_POINT_MINT, NFT_CONTRACT_WASM, NUMBER_OF_MINTED_TOKENS,
-        OWNED_TOKENS, TEST_META_DATA, TOKEN_META_DATA, TOKEN_OWNERS,
+        OWNED_TOKENS, TEST_META_DATA, TOKEN_ISSUERS, TOKEN_META_DATA, TOKEN_OWNERS,
     },
     installer_request_builder::InstallerRequestBuilder,
     support,
@@ -169,6 +169,51 @@ fn mint_should_correctly_set_meta_data() {
     );
 
     assert_eq!(actual_token_meta_data, TEST_META_DATA);
+}
+
+#[test]
+fn mint_should_correctly_set_issuer() {
+    let mut builder = InMemoryWasmTestBuilder::default();
+    builder.run_genesis(&DEFAULT_RUN_GENESIS_REQUEST).commit();
+
+    let install_request_builder =
+        InstallerRequestBuilder::new(*DEFAULT_ACCOUNT_ADDR, NFT_CONTRACT_WASM)
+            .with_total_token_supply(U256::from(2u32));
+    builder
+        .exec(install_request_builder.build())
+        .expect_success()
+        .commit();
+
+    let mint_request = ExecuteRequestBuilder::contract_call_by_name(
+        *DEFAULT_ACCOUNT_ADDR,
+        CONTRACT_NAME,
+        ENTRY_POINT_MINT,
+        runtime_args! {
+            ARG_TOKEN_OWNER => DEFAULT_ACCOUNT_PUBLIC_KEY.clone(),
+            ARG_TOKEN_META_DATA=> TEST_META_DATA.to_string(),
+        },
+    )
+    .build();
+    builder.exec(mint_request).expect_success().commit();
+
+    //Let's start querying
+    let account = builder.get_expected_account(*DEFAULT_ACCOUNT_ADDR);
+    let nft_contract_key = account
+        .named_keys()
+        .get(CONTRACT_NAME)
+        .expect("must have key in named keys");
+
+    let actual_token_issuer = support::get_dictionary_value_from_key::<String>(
+        &builder,
+        nft_contract_key,
+        TOKEN_ISSUERS,
+        &U256::zero().to_string(),
+    );
+
+    assert_eq!(
+        actual_token_issuer,
+        DEFAULT_ACCOUNT_ADDR.clone().to_string()
+    );
 }
 
 #[test]
