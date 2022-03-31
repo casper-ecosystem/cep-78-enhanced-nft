@@ -4,6 +4,7 @@ prepare:
 build-contract:
 	cd contract && cargo build --release --target wasm32-unknown-unknown
 	cd mint_session && cargo build --release --target wasm32-unknown-unknown
+	cd burn_session && cargo build --release --target wasm32-unknown-unknown
 	wasm-strip contract/target/wasm32-unknown-unknown/release/contract.wasm 2>/dev/null | true
 	wasm-strip mint_session/target/wasm32-unknown-unknown/release/mint.wasm 2>/dev/null | true
 

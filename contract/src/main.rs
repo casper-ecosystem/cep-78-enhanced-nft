@@ -13,7 +13,11 @@ use core::convert::TryInto;
 
 use alloc::{string::String, string::ToString, vec, vec::Vec};
 
-use casper_types::{account::AccountHash, contracts::NamedKeys, runtime_args, CLType, CLValue, ContractHash, ContractVersion, EntryPoint, EntryPointAccess, EntryPointType, EntryPoints, Key, Parameter, PublicKey, RuntimeArgs, U256, URef};
+use casper_types::{
+    account::AccountHash, contracts::NamedKeys, runtime_args, CLType, CLValue, ContractHash,
+    ContractVersion, EntryPoint, EntryPointAccess, EntryPointType, EntryPoints, Key, Parameter,
+    PublicKey, RuntimeArgs, URef, U256,
+};
 
 use casper_contract::contract_api::system;
 use casper_contract::{
@@ -190,6 +194,7 @@ pub extern "C" fn mint() {
         NFTCoreError::InvalidTotalTokenSupply,
     );
 
+    // The next_index is the number of minted tokens so far.
     let mut next_index = get_stored_value_with_user_errors::<U256>(
         NUMBER_OF_MINTED_TOKENS,
         NFTCoreError::MissingNumberOfMintedTokens,
@@ -265,7 +270,7 @@ pub extern "C" fn mint() {
         Some(owned_tokens_uref) => {
             // Read the current list of owned tokens underneath the owned tokens
             // URef.
-            let mut owned_tokens: Vec<U256>= storage::read(owned_tokens_uref)
+            let mut owned_tokens: Vec<U256> = storage::read(owned_tokens_uref)
                 .unwrap_or_revert()
                 .unwrap_or_revert_with(NFTCoreError::MissingOwnedTokens);
 
@@ -277,27 +282,22 @@ pub extern "C" fn mint() {
             owned_tokens.push(next_index);
             storage::write(owned_tokens_uref, owned_tokens);
             owned_tokens_uref
-
         }
         None => {
             let owned_tokens_uref = storage::new_uref(vec![next_index]);
             upsert_dictionary_value_from_key(OWNED_TOKENS, &owned_tokens_key, owned_tokens_uref);
+            runtime::put_key(&owned_tokens_key, owned_tokens_uref.into());
             owned_tokens_uref
-        },
+        }
     };
 
     //Increment the count of owned tokens.
     let updated_token_count =
-        match get_dictionary_value_from_key::<U256>(TOKEN_COUNTS, &owned_tokens_key)
-        {
+        match get_dictionary_value_from_key::<U256>(TOKEN_COUNTS, &owned_tokens_key) {
             Some(balance) => balance + U256::one(),
             None => U256::one(),
         };
-    upsert_dictionary_value_from_key(
-        TOKEN_COUNTS,
-        &owned_tokens_key,
-        updated_token_count,
-    );
+    upsert_dictionary_value_from_key(TOKEN_COUNTS, &owned_tokens_key, updated_token_count);
 
     // Increment number_of_minted_tokens by one
     next_index += U256::one();
@@ -325,12 +325,16 @@ pub extern "C" fn burn() {
     // Revert if caller is not token_owner. This seems to be the only check we need to do.
     // TODO: Decide whether an approved operator should be allowed to burn token?
     let token_owner =
-        match get_dictionary_value_from_key::<PublicKey>(TOKEN_OWNERS, &token_id.to_string()) {
-            Some(token_owner) => {
-                if token_owner.to_account_hash() != caller {
+        match get_dictionary_value_from_key::<Key>(TOKEN_OWNERS, &token_id.to_string()) {
+            Some(token_owner_key) => {
+                let token_owner_account_hash = token_owner_key
+                    .into_account()
+                    .unwrap_or_revert_with(NFTCoreError::InvalidAccountKeyInDictionary); // Better name?
+
+                if token_owner_account_hash != caller {
                     runtime::revert(NFTCoreError::InvalidTokenOwner)
                 }
-                token_owner
+                token_owner_account_hash
             }
             None => runtime::revert(NFTCoreError::InvalidTokenID),
         };

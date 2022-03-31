@@ -1,13 +1,29 @@
 use casper_engine_test_support::{
-    InMemoryWasmTestBuilder, WasmTestBuilder, DEFAULT_RUN_GENESIS_REQUEST,
+    InMemoryWasmTestBuilder, WasmTestBuilder, DEFAULT_ACCOUNT_ADDR, DEFAULT_RUN_GENESIS_REQUEST,
 };
 use casper_execution_engine::{
     core::{engine_state::Error as EngineStateError, execution},
     storage::global_state::in_memory::InMemoryGlobalState,
 };
-use casper_types::{bytesrepr::FromBytes, ApiError, CLTyped, Key, PublicKey, SecretKey};
+use casper_types::{
+    bytesrepr::FromBytes, ApiError, CLTyped, ContractHash, Key, PublicKey, SecretKey, URef,
+};
 
-use super::installer_request_builder::InstallerRequestBuilder;
+use super::{constants::CONTRACT_NAME, installer_request_builder::InstallerRequestBuilder};
+
+pub(crate) fn get_nft_contract_hash(
+    builder: &WasmTestBuilder<InMemoryGlobalState>,
+) -> ContractHash {
+    let nft_hash_addr = builder
+        .get_expected_account(*DEFAULT_ACCOUNT_ADDR)
+        .named_keys()
+        .get(CONTRACT_NAME)
+        .expect("must have this entry in named keys")
+        .into_hash()
+        .expect("must get hash_addr");
+
+    ContractHash::new(nft_hash_addr)
+}
 
 pub(crate) fn get_dictionary_value_from_key<T: CLTyped + FromBytes>(
     builder: &WasmTestBuilder<InMemoryGlobalState>,
@@ -73,13 +89,23 @@ pub(crate) fn assert_expected_error(actual_error: EngineStateError, error_code: 
     )
 }
 
+pub(crate) fn get_uref(builder: &WasmTestBuilder<InMemoryGlobalState>, key: &str) -> URef {
+    builder
+        .get_expected_account(*DEFAULT_ACCOUNT_ADDR)
+        .named_keys()
+        .get(key)
+        .expect("must have this entry as a result of calling mint")
+        .into_uref()
+        .unwrap()
+}
+
 pub(crate) fn query_stored_value<T: CLTyped + FromBytes>(
     builder: &mut InMemoryWasmTestBuilder,
-    nft_contract_key: Key,
+    base_key: Key,
     path: Vec<String>,
 ) -> T {
     builder
-        .query(None, nft_contract_key, &path)
+        .query(None, base_key, &path)
         .expect("must have stored value")
         .as_cl_value()
         .cloned()
