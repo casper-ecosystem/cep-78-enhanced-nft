@@ -11,12 +11,13 @@ pub const ARG_TO_ACCOUNT_HASH: &str = "to_account_hash";
 pub const ARG_FROM_ACCOUNT_HASH: &str = "from_account_hash";
 pub const ARG_ALLOW_MINTING: &str = "allow_minting";
 pub const ARG_PUBLIC_MINTING: &str = "public_minting";
-pub const ARG_ACCOUNT_HASH: &str = "account_hash";
+pub const ARG_ACCOUNT_KEY: &str = "account_key";
 pub const ARG_TOKEN_META_DATA: &str = "token_meta_data";
 pub const ARG_APPROVE_TRANSFER_FOR_ACCOUNT_HASH: &str = "approve_transfer_for_account_hash"; //Change name?
 pub const ARG_APPROVE_ALL: &str = "approve_all";
 pub const ARG_OPERATOR: &str = "operator";
 pub const ARG_OWNERSHIP_MODE: &str = "ownership_mode";
+pub const ARG_JSON_SCHEMA: &str = "json_schema";
 
 // STORAGE is the list of all NFTS
 // Owners is a dictionary owner --> nfts
@@ -26,6 +27,7 @@ pub const APPROVED_FOR_TRANSFER: &str = "approved_for_transfer"; //Change name?
 pub const NUMBER_OF_MINTED_TOKENS: &str = "number_of_minted_tokens";
 
 pub const INSTALLER: &str = "installer";
+pub const JSON_SCHEMA: &str = "json_schema";
 pub const CONTRACT_NAME: &str = "nft_contract";
 pub const HASH_KEY_NAME: &str = "nft_contract_package";
 pub const ACCESS_KEY_NAME: &str = "nft_contract_package_access";

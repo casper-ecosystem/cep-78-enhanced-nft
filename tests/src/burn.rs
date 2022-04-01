@@ -99,7 +99,7 @@ fn should_burn_minted_token() {
         ENTRY_POINT_MINT,
         runtime_args! {
             ARG_TOKEN_OWNER => DEFAULT_ACCOUNT_PUBLIC_KEY.clone(),
-            ARG_TOKEN_META_DATA=>TEST_META_DATA.to_string(),
+            ARG_TOKEN_META_DATA => TEST_META_DATA.to_string(),
         },
     )
     .build();
@@ -110,7 +110,7 @@ fn should_burn_minted_token() {
         &builder,
         nft_contract_key,
         OWNED_TOKENS,
-        &DEFAULT_ACCOUNT_PUBLIC_KEY.clone().to_string(),
+        &DEFAULT_ACCOUNT_ADDR.clone().to_string(),
     );
 
     let expected_owned_tokens = vec![U256::zero()];
@@ -120,7 +120,7 @@ fn should_burn_minted_token() {
         &builder,
         nft_contract_key,
         BALANCES,
-        &DEFAULT_ACCOUNT_PUBLIC_KEY.clone().to_string(),
+        &DEFAULT_ACCOUNT_ADDR.clone().to_string(),
     );
 
     let expected_balance_before_burn = U256::one();
@@ -186,7 +186,7 @@ fn should_not_burn_previously_burnt_token() {
         CONTRACT_NAME,
         ENTRY_POINT_MINT,
         runtime_args! {
-            ARG_TOKEN_OWNER => DEFAULT_ACCOUNT_PUBLIC_KEY.clone(),
+            ARG_TOKEN_OWNER => DEFAULT_ACCOUNT_ADDR.clone().to_string(),
             ARG_TOKEN_META_DATA=>TEST_META_DATA.to_string(),
         },
     )
@@ -198,7 +198,7 @@ fn should_not_burn_previously_burnt_token() {
         &builder,
         nft_contract_key,
         OWNED_TOKENS,
-        &DEFAULT_ACCOUNT_PUBLIC_KEY.clone().to_string(),
+        &DEFAULT_ACCOUNT_ADDR.clone().to_string(),
     );
 
     let expected_owned_tokens = vec![U256::zero()];
@@ -317,7 +317,7 @@ fn should_disallow_burning_of_others_users_token() {
         CONTRACT_NAME,
         ENTRY_POINT_MINT,
         runtime_args! {
-            ARG_TOKEN_OWNER => DEFAULT_ACCOUNT_PUBLIC_KEY.clone(),
+            ARG_TOKEN_OWNER => DEFAULT_ACCOUNT_ADDR.clone().to_string(),
             ARG_TOKEN_META_DATA=>TEST_META_DATA.to_string(),
         },
     )
@@ -329,7 +329,7 @@ fn should_disallow_burning_of_others_users_token() {
         &builder,
         nft_contract_key,
         OWNED_TOKENS,
-        &DEFAULT_ACCOUNT_PUBLIC_KEY.clone().to_string(),
+        &DEFAULT_ACCOUNT_ADDR.clone().to_string(),
     );
 
     let expected_owned_tokens = vec![U256::zero()];
@@ -399,7 +399,7 @@ fn should_prevent_burning_on_owner_key_mismatch() {
         CONTRACT_NAME,
         ENTRY_POINT_MINT,
         runtime_args! {
-            ARG_TOKEN_OWNER => DEFAULT_ACCOUNT_PUBLIC_KEY.clone(),
+            ARG_TOKEN_OWNER => DEFAULT_ACCOUNT_ADDR.clone().to_string(),
             ARG_TOKEN_META_DATA=>TEST_META_DATA.to_string(),
         },
     )
@@ -411,7 +411,7 @@ fn should_prevent_burning_on_owner_key_mismatch() {
         &builder,
         nft_contract_key,
         OWNED_TOKENS,
-        &DEFAULT_ACCOUNT_PUBLIC_KEY.clone().to_string(),
+        &DEFAULT_ACCOUNT_ADDR.clone().to_string(),
     );
 
     let expected_owned_tokens = vec![U256::zero()];

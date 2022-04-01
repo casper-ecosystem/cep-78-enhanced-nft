@@ -97,6 +97,13 @@ pub extern "C" fn init() {
     .try_into()
     .unwrap_or_revert();
 
+    // let json_schema: String = get_named_arg_with_user_errors(
+    //     ARG_JSON_SCHEMA,
+    //     NFTCoreError::MissingJsonSchema,
+    //     NFTCoreError::InvalidJsonSchema,
+    // )
+    // .unwrap_or_revert();
+
     // Put all created URefs into the contract's context (necessary to retain access rights,
     // for future use).
     // Initialize contract with URefs for all invariant values, which can never be changed.
@@ -113,6 +120,8 @@ pub extern "C" fn init() {
         OWNERSHIP_MODE,
         storage::new_uref(ownership_mode as u8).into(),
     );
+
+    // runtime::put_key(JSON_SCHEMA, storage::new_uref(json_schema).into());
 
     // Initialize contract with variables which must be present but maybe set to
     // different values after initialization.
@@ -259,35 +268,27 @@ pub extern "C" fn mint() {
     upsert_dictionary_value_from_key(TOKEN_META_DATA, dictionary_item_key, token_meta_data);
     upsert_dictionary_value_from_key(TOKEN_ISSUERS, dictionary_item_key, caller);
 
+    // We use the string representation of the account_hash as to not exceed the dictionary_item_key length limit,
+    // which is currently set to 64. (Using Key::Account().to_string() exceeds the limit of 64.)
     let owned_tokens_key = token_owner.to_string();
 
     // Update owned tokens dictionary
-    let maybe_owned_tokens_uref =
-        get_dictionary_value_from_key::<URef>(OWNED_TOKENS, &owned_tokens_key);
+    let maybe_owned_tokens =
+        get_dictionary_value_from_key::<Vec<U256>>(OWNED_TOKENS, &owned_tokens_key);
 
-    // Update the value under the owned_tokens_uref.
-    let owned_tokens_uref = match maybe_owned_tokens_uref {
-        Some(owned_tokens_uref) => {
-            // Read the current list of owned tokens underneath the owned tokens
-            // URef.
-            let mut owned_tokens: Vec<U256> = storage::read(owned_tokens_uref)
-                .unwrap_or_revert()
-                .unwrap_or_revert_with(NFTCoreError::MissingOwnedTokens);
-
+    // Update the value in the owned_tokens dictionary.
+    match maybe_owned_tokens {
+        Some(mut owned_tokens) => {
             // Check that we are not minting a duplicate token.
             if owned_tokens.contains(&next_index) {
                 runtime::revert(NFTCoreError::FatalTokenIdDuplication); //<<---better error?
             }
 
             owned_tokens.push(next_index);
-            storage::write(owned_tokens_uref, owned_tokens);
-            owned_tokens_uref
+            upsert_dictionary_value_from_key(OWNED_TOKENS, &owned_tokens_key, owned_tokens);
         }
         None => {
-            let owned_tokens_uref = storage::new_uref(vec![next_index]);
-            upsert_dictionary_value_from_key(OWNED_TOKENS, &owned_tokens_key, owned_tokens_uref);
-            runtime::put_key(&owned_tokens_key, owned_tokens_uref.into());
-            owned_tokens_uref
+            upsert_dictionary_value_from_key(OWNED_TOKENS, &owned_tokens_key, vec![next_index]);
         }
     };
 
@@ -308,7 +309,6 @@ pub extern "C" fn mint() {
     );
     storage::write(number_of_minted_tokens_uref, next_index);
     // Return the URef under which the minter's owned token indexes with read ONLY access.
-    runtime::ret(CLValue::from_t(owned_tokens_uref.into_read()).unwrap_or_revert())
 }
 
 #[no_mangle]
@@ -395,13 +395,13 @@ pub extern "C" fn approve() {
     }
 
     let token_owner =
-        match get_dictionary_value_from_key::<PublicKey>(TOKEN_OWNERS, &token_id.to_string()) {
+        match get_dictionary_value_from_key::<String>(TOKEN_OWNERS, &token_id.to_string()) {
             Some(token_owner) => token_owner,
             None => runtime::revert(NFTCoreError::InvalidAccountHash),
         };
 
     // Revert if caller is not the token_owner. Only the token owner can approve an operator
-    if token_owner.to_account_hash() != caller {
+    if token_owner != caller.to_string() {
         runtime::revert(NFTCoreError::InvalidAccountHash);
     }
 
@@ -674,7 +674,7 @@ pub extern "C" fn transfer() {
 // it returns 0.
 #[no_mangle]
 pub extern "C" fn balance_of() {
-    let account_hash = get_named_arg_with_user_errors::<String>(
+    let account_key = get_named_arg_with_user_errors::<Key>(
         ARG_ACCOUNT_HASH,
         NFTCoreError::MissingAccountHash,
         NFTCoreError::InvalidAccountHash,
@@ -935,7 +935,7 @@ fn store() -> (ContractHash, ContractVersion) {
         let owner_of = EntryPoint::new(
             ENTRY_POINT_OWNER_OF,
             vec![Parameter::new(ARG_TOKEN_ID, CLType::U256)],
-            CLType::String,
+            CLType::Key,
             EntryPointAccess::Public,
             EntryPointType::Contract,
         );
@@ -945,7 +945,7 @@ fn store() -> (ContractHash, ContractVersion) {
         let get_approved = EntryPoint::new(
             ENTRY_POINT_GET_APPROVED,
             vec![Parameter::new(ARG_TOKEN_ID, CLType::U256)],
-            CLType::String,
+            CLType::Key,
             EntryPointAccess::Public,
             EntryPointType::Contract,
         );
@@ -953,7 +953,7 @@ fn store() -> (ContractHash, ContractVersion) {
         // This entrypoint returns number of owned tokens associated with the provided account
         let balance_of = EntryPoint::new(
             ENTRY_POINT_BALANCE_OF,
-            vec![Parameter::new(ARG_ACCOUNT_HASH, CLType::String)],
+            vec![Parameter::new(ARG_ACCOUNT_HASH, CLType::Key)],
             CLType::U256,
             EntryPointAccess::Public,
             EntryPointType::Contract,
@@ -994,6 +994,7 @@ fn store() -> (ContractHash, ContractVersion) {
     let named_keys = {
         let mut named_keys = NamedKeys::new();
         named_keys.insert(INSTALLER.to_string(), runtime::get_caller().into());
+
         named_keys
     };
 

@@ -25,6 +25,8 @@ pub(crate) const ARG_TOKEN_META_DATA: &str = "token_meta_data";
 pub(crate) const TOKEN_META_DATA: &str = "token_meta_data";
 pub(crate) const ARG_TOKEN_OWNER: &str = "token_owner";
 pub(crate) const ARG_NFT_CONTRACT_HASH: &str = "nft_contract_hash";
+pub const ARG_JSON_SCHEMA: &str = "json_schema";
+
 pub const TOKEN_ISSUERS: &str = "token_issuers";
 
 pub(crate) const ARG_OWNERSHIP_MODE: &str = "ownership_mode";

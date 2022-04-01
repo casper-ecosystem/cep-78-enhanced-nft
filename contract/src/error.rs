@@ -69,6 +69,8 @@ pub enum NFTCoreError {
     InvalidTokenMinter = 64,
     MissingOwnedTokens = 65,
     InvalidAccountKeyInDictionary = 66,
+    MissingJsonSchema = 67,
+    InvalidJsonSchema = 68,
 }
 
 impl From<NFTCoreError> for ApiError {

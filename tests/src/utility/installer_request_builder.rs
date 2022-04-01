@@ -5,8 +5,8 @@ use casper_execution_engine::core::engine_state::ExecuteRequest;
 use casper_types::{account::AccountHash, CLValue, RuntimeArgs, U256};
 
 use super::constants::{
-    ARG_ALLOW_MINTING, ARG_COLLECTION_NAME, ARG_COLLECTION_SYMBOL, ARG_OWNERSHIP_MODE,
-    ARG_PUBLIC_MINTING, ARG_TOTAL_TOKEN_SUPPLY,
+    ARG_ALLOW_MINTING, ARG_COLLECTION_NAME, ARG_COLLECTION_SYMBOL, ARG_JSON_SCHEMA,
+    ARG_OWNERSHIP_MODE, ARG_PUBLIC_MINTING, ARG_TOTAL_TOKEN_SUPPLY,
 };
 
 #[repr(u8)]
@@ -29,6 +29,7 @@ pub(crate) struct InstallerRequestBuilder {
     allow_minting: CLValue,
     public_minting: CLValue,
     ownership_mode: CLValue,
+    json_schema: CLValue,
 }
 
 impl InstallerRequestBuilder {
@@ -49,6 +50,8 @@ impl InstallerRequestBuilder {
             allow_minting: CLValue::from_t(Some(true)).unwrap(),
             public_minting: CLValue::from_t(Some(false)).unwrap(),
             ownership_mode: CLValue::from_t(OwnershipMode::Minter as u8).unwrap(),
+            json_schema: CLValue::from_t("my_json_schema".to_string())
+                .expect("my_json_schema is legit CLValue"),
         }
     }
 
@@ -108,6 +111,11 @@ impl InstallerRequestBuilder {
         self
     }
 
+    pub(crate) fn with_json_schema(mut self, json_schema: &str) -> Self {
+        self.json_schema = CLValue::from_t(json_schema).expect("json_schema is legit CLValue");
+        self
+    }
+
     pub(crate) fn build(self) -> ExecuteRequest {
         let mut runtime_args = RuntimeArgs::new();
         runtime_args.insert_cl_value(ARG_COLLECTION_NAME, self.collection_name);
@@ -116,6 +124,7 @@ impl InstallerRequestBuilder {
         runtime_args.insert_cl_value(ARG_ALLOW_MINTING, self.allow_minting);
         runtime_args.insert_cl_value(ARG_PUBLIC_MINTING, self.public_minting);
         runtime_args.insert_cl_value(ARG_OWNERSHIP_MODE, self.ownership_mode);
+        runtime_args.insert_cl_value(ARG_JSON_SCHEMA, self.json_schema);
         ExecuteRequestBuilder::standard(self.account_hash, &self.session_file, runtime_args).build()
     }
 }
