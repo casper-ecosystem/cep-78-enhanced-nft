@@ -675,7 +675,7 @@ pub extern "C" fn transfer() {
 #[no_mangle]
 pub extern "C" fn balance_of() {
     let account_key = get_named_arg_with_user_errors::<Key>(
-        ARG_ACCOUNT_HASH,
+        ARG_ACCOUNT_KEY,
         NFTCoreError::MissingAccountHash,
         NFTCoreError::InvalidAccountHash,
     )
@@ -953,7 +953,7 @@ fn store() -> (ContractHash, ContractVersion) {
         // This entrypoint returns number of owned tokens associated with the provided account
         let balance_of = EntryPoint::new(
             ENTRY_POINT_BALANCE_OF,
-            vec![Parameter::new(ARG_ACCOUNT_HASH, CLType::Key)],
+            vec![Parameter::new(ARG_ACCOUNT_KEY, CLType::Key)],
             CLType::U256,
             EntryPointAccess::Public,
             EntryPointType::Contract,
