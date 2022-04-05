@@ -216,13 +216,13 @@ pub extern "C" fn mint() {
     }
 
     let caller = runtime::get_caller();
-
     let private_minting = !get_stored_value_with_user_errors::<bool>(
         PUBLIC_MINTING,
         NFTCoreError::MissingPublicMinting,
         NFTCoreError::InvalidPublicMinting,
     );
 
+    // Revert if minting is private and caller is not installer.
     if private_minting {
         let installer_account_hash = runtime::get_key(INSTALLER)
             .unwrap_or_revert_with(NFTCoreError::MissingInstallerKey)
@@ -238,15 +238,15 @@ pub extern "C" fn mint() {
     // The contract's ownership behavior (determined at installation) determines,
     // who owns the NFT we are about to mint.
     let ownership_mode = utils::get_ownership_mode().unwrap_or_revert();
-    let token_owner = {
+    let token_owner_key = {
         match ownership_mode {
-            OwnershipMode::Minter => caller,
+            OwnershipMode::Minter => Key::Account(caller),
             OwnershipMode::Assigned | OwnershipMode::TransferableUnchecked => {
-                runtime::get_named_arg::<PublicKey>(ARG_TOKEN_OWNER).to_account_hash()
+                runtime::get_named_arg::<Key>(ARG_TOKEN_OWNER)
             }
             OwnershipMode::TransferableChecked => {
                 // // TODO: We need to be able to determine account existence, which would need to be
-                runtime::get_named_arg::<PublicKey>(ARG_TOKEN_OWNER).to_account_hash()
+                runtime::get_named_arg::<Key>(ARG_TOKEN_OWNER)
             }
         }
     };
@@ -262,19 +262,20 @@ pub extern "C" fn mint() {
     // This is the token ID.
     let dictionary_item_key = &next_index.to_string();
 
-    let token_owner_key = Key::Account(token_owner);
-
     upsert_dictionary_value_from_key(TOKEN_OWNERS, dictionary_item_key, token_owner_key);
     upsert_dictionary_value_from_key(TOKEN_META_DATA, dictionary_item_key, token_meta_data);
-    upsert_dictionary_value_from_key(TOKEN_ISSUERS, dictionary_item_key, caller);
+    upsert_dictionary_value_from_key(TOKEN_ISSUERS, dictionary_item_key, Key::Account(caller));
 
     // We use the string representation of the account_hash as to not exceed the dictionary_item_key length limit,
     // which is currently set to 64. (Using Key::Account().to_string() exceeds the limit of 64.)
-    let owned_tokens_key = token_owner.to_string();
+    let owned_tokens_item_key = token_owner_key
+        .into_account()
+        .unwrap_or_revert_with(NFTCoreError::InvalidKey)
+        .to_string();
 
     // Update owned tokens dictionary
     let maybe_owned_tokens =
-        get_dictionary_value_from_key::<Vec<U256>>(OWNED_TOKENS, &owned_tokens_key);
+        get_dictionary_value_from_key::<Vec<U256>>(OWNED_TOKENS, &owned_tokens_item_key);
 
     // Update the value in the owned_tokens dictionary.
     match maybe_owned_tokens {
@@ -285,20 +286,24 @@ pub extern "C" fn mint() {
             }
 
             owned_tokens.push(next_index);
-            upsert_dictionary_value_from_key(OWNED_TOKENS, &owned_tokens_key, owned_tokens);
+            upsert_dictionary_value_from_key(OWNED_TOKENS, &owned_tokens_item_key, owned_tokens);
         }
         None => {
-            upsert_dictionary_value_from_key(OWNED_TOKENS, &owned_tokens_key, vec![next_index]);
+            upsert_dictionary_value_from_key(
+                OWNED_TOKENS,
+                &owned_tokens_item_key,
+                vec![next_index],
+            );
         }
     };
 
     //Increment the count of owned tokens.
     let updated_token_count =
-        match get_dictionary_value_from_key::<U256>(TOKEN_COUNTS, &owned_tokens_key) {
+        match get_dictionary_value_from_key::<U256>(TOKEN_COUNTS, &owned_tokens_item_key) {
             Some(balance) => balance + U256::one(),
             None => U256::one(),
         };
-    upsert_dictionary_value_from_key(TOKEN_COUNTS, &owned_tokens_key, updated_token_count);
+    upsert_dictionary_value_from_key(TOKEN_COUNTS, &owned_tokens_item_key, updated_token_count);
 
     // Increment number_of_minted_tokens by one
     next_index += U256::one();
@@ -308,7 +313,6 @@ pub extern "C" fn mint() {
         NFTCoreError::InvalidTotalTokenSupply,
     );
     storage::write(number_of_minted_tokens_uref, next_index);
-    // Return the URef under which the minter's owned token indexes with read ONLY access.
 }
 
 #[no_mangle]
@@ -329,8 +333,7 @@ pub extern "C" fn burn() {
             Some(token_owner_key) => {
                 let token_owner_account_hash = token_owner_key
                     .into_account()
-                    .unwrap_or_revert_with(NFTCoreError::InvalidAccountKeyInDictionary); // Better name?
-
+                    .unwrap_or_revert_with(NFTCoreError::InvalidKey);
                 if token_owner_account_hash != caller {
                     runtime::revert(NFTCoreError::InvalidTokenOwner)
                 }
@@ -394,14 +397,16 @@ pub extern "C" fn approve() {
         runtime::revert(NFTCoreError::InvalidTokenID);
     }
 
-    let token_owner =
-        match get_dictionary_value_from_key::<String>(TOKEN_OWNERS, &token_id.to_string()) {
+    let token_owner_account_hash =
+        match get_dictionary_value_from_key::<Key>(TOKEN_OWNERS, &token_id.to_string()) {
             Some(token_owner) => token_owner,
             None => runtime::revert(NFTCoreError::InvalidAccountHash),
-        };
+        }
+        .into_account()
+        .unwrap_or_revert_with(NFTCoreError::InvalidKey);
 
     // Revert if caller is not the token_owner. Only the token owner can approve an operator
-    if token_owner != caller.to_string() {
+    if token_owner_account_hash != caller {
         runtime::revert(NFTCoreError::InvalidAccountHash);
     }
 
@@ -410,15 +415,17 @@ pub extern "C" fn approve() {
         runtime::revert(NFTCoreError::PreviouslyBurntToken);
     }
 
-    let approve_for_public_key = get_named_arg_with_user_errors::<PublicKey>(
+    let approve_for_account_hash = get_named_arg_with_user_errors::<Key>(
         ARG_APPROVE_TRANSFER_FOR_ACCOUNT_HASH,
         NFTCoreError::MissingApprovedAccountHash,
         NFTCoreError::InvalidApprovedAccountHash,
     )
-    .unwrap_or_revert();
+    .unwrap_or_revert()
+    .into_account()
+    .unwrap_or_revert_with(NFTCoreError::InvalidKey);
 
     // If token_owner tries to approve themselves that's probably a mistake and we revert.
-    if token_owner == approve_for_public_key {
+    if token_owner_account_hash == approve_for_account_hash {
         runtime::revert(NFTCoreError::InvalidAccount); //Do we need a better error here? ::AlreadyOwner ??
     }
 
@@ -431,7 +438,7 @@ pub extern "C" fn approve() {
     storage::dictionary_put(
         approved_uref,
         &token_id.to_string(),
-        Some(approve_for_public_key),
+        Some(Key::Account(approve_for_account_hash)),
     );
 }
 
@@ -446,7 +453,7 @@ pub extern "C" fn set_approval_for_all() {
     )
     .unwrap_or_revert();
 
-    let operator = get_named_arg_with_user_errors::<String>(
+    let operator = get_named_arg_with_user_errors::<Key>(
         ARG_OPERATOR,
         NFTCoreError::MissingOperator,
         NFTCoreError::InvalidOperator,
@@ -466,7 +473,7 @@ pub extern "C" fn set_approval_for_all() {
         // Depending on approve_all we either approve all or disapprove all.
         for t in owned_tokens {
             if approve_all {
-                storage::dictionary_put(approved_uref, &t.to_string(), Some(operator.clone()));
+                storage::dictionary_put(approved_uref, &t.to_string(), Some(operator));
             } else {
                 storage::dictionary_put(approved_uref, &t.to_string(), Option::<String>::None);
             }
@@ -503,90 +510,89 @@ pub extern "C" fn transfer() {
     //     }
     // };
 
-    let token_owner =
-        match get_dictionary_value_from_key::<PublicKey>(TOKEN_OWNERS, &token_id.to_string()) {
+    let token_owner_account_hash =
+        match get_dictionary_value_from_key::<Key>(TOKEN_OWNERS, &token_id.to_string()) {
             Some(token_owner) => token_owner,
             None => runtime::revert(NFTCoreError::InvalidTokenID),
-        };
+        }
+        .into_account()
+        .unwrap_or_revert_with(NFTCoreError::InvalidKey);
 
-    let from_public_key = get_named_arg_with_user_errors::<PublicKey>(
+    let from_token_owner_account_hash = get_named_arg_with_user_errors::<Key>(
         ARG_FROM_ACCOUNT_HASH,
         NFTCoreError::MissingAccountHash,
         NFTCoreError::InvalidAccountHash,
     )
-    .unwrap_or_revert();
+    .unwrap_or_revert()
+    .into_account()
+    .unwrap_or_revert_with(NFTCoreError::InvalidKey);
 
     // Revert if from account is not the token_owner
-    if from_public_key != token_owner {
+    if from_token_owner_account_hash != token_owner_account_hash {
         runtime::revert(NFTCoreError::InvalidAccount);
     }
 
     let caller = runtime::get_caller();
 
     // Check if caller is approved to execute transfer
-    let is_approved = match get_dictionary_value_from_key::<Option<PublicKey>>(
+    let is_approved = match get_dictionary_value_from_key::<Option<Key>>(
         APPROVED_FOR_TRANSFER,
         &token_id.to_string(),
     ) {
-        Some(Some(approved_public_key)) => approved_public_key.to_account_hash() == caller,
-        _ => false,
+        Some(Some(approved_public_key)) => {
+            approved_public_key.into_account().unwrap_or_revert() == caller
+        }
+        Some(None) | None => false,
     };
 
     // Revert if caller is not owner and not approved. (CEP47 transfer logic looks incorrect to me...)
-    if caller != token_owner.to_account_hash() && !is_approved {
+    if caller != token_owner_account_hash && !is_approved {
         runtime::revert(NFTCoreError::InvalidAccount); // InvalidCaller better error?
     }
 
-    let to_account_public_key: PublicKey = get_named_arg_with_user_errors(
+    let target_owner_key: Key = get_named_arg_with_user_errors(
         ARG_TO_ACCOUNT_HASH,
         NFTCoreError::MissingAccountHash,
         NFTCoreError::InvalidAccountHash,
     )
     .unwrap_or_revert();
 
+    let target_owner_item_key = target_owner_key
+        .into_account()
+        .unwrap_or_revert_with(NFTCoreError::InvalidKey)
+        .to_string();
+
     // Updated token_owners dictionary. Revert if token_owner not found.
-    match get_dictionary_value_from_key::<PublicKey>(TOKEN_OWNERS, &token_id.to_string()) {
+    match get_dictionary_value_from_key::<Key>(TOKEN_OWNERS, &token_id.to_string()) {
         Some(token_actual_owner) => {
-            let token_owners_seed_uref = get_uref(
-                TOKEN_OWNERS,
-                NFTCoreError::MissingStorageUref,
-                NFTCoreError::InvalidStorageUref,
-            );
-            if token_actual_owner != from_public_key {
+            let token_actual_owner_account_hash = token_actual_owner
+                .into_account()
+                .unwrap_or_revert_with(NFTCoreError::InvalidKey);
+            if token_actual_owner_account_hash != from_token_owner_account_hash {
                 runtime::revert(NFTCoreError::InvalidTokenOwner)
             }
 
-            storage::dictionary_put(
-                token_owners_seed_uref,
-                &token_id.to_string(),
-                to_account_public_key.clone(),
-            );
+            upsert_dictionary_value_from_key(TOKEN_OWNERS, &token_id.to_string(), target_owner_key);
         }
         None => runtime::revert(NFTCoreError::InvalidTokenID),
     }
 
     // Update to_account owned_tokens. Revert if owned_tokens list is not found
-    match get_dictionary_value_from_key::<Vec<U256>>(OWNED_TOKENS, &from_public_key.to_string()) {
+    match get_dictionary_value_from_key::<Vec<U256>>(
+        OWNED_TOKENS,
+        &from_token_owner_account_hash.to_string(),
+    ) {
         Some(mut owned_tokens) => {
             // Check that token_id is in owned tokens list. If so remove token_id from list
             // If not revert.
-
-            let owned_tokens_seed_uref = get_uref(
-                OWNED_TOKENS,
-                NFTCoreError::MissingStorageUref,
-                NFTCoreError::InvalidStorageUref,
-            );
-
             if let Some(id) = owned_tokens.iter().position(|id| *id == token_id) {
                 owned_tokens.remove(id);
             } else {
                 runtime::revert(NFTCoreError::InvalidTokenOwner)
             }
-
-            // Store updated
-            storage::dictionary_put(
-                owned_tokens_seed_uref,
-                &from_public_key.to_string(),
+            upsert_dictionary_value_from_key(
+                OWNED_TOKENS,
+                &from_token_owner_account_hash.to_string(),
                 owned_tokens,
             );
         }
@@ -594,78 +600,54 @@ pub extern "C" fn transfer() {
     }
 
     // Update the from_account balance
-    let updated_from_account_balance =
-        match get_dictionary_value_from_key::<U256>(TOKEN_COUNTS, &from_public_key.to_string()) {
-            Some(balance) => {
-                if balance > U256::zero() {
-                    balance - U256::one()
-                } else {
-                    // This should never happen...
-                    runtime::revert(NFTCoreError::FatalTokenIdDuplication);
-                }
-            }
-            None => {
+    let updated_from_account_balance = match get_dictionary_value_from_key::<U256>(
+        TOKEN_COUNTS,
+        &from_token_owner_account_hash.to_string(),
+    ) {
+        Some(balance) => {
+            if balance > U256::zero() {
+                balance - U256::one()
+            } else {
                 // This should never happen...
                 runtime::revert(NFTCoreError::FatalTokenIdDuplication);
             }
-        };
+        }
+        None => {
+            // This should never happen...
+            runtime::revert(NFTCoreError::FatalTokenIdDuplication);
+        }
+    };
     upsert_dictionary_value_from_key(
         TOKEN_COUNTS,
-        &from_public_key.to_string(),
+        &from_token_owner_account_hash.to_string(),
         updated_from_account_balance,
     );
 
     // Update to_account owned_tokens
-    match get_dictionary_value_from_key::<Vec<U256>>(
-        OWNED_TOKENS,
-        &to_account_public_key.to_string(),
-    ) {
+    match get_dictionary_value_from_key::<Vec<U256>>(OWNED_TOKENS, &target_owner_item_key) {
         Some(mut owned_tokens) => {
-            let owned_tokens_seed_uref = get_uref(
-                OWNED_TOKENS,
-                NFTCoreError::MissingStorageUref,
-                NFTCoreError::InvalidStorageUref,
-            );
-
             if owned_tokens.iter().any(|id| *id == token_id) {
                 runtime::revert(NFTCoreError::FatalTokenIdDuplication)
             } else {
                 owned_tokens.push(token_id);
             }
-
-            storage::dictionary_put(
-                owned_tokens_seed_uref,
-                &to_account_public_key.to_string(),
-                owned_tokens,
-            );
+            upsert_dictionary_value_from_key(OWNED_TOKENS, &target_owner_item_key, owned_tokens);
         }
         None => {
-            let owned_tokens_seed_uref = get_uref(
-                OWNED_TOKENS,
-                NFTCoreError::MissingStorageUref,
-                NFTCoreError::InvalidStorageUref,
-            );
-
             let owned_tokens = vec![token_id];
-            storage::dictionary_put(
-                owned_tokens_seed_uref,
-                &to_account_public_key.to_string(),
-                owned_tokens,
-            );
+            upsert_dictionary_value_from_key(OWNED_TOKENS, &target_owner_item_key, owned_tokens);
         }
     }
 
     // Update the to_account balance
-    let updated_to_account_balance = match get_dictionary_value_from_key::<U256>(
-        TOKEN_COUNTS,
-        &to_account_public_key.to_string(),
-    ) {
-        Some(balance) => balance + U256::one(),
-        None => U256::one(),
-    };
+    let updated_to_account_balance =
+        match get_dictionary_value_from_key::<U256>(TOKEN_COUNTS, &target_owner_item_key) {
+            Some(balance) => balance + U256::one(),
+            None => U256::one(),
+        };
     upsert_dictionary_value_from_key(
         TOKEN_COUNTS,
-        &to_account_public_key.to_string(),
+        &target_owner_item_key,
         updated_to_account_balance,
     );
 }
@@ -675,13 +657,16 @@ pub extern "C" fn transfer() {
 #[no_mangle]
 pub extern "C" fn balance_of() {
     let account_key = get_named_arg_with_user_errors::<Key>(
-        ARG_ACCOUNT_KEY,
+        ARG_TOKEN_OWNER,
         NFTCoreError::MissingAccountHash,
         NFTCoreError::InvalidAccountHash,
     )
-    .unwrap_or_revert();
+    .unwrap_or_revert()
+    .into_account()
+    .unwrap_or_revert_with(NFTCoreError::InvalidKey)
+    .to_string();
 
-    let balance = match get_dictionary_value_from_key(TOKEN_COUNTS, &account_hash) {
+    let balance = match get_dictionary_value_from_key(TOKEN_COUNTS, &account_key) {
         Some(balance) => balance,
         None => U256::zero(),
     };
@@ -878,7 +863,7 @@ fn store() -> (ContractHash, ContractVersion) {
         let mint = EntryPoint::new(
             ENTRY_POINT_MINT,
             vec![
-                Parameter::new(ARG_TOKEN_OWNER, CLType::PublicKey),
+                Parameter::new(ARG_TOKEN_OWNER, CLType::Key),
                 Parameter::new(ARG_TOKEN_META_DATA, CLType::String),
             ],
             CLType::Unit,
@@ -908,8 +893,8 @@ fn store() -> (ContractHash, ContractVersion) {
             ENTRY_POINT_TRANSFER,
             vec![
                 Parameter::new(ARG_TOKEN_ID, CLType::U256),
-                Parameter::new(ARG_FROM_ACCOUNT_HASH, CLType::String),
-                Parameter::new(ARG_TO_ACCOUNT_HASH, CLType::String),
+                Parameter::new(ARG_FROM_ACCOUNT_HASH, CLType::Key),
+                Parameter::new(ARG_TO_ACCOUNT_HASH, CLType::Key),
             ],
             CLType::Unit,
             EntryPointAccess::Public,
@@ -923,7 +908,7 @@ fn store() -> (ContractHash, ContractVersion) {
             ENTRY_POINT_APPROVE,
             vec![
                 Parameter::new(ARG_TOKEN_ID, CLType::U256),
-                Parameter::new(ARG_APPROVE_TRANSFER_FOR_ACCOUNT_HASH, CLType::String),
+                Parameter::new(ARG_APPROVE_TRANSFER_FOR_ACCOUNT_HASH, CLType::Key),
             ],
             CLType::Unit,
             EntryPointAccess::Public,
@@ -953,7 +938,7 @@ fn store() -> (ContractHash, ContractVersion) {
         // This entrypoint returns number of owned tokens associated with the provided account
         let balance_of = EntryPoint::new(
             ENTRY_POINT_BALANCE_OF,
-            vec![Parameter::new(ARG_ACCOUNT_KEY, CLType::Key)],
+            vec![Parameter::new(ARG_TOKEN_OWNER, CLType::Key)],
             CLType::U256,
             EntryPointAccess::Public,
             EntryPointType::Contract,

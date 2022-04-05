@@ -38,14 +38,14 @@ fn should_transfer_token_from_sender_to_receiver() {
         .map(ContractHash::new)
         .expect("failed to find nft contract");
 
-    let token_owner = DEFAULT_ACCOUNT_PUBLIC_KEY.clone();
+    let token_owner = DEFAULT_ACCOUNT_ADDR.clone();
 
     let mint_request = ExecuteRequestBuilder::contract_call_by_hash(
         *DEFAULT_ACCOUNT_ADDR,
         nft_contract_hash,
         ENTRY_POINT_MINT,
         runtime_args! {
-            ARG_TOKEN_OWNER => DEFAULT_ACCOUNT_PUBLIC_KEY.clone(),
+            ARG_TOKEN_OWNER => Key::Account(DEFAULT_ACCOUNT_ADDR.clone()),
             ARG_TOKEN_META_DATA=>TEST_META_DATA.to_string(),
         },
     )
@@ -76,27 +76,29 @@ fn should_transfer_token_from_sender_to_receiver() {
         ENTRY_POINT_TRANSFER,
         runtime_args! {
             ARG_TOKEN_ID => U256::zero(),// We need mint to return the token_id!!
-            ARG_FROM_ACCOUNT_HASH => token_owner.clone(),
-            ARG_TO_ACCOUNT_HASH => token_receiver.clone(),
+            ARG_FROM_ACCOUNT_HASH => Key::Account( token_owner.clone()),
+            ARG_TO_ACCOUNT_HASH =>  Key::Account( token_receiver.clone().to_account_hash()),
         },
     )
     .build();
     builder.exec(transfer_request).expect_success().commit();
 
-    let actual_token_owner: PublicKey = support::get_dictionary_value_from_key(
+    let actual_token_owner = support::get_dictionary_value_from_key::<Key>(
         &builder,
         nft_contract_key,
         TOKEN_OWNERS,
         &U256::zero().to_string(),
-    );
+    )
+    .into_account()
+    .unwrap();
 
-    assert_eq!(actual_token_owner, token_receiver); // Change  token_receiver to token_owner for red test
+    assert_eq!(actual_token_owner, token_receiver.to_account_hash()); // Change  token_receiver to token_owner for red test
 
     let actual_owned_tokens: Vec<U256> = support::get_dictionary_value_from_key(
         &builder,
         nft_contract_key,
         OWNED_TOKENS,
-        &token_receiver.to_string(),
+        &token_receiver.to_account_hash().to_string(),
     );
 
     let expected_owned_tokens = vec![U256::zero()]; //Change zero() to one() for red test
@@ -115,7 +117,7 @@ fn should_transfer_token_from_sender_to_receiver() {
         &builder,
         nft_contract_key,
         BALANCES,
-        &token_receiver.to_string(),
+        &token_receiver.to_account_hash().to_string(),
     );
     let expected_receiver_balance = U256::one();
     assert_eq!(actual_receiver_balance, expected_receiver_balance);
@@ -149,7 +151,7 @@ fn approve_token_for_transfer_should_add_entry_to_approved_dictionary() {
         nft_contract_hash,
         ENTRY_POINT_MINT,
         runtime_args! {
-            ARG_TOKEN_OWNER => DEFAULT_ACCOUNT_ADDR.clone().to_string(),
+            ARG_TOKEN_OWNER => Key::Account( DEFAULT_ACCOUNT_ADDR.clone()),
             ARG_TOKEN_META_DATA => TEST_META_DATA.to_string(),
         },
     )
@@ -157,18 +159,18 @@ fn approve_token_for_transfer_should_add_entry_to_approved_dictionary() {
 
     builder.exec(mint_request).expect_success().commit();
 
-    let (_, approve_public_key) = support::create_dummy_key_pair(ACCOUNT_USER_1);
-    let approve_request = ExecuteRequestBuilder::contract_call_by_hash(
-        *DEFAULT_ACCOUNT_ADDR,
-        nft_contract_hash,
-        ENTRY_POINT_APPROVE,
-        runtime_args! {
-            ARG_TOKEN_ID => U256::zero(),
-            ARG_APPROVE_TRANSFER_FOR_ACCOUNT_HASH => approve_public_key.clone()
-        },
-    )
-    .build();
-    builder.exec(approve_request).expect_success().commit();
+    // let (_, approve_public_key) = support::create_dummy_key_pair(ACCOUNT_USER_1);
+    // let approve_request = ExecuteRequestBuilder::contract_call_by_hash(
+    //     *DEFAULT_ACCOUNT_ADDR,
+    //     nft_contract_hash,
+    //     ENTRY_POINT_APPROVE,
+    //     runtime_args! {
+    //         ARG_TOKEN_ID => U256::zero(),
+    //         ARG_APPROVE_TRANSFER_FOR_ACCOUNT_HASH => Key::Account(approve_public_key.to_account_hash())
+    //     },
+    // )
+    // .build();
+    // builder.exec(approve_request).expect_success().commit();
 
     // let installing_account = builder.get_expected_account(*DEFAULT_ACCOUNT_ADDR);
     // let nft_contract_key = installing_account
@@ -209,14 +211,14 @@ fn should_be_able_to_transfer_token_using_approved_operator() {
         .expect("failed to find nft contract");
 
     // mint token for DEFAULT_ACCOUNT_ADDR
-    let token_owner = DEFAULT_ACCOUNT_PUBLIC_KEY.clone();
+    let token_owner = DEFAULT_ACCOUNT_PUBLIC_KEY.clone().to_account_hash();
     let mint_request = ExecuteRequestBuilder::contract_call_by_hash(
         *DEFAULT_ACCOUNT_ADDR,
         nft_contract_hash,
         ENTRY_POINT_MINT,
         runtime_args! {
-            ARG_TOKEN_OWNER => DEFAULT_ACCOUNT_PUBLIC_KEY.clone(),
-            ARG_TOKEN_META_DATA=>TEST_META_DATA.to_string(),
+            ARG_TOKEN_OWNER => Key::Account( DEFAULT_ACCOUNT_ADDR.clone()),
+            ARG_TOKEN_META_DATA => TEST_META_DATA.to_string(),
         },
     )
     .build();
@@ -242,7 +244,7 @@ fn should_be_able_to_transfer_token_using_approved_operator() {
         ENTRY_POINT_APPROVE,
         runtime_args! {
             ARG_TOKEN_ID => U256::zero(),
-            ARG_APPROVE_TRANSFER_FOR_ACCOUNT_HASH => operator.clone()
+            ARG_APPROVE_TRANSFER_FOR_ACCOUNT_HASH => Key::Account (operator.to_account_hash())
         },
     )
     .build();
@@ -270,8 +272,8 @@ fn should_be_able_to_transfer_token_using_approved_operator() {
         ENTRY_POINT_TRANSFER,
         runtime_args! {
             ARG_TOKEN_ID => U256::zero(),
-            ARG_FROM_ACCOUNT_HASH => token_owner,
-            ARG_TO_ACCOUNT_HASH => to_account_public_key,
+            ARG_FROM_ACCOUNT_HASH =>  Key::Account(token_owner),
+            ARG_TO_ACCOUNT_HASH => Key::Account( to_account_public_key.to_account_hash()),
         },
     )
     .build();

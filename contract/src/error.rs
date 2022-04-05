@@ -71,6 +71,7 @@ pub enum NFTCoreError {
     InvalidAccountKeyInDictionary = 66,
     MissingJsonSchema = 67,
     InvalidJsonSchema = 68,
+    InvalidKey = 69,
 }
 
 impl From<NFTCoreError> for ApiError {

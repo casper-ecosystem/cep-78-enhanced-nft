@@ -1,8 +1,8 @@
 use casper_engine_test_support::{
     ExecuteRequestBuilder, InMemoryWasmTestBuilder, DEFAULT_ACCOUNT_ADDR,
-    DEFAULT_ACCOUNT_PUBLIC_KEY, DEFAULT_RUN_GENESIS_REQUEST,
+    DEFAULT_RUN_GENESIS_REQUEST,
 };
-use casper_types::{runtime_args, system::mint, ContractHash, RuntimeArgs, U256};
+use casper_types::{runtime_args, system::mint, ContractHash, Key, RuntimeArgs, U256};
 
 use crate::utility::{
     constants::{
@@ -10,76 +10,20 @@ use crate::utility::{
         BALANCES, BURNT_TOKENS, CONTRACT_NAME, ENTRY_POINT_BURN, ENTRY_POINT_MINT,
         MINT_SESSION_WASM, NFT_CONTRACT_WASM, OWNED_TOKENS, TEST_META_DATA,
     },
-    installer_request_builder::InstallerRequestBuilder,
-    support::{self, get_nft_contract_hash, get_uref, query_stored_value},
+    installer_request_builder::{InstallerRequestBuilder, OwnershipMode},
+    support::{self},
 };
-
-#[test]
-fn should_call_burn_via_session_code() {
-    let mut builder = InMemoryWasmTestBuilder::default();
-    builder.run_genesis(&DEFAULT_RUN_GENESIS_REQUEST).commit();
-
-    let install_request_builder =
-        InstallerRequestBuilder::new(*DEFAULT_ACCOUNT_ADDR, NFT_CONTRACT_WASM)
-            .with_total_token_supply(U256::from(2u64));
-    builder
-        .exec(install_request_builder.build())
-        .expect_success()
-        .commit();
-
-    let nft_contract_hash = get_nft_contract_hash(&builder);
-
-    let mint_session_call = ExecuteRequestBuilder::standard(
-        *DEFAULT_ACCOUNT_ADDR,
-        MINT_SESSION_WASM,
-        runtime_args! {
-            ARG_NFT_CONTRACT_HASH => nft_contract_hash,
-            ARG_TOKEN_OWNER => DEFAULT_ACCOUNT_PUBLIC_KEY.clone(),
-            ARG_TOKEN_META_DATA => TEST_META_DATA.to_string(),
-        },
-    )
-    .build();
-
-    builder.exec(mint_session_call).expect_success().commit();
-
-    let owned_tokens_uref = get_uref(&builder, &format!("nft-contract-{}", nft_contract_hash));
-
-    assert!(
-        owned_tokens_uref.is_readable(),
-        "should have read access to owned_tokens_uref"
-    );
-    assert!(
-        !owned_tokens_uref.is_writeable(),
-        "should not have write permission to owned_tokens_uref"
-    );
-
-    let owned_tokens_indexes =
-        query_stored_value::<Vec<U256>>(&mut builder, owned_tokens_uref.into(), vec![]);
-
-    assert_eq!(owned_tokens_indexes, vec![U256::zero()]);
-
-    // let burn_request = ExecuteRequestBuilder::contract_call_by_name(
-    //     *DEFAULT_ACCOUNT_ADDR,
-    //     CONTRACT_NAME,
-    //     ENTRY_POINT_BURN,
-    //     runtime_args! {
-    //         ARG_TOKEN_ID => U256::zero(),
-    //     },
-    // )
-    // .build();
-    // builder.exec(burn_request).expect_success().commit();
-}
 
 #[test]
 fn should_burn_minted_token() {
     const TOKEN_ID: U256 = U256::zero();
-
     let mut builder = InMemoryWasmTestBuilder::default();
     builder.run_genesis(&DEFAULT_RUN_GENESIS_REQUEST).commit();
 
     let install_request_builder =
         InstallerRequestBuilder::new(*DEFAULT_ACCOUNT_ADDR, NFT_CONTRACT_WASM)
             .with_total_token_supply(U256::from(100u64))
+            .with_ownership_mode(OwnershipMode::TransferableUnchecked)
             .build();
 
     builder
@@ -98,7 +42,7 @@ fn should_burn_minted_token() {
         CONTRACT_NAME,
         ENTRY_POINT_MINT,
         runtime_args! {
-            ARG_TOKEN_OWNER => DEFAULT_ACCOUNT_PUBLIC_KEY.clone(),
+            ARG_TOKEN_OWNER => Key::Account(DEFAULT_ACCOUNT_ADDR.clone()),
             ARG_TOKEN_META_DATA => TEST_META_DATA.to_string(),
         },
     )
@@ -115,7 +59,6 @@ fn should_burn_minted_token() {
 
     let expected_owned_tokens = vec![U256::zero()];
     assert_eq!(expected_owned_tokens, actual_owned_tokens);
-
     let actual_balance_before_burn = support::get_dictionary_value_from_key::<U256>(
         &builder,
         nft_contract_key,
@@ -124,7 +67,6 @@ fn should_burn_minted_token() {
     );
 
     let expected_balance_before_burn = U256::one();
-
     assert_eq!(actual_balance_before_burn, expected_balance_before_burn);
 
     let burn_request = ExecuteRequestBuilder::contract_call_by_name(
@@ -136,7 +78,6 @@ fn should_burn_minted_token() {
         },
     )
     .build();
-
     builder.exec(burn_request).expect_success().commit();
 
     //This will error of token is not registered as burnt.
@@ -156,7 +97,6 @@ fn should_burn_minted_token() {
     );
 
     let expected_balance = U256::zero();
-
     assert_eq!(actual_balance, expected_balance);
 }
 
@@ -168,6 +108,7 @@ fn should_not_burn_previously_burnt_token() {
     let install_request_builder =
         InstallerRequestBuilder::new(*DEFAULT_ACCOUNT_ADDR, NFT_CONTRACT_WASM)
             .with_total_token_supply(U256::from(100u64))
+            .with_ownership_mode(OwnershipMode::TransferableUnchecked)
             .build();
 
     builder
@@ -186,8 +127,8 @@ fn should_not_burn_previously_burnt_token() {
         CONTRACT_NAME,
         ENTRY_POINT_MINT,
         runtime_args! {
-            ARG_TOKEN_OWNER => DEFAULT_ACCOUNT_ADDR.clone().to_string(),
-            ARG_TOKEN_META_DATA=>TEST_META_DATA.to_string(),
+            ARG_TOKEN_OWNER => Key::Account(DEFAULT_ACCOUNT_ADDR.clone()),
+            ARG_TOKEN_META_DATA => TEST_META_DATA.to_string(),
         },
     )
     .build();
@@ -216,24 +157,24 @@ fn should_not_burn_previously_burnt_token() {
 
     builder.exec(burn_request).expect_success().commit();
 
-    // let re_burn_request = ExecuteRequestBuilder::contract_call_by_name(
-    //     *DEFAULT_ACCOUNT_ADDR,
-    //     CONTRACT_NAME,
-    //     ENTRY_POINT_BURN,
-    //     runtime_args! {
-    //         ARG_TOKEN_ID => U256::zero(),
-    //     },
-    // )
-    // .build();
+    let re_burn_request = ExecuteRequestBuilder::contract_call_by_name(
+        *DEFAULT_ACCOUNT_ADDR,
+        CONTRACT_NAME,
+        ENTRY_POINT_BURN,
+        runtime_args! {
+            ARG_TOKEN_ID => U256::zero(),
+        },
+    )
+    .build();
 
-    // builder.exec(re_burn_request).expect_failure();
+    builder.exec(re_burn_request).expect_failure();
 
-    // let actual_error = builder.get_error().expect("must have error");
-    // support::assert_expected_error(
-    //     actual_error,
-    //     42u16,
-    //     "should disallow burning of previously burnt token",
-    // );
+    let actual_error = builder.get_error().expect("must have error");
+    support::assert_expected_error(
+        actual_error,
+        42u16,
+        "should disallow burning of previously burnt token",
+    );
 }
 
 #[test]
@@ -244,6 +185,7 @@ fn should_not_burn_un_minted_token() {
     let install_request_builder =
         InstallerRequestBuilder::new(*DEFAULT_ACCOUNT_ADDR, NFT_CONTRACT_WASM)
             .with_total_token_supply(U256::from(100u64))
+            .with_ownership_mode(OwnershipMode::TransferableUnchecked)
             .build();
 
     builder
@@ -279,6 +221,7 @@ fn should_disallow_burning_of_others_users_token() {
     let install_request_builder =
         InstallerRequestBuilder::new(*DEFAULT_ACCOUNT_ADDR, NFT_CONTRACT_WASM)
             .with_total_token_supply(U256::from(100u64))
+            .with_ownership_mode(OwnershipMode::TransferableUnchecked)
             .build();
 
     builder
@@ -317,7 +260,7 @@ fn should_disallow_burning_of_others_users_token() {
         CONTRACT_NAME,
         ENTRY_POINT_MINT,
         runtime_args! {
-            ARG_TOKEN_OWNER => DEFAULT_ACCOUNT_ADDR.clone().to_string(),
+            ARG_TOKEN_OWNER => Key::Account( DEFAULT_ACCOUNT_ADDR.clone()),
             ARG_TOKEN_META_DATA=>TEST_META_DATA.to_string(),
         },
     )
@@ -360,6 +303,7 @@ fn should_prevent_burning_on_owner_key_mismatch() {
     let install_request_builder =
         InstallerRequestBuilder::new(*DEFAULT_ACCOUNT_ADDR, NFT_CONTRACT_WASM)
             .with_total_token_supply(U256::from(100u64))
+            .with_ownership_mode(OwnershipMode::TransferableUnchecked)
             .build();
 
     builder
@@ -399,7 +343,7 @@ fn should_prevent_burning_on_owner_key_mismatch() {
         CONTRACT_NAME,
         ENTRY_POINT_MINT,
         runtime_args! {
-            ARG_TOKEN_OWNER => DEFAULT_ACCOUNT_ADDR.clone().to_string(),
+            ARG_TOKEN_OWNER => Key::Account( DEFAULT_ACCOUNT_ADDR.clone()),
             ARG_TOKEN_META_DATA=>TEST_META_DATA.to_string(),
         },
     )

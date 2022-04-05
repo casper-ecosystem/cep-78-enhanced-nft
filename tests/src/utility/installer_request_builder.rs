@@ -111,6 +111,11 @@ impl InstallerRequestBuilder {
         self
     }
 
+    pub(crate) fn with_ownership_mode(mut self, ownership_mode: OwnershipMode) -> Self {
+        self.ownership_mode = CLValue::from_t(ownership_mode as u8).unwrap();
+        self
+    }
+
     pub(crate) fn with_json_schema(mut self, json_schema: &str) -> Self {
         self.json_schema = CLValue::from_t(json_schema).expect("json_schema is legit CLValue");
         self
