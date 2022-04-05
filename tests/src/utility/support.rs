@@ -17,14 +17,7 @@ use super::{
 };
 
 const ARG_ENTRY_POINT_NAME: &str = "entry_point_name";
-const ENTRY_POINT_MINT: &str = "mint";
-const ENTRY_POINT_BALANCE_OF: &str = "balance_of";
-const ENTRY_POINT_OWNER_OF: &str = "owner_of";
-
 const ARG_NFT_CONTRACT_HASH: &str = "nft_contract_hash";
-const ARG_TOKEN_OWNER: &str = "token_owner";
-const ARG_TOKEN_ID: &str = "token_id";
-const ARG_TOKEN_META_DATA: &str = "token_meta_data";
 
 pub(crate) fn get_nft_contract_hash(
     builder: &WasmTestBuilder<InMemoryGlobalState>,
@@ -132,11 +125,15 @@ pub(crate) fn query_stored_value<T: CLTyped + FromBytes>(
 pub(crate) fn call_entry_point_with_ret<T: CLTyped + FromBytes>(
     builder: &mut InMemoryWasmTestBuilder,
     account_hash: AccountHash,
+    nft_contract_hash: ContractHash,
     mut runtime_args: RuntimeArgs,
     entry_point_name: &str,
 ) -> T {
     runtime_args
         .insert(ARG_ENTRY_POINT_NAME, entry_point_name.to_string())
+        .unwrap();
+    runtime_args
+        .insert(ARG_NFT_CONTRACT_HASH, nft_contract_hash)
         .unwrap();
 
     let entry_point_session_call =

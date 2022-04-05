@@ -5,7 +5,11 @@ use casper_engine_test_support::{
 
 use casper_types::{runtime_args, system::mint, ContractHash, Key, RuntimeArgs, U256};
 
-use crate::utility::constants::{ARG_ENTRY_POINT_NAME, ARG_TOKEN_ID, ENTRY_POINT_SESSION_WASM};
+use crate::utility::constants::{
+    ARG_APPROVE_TRANSFER_FOR_ACCOUNT_HASH, ARG_ENTRY_POINT_NAME, ARG_TOKEN_ID, ENTRY_POINT_APPROVE,
+    ENTRY_POINT_GET_APPROVED, ENTRY_POINT_SESSION_WASM,
+};
+use crate::utility::installer_request_builder::OwnershipMode;
 use crate::utility::support::{call_entry_point_with_ret, get_nft_contract_hash};
 use crate::utility::{
     constants::{
@@ -60,7 +64,8 @@ fn entry_points_with_ret_should_return_correct_value() {
 
     let install_request_builder =
         InstallerRequestBuilder::new(*DEFAULT_ACCOUNT_ADDR, NFT_CONTRACT_WASM)
-            .with_total_token_supply(U256::from(2u64));
+            .with_total_token_supply(U256::from(2u64))
+            .with_ownership_mode(OwnershipMode::TransferableUnchecked);
     builder
         .exec(install_request_builder.build())
         .expect_success()
@@ -71,6 +76,7 @@ fn entry_points_with_ret_should_return_correct_value() {
         CONTRACT_NAME,
         ENTRY_POINT_MINT,
         runtime_args! {
+            ARG_TOKEN_OWNER => Key::Account(*DEFAULT_ACCOUNT_ADDR),
             ARG_TOKEN_META_DATA => TEST_META_DATA.to_string(),
         },
     )
@@ -78,14 +84,13 @@ fn entry_points_with_ret_should_return_correct_value() {
     builder.exec(mint_request).expect_success().commit();
 
     let nft_contract_hash = get_nft_contract_hash(&builder);
-
     let account_hash = *DEFAULT_ACCOUNT_ADDR;
 
     let actual_balance: U256 = call_entry_point_with_ret(
         &mut builder,
         account_hash,
+        nft_contract_hash,
         runtime_args! {
-            ARG_NFT_CONTRACT_HASH => nft_contract_hash,
             ARG_TOKEN_OWNER => Key::Account(*DEFAULT_ACCOUNT_ADDR),
         },
         "balance_of",
@@ -100,8 +105,8 @@ fn entry_points_with_ret_should_return_correct_value() {
     let actual_owner: Key = call_entry_point_with_ret(
         &mut builder,
         account_hash,
+        nft_contract_hash,
         runtime_args! {
-            ARG_NFT_CONTRACT_HASH => nft_contract_hash,
             ARG_TOKEN_ID => U256::zero(),
         },
         "owner_of",
@@ -112,6 +117,29 @@ fn entry_points_with_ret_should_return_correct_value() {
         actual_owner, expected_owner,
         "actual and expected owner should be equal"
     );
+
+    let (_, approve_public_key) = support::create_dummy_key_pair(ACCOUNT_USER_1);
+    let approve_request = ExecuteRequestBuilder::contract_call_by_hash(
+        *DEFAULT_ACCOUNT_ADDR,
+        nft_contract_hash,
+        ENTRY_POINT_APPROVE,
+        runtime_args! {
+            ARG_TOKEN_ID => U256::zero(),
+            ARG_APPROVE_TRANSFER_FOR_ACCOUNT_HASH => Key::Account(approve_public_key.to_account_hash())
+        },
+    )
+    .build();
+    builder.exec(approve_request).expect_success().commit();
+
+    // let actual_approved: Option<Key> = call_entry_point_with_ret(
+    //     &mut builder,
+    //     account_hash,
+    //     nft_contract_hash,
+    //     runtime_args! {
+    //         ARG_TOKEN_ID => U256::zero(),
+    //     },
+    //     ENTRY_POINT_GET_APPROVED,
+    // );
 }
 
 #[test]

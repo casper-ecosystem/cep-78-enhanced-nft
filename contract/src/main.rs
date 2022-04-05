@@ -375,6 +375,7 @@ pub extern "C" fn burn() {
 }
 
 // approve marks a token as approved for transfer by an account
+// Should we be able to un-approve an operator???
 #[no_mangle]
 pub extern "C" fn approve() {
     // If we are in minter or assigned mode it makes no sense to approve an operator. Hence we revert.
@@ -452,6 +453,14 @@ pub extern "C" fn approve() {
 
 #[no_mangle]
 pub extern "C" fn set_approval_for_all() {
+    // If we are in minter or assigned mode it makes no sense to approve an operator. Hence we revert.
+    let _ownership_mode = match utils::get_ownership_mode().unwrap_or_revert() {
+        OwnershipMode::Minter | OwnershipMode::Assigned => {
+            runtime::revert(NFTCoreError::InvalidOwnershipMode)
+        }
+        OwnershipMode::TransferableChecked => OwnershipMode::TransferableChecked,
+        OwnershipMode::TransferableUnchecked => OwnershipMode::TransferableUnchecked,
+    };
     // If approve_all is true we approve operator for all caller_owned tokens.
     // If false, it's not clear to me.
     let approve_all = get_named_arg_with_user_errors::<bool>(
@@ -774,10 +783,12 @@ pub extern "C" fn get_approved() {
         get_optional_named_arg_with_user_errors::<U256>(ARG_TOKEN_ID, NFTCoreError::InvalidTokenID)
             .unwrap_or_revert();
 
+    // Revert if already burnt
     if get_dictionary_value_from_key::<()>(BURNT_TOKENS, &token_id.to_string()).is_some() {
         runtime::revert(NFTCoreError::PreviouslyBurntToken);
     }
 
+    // Revert if token_id is out of bounds.
     let number_of_minted_tokens = get_stored_value_with_user_errors::<U256>(
         NUMBER_OF_MINTED_TOKENS,
         NFTCoreError::MissingNumberOfMintedTokens,
@@ -790,8 +801,7 @@ pub extern "C" fn get_approved() {
     }
 
     let maybe_approved =
-        get_dictionary_value_from_key::<String>(APPROVED_FOR_TRANSFER, &token_id.to_string())
-            .unwrap_or_revert();
+        get_dictionary_value_from_key::<Key>(APPROVED_FOR_TRANSFER, &token_id.to_string());
 
     let approved_cl_value = CLValue::from_t(maybe_approved)
         .unwrap_or_revert_with(NFTCoreError::FailedToConvertToCLValue);

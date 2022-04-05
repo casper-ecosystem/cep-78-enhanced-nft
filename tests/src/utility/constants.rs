@@ -14,6 +14,8 @@ pub(crate) const ENTRY_POINT_MINT: &str = "mint";
 pub(crate) const ENTRY_POINT_BURN: &str = "burn";
 pub(crate) const ENTRY_POINT_TRANSFER: &str = "transfer";
 pub(crate) const ENTRY_POINT_APPROVE: &str = "approve";
+pub(crate) const ENTRY_POINT_GET_APPROVED: &str = "get_approved";
+
 //pub(crate) const ENTRY_POINT_BALANCE_OF: &str = "balance_of";
 
 pub(crate) const ARG_COLLECTION_NAME: &str = "collection_name";

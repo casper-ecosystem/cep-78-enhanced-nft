@@ -11,6 +11,7 @@ const ARG_ENTRY_POINT_NAME: &str = "entry_point_name";
 const ENTRY_POINT_MINT: &str = "mint";
 const ENTRY_POINT_BALANCE_OF: &str = "balance_of";
 const ENTRY_POINT_OWNER_OF: &str = "owner_of";
+const ENTRY_POINT_GET_APPROVED: &str = "get_approved";
 
 const ARG_NFT_CONTRACT_HASH: &str = "nft_contract_hash";
 const ARG_TOKEN_OWNER: &str = "token_owner";
@@ -46,7 +47,7 @@ pub extern "C" fn call() {
                 },
             );
 
-            runtime::put_key(ENTRY_POINT_OWNER_OF, storage::new_uref(owner).into());
+            runtime::put_key(entry_point_name, storage::new_uref(owner).into());
         }
         ENTRY_POINT_MINT => {
             let token_owner = runtime::get_named_arg::<Key>(ARG_TOKEN_OWNER);
@@ -63,6 +64,18 @@ pub extern "C" fn call() {
 
             // let nft_named_key = format!("nft-contract-{}", nft_contract_hash);
             // runtime::put_key(&nft_named_key, owned_tokens_uref.into())
+        }
+        ENTRY_POINT_GET_APPROVED => {
+            let token_id = runtime::get_named_arg::<U256>(ARG_TOKEN_ID);
+            let maybe_operator = runtime::call_contract::<Option<Key>>(
+                nft_contract_hash,
+                ENTRY_POINT_GET_APPROVED,
+                runtime_args! {
+                    ARG_TOKEN_ID => token_id,
+                },
+            );
+
+            runtime::put_key(entry_point_name, storage::new_uref(maybe_operator).into());
         }
         _ => { //runtime::revert(NFTCoreError::InvalidEntryPoint)
         }
