@@ -1,5 +1,5 @@
 [package]
-name = "balance_of_session"
+name = "owner_of_session"
 version = "0.1.0"
 edition = "2021"
 
@@ -10,7 +10,7 @@ casper-contract = "1.4.3"
 casper-types = "1.4.5"
 
 [[bin]]
-name = "balance_of"
+name = "owner_of"
 path = "src/main.rs"
 bench = false
 doctest = false

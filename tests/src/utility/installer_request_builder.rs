@@ -116,7 +116,7 @@ impl InstallerRequestBuilder {
         self
     }
 
-    pub(crate) fn with_json_schema(mut self, json_schema: &str) -> Self {
+    pub(crate) fn _with_json_schema(mut self, json_schema: &str) -> Self {
         self.json_schema = CLValue::from_t(json_schema).expect("json_schema is legit CLValue");
         self
     }

@@ -2,13 +2,11 @@ use casper_engine_test_support::{
     ExecuteRequestBuilder, InMemoryWasmTestBuilder, DEFAULT_ACCOUNT_ADDR,
     DEFAULT_RUN_GENESIS_REQUEST,
 };
-use casper_execution_engine::core::runtime;
-use casper_execution_engine::storage;
+
 use casper_types::{runtime_args, system::mint, ContractHash, Key, RuntimeArgs, U256};
 
-use crate::utility::constants::{BALANCE_OF_SESSION_WASM, MINT_SESSION_WASM};
-use crate::utility::installer_request_builder::OwnershipMode;
-use crate::utility::support::{get_nft_contract_hash, get_uref};
+use crate::utility::constants::{ARG_ENTRY_POINT_NAME, ARG_TOKEN_ID, ENTRY_POINT_SESSION_WASM};
+use crate::utility::support::{call_entry_point_with_ret, get_nft_contract_hash};
 use crate::utility::{
     constants::{
         ACCOUNT_USER_1, ACCOUNT_USER_2, ARG_NFT_CONTRACT_HASH, ARG_PUBLIC_MINTING,
@@ -56,7 +54,7 @@ fn should_disallow_minting_when_allow_minting_is_set_to_false() {
 }
 
 #[test]
-fn balance_of_entry_point_should_return_correct_value() {
+fn entry_points_with_ret_should_return_correct_value() {
     let mut builder = InMemoryWasmTestBuilder::default();
     builder.run_genesis(&DEFAULT_RUN_GENESIS_REQUEST).commit();
 
@@ -68,33 +66,52 @@ fn balance_of_entry_point_should_return_correct_value() {
         .expect_success()
         .commit();
 
-    let nft_contract_hash = get_nft_contract_hash(&builder);
-
-    let balance_of_session_call = ExecuteRequestBuilder::standard(
+    let mint_request = ExecuteRequestBuilder::contract_call_by_name(
         *DEFAULT_ACCOUNT_ADDR,
-        BALANCE_OF_SESSION_WASM,
+        CONTRACT_NAME,
+        ENTRY_POINT_MINT,
         runtime_args! {
-            ARG_NFT_CONTRACT_HASH => nft_contract_hash,
-            ARG_TOKEN_OWNER => Key::Account(DEFAULT_ACCOUNT_ADDR.clone()),
             ARG_TOKEN_META_DATA => TEST_META_DATA.to_string(),
         },
     )
     .build();
+    builder.exec(mint_request).expect_success().commit();
 
-    builder
-        .exec(balance_of_session_call)
-        .expect_success()
-        .commit();
+    let nft_contract_hash = get_nft_contract_hash(&builder);
 
-    let account_hash = DEFAULT_ACCOUNT_ADDR.clone();
+    let account_hash = *DEFAULT_ACCOUNT_ADDR;
 
-    let balance_of: U256 = support::query_stored_value(
+    let actual_balance: U256 = call_entry_point_with_ret(
         &mut builder,
-        account_hash.into(),
-        ["balance_of".to_string()].into(),
+        account_hash,
+        runtime_args! {
+            ARG_NFT_CONTRACT_HASH => nft_contract_hash,
+            ARG_TOKEN_OWNER => Key::Account(*DEFAULT_ACCOUNT_ADDR),
+        },
+        "balance_of",
     );
 
-    println!("------------------------------------{:?}", balance_of);
+    let expected_balance = U256::one();
+    assert_eq!(
+        actual_balance, expected_balance,
+        "actual and expected balances should be equal"
+    );
+
+    let actual_owner: Key = call_entry_point_with_ret(
+        &mut builder,
+        account_hash,
+        runtime_args! {
+            ARG_NFT_CONTRACT_HASH => nft_contract_hash,
+            ARG_TOKEN_ID => U256::zero(),
+        },
+        "owner_of",
+    );
+
+    let expected_owner = Key::Account(*DEFAULT_ACCOUNT_ADDR);
+    assert_eq!(
+        actual_owner, expected_owner,
+        "actual and expected owner should be equal"
+    );
 }
 
 #[test]
@@ -114,10 +131,11 @@ fn should_call_mint_via_session_code() {
 
     let mint_session_call = ExecuteRequestBuilder::standard(
         *DEFAULT_ACCOUNT_ADDR,
-        MINT_SESSION_WASM,
+        ENTRY_POINT_SESSION_WASM,
         runtime_args! {
             ARG_NFT_CONTRACT_HASH => nft_contract_hash,
-            ARG_TOKEN_OWNER => Key::Account(DEFAULT_ACCOUNT_ADDR.clone()),
+            ARG_ENTRY_POINT_NAME => "mint".to_string(),
+            ARG_TOKEN_OWNER => Key::Account(*DEFAULT_ACCOUNT_ADDR),
             ARG_TOKEN_META_DATA => TEST_META_DATA.to_string(),
         },
     )
@@ -144,7 +162,7 @@ fn mint_should_increment_number_of_minted_tokens_by_one_and_add_public_key_to_to
         CONTRACT_NAME,
         ENTRY_POINT_MINT,
         runtime_args! {
-            ARG_TOKEN_OWNER => Key::Account(DEFAULT_ACCOUNT_ADDR.clone()),
+            ARG_TOKEN_OWNER => Key::Account(*DEFAULT_ACCOUNT_ADDR),
             ARG_TOKEN_META_DATA=>TEST_META_DATA.to_string(),
         },
     )
@@ -208,7 +226,7 @@ fn mint_should_increment_number_of_minted_tokens_by_one_and_add_public_key_to_to
         CONTRACT_NAME,
         ENTRY_POINT_MINT,
         runtime_args! {
-            ARG_TOKEN_OWNER => Key::Account(DEFAULT_ACCOUNT_ADDR.clone()),
+            ARG_TOKEN_OWNER => Key::Account(*DEFAULT_ACCOUNT_ADDR),
             ARG_TOKEN_META_DATA=>TEST_META_DATA.to_string(),
         },
     )
@@ -234,7 +252,7 @@ fn mint_should_correctly_set_meta_data() {
         CONTRACT_NAME,
         ENTRY_POINT_MINT,
         runtime_args! {
-            ARG_TOKEN_OWNER => Key::Account(DEFAULT_ACCOUNT_ADDR.clone()),
+            ARG_TOKEN_OWNER => Key::Account(*DEFAULT_ACCOUNT_ADDR),
             ARG_TOKEN_META_DATA=> TEST_META_DATA.to_string(),
         },
     )
@@ -276,7 +294,7 @@ fn mint_should_correctly_set_issuer() {
         CONTRACT_NAME,
         ENTRY_POINT_MINT,
         runtime_args! {
-            ARG_TOKEN_OWNER => Key::Account(DEFAULT_ACCOUNT_ADDR.clone()),
+            ARG_TOKEN_OWNER => Key::Account(*DEFAULT_ACCOUNT_ADDR),
             ARG_TOKEN_META_DATA=> TEST_META_DATA.to_string(),
         },
     )
@@ -320,7 +338,7 @@ fn mint_should_correctly_update_balances() {
         CONTRACT_NAME,
         ENTRY_POINT_MINT,
         runtime_args! {
-            ARG_TOKEN_OWNER => Key::Account(DEFAULT_ACCOUNT_ADDR.clone()),
+            ARG_TOKEN_OWNER => Key::Account(*DEFAULT_ACCOUNT_ADDR),
             ARG_TOKEN_META_DATA=> TEST_META_DATA.to_string(),
         },
     )
@@ -373,7 +391,7 @@ fn should_allow_public_minting_with_flag_set_to_true() {
         *DEFAULT_ACCOUNT_ADDR,
         runtime_args! {
             mint::ARG_AMOUNT => 100_000_000_000_000u64,
-            mint::ARG_TARGET => account_1_account_hash.clone(),
+            mint::ARG_TARGET => account_1_account_hash,
             mint::ARG_ID => Option::<u64>::None,
         },
     )

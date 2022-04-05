@@ -6,9 +6,9 @@ use casper_types::{runtime_args, system::mint, ContractHash, Key, RuntimeArgs, U
 
 use crate::utility::{
     constants::{
-        ACCOUNT_USER_1, ARG_NFT_CONTRACT_HASH, ARG_TOKEN_ID, ARG_TOKEN_META_DATA, ARG_TOKEN_OWNER,
-        BALANCES, BURNT_TOKENS, CONTRACT_NAME, ENTRY_POINT_BURN, ENTRY_POINT_MINT,
-        MINT_SESSION_WASM, NFT_CONTRACT_WASM, OWNED_TOKENS, TEST_META_DATA,
+        ACCOUNT_USER_1, ARG_TOKEN_ID, ARG_TOKEN_META_DATA, ARG_TOKEN_OWNER, BALANCES, BURNT_TOKENS,
+        CONTRACT_NAME, ENTRY_POINT_BURN, ENTRY_POINT_MINT, NFT_CONTRACT_WASM, OWNED_TOKENS,
+        TEST_META_DATA,
     },
     installer_request_builder::{InstallerRequestBuilder, OwnershipMode},
     support::{self},
@@ -42,7 +42,7 @@ fn should_burn_minted_token() {
         CONTRACT_NAME,
         ENTRY_POINT_MINT,
         runtime_args! {
-            ARG_TOKEN_OWNER => Key::Account(DEFAULT_ACCOUNT_ADDR.clone()),
+            ARG_TOKEN_OWNER => Key::Account(*DEFAULT_ACCOUNT_ADDR),
             ARG_TOKEN_META_DATA => TEST_META_DATA.to_string(),
         },
     )
@@ -127,7 +127,7 @@ fn should_not_burn_previously_burnt_token() {
         CONTRACT_NAME,
         ENTRY_POINT_MINT,
         runtime_args! {
-            ARG_TOKEN_OWNER => Key::Account(DEFAULT_ACCOUNT_ADDR.clone()),
+            ARG_TOKEN_OWNER => Key::Account(*DEFAULT_ACCOUNT_ADDR),
             ARG_TOKEN_META_DATA => TEST_META_DATA.to_string(),
         },
     )
@@ -260,7 +260,7 @@ fn should_disallow_burning_of_others_users_token() {
         CONTRACT_NAME,
         ENTRY_POINT_MINT,
         runtime_args! {
-            ARG_TOKEN_OWNER => Key::Account( DEFAULT_ACCOUNT_ADDR.clone()),
+            ARG_TOKEN_OWNER => Key::Account(*DEFAULT_ACCOUNT_ADDR),
             ARG_TOKEN_META_DATA=>TEST_META_DATA.to_string(),
         },
     )
@@ -343,7 +343,7 @@ fn should_prevent_burning_on_owner_key_mismatch() {
         CONTRACT_NAME,
         ENTRY_POINT_MINT,
         runtime_args! {
-            ARG_TOKEN_OWNER => Key::Account( DEFAULT_ACCOUNT_ADDR.clone()),
+            ARG_TOKEN_OWNER => Key::Account(*DEFAULT_ACCOUNT_ADDR),
             ARG_TOKEN_META_DATA=>TEST_META_DATA.to_string(),
         },
     )

@@ -16,10 +16,9 @@ use alloc::{string::String, string::ToString, vec, vec::Vec};
 use casper_types::{
     account::AccountHash, contracts::NamedKeys, runtime_args, CLType, CLValue, ContractHash,
     ContractVersion, EntryPoint, EntryPointAccess, EntryPointType, EntryPoints, Key, Parameter,
-    PublicKey, RuntimeArgs, URef, U256,
+    RuntimeArgs, U256,
 };
 
-use casper_contract::contract_api::system;
 use casper_contract::{
     contract_api::{
         runtime,
@@ -97,12 +96,12 @@ pub extern "C" fn init() {
     .try_into()
     .unwrap_or_revert();
 
-    // let json_schema: String = get_named_arg_with_user_errors(
-    //     ARG_JSON_SCHEMA,
-    //     NFTCoreError::MissingJsonSchema,
-    //     NFTCoreError::InvalidJsonSchema,
-    // )
-    // .unwrap_or_revert();
+    let json_schema: String = get_named_arg_with_user_errors(
+        ARG_JSON_SCHEMA,
+        NFTCoreError::MissingJsonSchema,
+        NFTCoreError::InvalidJsonSchema,
+    )
+    .unwrap_or_revert();
 
     // Put all created URefs into the contract's context (necessary to retain access rights,
     // for future use).
@@ -121,7 +120,7 @@ pub extern "C" fn init() {
         storage::new_uref(ownership_mode as u8).into(),
     );
 
-    // runtime::put_key(JSON_SCHEMA, storage::new_uref(json_schema).into());
+    runtime::put_key(JSON_SCHEMA, storage::new_uref(json_schema).into());
 
     // Initialize contract with variables which must be present but maybe set to
     // different values after initialization.
@@ -378,6 +377,15 @@ pub extern "C" fn burn() {
 // approve marks a token as approved for transfer by an account
 #[no_mangle]
 pub extern "C" fn approve() {
+    // If we are in minter or assigned mode it makes no sense to approve an operator. Hence we revert.
+    let _ownership_mode = match utils::get_ownership_mode().unwrap_or_revert() {
+        OwnershipMode::Minter | OwnershipMode::Assigned => {
+            runtime::revert(NFTCoreError::InvalidOwnershipMode)
+        }
+        OwnershipMode::TransferableChecked => OwnershipMode::TransferableChecked,
+        OwnershipMode::TransferableUnchecked => OwnershipMode::TransferableUnchecked,
+    };
+
     let caller = runtime::get_caller();
     let token_id = get_named_arg_with_user_errors::<U256>(
         ARG_TOKEN_ID,
@@ -495,20 +503,6 @@ pub extern "C" fn transfer() {
     if get_dictionary_value_from_key::<()>(BURNT_TOKENS, &token_id.to_string()).is_some() {
         runtime::revert(NFTCoreError::PreviouslyBurntToken);
     }
-
-    // Get token_owner and revert if not found (all tokens must have an owner)
-    // let token_owner = {
-    //     let token_owner_account_hash_string =
-    //         match get_dictionary_value_from_key::<String>(TOKEN_OWNERS, &token_id.to_string()) {
-    //             (Some(token_owner), _) => token_owner,
-    //             (None, _) => runtime::revert(NFTCoreError::InvalidTokenID),
-    //         };
-
-    //     match AccountHash::from_formatted_str(&token_owner_account_hash_string) {
-    //         Ok(token_owner_account_hash) => token_owner_account_hash,
-    //         Err(_) => runtime::revert(NFTCoreError::FailureToParseAccountHash),
-    //     }
-    // };
 
     let token_owner_account_hash =
         match get_dictionary_value_from_key::<Key>(TOKEN_OWNERS, &token_id.to_string()) {
@@ -698,11 +692,11 @@ pub extern "C" fn owner_of() {
     }
 
     let maybe_token_owner =
-        get_dictionary_value_from_key::<String>(TOKEN_OWNERS, &token_id.to_string());
+        get_dictionary_value_from_key::<Key>(TOKEN_OWNERS, &token_id.to_string());
 
     let token_owner = match maybe_token_owner {
         Some(token_owner) => token_owner,
-        None => "".to_string(),
+        None => runtime::revert(NFTCoreError::InvalidTokenID), // If a token does not have an owner it could not have been minted.
     };
 
     let token_owner_cl_value =
@@ -798,11 +792,6 @@ pub extern "C" fn get_approved() {
     let maybe_approved =
         get_dictionary_value_from_key::<String>(APPROVED_FOR_TRANSFER, &token_id.to_string())
             .unwrap_or_revert();
-
-    // let approved = match maybe_approved {
-    //     Some(approved) => approved,
-    //     None => runtime::revert(NFTCoreError::InvalidTokenID), //This should never happen though...
-    // };
 
     let approved_cl_value = CLValue::from_t(maybe_approved)
         .unwrap_or_revert_with(NFTCoreError::FailedToConvertToCLValue);
@@ -1033,6 +1022,13 @@ pub extern "C" fn call() {
     )
     .unwrap_or_revert();
 
+    let json_schema: String = get_named_arg_with_user_errors(
+        ARG_JSON_SCHEMA,
+        NFTCoreError::MissingJsonSchema,
+        NFTCoreError::InvalidJsonSchema,
+    )
+    .unwrap_or_revert();
+
     let (contract_hash, contract_version) = store();
 
     // Store contract_hash and contract_version under the keys CONTRACT_NAME and CONTRACT_VERSION
@@ -1050,6 +1046,7 @@ pub extern "C" fn call() {
              ARG_ALLOW_MINTING => allow_minting,
              ARG_PUBLIC_MINTING => public_minting,
              ARG_OWNERSHIP_MODE => ownership_mode,
+             ARG_JSON_SCHEMA => json_schema,
         },
     );
 }

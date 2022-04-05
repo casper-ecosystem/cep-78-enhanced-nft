@@ -1,15 +1,30 @@
 use casper_engine_test_support::{
-    InMemoryWasmTestBuilder, WasmTestBuilder, DEFAULT_ACCOUNT_ADDR, DEFAULT_RUN_GENESIS_REQUEST,
+    ExecuteRequestBuilder, InMemoryWasmTestBuilder, WasmTestBuilder, DEFAULT_ACCOUNT_ADDR,
+    DEFAULT_RUN_GENESIS_REQUEST,
 };
 use casper_execution_engine::{
     core::{engine_state::Error as EngineStateError, execution},
     storage::global_state::in_memory::InMemoryGlobalState,
 };
 use casper_types::{
-    bytesrepr::FromBytes, ApiError, CLTyped, ContractHash, Key, PublicKey, SecretKey, URef,
+    account::AccountHash, bytesrepr::FromBytes, runtime_args, ApiError, CLTyped, ContractHash, Key,
+    PublicKey, RuntimeArgs, SecretKey, URef,
 };
 
-use super::{constants::CONTRACT_NAME, installer_request_builder::InstallerRequestBuilder};
+use super::{
+    constants::{CONTRACT_NAME, ENTRY_POINT_SESSION_WASM},
+    installer_request_builder::InstallerRequestBuilder,
+};
+
+const ARG_ENTRY_POINT_NAME: &str = "entry_point_name";
+const ENTRY_POINT_MINT: &str = "mint";
+const ENTRY_POINT_BALANCE_OF: &str = "balance_of";
+const ENTRY_POINT_OWNER_OF: &str = "owner_of";
+
+const ARG_NFT_CONTRACT_HASH: &str = "nft_contract_hash";
+const ARG_TOKEN_OWNER: &str = "token_owner";
+const ARG_TOKEN_ID: &str = "token_id";
+const ARG_TOKEN_META_DATA: &str = "token_meta_data";
 
 pub(crate) fn get_nft_contract_hash(
     builder: &WasmTestBuilder<InMemoryGlobalState>,
@@ -112,4 +127,30 @@ pub(crate) fn query_stored_value<T: CLTyped + FromBytes>(
         .expect("must have cl value")
         .into_t::<T>()
         .expect("must get value")
+}
+
+pub(crate) fn call_entry_point_with_ret<T: CLTyped + FromBytes>(
+    builder: &mut InMemoryWasmTestBuilder,
+    account_hash: AccountHash,
+    mut runtime_args: RuntimeArgs,
+    entry_point_name: &str,
+) -> T {
+    runtime_args
+        .insert(ARG_ENTRY_POINT_NAME, entry_point_name.to_string())
+        .unwrap();
+
+    let entry_point_session_call =
+        ExecuteRequestBuilder::standard(account_hash, ENTRY_POINT_SESSION_WASM, runtime_args)
+            .build();
+
+    builder
+        .exec(entry_point_session_call)
+        .expect_success()
+        .commit();
+
+    query_stored_value::<T>(
+        builder,
+        account_hash.into(),
+        [entry_point_name.to_string()].into(),
+    )
 }

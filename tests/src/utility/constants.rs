@@ -1,7 +1,7 @@
 //pub(crate) const COLLECTION_NAME: &str = "collection_name";
 pub const NFT_CONTRACT_WASM: &str = "contract.wasm";
-pub const MINT_SESSION_WASM: &str = "mint.wasm";
-pub const BALANCE_OF_SESSION_WASM: &str = "balance_of.wasm";
+pub const ENTRY_POINT_SESSION_WASM: &str = "entrypoint_call.wasm";
+
 pub(crate) const CONTRACT_NAME: &str = "nft_contract";
 
 //const INSTALLER: &str = "installer";
@@ -14,7 +14,7 @@ pub(crate) const ENTRY_POINT_MINT: &str = "mint";
 pub(crate) const ENTRY_POINT_BURN: &str = "burn";
 pub(crate) const ENTRY_POINT_TRANSFER: &str = "transfer";
 pub(crate) const ENTRY_POINT_APPROVE: &str = "approve";
-pub(crate) const ENTRY_POINT_BALANCE_OF: &str = "balance_of";
+//pub(crate) const ENTRY_POINT_BALANCE_OF: &str = "balance_of";
 
 pub(crate) const ARG_COLLECTION_NAME: &str = "collection_name";
 pub(crate) const ARG_COLLECTION_SYMBOL: &str = "collection_symbol";
@@ -26,7 +26,8 @@ pub(crate) const ARG_TOKEN_META_DATA: &str = "token_meta_data";
 pub(crate) const TOKEN_META_DATA: &str = "token_meta_data";
 pub(crate) const ARG_TOKEN_OWNER: &str = "token_owner";
 pub(crate) const ARG_NFT_CONTRACT_HASH: &str = "nft_contract_hash";
-pub const ARG_JSON_SCHEMA: &str = "json_schema";
+pub(crate) const ARG_JSON_SCHEMA: &str = "json_schema";
+pub(crate) const ARG_ENTRY_POINT_NAME: &str = "entry_point_name";
 
 pub const TOKEN_ISSUERS: &str = "token_issuers";
 
