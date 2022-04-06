@@ -7,13 +7,14 @@ use casper_types::{runtime_args, system::mint, ContractHash, Key, RuntimeArgs, U
 use crate::utility::{
     constants::{
         ACCOUNT_USER_1, ACCOUNT_USER_2, APPROVED_FOR_TRANSFER,
-        ARG_APPROVE_TRANSFER_FOR_ACCOUNT_HASH, ARG_FROM_ACCOUNT_HASH, ARG_TOKEN_ID,
-        ARG_TOKEN_META_DATA, ARG_TOKEN_OWNER, ARG_TO_ACCOUNT_HASH, BALANCES, CONTRACT_NAME,
-        ENTRY_POINT_APPROVE, ENTRY_POINT_MINT, ENTRY_POINT_TRANSFER, NFT_CONTRACT_WASM,
-        NFT_TEST_COLLECTION, NFT_TEST_SYMBOL, OWNED_TOKENS, TEST_META_DATA, TOKEN_OWNERS,
+        ARG_APPROVE_TRANSFER_FOR_ACCOUNT_HASH, ARG_ENTRY_POINT_NAME, ARG_FROM_ACCOUNT_HASH,
+        ARG_NFT_CONTRACT_HASH, ARG_TOKEN_ID, ARG_TOKEN_META_DATA, ARG_TOKEN_OWNER,
+        ARG_TO_ACCOUNT_HASH, BALANCES, CONTRACT_NAME, ENTRY_POINT_APPROVE, ENTRY_POINT_MINT,
+        ENTRY_POINT_SESSION_WASM, ENTRY_POINT_TRANSFER, NFT_CONTRACT_WASM, NFT_TEST_COLLECTION,
+        NFT_TEST_SYMBOL, OWNED_TOKENS, TEST_META_DATA, TOKEN_OWNERS,
     },
     installer_request_builder::{InstallerRequestBuilder, OwnershipMode},
-    support::{self, get_dictionary_value_from_key},
+    support::{self, get_dictionary_value_from_key, get_nft_contract_hash},
 };
 
 #[test]
@@ -40,20 +41,20 @@ fn should_transfer_token_from_sender_to_receiver() {
 
     let token_owner = *DEFAULT_ACCOUNT_ADDR;
 
-    let mint_request = ExecuteRequestBuilder::contract_call_by_hash(
+    let mint_session_call = ExecuteRequestBuilder::standard(
         *DEFAULT_ACCOUNT_ADDR,
-        nft_contract_hash,
-        ENTRY_POINT_MINT,
+        ENTRY_POINT_SESSION_WASM,
         runtime_args! {
+            ARG_NFT_CONTRACT_HASH => get_nft_contract_hash(&builder),
+            ARG_ENTRY_POINT_NAME => ENTRY_POINT_MINT.to_string(),
             ARG_TOKEN_OWNER => Key::Account(*DEFAULT_ACCOUNT_ADDR),
-            ARG_TOKEN_META_DATA=>TEST_META_DATA.to_string(),
+            ARG_TOKEN_META_DATA => TEST_META_DATA.to_string(),
         },
     )
     .build();
 
-    builder.exec(mint_request).expect_success().commit();
+    builder.exec(mint_session_call).expect_success().commit();
 
-    //let account = builder.get_expected_account(*DEFAULT_ACCOUNT_ADDR);
     let installing_account = builder.get_expected_account(*DEFAULT_ACCOUNT_ADDR);
     let nft_contract_key = installing_account
         .named_keys()
@@ -146,19 +147,19 @@ fn approve_token_for_transfer_should_add_entry_to_approved_dictionary() {
         .map(ContractHash::new)
         .expect("failed to find nft contract");
 
-    // let token_owner = DEFAULT_ACCOUNT_PUBLIC_KEY.clone();
-    let mint_request = ExecuteRequestBuilder::contract_call_by_hash(
+    let mint_session_call = ExecuteRequestBuilder::standard(
         *DEFAULT_ACCOUNT_ADDR,
-        nft_contract_hash,
-        ENTRY_POINT_MINT,
+        ENTRY_POINT_SESSION_WASM,
         runtime_args! {
+            ARG_NFT_CONTRACT_HASH => get_nft_contract_hash(&builder),
+            ARG_ENTRY_POINT_NAME => ENTRY_POINT_MINT.to_string(),
             ARG_TOKEN_OWNER => Key::Account(*DEFAULT_ACCOUNT_ADDR),
             ARG_TOKEN_META_DATA => TEST_META_DATA.to_string(),
         },
     )
     .build();
 
-    builder.exec(mint_request).expect_success().commit();
+    builder.exec(mint_session_call).expect_success().commit();
 
     let (_, approve_public_key) = support::create_dummy_key_pair(ACCOUNT_USER_1);
     let approve_request = ExecuteRequestBuilder::contract_call_by_hash(
@@ -217,17 +218,19 @@ fn should_be_able_to_transfer_token_using_approved_operator() {
 
     // mint token for DEFAULT_ACCOUNT_ADDR
     let token_owner = DEFAULT_ACCOUNT_PUBLIC_KEY.clone().to_account_hash();
-    let mint_request = ExecuteRequestBuilder::contract_call_by_hash(
+    let mint_session_call = ExecuteRequestBuilder::standard(
         *DEFAULT_ACCOUNT_ADDR,
-        nft_contract_hash,
-        ENTRY_POINT_MINT,
+        ENTRY_POINT_SESSION_WASM,
         runtime_args! {
+            ARG_NFT_CONTRACT_HASH => get_nft_contract_hash(&builder),
+            ARG_ENTRY_POINT_NAME => ENTRY_POINT_MINT.to_string(),
             ARG_TOKEN_OWNER => Key::Account(*DEFAULT_ACCOUNT_ADDR),
             ARG_TOKEN_META_DATA => TEST_META_DATA.to_string(),
         },
     )
     .build();
-    builder.exec(mint_request).expect_success().commit();
+
+    builder.exec(mint_session_call).expect_success().commit();
 
     // Create operator account and transfer funds
     let (_, operator) = support::create_dummy_key_pair(ACCOUNT_USER_1);

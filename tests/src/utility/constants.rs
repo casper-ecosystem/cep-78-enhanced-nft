@@ -38,7 +38,9 @@ pub(crate) const TOKEN_OWNERS: &str = "token_owners";
 pub(crate) const OWNED_TOKENS: &str = "owned_tokens";
 pub(crate) const BURNT_TOKENS: &str = "burnt_tokens";
 pub(crate) const APPROVED_FOR_TRANSFER: &str = "approved_for_transfer";
-pub const BALANCES: &str = "balances";
+pub(crate) const BALANCES: &str = "balances";
+
+pub(crate) const OWNED_TOKENS_DICTIONARY_KEY: &str = "owned_tokens_dictionary_key";
 
 pub(crate) const ARG_TO_ACCOUNT_HASH: &str = "to_account_hash";
 pub(crate) const ARG_FROM_ACCOUNT_HASH: &str = "from_account_hash";

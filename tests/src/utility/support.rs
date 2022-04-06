@@ -7,8 +7,8 @@ use casper_execution_engine::{
     storage::global_state::in_memory::InMemoryGlobalState,
 };
 use casper_types::{
-    account::AccountHash, bytesrepr::FromBytes, runtime_args, ApiError, CLTyped, ContractHash, Key,
-    PublicKey, RuntimeArgs, SecretKey, URef,
+    account::AccountHash, bytesrepr::FromBytes, ApiError, CLTyped, ContractHash, Key, PublicKey,
+    RuntimeArgs, SecretKey, URef,
 };
 
 use super::{

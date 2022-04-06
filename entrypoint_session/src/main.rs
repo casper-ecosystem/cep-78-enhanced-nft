@@ -1,11 +1,13 @@
 #![no_std]
 #![no_main]
 
+#[cfg(not(target_arch = "wasm32"))]
+compile_error!("target arch should be wasm32: compile with '--target wasm32-unknown-unknown'");
+
 extern crate alloc;
-use alloc::format;
 use alloc::string::String;
 use casper_contract::contract_api::{runtime, storage};
-use casper_types::{runtime_args, ContractHash, Key, PublicKey, RuntimeArgs, URef, U256};
+use casper_types::{runtime_args, ContractHash, Key, RuntimeArgs, U256};
 
 const ARG_ENTRY_POINT_NAME: &str = "entry_point_name";
 const ENTRY_POINT_MINT: &str = "mint";
@@ -17,6 +19,8 @@ const ARG_NFT_CONTRACT_HASH: &str = "nft_contract_hash";
 const ARG_TOKEN_OWNER: &str = "token_owner";
 const ARG_TOKEN_ID: &str = "token_id";
 const ARG_TOKEN_META_DATA: &str = "token_meta_data";
+
+const OWNED_TOKENS_DICTIONARY_KEY: &str = "owned_tokens_dictionary_key";
 
 #[no_mangle]
 pub extern "C" fn call() {
@@ -53,7 +57,7 @@ pub extern "C" fn call() {
             let token_owner = runtime::get_named_arg::<Key>(ARG_TOKEN_OWNER);
             let token_metadata: String = runtime::get_named_arg(ARG_TOKEN_META_DATA);
 
-            runtime::call_contract::<()>(
+            let owned_tokens_dictionary_key = runtime::call_contract::<Key>(
                 nft_contract_hash,
                 ENTRY_POINT_MINT,
                 runtime_args! {
@@ -62,8 +66,8 @@ pub extern "C" fn call() {
                 },
             );
 
-            // let nft_named_key = format!("nft-contract-{}", nft_contract_hash);
-            // runtime::put_key(&nft_named_key, owned_tokens_uref.into())
+            //runtime::revert(ApiError::User(99));
+            runtime::put_key(OWNED_TOKENS_DICTIONARY_KEY, owned_tokens_dictionary_key);
         }
         ENTRY_POINT_GET_APPROVED => {
             let token_id = runtime::get_named_arg::<U256>(ARG_TOKEN_ID);

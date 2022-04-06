@@ -1,13 +1,14 @@
 use casper_engine_test_support::{
-    ExecuteRequestBuilder, InMemoryWasmTestBuilder, DEFAULT_ACCOUNT_ADDR,
+    ExecuteRequestBuilder, InMemoryWasmTestBuilder, WasmTestBuilder, DEFAULT_ACCOUNT_ADDR,
     DEFAULT_RUN_GENESIS_REQUEST,
 };
 
+use casper_execution_engine::storage::global_state::in_memory::InMemoryGlobalState;
 use casper_types::{runtime_args, system::mint, ContractHash, Key, RuntimeArgs, U256};
 
 use crate::utility::constants::{
     ARG_APPROVE_TRANSFER_FOR_ACCOUNT_HASH, ARG_ENTRY_POINT_NAME, ARG_TOKEN_ID, ENTRY_POINT_APPROVE,
-    ENTRY_POINT_GET_APPROVED, ENTRY_POINT_SESSION_WASM,
+    ENTRY_POINT_GET_APPROVED, ENTRY_POINT_SESSION_WASM, OWNED_TOKENS_DICTIONARY_KEY,
 };
 use crate::utility::installer_request_builder::OwnershipMode;
 use crate::utility::support::{call_entry_point_with_ret, get_nft_contract_hash};
@@ -22,20 +23,32 @@ use crate::utility::{
     support,
 };
 
-#[test]
-fn should_disallow_minting_when_allow_minting_is_set_to_false() {
+fn get_builder(
+    total_token_supply: Option<U256>,
+    allowing_minting: Option<bool>,
+) -> WasmTestBuilder<InMemoryGlobalState> {
     let mut builder = InMemoryWasmTestBuilder::default();
     builder.run_genesis(&DEFAULT_RUN_GENESIS_REQUEST).commit();
 
-    let install_request_builder =
+    let mut install_request_builder =
         InstallerRequestBuilder::new(*DEFAULT_ACCOUNT_ADDR, NFT_CONTRACT_WASM)
-            .with_total_token_supply(U256::from(2u64))
-            .with_allowing_minting(Some(false));
+            .with_allowing_minting(allowing_minting);
+
+    if let Some(total_token_supply) = total_token_supply {
+        install_request_builder =
+            install_request_builder.with_total_token_supply(total_token_supply);
+    }
 
     builder
         .exec(install_request_builder.build())
         .expect_success()
         .commit();
+    builder
+}
+
+#[test]
+fn should_disallow_minting_when_allow_minting_is_set_to_false() {
+    let mut builder = get_builder(Some(U256::from(2u64)), Some(false));
 
     let mint_request = ExecuteRequestBuilder::contract_call_by_name(
         *DEFAULT_ACCOUNT_ADDR,
@@ -71,17 +84,30 @@ fn entry_points_with_ret_should_return_correct_value() {
         .expect_success()
         .commit();
 
-    let mint_request = ExecuteRequestBuilder::contract_call_by_name(
+    let mint_session_call = ExecuteRequestBuilder::standard(
         *DEFAULT_ACCOUNT_ADDR,
-        CONTRACT_NAME,
-        ENTRY_POINT_MINT,
+        ENTRY_POINT_SESSION_WASM,
         runtime_args! {
+            ARG_NFT_CONTRACT_HASH => get_nft_contract_hash(&builder),
+            ARG_ENTRY_POINT_NAME => ENTRY_POINT_MINT.to_string(),
             ARG_TOKEN_OWNER => Key::Account(*DEFAULT_ACCOUNT_ADDR),
             ARG_TOKEN_META_DATA => TEST_META_DATA.to_string(),
         },
     )
     .build();
-    builder.exec(mint_request).expect_success().commit();
+
+    builder.exec(mint_session_call).expect_success().commit();
+    // let mint_request = ExecuteRequestBuilder::contract_call_by_name(
+    //     *DEFAULT_ACCOUNT_ADDR,
+    //     CONTRACT_NAME,
+    //     ENTRY_POINT_MINT,
+    //     runtime_args! {
+    //         ARG_TOKEN_OWNER => Key::Account(*DEFAULT_ACCOUNT_ADDR),
+    //         ARG_TOKEN_META_DATA => TEST_META_DATA.to_string(),
+    //     },
+    // )
+    // .build();
+    // builder.exec(mint_request).expect_success().commit();
 
     let nft_contract_hash = get_nft_contract_hash(&builder);
     let account_hash = *DEFAULT_ACCOUNT_ADDR;
@@ -162,7 +188,7 @@ fn should_call_mint_via_session_code() {
         ENTRY_POINT_SESSION_WASM,
         runtime_args! {
             ARG_NFT_CONTRACT_HASH => nft_contract_hash,
-            ARG_ENTRY_POINT_NAME => "mint".to_string(),
+            ARG_ENTRY_POINT_NAME => ENTRY_POINT_MINT.to_string(),
             ARG_TOKEN_OWNER => Key::Account(*DEFAULT_ACCOUNT_ADDR),
             ARG_TOKEN_META_DATA => TEST_META_DATA.to_string(),
         },
@@ -170,6 +196,65 @@ fn should_call_mint_via_session_code() {
     .build();
 
     builder.exec(mint_session_call).expect_success().commit();
+}
+
+#[test]
+fn mint_should_return_dictionary_key_to_callers_owned_tokens() {
+    let mut builder = get_builder(Some(U256::from(2u64)), None);
+
+    let nft_contract_hash = get_nft_contract_hash(&builder);
+    let mint_session_call = ExecuteRequestBuilder::standard(
+        *DEFAULT_ACCOUNT_ADDR,
+        ENTRY_POINT_SESSION_WASM,
+        runtime_args! {
+            ARG_NFT_CONTRACT_HASH => nft_contract_hash,
+            ARG_ENTRY_POINT_NAME => ENTRY_POINT_MINT.to_string(),
+            ARG_TOKEN_OWNER => Key::Account(*DEFAULT_ACCOUNT_ADDR),
+            ARG_TOKEN_META_DATA => TEST_META_DATA.to_string(),
+        },
+    )
+    .build();
+
+    builder.exec(mint_session_call).expect_success().commit();
+
+    let account = builder.get_expected_account(*DEFAULT_ACCOUNT_ADDR);
+
+    let (_, owned_tokens_key) = account
+        .named_keys()
+        .get_key_value(OWNED_TOKENS_DICTIONARY_KEY)
+        .expect("should have owned_tokens_key");
+
+    match builder.query(None, *owned_tokens_key, &[]).unwrap() {
+        casper_types::StoredValue::CLValue(val) => {
+            let expected = val.into_t::<Vec<U256>>().expect("should be Vec<U256>");
+            println!("{:?}", expected);
+        }
+        _ => panic!("wrong stored value type"),
+    }
+
+    let mint_session_call = ExecuteRequestBuilder::standard(
+        *DEFAULT_ACCOUNT_ADDR,
+        ENTRY_POINT_SESSION_WASM,
+        runtime_args! {
+            ARG_NFT_CONTRACT_HASH => nft_contract_hash,
+            ARG_ENTRY_POINT_NAME => ENTRY_POINT_MINT.to_string(),
+            ARG_TOKEN_OWNER => Key::Account(*DEFAULT_ACCOUNT_ADDR),
+            ARG_TOKEN_META_DATA => TEST_META_DATA.to_string(),
+        },
+    )
+    .build();
+
+    builder.exec(mint_session_call).expect_success().commit();
+
+    match builder.query(None, *owned_tokens_key, &[]).unwrap() {
+        casper_types::StoredValue::CLValue(val) => {
+            let expected = val
+                .into_t::<Vec<U256>>()
+                .expect("should still be Vec<U256>");
+            println!("{:?}", expected);
+        }
+        _ => panic!("also the wrong stored value type"),
+    }
 }
 
 #[test]
@@ -185,17 +270,19 @@ fn mint_should_increment_number_of_minted_tokens_by_one_and_add_public_key_to_to
         .expect_success()
         .commit();
 
-    let mint_request = ExecuteRequestBuilder::contract_call_by_name(
+    let mint_session_call = ExecuteRequestBuilder::standard(
         *DEFAULT_ACCOUNT_ADDR,
-        CONTRACT_NAME,
-        ENTRY_POINT_MINT,
+        ENTRY_POINT_SESSION_WASM,
         runtime_args! {
+            ARG_NFT_CONTRACT_HASH => get_nft_contract_hash(&builder),
+            ARG_ENTRY_POINT_NAME => ENTRY_POINT_MINT.to_string(),
             ARG_TOKEN_OWNER => Key::Account(*DEFAULT_ACCOUNT_ADDR),
-            ARG_TOKEN_META_DATA=>TEST_META_DATA.to_string(),
+            ARG_TOKEN_META_DATA => TEST_META_DATA.to_string(),
         },
     )
     .build();
-    builder.exec(mint_request).expect_success().commit();
+
+    builder.exec(mint_session_call).expect_success().commit();
 
     //Let's start querying
     let account = builder.get_expected_account(*DEFAULT_ACCOUNT_ADDR);
@@ -249,17 +336,19 @@ fn mint_should_increment_number_of_minted_tokens_by_one_and_add_public_key_to_to
 
     // If total_token_supply is initialized to 1 the following test should fail.
     // If we set total_token_supply > 1 it should pass
-    let mint_request = ExecuteRequestBuilder::contract_call_by_name(
+
+    let mint_session_call = ExecuteRequestBuilder::standard(
         *DEFAULT_ACCOUNT_ADDR,
-        CONTRACT_NAME,
-        ENTRY_POINT_MINT,
+        ENTRY_POINT_SESSION_WASM,
         runtime_args! {
+            ARG_NFT_CONTRACT_HASH => get_nft_contract_hash(&builder),
+            ARG_ENTRY_POINT_NAME => ENTRY_POINT_MINT.to_string(),
             ARG_TOKEN_OWNER => Key::Account(*DEFAULT_ACCOUNT_ADDR),
-            ARG_TOKEN_META_DATA=>TEST_META_DATA.to_string(),
+            ARG_TOKEN_META_DATA => TEST_META_DATA.to_string(),
         },
     )
     .build();
-    builder.exec(mint_request).expect_success().commit();
+    builder.exec(mint_session_call).expect_success().commit();
 }
 
 #[test]
@@ -275,17 +364,18 @@ fn mint_should_correctly_set_meta_data() {
         .expect_success()
         .commit();
 
-    let mint_request = ExecuteRequestBuilder::contract_call_by_name(
+    let mint_session_call = ExecuteRequestBuilder::standard(
         *DEFAULT_ACCOUNT_ADDR,
-        CONTRACT_NAME,
-        ENTRY_POINT_MINT,
+        ENTRY_POINT_SESSION_WASM,
         runtime_args! {
+            ARG_NFT_CONTRACT_HASH => get_nft_contract_hash(&builder),
+            ARG_ENTRY_POINT_NAME => ENTRY_POINT_MINT.to_string(),
             ARG_TOKEN_OWNER => Key::Account(*DEFAULT_ACCOUNT_ADDR),
-            ARG_TOKEN_META_DATA=> TEST_META_DATA.to_string(),
+            ARG_TOKEN_META_DATA => TEST_META_DATA.to_string(),
         },
     )
     .build();
-    builder.exec(mint_request).expect_success().commit();
+    builder.exec(mint_session_call).expect_success().commit();
 
     //Let's start querying
     let account = builder.get_expected_account(*DEFAULT_ACCOUNT_ADDR);
@@ -317,17 +407,18 @@ fn mint_should_correctly_set_issuer() {
         .expect_success()
         .commit();
 
-    let mint_request = ExecuteRequestBuilder::contract_call_by_name(
+    let mint_session_call = ExecuteRequestBuilder::standard(
         *DEFAULT_ACCOUNT_ADDR,
-        CONTRACT_NAME,
-        ENTRY_POINT_MINT,
+        ENTRY_POINT_SESSION_WASM,
         runtime_args! {
+            ARG_NFT_CONTRACT_HASH => get_nft_contract_hash(&builder),
+            ARG_ENTRY_POINT_NAME => ENTRY_POINT_MINT.to_string(),
             ARG_TOKEN_OWNER => Key::Account(*DEFAULT_ACCOUNT_ADDR),
-            ARG_TOKEN_META_DATA=> TEST_META_DATA.to_string(),
+            ARG_TOKEN_META_DATA => TEST_META_DATA.to_string(),
         },
     )
     .build();
-    builder.exec(mint_request).expect_success().commit();
+    builder.exec(mint_session_call).expect_success().commit();
 
     //Let's start querying
     let account = builder.get_expected_account(*DEFAULT_ACCOUNT_ADDR);
@@ -361,17 +452,18 @@ fn mint_should_correctly_update_balances() {
         .expect_success()
         .commit();
 
-    let mint_request = ExecuteRequestBuilder::contract_call_by_name(
+    let mint_session_call = ExecuteRequestBuilder::standard(
         *DEFAULT_ACCOUNT_ADDR,
-        CONTRACT_NAME,
-        ENTRY_POINT_MINT,
+        ENTRY_POINT_SESSION_WASM,
         runtime_args! {
+            ARG_NFT_CONTRACT_HASH => get_nft_contract_hash(&builder),
+            ARG_ENTRY_POINT_NAME => ENTRY_POINT_MINT.to_string(),
             ARG_TOKEN_OWNER => Key::Account(*DEFAULT_ACCOUNT_ADDR),
-            ARG_TOKEN_META_DATA=> TEST_META_DATA.to_string(),
+            ARG_TOKEN_META_DATA => TEST_META_DATA.to_string(),
         },
     )
     .build();
-    builder.exec(mint_request).expect_success().commit();
+    builder.exec(mint_session_call).expect_success().commit();
 
     //Let's start querying
     let account = builder.get_expected_account(*DEFAULT_ACCOUNT_ADDR);
@@ -441,18 +533,19 @@ fn should_allow_public_minting_with_flag_set_to_true() {
         "public minting should be set to true"
     );
 
-    let nft_mint_request = ExecuteRequestBuilder::contract_call_by_hash(
+    let mint_session_call = ExecuteRequestBuilder::standard(
         account_1_public_key.to_account_hash(),
-        ContractHash::new(nft_contract_hash),
-        ENTRY_POINT_MINT,
+        ENTRY_POINT_SESSION_WASM,
         runtime_args! {
+            ARG_NFT_CONTRACT_HASH => get_nft_contract_hash(&builder),
+            ARG_ENTRY_POINT_NAME => ENTRY_POINT_MINT.to_string(),
             ARG_TOKEN_OWNER => Key::Account(account_1_public_key.to_account_hash()),
-            ARG_TOKEN_META_DATA=>TEST_META_DATA.to_string(),
+            ARG_TOKEN_META_DATA => TEST_META_DATA.to_string(),
         },
     )
     .build();
 
-    builder.exec(nft_mint_request).expect_success().commit();
+    builder.exec(mint_session_call).expect_success().commit();
 
     let minter_account_hash = support::get_dictionary_value_from_key::<Key>(
         &builder,
@@ -588,19 +681,33 @@ fn should_allow_minting_for_different_public_key_with_public_minting_set_to_true
         "public minting should be set to true"
     );
 
-    let incorrect_nft_minting_request = ExecuteRequestBuilder::contract_call_by_hash(
+    let mint_session_call = ExecuteRequestBuilder::standard(
         account_1_public_key.to_account_hash(),
-        ContractHash::new(nft_contract_hash),
-        ENTRY_POINT_MINT,
+        ENTRY_POINT_SESSION_WASM,
         runtime_args! {
-            ARG_TOKEN_OWNER => account_1_public_key,
-            ARG_TOKEN_META_DATA=>TEST_META_DATA.to_string(),
+            ARG_NFT_CONTRACT_HASH => get_nft_contract_hash(&builder),
+            ARG_ENTRY_POINT_NAME => ENTRY_POINT_MINT.to_string(),
+            ARG_TOKEN_OWNER => Key::Account(account_1_public_key.to_account_hash()),
+            ARG_TOKEN_META_DATA => TEST_META_DATA.to_string(),
         },
     )
     .build();
 
-    builder
-        .exec(incorrect_nft_minting_request)
-        .expect_success()
-        .commit();
+    builder.exec(mint_session_call).expect_success().commit();
+
+    // let incorrect_nft_minting_request = ExecuteRequestBuilder::contract_call_by_hash(
+    //     account_1_public_key.to_account_hash(),
+    //     ContractHash::new(nft_contract_hash),
+    //     ENTRY_POINT_MINT,
+    //     runtime_args! {
+    //         ARG_TOKEN_OWNER => account_1_public_key,
+    //         ARG_TOKEN_META_DATA=>TEST_META_DATA.to_string(),
+    //     },
+    // )
+    // .build();
+
+    // builder
+    //     .exec(incorrect_nft_minting_request)
+    //     .expect_success()
+    //     .commit();
 }

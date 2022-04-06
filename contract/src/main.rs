@@ -272,6 +272,15 @@ pub extern "C" fn mint() {
         .unwrap_or_revert_with(NFTCoreError::InvalidKey)
         .to_string();
 
+    let owned_tokens_actual_key = Key::dictionary(
+        get_uref(
+            OWNED_TOKENS,
+            NFTCoreError::MissingOwnedTokens,
+            NFTCoreError::InvalidOwnedTokens,
+        ),
+        owned_tokens_item_key.as_bytes(),
+    );
+
     // Update owned tokens dictionary
     let maybe_owned_tokens =
         get_dictionary_value_from_key::<Vec<U256>>(OWNED_TOKENS, &owned_tokens_item_key);
@@ -312,6 +321,10 @@ pub extern "C" fn mint() {
         NFTCoreError::InvalidTotalTokenSupply,
     );
     storage::write(number_of_minted_tokens_uref, next_index);
+
+    let owned_tokens_cl_value = CLValue::from_t(owned_tokens_actual_key)
+        .unwrap_or_revert_with(NFTCoreError::FailedToConvertToCLValue);
+    runtime::ret(owned_tokens_cl_value.into())
 }
 
 #[no_mangle]
@@ -800,11 +813,18 @@ pub extern "C" fn get_approved() {
         runtime::revert(NFTCoreError::InvalidTokenID);
     }
 
-    let maybe_approved =
-        get_dictionary_value_from_key::<Key>(APPROVED_FOR_TRANSFER, &token_id.to_string());
+    // let maybe_approved = match get_dictionary_value_from_key::<Option<Key>>(
+    //     APPROVED_FOR_TRANSFER,
+    //     &token_id.to_string(),
+    // ) {
+    //     Some(maybe_key) => maybe_key,
+    //     None => None,
+    // };
 
+    let maybe_approved: Option<Key> = None;
     let approved_cl_value = CLValue::from_t(maybe_approved)
         .unwrap_or_revert_with(NFTCoreError::FailedToConvertToCLValue);
+
     runtime::ret(approved_cl_value);
 }
 
