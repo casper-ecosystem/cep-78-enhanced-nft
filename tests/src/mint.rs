@@ -7,8 +7,8 @@ use casper_execution_engine::storage::global_state::in_memory::InMemoryGlobalSta
 use casper_types::{runtime_args, system::mint, ContractHash, Key, RuntimeArgs, U256};
 
 use crate::utility::constants::{
-    ARG_APPROVE_TRANSFER_FOR_ACCOUNT_HASH, ARG_ENTRY_POINT_NAME, ARG_TOKEN_ID, ENTRY_POINT_APPROVE,
-    ENTRY_POINT_GET_APPROVED, ENTRY_POINT_SESSION_WASM, OWNED_TOKENS_DICTIONARY_KEY,
+    ARG_ENTRY_POINT_NAME, ARG_OPERATOR, ARG_TOKEN_ID, ENTRY_POINT_APPROVE,
+    ENTRY_POINT_SESSION_WASM, OWNED_TOKENS_DICTIONARY_KEY,
 };
 use crate::utility::installer_request_builder::OwnershipMode;
 use crate::utility::support::{call_entry_point_with_ret, get_nft_contract_hash};
@@ -97,17 +97,6 @@ fn entry_points_with_ret_should_return_correct_value() {
     .build();
 
     builder.exec(mint_session_call).expect_success().commit();
-    // let mint_request = ExecuteRequestBuilder::contract_call_by_name(
-    //     *DEFAULT_ACCOUNT_ADDR,
-    //     CONTRACT_NAME,
-    //     ENTRY_POINT_MINT,
-    //     runtime_args! {
-    //         ARG_TOKEN_OWNER => Key::Account(*DEFAULT_ACCOUNT_ADDR),
-    //         ARG_TOKEN_META_DATA => TEST_META_DATA.to_string(),
-    //     },
-    // )
-    // .build();
-    // builder.exec(mint_request).expect_success().commit();
 
     let nft_contract_hash = get_nft_contract_hash(&builder);
     let account_hash = *DEFAULT_ACCOUNT_ADDR;
@@ -151,21 +140,11 @@ fn entry_points_with_ret_should_return_correct_value() {
         ENTRY_POINT_APPROVE,
         runtime_args! {
             ARG_TOKEN_ID => U256::zero(),
-            ARG_APPROVE_TRANSFER_FOR_ACCOUNT_HASH => Key::Account(approve_public_key.to_account_hash())
+            ARG_OPERATOR => Key::Account(approve_public_key.to_account_hash())
         },
     )
     .build();
     builder.exec(approve_request).expect_success().commit();
-
-    // let actual_approved: Option<Key> = call_entry_point_with_ret(
-    //     &mut builder,
-    //     account_hash,
-    //     nft_contract_hash,
-    //     runtime_args! {
-    //         ARG_TOKEN_ID => U256::zero(),
-    //     },
-    //     ENTRY_POINT_GET_APPROVED,
-    // );
 }
 
 #[test]
@@ -500,9 +479,6 @@ fn should_allow_public_minting_with_flag_set_to_true() {
         .named_keys()
         .get(CONTRACT_NAME)
         .expect("must have key in named keys");
-    let nft_contract_hash = nft_contract_key
-        .into_hash()
-        .expect("must convert to hash addr");
 
     let (_, account_1_public_key) = support::create_dummy_key_pair(ACCOUNT_USER_1);
     let account_1_account_hash = account_1_public_key.to_account_hash();
@@ -637,9 +613,6 @@ fn should_allow_minting_for_different_public_key_with_public_minting_set_to_true
         .named_keys()
         .get(CONTRACT_NAME)
         .expect("must have key in named keys");
-    let nft_contract_hash = nft_contract_key
-        .into_hash()
-        .expect("must convert to hash addr");
 
     let (_account_1_secret_key, account_1_public_key) =
         support::create_dummy_key_pair(ACCOUNT_USER_1);

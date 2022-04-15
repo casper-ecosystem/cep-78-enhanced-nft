@@ -97,7 +97,7 @@ pub(crate) fn assert_expected_error(actual_error: EngineStateError, error_code: 
     )
 }
 
-pub(crate) fn get_uref(builder: &WasmTestBuilder<InMemoryGlobalState>, key: &str) -> URef {
+pub(crate) fn _get_uref(builder: &WasmTestBuilder<InMemoryGlobalState>, key: &str) -> URef {
     builder
         .get_expected_account(*DEFAULT_ACCOUNT_ADDR)
         .named_keys()

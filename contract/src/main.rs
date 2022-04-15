@@ -47,6 +47,7 @@ pub extern "C" fn init() {
         NFTCoreError::InvalidInstaller,
     );
 
+    // We revert if caller is not the managing installing account
     if installing_account != runtime::get_caller() {
         runtime::revert(NFTCoreError::InvalidAccount)
     }
@@ -105,6 +106,7 @@ pub extern "C" fn init() {
 
     // Put all created URefs into the contract's context (necessary to retain access rights,
     // for future use).
+    //
     // Initialize contract with URefs for all invariant values, which can never be changed.
     runtime::put_key(COLLECTION_NAME, storage::new_uref(collection_name).into());
     runtime::put_key(
@@ -119,7 +121,6 @@ pub extern "C" fn init() {
         OWNERSHIP_MODE,
         storage::new_uref(ownership_mode as u8).into(),
     );
-
     runtime::put_key(JSON_SCHEMA, storage::new_uref(json_schema).into());
 
     // Initialize contract with variables which must be present but maybe set to
@@ -142,8 +143,7 @@ pub extern "C" fn init() {
         .unwrap_or_revert_with(NFTCoreError::FailedToCreateDictionary);
     storage::new_dictionary(OWNED_TOKENS)
         .unwrap_or_revert_with(NFTCoreError::FailedToCreateDictionary);
-    storage::new_dictionary(APPROVED_FOR_TRANSFER)
-        .unwrap_or_revert_with(NFTCoreError::FailedToCreateDictionary);
+    storage::new_dictionary(OPERATOR).unwrap_or_revert_with(NFTCoreError::FailedToCreateDictionary);
     storage::new_dictionary(BURNT_TOKENS)
         .unwrap_or_revert_with(NFTCoreError::FailedToCreateDictionary);
     storage::new_dictionary(TOKEN_COUNTS)
@@ -235,7 +235,7 @@ pub extern "C" fn mint() {
     }
 
     // The contract's ownership behavior (determined at installation) determines,
-    // who owns the NFT we are about to mint.
+    // who owns the NFT we are about to mint.()
     let ownership_mode = utils::get_ownership_mode().unwrap_or_revert();
     let token_owner_key = {
         match ownership_mode {
@@ -324,7 +324,7 @@ pub extern "C" fn mint() {
 
     let owned_tokens_cl_value = CLValue::from_t(owned_tokens_actual_key)
         .unwrap_or_revert_with(NFTCoreError::FailedToConvertToCLValue);
-    runtime::ret(owned_tokens_cl_value.into())
+    runtime::ret(owned_tokens_cl_value)
 }
 
 #[no_mangle]
@@ -437,8 +437,8 @@ pub extern "C" fn approve() {
         runtime::revert(NFTCoreError::PreviouslyBurntToken);
     }
 
-    let approve_for_account_hash = get_named_arg_with_user_errors::<Key>(
-        ARG_APPROVE_TRANSFER_FOR_ACCOUNT_HASH,
+    let operator = get_named_arg_with_user_errors::<Key>(
+        ARG_OPERATOR,
         NFTCoreError::MissingApprovedAccountHash,
         NFTCoreError::InvalidApprovedAccountHash,
     )
@@ -447,12 +447,12 @@ pub extern "C" fn approve() {
     .unwrap_or_revert_with(NFTCoreError::InvalidKey);
 
     // If token_owner tries to approve themselves that's probably a mistake and we revert.
-    if token_owner_account_hash == approve_for_account_hash {
+    if token_owner_account_hash == operator {
         runtime::revert(NFTCoreError::InvalidAccount); //Do we need a better error here? ::AlreadyOwner ??
     }
 
     let approved_uref = get_uref(
-        APPROVED_FOR_TRANSFER,
+        OPERATOR,
         NFTCoreError::MissingStorageUref,
         NFTCoreError::InvalidStorageUref,
     );
@@ -460,7 +460,7 @@ pub extern "C" fn approve() {
     storage::dictionary_put(
         approved_uref,
         &token_id.to_string(),
-        Some(Key::Account(approve_for_account_hash)),
+        Some(Key::Account(operator)),
     );
 }
 
@@ -492,14 +492,12 @@ pub extern "C" fn set_approval_for_all() {
 
     let caller = runtime::get_caller().to_string();
     let approved_uref = get_uref(
-        APPROVED_FOR_TRANSFER,
+        OPERATOR,
         NFTCoreError::MissingStorageUref,
         NFTCoreError::InvalidStorageUref,
     );
 
-    if let Some(owned_tokens) =
-        get_dictionary_value_from_key::<Vec<U256>>(APPROVED_FOR_TRANSFER, &caller)
-    {
+    if let Some(owned_tokens) = get_dictionary_value_from_key::<Vec<U256>>(OPERATOR, &caller) {
         // Depending on approve_all we either approve all or disapprove all.
         for t in owned_tokens {
             if approve_all {
@@ -513,6 +511,15 @@ pub extern "C" fn set_approval_for_all() {
 
 #[no_mangle]
 pub extern "C" fn transfer() {
+    // If we are in minter or assigned mode we are not allowed to transfer ownership of token, hence we revert.
+    let _ownership_mode = match utils::get_ownership_mode().unwrap_or_revert() {
+        OwnershipMode::Minter | OwnershipMode::Assigned => {
+            runtime::revert(NFTCoreError::InvalidOwnershipMode)
+        }
+        OwnershipMode::TransferableChecked => OwnershipMode::TransferableChecked,
+        OwnershipMode::TransferableUnchecked => OwnershipMode::TransferableUnchecked,
+    };
+
     // Get token_id argument
     let token_id: U256 = get_named_arg_with_user_errors(
         ARG_TOKEN_ID,
@@ -551,15 +558,13 @@ pub extern "C" fn transfer() {
     let caller = runtime::get_caller();
 
     // Check if caller is approved to execute transfer
-    let is_approved = match get_dictionary_value_from_key::<Option<Key>>(
-        APPROVED_FOR_TRANSFER,
-        &token_id.to_string(),
-    ) {
-        Some(Some(approved_public_key)) => {
-            approved_public_key.into_account().unwrap_or_revert() == caller
-        }
-        Some(None) | None => false,
-    };
+    let is_approved =
+        match get_dictionary_value_from_key::<Option<Key>>(OPERATOR, &token_id.to_string()) {
+            Some(Some(approved_public_key)) => {
+                approved_public_key.into_account().unwrap_or_revert() == caller
+            }
+            Some(None) | None => false,
+        };
 
     // Revert if caller is not owner and not approved. (CEP47 transfer logic looks incorrect to me...)
     if caller != token_owner_account_hash && !is_approved {
@@ -927,7 +932,7 @@ fn store() -> (ContractHash, ContractVersion) {
             ENTRY_POINT_APPROVE,
             vec![
                 Parameter::new(ARG_TOKEN_ID, CLType::U256),
-                Parameter::new(ARG_APPROVE_TRANSFER_FOR_ACCOUNT_HASH, CLType::Key),
+                Parameter::new(ARG_OPERATOR, CLType::Key),
             ],
             CLType::Unit,
             EntryPointAccess::Public,
