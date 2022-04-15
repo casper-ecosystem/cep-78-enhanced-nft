@@ -44,4 +44,5 @@ pub(crate) const ARG_TOKEN_ID: &str = "token_id";
 
 pub(crate) const ACCOUNT_USER_1: [u8; 32] = [1u8; 32];
 pub(crate) const ACCOUNT_USER_2: [u8; 32] = [2u8; 32];
+pub(crate) const ACCOUNT_USER_3: [u8; 32] = [2u8; 32];
 pub(crate) const TEST_META_DATA: &str = "test meta";

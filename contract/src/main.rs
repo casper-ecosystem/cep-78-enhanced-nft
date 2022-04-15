@@ -181,6 +181,7 @@ pub extern "C" fn set_variables() {
     }
 }
 
+// Mints a new token. Minting will fail if allow_minting is set to false.
 #[no_mangle]
 pub extern "C" fn mint() {
     // The contract owner can toggle the minting behavior on and off over time.
@@ -223,13 +224,13 @@ pub extern "C" fn mint() {
 
     // Revert if minting is private and caller is not installer.
     if private_minting {
-        let installer_account_hash = runtime::get_key(INSTALLER)
+        let installer_account = runtime::get_key(INSTALLER)
             .unwrap_or_revert_with(NFTCoreError::MissingInstallerKey)
             .into_account()
             .unwrap_or_revert_with(NFTCoreError::FailedToConvertToAccountHash);
 
         // Revert if private minting is required and caller is not installer.
-        if caller != installer_account_hash {
+        if caller != installer_account {
             runtime::revert(NFTCoreError::InvalidMinter)
         }
     }
@@ -327,6 +328,7 @@ pub extern "C" fn mint() {
     runtime::ret(owned_tokens_cl_value)
 }
 
+// Marks token as burnt. This blocks and future call to transfer token.
 #[no_mangle]
 pub extern "C" fn burn() {
     let token_id: U256 = get_named_arg_with_user_errors(
@@ -388,7 +390,6 @@ pub extern "C" fn burn() {
 }
 
 // approve marks a token as approved for transfer by an account
-// Should we be able to un-approve an operator???
 #[no_mangle]
 pub extern "C" fn approve() {
     // If we are in minter or assigned mode it makes no sense to approve an operator. Hence we revert.
@@ -464,6 +465,7 @@ pub extern "C" fn approve() {
     );
 }
 
+// Approves the speficied operator for transfer token_owner's tokens.
 #[no_mangle]
 pub extern "C" fn set_approval_for_all() {
     // If we are in minter or assigned mode it makes no sense to approve an operator. Hence we revert.
@@ -503,12 +505,14 @@ pub extern "C" fn set_approval_for_all() {
             if approve_all {
                 storage::dictionary_put(approved_uref, &t.to_string(), Some(operator));
             } else {
-                storage::dictionary_put(approved_uref, &t.to_string(), Option::<String>::None);
+                storage::dictionary_put(approved_uref, &t.to_string(), Option::<Key>::None);
             }
         }
     };
 }
 
+// Transfers token from token_owner to speficied account. Transfer will go through if caller is owner or an approved operator.
+// Transfer will fail if OwnershipMode is Minter or Assigned.
 #[no_mangle]
 pub extern "C" fn transfer() {
     // If we are in minter or assigned mode we are not allowed to transfer ownership of token, hence we revert.
@@ -671,6 +675,15 @@ pub extern "C" fn transfer() {
         &target_owner_item_key,
         updated_to_account_balance,
     );
+
+    let approved_uref = get_uref(
+        OPERATOR,
+        NFTCoreError::MissingStorageUref,
+        NFTCoreError::InvalidStorageUref,
+    );
+
+    let none: Option<Key> = None;
+    storage::dictionary_put(approved_uref, &token_id.to_string(), none);
 }
 
 // Returns the length of the Vec<U256> in OWNED_TOKENS dictionary. If key is not found
