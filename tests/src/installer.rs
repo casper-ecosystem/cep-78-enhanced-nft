@@ -193,8 +193,3 @@ fn should_reject_non_numerical_total_token_supply_value() {
         "should reject installation when given an invalid total supply value",
     );
 }
-
-// struct NFTContract<T, U> {
-//     token: T,
-//     metadata: U,
-// }

@@ -27,7 +27,6 @@ pub const COLLECTION_SYMBOL: &str = "collection_symbol";
 pub const TOTAL_TOKEN_SUPPLY: &str = "total_token_supply";
 pub const OWNERSHIP_MODE: &str = "ownership_mode";
 pub const NFT_ASSET_TYPE: &str = "nft_asset_type";
-
 pub const ALLOW_MINTING: &str = "allow_minting";
 pub const PUBLIC_MINTING: &str = "public_minting";
 pub const TOKEN_OWNERS: &str = "token_owners";

@@ -460,7 +460,7 @@ pub extern "C" fn approve() {
 
     // If token_owner tries to approve themselves that's probably a mistake and we revert.
     if token_owner_account_hash == operator {
-        runtime::revert(NFTCoreError::InvalidAccount); //Do we need a better error here? ::AlreadyOwner ??
+        runtime::revert(NFTCoreError::InvalidAccount);
     }
 
     let approved_uref = get_uref(
@@ -581,9 +581,9 @@ pub extern "C" fn transfer() {
             Some(None) | None => false,
         };
 
-    // Revert if caller is not owner and not approved. (CEP47 transfer logic looks incorrect to me...)
+    // Revert if caller is not owner and not approved.
     if caller != token_owner_account_hash && !is_approved {
-        runtime::revert(NFTCoreError::InvalidAccount); // InvalidCaller better error?
+        runtime::revert(NFTCoreError::InvalidAccount);
     }
 
     let target_owner_key: Key = get_named_arg_with_user_errors(
@@ -632,7 +632,7 @@ pub extern "C" fn transfer() {
                 owned_tokens,
             );
         }
-        None => runtime::revert(NFTCoreError::InvalidTokenID), // Better error?
+        None => runtime::revert(NFTCoreError::InvalidTokenID),
     }
 
     // Update the from_account balance

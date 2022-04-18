@@ -7,9 +7,9 @@ use casper_types::{runtime_args, system::mint, ContractHash, Key, RuntimeArgs, U
 use crate::utility::{
     constants::{
         ACCOUNT_USER_1, ARG_KEY_NAME, ARG_NFT_CONTRACT_HASH, ARG_TOKEN_ID, ARG_TOKEN_META_DATA,
-        ARG_TOKEN_OWNER, ARG_TOKEN_URI, BALANCES, BALANCE_OF_SESSION_WASM, BURNT_TOKENS,
-        CONTRACT_NAME, ENTRY_POINT_BURN, ENTRY_POINT_MINT, MINT_SESSION_WASM, NFT_CONTRACT_WASM,
-        OWNED_TOKENS, OWNED_TOKENS_DICTIONARY_KEY, TEST_META_DATA, TEST_URI,
+        ARG_TOKEN_OWNER, ARG_TOKEN_URI, BALANCES, BURNT_TOKENS, CONTRACT_NAME, ENTRY_POINT_BURN,
+        MINT_SESSION_WASM, NFT_CONTRACT_WASM, OWNED_TOKENS, OWNED_TOKENS_DICTIONARY_KEY,
+        TEST_META_DATA, TEST_URI,
     },
     installer_request_builder::{InstallerRequestBuilder, OwnershipMode},
     support::{self, get_nft_contract_hash},

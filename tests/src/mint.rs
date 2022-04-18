@@ -584,9 +584,6 @@ fn should_disallow_public_minting_with_flag_set_to_false() {
         .named_keys()
         .get(CONTRACT_NAME)
         .expect("must have key in named keys");
-    let nft_contract_hash = nft_contract_key
-        .into_hash()
-        .expect("must convert to hash addr");
 
     let (_account_1_secret_key, account_1_public_key) =
         support::create_dummy_key_pair(ACCOUNT_USER_1);

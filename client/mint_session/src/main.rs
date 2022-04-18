@@ -16,7 +16,6 @@ const ARG_KEY_NAME: &str = "key_name";
 const ARG_TOKEN_OWNER: &str = "token_owner";
 const ARG_TOKEN_META_DATA: &str = "token_meta_data";
 const ARG_TOKEN_URI: &str = "token_uri";
-const OWNED_TOKENS_DICTIONARY_KEY: &str = "owned_tokens_dictionary_key";
 
 #[no_mangle]
 pub extern "C" fn call() {

@@ -1,3 +1,5 @@
+use crate::utility::constants::{ARG_KEY_NAME, ARG_NFT_CONTRACT_HASH};
+
 use super::{constants::CONTRACT_NAME, installer_request_builder::InstallerRequestBuilder};
 use casper_engine_test_support::{
     ExecuteRequestBuilder, InMemoryWasmTestBuilder, WasmTestBuilder, DEFAULT_ACCOUNT_ADDR,
@@ -11,9 +13,6 @@ use casper_types::{
     account::AccountHash, bytesrepr::FromBytes, ApiError, CLTyped, ContractHash, Key, PublicKey,
     RuntimeArgs, SecretKey, URef,
 };
-
-const ARG_NFT_CONTRACT_HASH: &str = "nft_contract_hash";
-const ARG_KEY_NAME: &str = "key_name";
 
 pub(crate) fn get_nft_contract_hash(
     builder: &WasmTestBuilder<InMemoryGlobalState>,
