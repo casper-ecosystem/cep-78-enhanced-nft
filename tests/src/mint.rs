@@ -163,12 +163,12 @@ fn entry_points_with_ret_should_return_correct_value() {
         "get_approved",
     );
 
-    // let expected_operator = Key::Account(operator_public_key.to_account_hash());
-    // assert_eq!(
-    //     actual_operator,
-    //     Some(expected_operator),
-    //     "actual and expected owner should be equal"
-    // );
+    let expected_operator = Key::Account(operator_public_key.to_account_hash());
+    assert_eq!(
+        actual_operator,
+        Some(expected_operator),
+        "actual and expected owner should be equal"
+    );
 }
 
 #[test]

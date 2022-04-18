@@ -790,9 +790,12 @@ pub extern "C" fn metadata() {
 // Returns approved account_hash from token_id, throws error if token id is not valid
 #[no_mangle]
 pub extern "C" fn get_approved() {
-    let token_id =
-        get_optional_named_arg_with_user_errors::<U256>(ARG_TOKEN_ID, NFTCoreError::InvalidTokenID)
-            .unwrap_or_revert();
+    let token_id = get_named_arg_with_user_errors::<U256>(
+        ARG_TOKEN_ID,
+        NFTCoreError::MissingTokenID,
+        NFTCoreError::InvalidTokenID,
+    )
+    .unwrap_or_revert();
 
     // Revert if already burnt
     if get_dictionary_value_from_key::<()>(BURNT_TOKENS, &token_id.to_string()).is_some() {
@@ -821,6 +824,13 @@ pub extern "C" fn get_approved() {
         .unwrap_or_revert_with(NFTCoreError::FailedToConvertToCLValue);
 
     runtime::ret(approved_cl_value);
+
+    // let caller = Key::Account(runtime::get_caller());
+
+    // let approved_cl_value =
+    //     CLValue::from_t(Some(caller)).unwrap_or_revert_with(NFTCoreError::FailedToConvertToCLValue);
+
+    // runtime::ret(approved_cl_value);
 }
 
 fn store() -> (ContractHash, ContractVersion) {

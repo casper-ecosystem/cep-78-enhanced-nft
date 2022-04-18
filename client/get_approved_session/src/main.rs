@@ -30,5 +30,6 @@ pub extern "C" fn call() {
             ARG_TOKEN_ID => token_id,
         },
     );
+
     runtime::put_key(&key_name, storage::new_uref(maybe_operator).into());
 }
