@@ -167,7 +167,7 @@ fn entry_points_with_ret_should_return_correct_value() {
     assert_eq!(
         actual_operator,
         Some(expected_operator),
-        "actual and expected owner should be equal"
+        "actual and expected operator should be equal"
     );
 }
 
@@ -761,4 +761,40 @@ fn should_set_approval_for_all() {
         .exec(set_approve_for_all_request)
         .expect_success()
         .commit();
+
+    let actual_operator: Option<Key> = call_entry_point_with_ret(
+        &mut builder,
+        *DEFAULT_ACCOUNT_ADDR,
+        nft_contract_hash,
+        runtime_args! {
+            ARG_TOKEN_ID => U256::zero(),
+        },
+        "get_approved_call.wasm",
+        "get_approved",
+    );
+
+    let expected_operator = Key::Account(operator_public_key.to_account_hash());
+    assert_eq!(
+        actual_operator,
+        Some(expected_operator),
+        "actual and expected operator should be equal"
+    );
+
+    let actual_operator: Option<Key> = call_entry_point_with_ret(
+        &mut builder,
+        *DEFAULT_ACCOUNT_ADDR,
+        nft_contract_hash,
+        runtime_args! {
+            ARG_TOKEN_ID => U256::one(),
+        },
+        "get_approved_call.wasm",
+        "get_approved",
+    );
+
+    let expected_operator = Key::Account(operator_public_key.to_account_hash());
+    assert_eq!(
+        actual_operator,
+        Some(expected_operator),
+        "actual and expected operator should be equal"
+    );
 }

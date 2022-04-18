@@ -510,7 +510,7 @@ pub extern "C" fn set_approval_for_all() {
         NFTCoreError::InvalidStorageUref,
     );
 
-    if let Some(owned_tokens) = get_dictionary_value_from_key::<Vec<U256>>(OPERATOR, &caller) {
+    if let Some(owned_tokens) = get_dictionary_value_from_key::<Vec<U256>>(OWNED_TOKENS, &caller) {
         // Depending on approve_all we either approve all or disapprove all.
         for t in owned_tokens {
             if approve_all {
