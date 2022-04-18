@@ -10,14 +10,10 @@ use casper_contract::contract_api::{runtime, storage};
 use casper_types::{runtime_args, ContractHash, Key, RuntimeArgs, U256};
 
 const ENTRY_POINT_OWNER_OF: &str = "owner_of";
-
 const ARG_NFT_CONTRACT_HASH: &str = "nft_contract_hash";
 const ARG_KEY_NAME: &str = "key_name";
 const ARG_TOKEN_ID: &str = "token_id";
 
-// This session code is used for entrypoints with a return value.
-// This session code calls the entrypoint with the specified entrypoint_name and stores the return value
-// under the current context so that it can later be queried. See also the function support::call_entry_point_with_ret
 #[no_mangle]
 pub extern "C" fn call() {
     let nft_contract_hash: ContractHash = runtime::get_named_arg(ARG_NFT_CONTRACT_HASH);
@@ -31,6 +27,5 @@ pub extern "C" fn call() {
             ARG_TOKEN_ID => token_id,
         },
     );
-
     runtime::put_key(&key_name, storage::new_uref(owner).into());
 }

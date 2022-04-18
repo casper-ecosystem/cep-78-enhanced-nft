@@ -16,12 +16,8 @@ const ARG_KEY_NAME: &str = "key_name";
 const ARG_TOKEN_OWNER: &str = "token_owner";
 const ARG_TOKEN_META_DATA: &str = "token_meta_data";
 const ARG_TOKEN_URI: &str = "token_uri";
-
 const OWNED_TOKENS_DICTIONARY_KEY: &str = "owned_tokens_dictionary_key";
 
-// This session code is used for entrypoints with a return value.
-// This session code calls the entrypoint with the specified entrypoint_name and stores the return value
-// under the current context so that it can later be queried. See also the function support::call_entry_point_with_ret
 #[no_mangle]
 pub extern "C" fn call() {
     let nft_contract_hash: ContractHash = runtime::get_named_arg(ARG_NFT_CONTRACT_HASH);
