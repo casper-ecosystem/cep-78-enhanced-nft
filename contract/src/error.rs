@@ -73,6 +73,10 @@ pub enum NFTCoreError {
     InvalidJsonSchema = 68,
     InvalidKey = 69,
     InvalidOwnedTokens = 70,
+    MissingTokenURI = 71,
+    InvalidTokenURI = 72,
+    MissingNftAssetType = 73,
+    InvalidNftAssetType = 74,
 }
 
 impl From<NFTCoreError> for ApiError {

@@ -6,7 +6,7 @@ use casper_types::{account::AccountHash, CLValue, RuntimeArgs, U256};
 
 use super::constants::{
     ARG_ALLOW_MINTING, ARG_COLLECTION_NAME, ARG_COLLECTION_SYMBOL, ARG_JSON_SCHEMA,
-    ARG_OWNERSHIP_MODE, ARG_PUBLIC_MINTING, ARG_TOTAL_TOKEN_SUPPLY,
+    ARG_NFT_ASSET_TYPE, ARG_OWNERSHIP_MODE, ARG_PUBLIC_MINTING, ARG_TOTAL_TOKEN_SUPPLY,
 };
 
 #[repr(u8)]
@@ -19,6 +19,14 @@ pub enum OwnershipMode {
                              // Maybe Shared(u8) // Shares of the NFT can be transferred and ownership is determined by the share.
 }
 
+#[repr(u8)]
+#[derive(Debug)]
+pub enum NFTAssetType {
+    PhysicalAsset = 0,
+    DigitalAsset = 1, // The minter assigns it to an address and can never be transferred.
+    VirtualAsset = 2, // The NFT can be transferred even to an recipient that does not exist
+}
+
 #[derive(Debug)]
 pub(crate) struct InstallerRequestBuilder {
     account_hash: AccountHash,
@@ -29,6 +37,7 @@ pub(crate) struct InstallerRequestBuilder {
     allow_minting: CLValue,
     public_minting: CLValue,
     ownership_mode: CLValue,
+    nft_asset_type: CLValue,
     json_schema: CLValue,
 }
 
@@ -50,6 +59,7 @@ impl InstallerRequestBuilder {
             allow_minting: CLValue::from_t(Some(true)).unwrap(),
             public_minting: CLValue::from_t(Some(false)).unwrap(),
             ownership_mode: CLValue::from_t(OwnershipMode::Minter as u8).unwrap(),
+            nft_asset_type: CLValue::from_t(NFTAssetType::PhysicalAsset as u8).unwrap(),
             json_schema: CLValue::from_t("my_json_schema".to_string())
                 .expect("my_json_schema is legit CLValue"),
         }
@@ -129,6 +139,7 @@ impl InstallerRequestBuilder {
         runtime_args.insert_cl_value(ARG_ALLOW_MINTING, self.allow_minting);
         runtime_args.insert_cl_value(ARG_PUBLIC_MINTING, self.public_minting);
         runtime_args.insert_cl_value(ARG_OWNERSHIP_MODE, self.ownership_mode);
+        runtime_args.insert_cl_value(ARG_NFT_ASSET_TYPE, self.nft_asset_type);
         runtime_args.insert_cl_value(ARG_JSON_SCHEMA, self.json_schema);
         ExecuteRequestBuilder::standard(self.account_hash, &self.session_file, runtime_args).build()
     }

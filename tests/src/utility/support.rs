@@ -1,3 +1,4 @@
+use super::{constants::CONTRACT_NAME, installer_request_builder::InstallerRequestBuilder};
 use casper_engine_test_support::{
     ExecuteRequestBuilder, InMemoryWasmTestBuilder, WasmTestBuilder, DEFAULT_ACCOUNT_ADDR,
     DEFAULT_RUN_GENESIS_REQUEST,
@@ -11,13 +12,8 @@ use casper_types::{
     RuntimeArgs, SecretKey, URef,
 };
 
-use super::{
-    constants::{CONTRACT_NAME, ENTRY_POINT_SESSION_WASM},
-    installer_request_builder::InstallerRequestBuilder,
-};
-
-const ARG_ENTRY_POINT_NAME: &str = "entry_point_name";
 const ARG_NFT_CONTRACT_HASH: &str = "nft_contract_hash";
+const ARG_KEY_NAME: &str = "key_name";
 
 pub(crate) fn get_nft_contract_hash(
     builder: &WasmTestBuilder<InMemoryGlobalState>,
@@ -127,27 +123,22 @@ pub(crate) fn call_entry_point_with_ret<T: CLTyped + FromBytes>(
     account_hash: AccountHash,
     nft_contract_hash: ContractHash,
     mut runtime_args: RuntimeArgs,
-    entry_point_name: &str,
+    wasm_file_name: &str,
+    key_name: &str,
 ) -> T {
-    runtime_args
-        .insert(ARG_ENTRY_POINT_NAME, entry_point_name.to_string())
-        .unwrap();
     runtime_args
         .insert(ARG_NFT_CONTRACT_HASH, nft_contract_hash)
         .unwrap();
 
-    let entry_point_session_call =
-        ExecuteRequestBuilder::standard(account_hash, ENTRY_POINT_SESSION_WASM, runtime_args)
-            .build();
+    runtime_args
+        .insert(ARG_KEY_NAME, key_name.to_string())
+        .unwrap();
 
-    builder
-        .exec(entry_point_session_call)
-        .expect_success()
-        .commit();
+    println!("Calling:  {:?}", wasm_file_name);
+    let session_call =
+        ExecuteRequestBuilder::standard(account_hash, wasm_file_name, runtime_args).build();
+    builder.exec(session_call).expect_success().commit();
 
-    query_stored_value::<T>(
-        builder,
-        account_hash.into(),
-        [entry_point_name.to_string()].into(),
-    )
+    println!("Querying: {}", key_name);
+    query_stored_value::<T>(builder, account_hash.into(), [key_name.to_string()].into())
 }

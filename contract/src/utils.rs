@@ -36,6 +36,33 @@ pub(crate) fn upsert_dictionary_value_from_key<T: CLTyped + FromBytes + ToBytes>
 }
 
 #[repr(u8)]
+pub enum NFTAssetType {
+    /// The NFT represents a real-world physical asset
+    /// like a house.
+    PhysicalAsset,
+    /// The NFT represents a digital asset like a unique
+    /// JPEG or digital art asset.
+    DigitalAsset,
+    /// The NFT is the virtual representation
+    /// of a physical notion, e.g a patent
+    /// or copyright.
+    VirtualAsset,
+}
+
+impl TryFrom<u8> for NFTAssetType {
+    type Error = NFTCoreError;
+
+    fn try_from(value: u8) -> Result<Self, Self::Error> {
+        match value {
+            0 => Ok(NFTAssetType::PhysicalAsset),
+            1 => Ok(NFTAssetType::DigitalAsset),
+            2 => Ok(NFTAssetType::VirtualAsset),
+            _ => Err(NFTCoreError::InvalidOwnershipMode),
+        }
+    }
+}
+
+#[repr(u8)]
 pub enum OwnershipMode {
     Minter = 0,                // The minter owns it and can never transfer it.
     Assigned = 1,              // The minter assigns it to an address and can never be transferred.

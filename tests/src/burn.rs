@@ -6,10 +6,10 @@ use casper_types::{runtime_args, system::mint, ContractHash, Key, RuntimeArgs, U
 
 use crate::utility::{
     constants::{
-        ACCOUNT_USER_1, ARG_ENTRY_POINT_NAME, ARG_NFT_CONTRACT_HASH, ARG_TOKEN_ID,
-        ARG_TOKEN_META_DATA, ARG_TOKEN_OWNER, BALANCES, BURNT_TOKENS, CONTRACT_NAME,
-        ENTRY_POINT_BURN, ENTRY_POINT_MINT, ENTRY_POINT_SESSION_WASM, NFT_CONTRACT_WASM,
-        OWNED_TOKENS, TEST_META_DATA,
+        ACCOUNT_USER_1, ARG_KEY_NAME, ARG_NFT_CONTRACT_HASH, ARG_TOKEN_ID, ARG_TOKEN_META_DATA,
+        ARG_TOKEN_OWNER, ARG_TOKEN_URI, BALANCES, BALANCE_OF_SESSION_WASM, BURNT_TOKENS,
+        CONTRACT_NAME, ENTRY_POINT_BURN, ENTRY_POINT_MINT, MINT_SESSION_WASM, NFT_CONTRACT_WASM,
+        OWNED_TOKENS, OWNED_TOKENS_DICTIONARY_KEY, TEST_META_DATA, TEST_URI,
     },
     installer_request_builder::{InstallerRequestBuilder, OwnershipMode},
     support::{self, get_nft_contract_hash},
@@ -42,12 +42,13 @@ fn should_burn_minted_token() {
 
     let mint_session_call = ExecuteRequestBuilder::standard(
         *DEFAULT_ACCOUNT_ADDR,
-        ENTRY_POINT_SESSION_WASM,
+        MINT_SESSION_WASM,
         runtime_args! {
             ARG_NFT_CONTRACT_HASH => nft_contract_hash,
-            ARG_ENTRY_POINT_NAME => ENTRY_POINT_MINT.to_string(),
+            ARG_KEY_NAME => Some(OWNED_TOKENS_DICTIONARY_KEY.to_string()),
             ARG_TOKEN_OWNER => Key::Account(*DEFAULT_ACCOUNT_ADDR),
             ARG_TOKEN_META_DATA => TEST_META_DATA.to_string(),
+            ARG_TOKEN_URI => TEST_URI.to_string(),
         },
     )
     .build();
@@ -129,12 +130,13 @@ fn should_not_burn_previously_burnt_token() {
     let nft_contract_hash = get_nft_contract_hash(&builder);
     let mint_session_call = ExecuteRequestBuilder::standard(
         *DEFAULT_ACCOUNT_ADDR,
-        ENTRY_POINT_SESSION_WASM,
+        MINT_SESSION_WASM,
         runtime_args! {
             ARG_NFT_CONTRACT_HASH => nft_contract_hash,
-            ARG_ENTRY_POINT_NAME => ENTRY_POINT_MINT.to_string(),
+            ARG_KEY_NAME => Some(OWNED_TOKENS_DICTIONARY_KEY.to_string()),
             ARG_TOKEN_OWNER => Key::Account(*DEFAULT_ACCOUNT_ADDR),
             ARG_TOKEN_META_DATA => TEST_META_DATA.to_string(),
+            ARG_TOKEN_URI => TEST_URI.to_string(),
         },
     )
     .build();
@@ -263,12 +265,13 @@ fn should_disallow_burning_of_others_users_token() {
 
     let mint_session_call = ExecuteRequestBuilder::standard(
         *DEFAULT_ACCOUNT_ADDR,
-        ENTRY_POINT_SESSION_WASM,
+        MINT_SESSION_WASM,
         runtime_args! {
-            ARG_NFT_CONTRACT_HASH => get_nft_contract_hash(&builder),
-            ARG_ENTRY_POINT_NAME => ENTRY_POINT_MINT.to_string(),
+            ARG_NFT_CONTRACT_HASH => nft_contract_hash,
+            ARG_KEY_NAME => Option::<String>::None,
             ARG_TOKEN_OWNER => Key::Account(*DEFAULT_ACCOUNT_ADDR),
             ARG_TOKEN_META_DATA => TEST_META_DATA.to_string(),
+            ARG_TOKEN_URI => TEST_URI.to_string(),
         },
     )
     .build();
@@ -347,12 +350,13 @@ fn should_prevent_burning_on_owner_key_mismatch() {
 
     let mint_session_call = ExecuteRequestBuilder::standard(
         *DEFAULT_ACCOUNT_ADDR,
-        ENTRY_POINT_SESSION_WASM,
+        MINT_SESSION_WASM,
         runtime_args! {
-            ARG_NFT_CONTRACT_HASH => get_nft_contract_hash(&builder),
-            ARG_ENTRY_POINT_NAME => ENTRY_POINT_MINT.to_string(),
+            ARG_NFT_CONTRACT_HASH => nft_contract_hash,
+            ARG_KEY_NAME => Some(OWNED_TOKENS_DICTIONARY_KEY.to_string()),
             ARG_TOKEN_OWNER => Key::Account(*DEFAULT_ACCOUNT_ADDR),
             ARG_TOKEN_META_DATA => TEST_META_DATA.to_string(),
+            ARG_TOKEN_URI => TEST_URI.to_string(),
         },
     )
     .build();

@@ -1,5 +1,8 @@
 pub const NFT_CONTRACT_WASM: &str = "contract.wasm";
-pub const ENTRY_POINT_SESSION_WASM: &str = "entrypoint_call.wasm";
+pub const MINT_SESSION_WASM: &str = "mint_call.wasm";
+pub const BALANCE_OF_SESSION_WASM: &str = "balance_of_call.wasm";
+pub const OWNER_OF_SESSION_WASM: &str = "owner_of_call.wasm";
+pub const GET_APPROVED_SESSION_WASM: &str = "get_approved_call.wasm";
 
 pub(crate) const CONTRACT_NAME: &str = "nft_contract";
 
@@ -12,6 +15,7 @@ pub(crate) const ENTRY_POINT_MINT: &str = "mint";
 pub(crate) const ENTRY_POINT_BURN: &str = "burn";
 pub(crate) const ENTRY_POINT_TRANSFER: &str = "transfer";
 pub(crate) const ENTRY_POINT_APPROVE: &str = "approve";
+pub(crate) const ENTRY_POINT_SET_APPROVE_FOR_ALL: &str = "set_approval_for_all";
 
 pub(crate) const ARG_COLLECTION_NAME: &str = "collection_name";
 pub(crate) const ARG_COLLECTION_SYMBOL: &str = "collection_symbol";
@@ -24,11 +28,14 @@ pub(crate) const TOKEN_META_DATA: &str = "token_meta_data";
 pub(crate) const ARG_TOKEN_OWNER: &str = "token_owner";
 pub(crate) const ARG_NFT_CONTRACT_HASH: &str = "nft_contract_hash";
 pub(crate) const ARG_JSON_SCHEMA: &str = "json_schema";
-pub(crate) const ARG_ENTRY_POINT_NAME: &str = "entry_point_name";
+pub(crate) const ARG_TOKEN_URI: &str = "token_uri";
+pub(crate) const ARG_APPROVE_ALL: &str = "approve_all";
 
 pub const TOKEN_ISSUERS: &str = "token_issuers";
 
 pub(crate) const ARG_OWNERSHIP_MODE: &str = "ownership_mode";
+pub const ARG_NFT_ASSET_TYPE: &str = "nft_asset_type";
+
 pub(crate) const TOKEN_OWNERS: &str = "token_owners";
 pub(crate) const OWNED_TOKENS: &str = "owned_tokens";
 pub(crate) const BURNT_TOKENS: &str = "burnt_tokens";
@@ -37,6 +44,7 @@ pub(crate) const OPERATOR: &str = "operator";
 pub(crate) const BALANCES: &str = "balances";
 pub(crate) const ARG_OPERATOR: &str = "operator";
 pub(crate) const OWNED_TOKENS_DICTIONARY_KEY: &str = "owned_tokens_dictionary_key";
+pub(crate) const ARG_KEY_NAME: &str = "key_name";
 
 pub(crate) const ARG_TO_ACCOUNT_HASH: &str = "to_account_hash";
 pub(crate) const ARG_FROM_ACCOUNT_HASH: &str = "from_account_hash";
@@ -46,3 +54,4 @@ pub(crate) const ACCOUNT_USER_1: [u8; 32] = [1u8; 32];
 pub(crate) const ACCOUNT_USER_2: [u8; 32] = [2u8; 32];
 pub(crate) const ACCOUNT_USER_3: [u8; 32] = [2u8; 32];
 pub(crate) const TEST_META_DATA: &str = "test meta";
+pub(crate) const TEST_URI: &str = "www.google.com";

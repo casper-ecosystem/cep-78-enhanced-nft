@@ -1,5 +1,5 @@
 [package]
-name = "entrypoint_session"
+name = "mint_session"
 version = "0.1.0"
 edition = "2018"
 
@@ -8,7 +8,7 @@ casper-contract = "1.4.3"
 casper-types = "1.4.5"
 
 [[bin]]
-name = "entrypoint_call"
+name = "mint_call"
 path = "src/main.rs"
 bench = false
 doctest = false
