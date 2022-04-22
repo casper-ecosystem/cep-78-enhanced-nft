@@ -360,7 +360,7 @@ fn mint_should_increment_number_of_minted_tokens_by_one_and_add_public_key_to_to
 }
 
 #[test]
-fn mint_should_correctly_set_meta_data() {
+fn should_set_meta_data() {
     let mut builder = InMemoryWasmTestBuilder::default();
     builder.run_genesis(&DEFAULT_RUN_GENESIS_REQUEST).commit();
 
@@ -404,7 +404,7 @@ fn mint_should_correctly_set_meta_data() {
 }
 
 #[test]
-fn mint_should_correctly_set_issuer() {
+fn should_set_issuer() {
     let mut builder = InMemoryWasmTestBuilder::default();
     builder.run_genesis(&DEFAULT_RUN_GENESIS_REQUEST).commit();
 
@@ -450,7 +450,7 @@ fn mint_should_correctly_set_issuer() {
 }
 
 #[test]
-fn mint_should_correctly_update_balances() {
+fn should_track_token_balance_by_owner() {
     let mut builder = InMemoryWasmTestBuilder::default();
     builder.run_genesis(&DEFAULT_RUN_GENESIS_REQUEST).commit();
 
@@ -493,6 +493,8 @@ fn mint_should_correctly_update_balances() {
     );
     let expected_minter_balance = U256::one();
     assert_eq!(actual_minter_balance, expected_minter_balance);
+
+    // TODO: come up with better name than balance. Or not...
 }
 
 #[test]

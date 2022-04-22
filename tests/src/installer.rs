@@ -148,6 +148,12 @@ fn should_install_with_allow_minting_set_to_false() {
         .build();
 
     builder.exec(install_request).expect_success().commit();
+
+    let installing_account = builder.get_expected_account(*DEFAULT_ACCOUNT_ADDR);
+    let nft_contract_key = installing_account.named_keys().get(CONTRACT_NAME);
+
+    // TODO: THis test needs to be finished: --> should_install_with_optional_arguments_set_to_default_values()
+    // Query and make sure that defaults values have expected values.
 }
 
 #[test]

@@ -186,7 +186,7 @@ fn should_not_burn_previously_burnt_token() {
 }
 
 #[test]
-fn should_not_burn_un_minted_token() {
+fn should_return_expected_error_when_burning_non_existing_token() {
     let mut builder = InMemoryWasmTestBuilder::default();
     builder.run_genesis(&DEFAULT_RUN_GENESIS_REQUEST).commit();
 
@@ -217,12 +217,12 @@ fn should_not_burn_un_minted_token() {
     support::assert_expected_error(
         actual_error,
         28u16,
-        "should disallow burning of unminted token",
+        "should return InvalidTokenID error when trying to burn a non_existing token",
     );
 }
 
 #[test]
-fn should_disallow_burning_of_others_users_token() {
+fn should_return_expected_error_burning_of_others_users_token() {
     let mut builder = InMemoryWasmTestBuilder::default();
     builder.run_genesis(&DEFAULT_RUN_GENESIS_REQUEST).commit();
 
@@ -303,10 +303,12 @@ fn should_disallow_burning_of_others_users_token() {
     let error = builder.get_error().expect("must have error");
 
     support::assert_expected_error(error, 6u16, "should disallow burning of other users' token");
+
+    // TODO is this really diffferent than should_return_expected_error_when_burning_not_owned_token() ???
 }
 
 #[test]
-fn should_prevent_burning_on_owner_key_mismatch() {
+fn should_return_expected_error_when_burning_not_owned_token() {
     let mut builder = InMemoryWasmTestBuilder::default();
     builder.run_genesis(&DEFAULT_RUN_GENESIS_REQUEST).commit();
 
