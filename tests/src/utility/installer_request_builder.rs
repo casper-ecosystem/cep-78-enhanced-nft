@@ -4,25 +4,31 @@ use casper_types::{account::AccountHash, CLValue, RuntimeArgs, U256};
 
 use super::constants::{
     ARG_ALLOW_MINTING, ARG_COLLECTION_NAME, ARG_COLLECTION_SYMBOL, ARG_JSON_SCHEMA,
-    ARG_NFT_ASSET_TYPE, ARG_OWNERSHIP_MODE, ARG_PUBLIC_MINTING, ARG_TOTAL_TOKEN_SUPPLY,
+    ARG_NFT_KIND, ARG_OWNERSHIP_MODE, ARG_MINTING_MODE, ARG_TOTAL_TOKEN_SUPPLY,
 };
+
+#[repr(u8)]
+pub enum MintingMode {
+    /// The ability to mint NFTs is restricted to the installing account only.
+    Installer = 0,
+    /// The ability to mint NFTs is not restricted.
+    Public = 1,
+}
 
 #[repr(u8)]
 #[derive(Debug)]
 pub enum OwnershipMode {
     Minter = 0,                // The minter owns it and can never transfer it.
     Assigned = 1,              // The minter assigns it to an address and can never be transferred.
-    TransferableUnchecked = 2, // The NFT can be transferred even to an recipient that does not exist.
-    TransferableChecked = 3, // The NFT can be transferred but only to a recipient that does exist.
-                             // Maybe Shared(u8) // Shares of the NFT can be transferred and ownership is determined by the share.
+    Transferable = 2, // The NFT can be transferred even to an recipient that does not exist.
 }
 
 #[repr(u8)]
 #[derive(Debug)]
-pub enum NFTAssetType {
-    PhysicalAsset = 0,
-    DigitalAsset = 1, // The minter assigns it to an address and can never be transferred.
-    VirtualAsset = 2, // The NFT can be transferred even to an recipient that does not exist
+pub enum NFTKind {
+    Physical = 0,
+    Digital = 1, // The minter assigns it to an address and can never be transferred.
+    Virtual = 2, // The NFT can be transferred even to an recipient that does not exist
 }
 
 #[derive(Debug)]
@@ -33,9 +39,9 @@ pub(crate) struct InstallerRequestBuilder {
     collection_symbol: CLValue,
     total_token_supply: CLValue,
     allow_minting: CLValue,
-    public_minting: CLValue,
+    minting_mode: CLValue,
     ownership_mode: CLValue,
-    nft_asset_type: CLValue,
+    nft_kind: CLValue,
     json_schema: CLValue,
 }
 
@@ -55,9 +61,9 @@ impl InstallerRequestBuilder {
             total_token_supply: CLValue::from_t(U256::one())
                 .expect("total_token_supply is legit CLValue"),
             allow_minting: CLValue::from_t(Some(true)).unwrap(),
-            public_minting: CLValue::from_t(Some(false)).unwrap(),
+            minting_mode: CLValue::from_t(Some(MintingMode::Installer as u8)).unwrap(),
             ownership_mode: CLValue::from_t(OwnershipMode::Minter as u8).unwrap(),
-            nft_asset_type: CLValue::from_t(NFTAssetType::PhysicalAsset as u8).unwrap(),
+            nft_kind: CLValue::from_t(NFTKind::Physical as u8).unwrap(),
             json_schema: CLValue::from_t("my_json_schema".to_string())
                 .expect("my_json_schema is legit CLValue"),
         }
@@ -113,9 +119,9 @@ impl InstallerRequestBuilder {
         self
     }
 
-    pub(crate) fn with_public_minting(mut self, public_minting: Option<bool>) -> Self {
-        self.public_minting =
-            CLValue::from_t(public_minting).expect("public minting is legit CLValue");
+    pub(crate) fn with_minting_mode(mut self, minting_mode: Option<u8>) -> Self {
+        self.minting_mode =
+            CLValue::from_t(minting_mode).expect("public minting is legit CLValue");
         self
     }
 
@@ -135,9 +141,9 @@ impl InstallerRequestBuilder {
         runtime_args.insert_cl_value(ARG_COLLECTION_SYMBOL, self.collection_symbol);
         runtime_args.insert_cl_value(ARG_TOTAL_TOKEN_SUPPLY, self.total_token_supply);
         runtime_args.insert_cl_value(ARG_ALLOW_MINTING, self.allow_minting);
-        runtime_args.insert_cl_value(ARG_PUBLIC_MINTING, self.public_minting);
+        runtime_args.insert_cl_value(ARG_MINTING_MODE, self.minting_mode.clone());
         runtime_args.insert_cl_value(ARG_OWNERSHIP_MODE, self.ownership_mode);
-        runtime_args.insert_cl_value(ARG_NFT_ASSET_TYPE, self.nft_asset_type);
+        runtime_args.insert_cl_value(ARG_NFT_KIND, self.nft_kind);
         runtime_args.insert_cl_value(ARG_JSON_SCHEMA, self.json_schema);
         ExecuteRequestBuilder::standard(self.account_hash, &self.session_file, runtime_args).build()
     }

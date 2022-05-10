@@ -24,7 +24,7 @@ fn should_burn_minted_token() {
     let install_request_builder =
         InstallerRequestBuilder::new(*DEFAULT_ACCOUNT_ADDR, NFT_CONTRACT_WASM)
             .with_total_token_supply(U256::from(100u64))
-            .with_ownership_mode(OwnershipMode::TransferableUnchecked)
+            .with_ownership_mode(OwnershipMode::Transferable)
             .build();
 
     builder
@@ -44,7 +44,7 @@ fn should_burn_minted_token() {
         *DEFAULT_ACCOUNT_ADDR,
         MINT_SESSION_WASM,
         runtime_args! {
-            ARG_NFT_CONTRACT_HASH => nft_contract_hash,
+            ARG_NFT_CONTRACT_HASH => Key::Hash(nft_contract_hash.value()),
             ARG_KEY_NAME => Some(OWNED_TOKENS_DICTIONARY_KEY.to_string()),
             ARG_TOKEN_OWNER => Key::Account(*DEFAULT_ACCOUNT_ADDR),
             ARG_TOKEN_META_DATA => TEST_META_DATA.to_string(),
@@ -113,7 +113,7 @@ fn should_not_burn_previously_burnt_token() {
     let install_request_builder =
         InstallerRequestBuilder::new(*DEFAULT_ACCOUNT_ADDR, NFT_CONTRACT_WASM)
             .with_total_token_supply(U256::from(100u64))
-            .with_ownership_mode(OwnershipMode::TransferableUnchecked)
+            .with_ownership_mode(OwnershipMode::Transferable)
             .build();
 
     builder
@@ -132,7 +132,7 @@ fn should_not_burn_previously_burnt_token() {
         *DEFAULT_ACCOUNT_ADDR,
         MINT_SESSION_WASM,
         runtime_args! {
-            ARG_NFT_CONTRACT_HASH => nft_contract_hash,
+            ARG_NFT_CONTRACT_HASH => Key::Hash(nft_contract_hash.value()),
             ARG_KEY_NAME => Some(OWNED_TOKENS_DICTIONARY_KEY.to_string()),
             ARG_TOKEN_OWNER => Key::Account(*DEFAULT_ACCOUNT_ADDR),
             ARG_TOKEN_META_DATA => TEST_META_DATA.to_string(),
@@ -193,7 +193,7 @@ fn should_return_expected_error_when_burning_non_existing_token() {
     let install_request_builder =
         InstallerRequestBuilder::new(*DEFAULT_ACCOUNT_ADDR, NFT_CONTRACT_WASM)
             .with_total_token_supply(U256::from(100u64))
-            .with_ownership_mode(OwnershipMode::TransferableUnchecked)
+            .with_ownership_mode(OwnershipMode::Transferable)
             .build();
 
     builder
@@ -229,7 +229,7 @@ fn should_return_expected_error_burning_of_others_users_token() {
     let install_request_builder =
         InstallerRequestBuilder::new(*DEFAULT_ACCOUNT_ADDR, NFT_CONTRACT_WASM)
             .with_total_token_supply(U256::from(100u64))
-            .with_ownership_mode(OwnershipMode::TransferableUnchecked)
+            .with_ownership_mode(OwnershipMode::Transferable)
             .build();
 
     builder
@@ -267,7 +267,7 @@ fn should_return_expected_error_burning_of_others_users_token() {
         *DEFAULT_ACCOUNT_ADDR,
         MINT_SESSION_WASM,
         runtime_args! {
-            ARG_NFT_CONTRACT_HASH => nft_contract_hash,
+            ARG_NFT_CONTRACT_HASH => Key::Hash(nft_contract_hash),
             ARG_KEY_NAME => Option::<String>::None,
             ARG_TOKEN_OWNER => Key::Account(*DEFAULT_ACCOUNT_ADDR),
             ARG_TOKEN_META_DATA => TEST_META_DATA.to_string(),
@@ -315,7 +315,7 @@ fn should_return_expected_error_when_burning_not_owned_token() {
     let install_request_builder =
         InstallerRequestBuilder::new(*DEFAULT_ACCOUNT_ADDR, NFT_CONTRACT_WASM)
             .with_total_token_supply(U256::from(100u64))
-            .with_ownership_mode(OwnershipMode::TransferableUnchecked)
+            .with_ownership_mode(OwnershipMode::Transferable)
             .build();
 
     builder
@@ -354,7 +354,7 @@ fn should_return_expected_error_when_burning_not_owned_token() {
         *DEFAULT_ACCOUNT_ADDR,
         MINT_SESSION_WASM,
         runtime_args! {
-            ARG_NFT_CONTRACT_HASH => nft_contract_hash,
+            ARG_NFT_CONTRACT_HASH => Key::Hash(nft_contract_hash),
             ARG_KEY_NAME => Some(OWNED_TOKENS_DICTIONARY_KEY.to_string()),
             ARG_TOKEN_OWNER => Key::Account(*DEFAULT_ACCOUNT_ADDR),
             ARG_TOKEN_META_DATA => TEST_META_DATA.to_string(),

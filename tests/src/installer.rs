@@ -6,7 +6,7 @@ use casper_types::{runtime_args, CLValue, RuntimeArgs, U256};
 
 use crate::utility::{
     constants::{
-        ARG_ALLOW_MINTING, ARG_COLLECTION_NAME, ARG_COLLECTION_SYMBOL, ARG_PUBLIC_MINTING,
+        ARG_ALLOW_MINTING, ARG_COLLECTION_NAME, ARG_COLLECTION_SYMBOL, ARG_MINTING_MODE,
         ARG_TOTAL_TOKEN_SUPPLY, CONTRACT_NAME, ENTRY_POINT_INIT, NFT_CONTRACT_WASM,
         NFT_TEST_COLLECTION, NFT_TEST_SYMBOL, NUMBER_OF_MINTED_TOKENS,
     },
@@ -77,13 +77,13 @@ fn should_install_contract() {
 
     assert!(query_result, "Allow minting should default to true");
 
-    let query_result: bool = support::query_stored_value(
+    let query_result: u8 = support::query_stored_value(
         &mut builder,
         *nft_contract_key,
-        vec![ARG_PUBLIC_MINTING.to_string()],
+        vec![ARG_MINTING_MODE.to_string()],
     );
 
-    assert!(!query_result, "public minting should default to false");
+    assert_eq!(query_result, 0u8,"minting mode should default to installer");
 
     let query_result: U256 = support::query_stored_value(
         &mut builder,
@@ -120,7 +120,7 @@ fn should_only_allow_init_during_installation_session() {
             ARG_COLLECTION_SYMBOL => "collection_symbol".to_string(),
             ARG_TOTAL_TOKEN_SUPPLY => "total_token_supply".to_string(),
             ARG_ALLOW_MINTING => true,
-            ARG_PUBLIC_MINTING => false,
+            ARG_MINTING_MODE => false,
         },
     )
     .build();

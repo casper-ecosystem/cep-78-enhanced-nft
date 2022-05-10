@@ -10,12 +10,14 @@ use casper_types::{
     account::AccountHash,
     api_error,
     bytesrepr::{self, FromBytes, ToBytes},
-    ApiError, CLTyped, Key, URef,
+    ApiError, CLTyped, ContractHash, Key, URef,
 };
 
 use core::convert::TryFrom;
 
 use crate::{constants::OWNERSHIP_MODE, error::NFTCoreError};
+
+const _CONTRACT_WHITELIST: &str = "contract_whitelist";
 
 pub(crate) fn upsert_dictionary_value_from_key<T: CLTyped + FromBytes + ToBytes>(
     dictionary_name: &str,
@@ -35,28 +37,87 @@ pub(crate) fn upsert_dictionary_value_from_key<T: CLTyped + FromBytes + ToBytes>
     }
 }
 
+
+
+
 #[repr(u8)]
-pub enum NFTAssetType {
-    /// The NFT represents a real-world physical asset
-    /// like a house.
-    PhysicalAsset,
-    /// The NFT represents a digital asset like a unique
-    /// JPEG or digital art asset.
-    DigitalAsset,
-    /// The NFT is the virtual representation
-    /// of a physical notion, e.g a patent
-    /// or copyright.
-    VirtualAsset,
+pub enum WhitelistMode {
+    Unlocked = 0,
+    Locked = 1,
 }
 
-impl TryFrom<u8> for NFTAssetType {
+impl TryFrom<u8> for WhitelistMode {
     type Error = NFTCoreError;
 
     fn try_from(value: u8) -> Result<Self, Self::Error> {
         match value {
-            0 => Ok(NFTAssetType::PhysicalAsset),
-            1 => Ok(NFTAssetType::DigitalAsset),
-            2 => Ok(NFTAssetType::VirtualAsset),
+            0 => Ok(WhitelistMode::Unlocked),
+            1 => Ok(WhitelistMode::Locked),
+            _ => Err(NFTCoreError::InvalidWhitelistMode),
+        }
+    }
+}
+
+#[repr(u8)]
+pub enum NFTHolderMode {
+    Accounts = 0,
+    Contracts = 1,
+}
+
+impl TryFrom<u8> for NFTHolderMode {
+    type Error = NFTCoreError;
+
+    fn try_from(value: u8) -> Result<Self, Self::Error> {
+        match value {
+            0 => Ok(NFTHolderMode::Accounts),
+            1 => Ok(NFTHolderMode::Contracts),
+            _ => Err(NFTCoreError::InvalidHolderMode),
+        }
+    }
+}
+
+#[repr(u8)]
+pub enum MintingMode {
+    /// The ability to mint NFTs is restricted to the installing account only.
+    Installer = 0,
+    /// The ability to mint NFTs is not restricted.
+    Public = 1,
+}
+
+impl TryFrom<u8> for MintingMode {
+    type Error = NFTCoreError;
+
+    fn try_from(value: u8) -> Result<Self, Self::Error> {
+        match value {
+            0 => Ok(MintingMode::Installer),
+            1 => Ok(MintingMode::Public),
+            _ => Err(NFTCoreError::InvalidMintingMode),
+        }
+    }
+}
+
+#[repr(u8)]
+pub enum NFTKind {
+    /// The NFT represents a real-world physical
+    /// like a house.
+    Physical,
+    /// The NFT represents a digital asset like a unique
+    /// JPEG or digital art.
+    Digital,
+    /// The NFT is the virtual representation
+    /// of a physical notion, e.g a patent
+    /// or copyright.
+    Virtual,
+}
+
+impl TryFrom<u8> for NFTKind {
+    type Error = NFTCoreError;
+
+    fn try_from(value: u8) -> Result<Self, Self::Error> {
+        match value {
+            0 => Ok(NFTKind::Physical),
+            1 => Ok(NFTKind::Digital),
+            2 => Ok(NFTKind::Virtual),
             _ => Err(NFTCoreError::InvalidOwnershipMode),
         }
     }
@@ -64,11 +125,14 @@ impl TryFrom<u8> for NFTAssetType {
 
 #[repr(u8)]
 pub enum OwnershipMode {
-    Minter = 0,                // The minter owns it and can never transfer it.
-    Assigned = 1,              // The minter assigns it to an address and can never be transferred.
-    TransferableUnchecked = 2, // The NFT can be transferred even to an recipient that does not exist.
-    TransferableChecked = 3, // The NFT can be transferred but only to a recipient that does exist.
-                             // Maybe Shared(u8) // Shares of the NFT can be transferred and ownership is determined by the share.
+    /// The minter owns it and can never transfer it.
+    Minter = 0,
+    /// The minter assigns it to an address and can never be transferred.
+    Assigned = 1,
+    /// The NFT can be transferred even to an recipient that does not exist.
+    Transferable = 2,
+    // TODO
+    // Platform = 3,
 }
 
 impl TryFrom<u8> for OwnershipMode {
@@ -78,8 +142,7 @@ impl TryFrom<u8> for OwnershipMode {
         match value {
             0 => Ok(OwnershipMode::Minter),
             1 => Ok(OwnershipMode::Assigned),
-            2 => Ok(OwnershipMode::TransferableUnchecked),
-            3 => Ok(OwnershipMode::TransferableChecked),
+            2 => Ok(OwnershipMode::Transferable),
             _ => Err(NFTCoreError::InvalidOwnershipMode),
         }
     }
@@ -141,8 +204,7 @@ pub(crate) fn get_optional_named_arg_with_user_errors<T: FromBytes>(
 ) -> Option<T> {
     match get_named_arg_with_user_errors(name, NFTCoreError::Phantom, invalid) {
         Ok(val) => val,
-        Err(err @ NFTCoreError::InvalidInstaller) => runtime::revert(err),
-        Err(e) => runtime::revert(e),
+        Err(_) => None,
     }
 }
 
@@ -288,4 +350,21 @@ pub(crate) fn to_ptr<T: ToBytes>(t: T) -> (*const u8, usize, Vec<u8>) {
     let ptr = bytes.as_ptr();
     let size = bytes.len();
     (ptr, size, bytes)
+}
+
+pub(crate) fn _get_calling_contract_hash() -> ContractHash {
+    let contract_hash = *runtime::get_call_stack()
+        .pop()
+        .unwrap_or_revert()
+        .contract_hash()
+        .unwrap_or_revert();
+    let whitelist = get_stored_value_with_user_errors::<Vec<ContractHash>>(
+        _CONTRACT_WHITELIST,
+        NFTCoreError::MissingContractWhiteList,
+        NFTCoreError::InvalidContractWhitelist,
+    );
+    if !whitelist.contains(&contract_hash) {
+        runtime::revert(NFTCoreError::UnlistedContractHash)
+    }
+    contract_hash
 }

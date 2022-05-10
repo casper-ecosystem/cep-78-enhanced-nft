@@ -42,11 +42,13 @@ fn should_dissallow_transfer_with_minter_or_assigned_ownership_mode() {
 
     let token_owner = *DEFAULT_ACCOUNT_ADDR;
 
+    let nft_contract_key: Key = get_nft_contract_hash(&builder).into();
+
     let mint_session_call = ExecuteRequestBuilder::standard(
         *DEFAULT_ACCOUNT_ADDR,
         MINT_SESSION_WASM,
         runtime_args! {
-            ARG_NFT_CONTRACT_HASH => get_nft_contract_hash(&builder),
+            ARG_NFT_CONTRACT_HASH => nft_contract_key,
             ARG_KEY_NAME => Some(OWNED_TOKENS_DICTIONARY_KEY.to_string()),
             ARG_TOKEN_OWNER => Key::Account(*DEFAULT_ACCOUNT_ADDR),
             ARG_TOKEN_META_DATA => TEST_META_DATA.to_string(),
@@ -103,7 +105,7 @@ fn should_transfer_token_from_sender_to_receiver() {
         .with_collection_name(NFT_TEST_COLLECTION.to_string())
         .with_collection_symbol(NFT_TEST_SYMBOL.to_string())
         .with_total_token_supply(U256::from(1u64))
-        .with_ownership_mode(OwnershipMode::TransferableUnchecked)
+        .with_ownership_mode(OwnershipMode::Transferable)
         .build();
 
     builder.exec(install_request).expect_success().commit();
@@ -119,11 +121,13 @@ fn should_transfer_token_from_sender_to_receiver() {
 
     let token_owner = *DEFAULT_ACCOUNT_ADDR;
 
+    let nft_contract_key: Key = get_nft_contract_hash(&builder).into();
+
     let mint_session_call = ExecuteRequestBuilder::standard(
         *DEFAULT_ACCOUNT_ADDR,
         MINT_SESSION_WASM,
         runtime_args! {
-            ARG_NFT_CONTRACT_HASH => get_nft_contract_hash(&builder),
+            ARG_NFT_CONTRACT_HASH => nft_contract_key,
             ARG_KEY_NAME => Some(OWNED_TOKENS_DICTIONARY_KEY.to_string()),
             ARG_TOKEN_OWNER => Key::Account(*DEFAULT_ACCOUNT_ADDR),
             ARG_TOKEN_META_DATA => TEST_META_DATA.to_string(),
@@ -212,7 +216,7 @@ fn approve_token_for_transfer_should_add_entry_to_approved_dictionary() {
         .with_collection_name(NFT_TEST_COLLECTION.to_string())
         .with_collection_symbol(NFT_TEST_SYMBOL.to_string())
         .with_total_token_supply(U256::one())
-        .with_ownership_mode(OwnershipMode::TransferableUnchecked)
+        .with_ownership_mode(OwnershipMode::Transferable)
         .build();
 
     builder.exec(install_request).expect_success().commit();
@@ -226,11 +230,13 @@ fn approve_token_for_transfer_should_add_entry_to_approved_dictionary() {
         .map(ContractHash::new)
         .expect("failed to find nft contract");
 
+    let nft_contract_key: Key = get_nft_contract_hash(&builder).into();
+
     let mint_session_call = ExecuteRequestBuilder::standard(
         *DEFAULT_ACCOUNT_ADDR,
         MINT_SESSION_WASM,
         runtime_args! {
-            ARG_NFT_CONTRACT_HASH => get_nft_contract_hash(&builder),
+            ARG_NFT_CONTRACT_HASH => nft_contract_key,
             ARG_KEY_NAME => Some(OWNED_TOKENS_DICTIONARY_KEY.to_string()),
             ARG_TOKEN_OWNER => Key::Account(*DEFAULT_ACCOUNT_ADDR),
             ARG_TOKEN_META_DATA => TEST_META_DATA.to_string(),
@@ -296,11 +302,13 @@ fn should_dissallow_approving_when_ownership_mode_is_minter_or_assigned() {
         .map(ContractHash::new)
         .expect("failed to find nft contract");
 
+    let nft_contract_key: Key = get_nft_contract_hash(&builder).into();
+
     let mint_session_call = ExecuteRequestBuilder::standard(
         *DEFAULT_ACCOUNT_ADDR,
         MINT_SESSION_WASM,
         runtime_args! {
-            ARG_NFT_CONTRACT_HASH => get_nft_contract_hash(&builder),
+            ARG_NFT_CONTRACT_HASH => nft_contract_key,
             ARG_KEY_NAME => Some(OWNED_TOKENS_DICTIONARY_KEY.to_string()),
             ARG_TOKEN_OWNER => Key::Account(*DEFAULT_ACCOUNT_ADDR),
             ARG_TOKEN_META_DATA => TEST_META_DATA.to_string(),
@@ -342,7 +350,7 @@ fn should_be_able_to_transfer_token_using_approved_operator() {
         .with_collection_name(NFT_TEST_COLLECTION.to_string())
         .with_collection_symbol(NFT_TEST_SYMBOL.to_string())
         .with_total_token_supply(U256::one())
-        .with_ownership_mode(OwnershipMode::TransferableUnchecked)
+        .with_ownership_mode(OwnershipMode::Transferable)
         .build();
 
     builder.exec(install_request).expect_success().commit();
@@ -358,11 +366,12 @@ fn should_be_able_to_transfer_token_using_approved_operator() {
 
     // mint token for DEFAULT_ACCOUNT_ADDR
     let token_owner = DEFAULT_ACCOUNT_PUBLIC_KEY.clone().to_account_hash();
+    let nft_contract_key: Key = get_nft_contract_hash(&builder).into();
     let mint_session_call = ExecuteRequestBuilder::standard(
         *DEFAULT_ACCOUNT_ADDR,
         MINT_SESSION_WASM,
         runtime_args! {
-            ARG_NFT_CONTRACT_HASH => get_nft_contract_hash(&builder),
+            ARG_NFT_CONTRACT_HASH => nft_contract_key,
             ARG_KEY_NAME => Some(OWNED_TOKENS_DICTIONARY_KEY.to_string()),
             ARG_TOKEN_OWNER => Key::Account(*DEFAULT_ACCOUNT_ADDR),
             ARG_TOKEN_META_DATA => TEST_META_DATA.to_string(),
@@ -468,7 +477,7 @@ fn should_dissallow_same_operator_to_tranfer_token_twice() {
         .with_collection_name(NFT_TEST_COLLECTION.to_string())
         .with_collection_symbol(NFT_TEST_SYMBOL.to_string())
         .with_total_token_supply(U256::one())
-        .with_ownership_mode(OwnershipMode::TransferableUnchecked)
+        .with_ownership_mode(OwnershipMode::Transferable)
         .build();
 
     builder.exec(install_request).expect_success().commit();
@@ -484,11 +493,12 @@ fn should_dissallow_same_operator_to_tranfer_token_twice() {
 
     // mint token for DEFAULT_ACCOUNT_ADDR
     let token_owner = DEFAULT_ACCOUNT_PUBLIC_KEY.clone().to_account_hash();
+    let nft_contract_key: Key = get_nft_contract_hash(&builder).into();
     let mint_session_call = ExecuteRequestBuilder::standard(
         *DEFAULT_ACCOUNT_ADDR,
         MINT_SESSION_WASM,
         runtime_args! {
-            ARG_NFT_CONTRACT_HASH => get_nft_contract_hash(&builder),
+            ARG_NFT_CONTRACT_HASH => nft_contract_key,
             ARG_KEY_NAME => Some(OWNED_TOKENS_DICTIONARY_KEY.to_string()),
             ARG_TOKEN_OWNER => Key::Account(*DEFAULT_ACCOUNT_ADDR),
             ARG_TOKEN_META_DATA => TEST_META_DATA.to_string(),

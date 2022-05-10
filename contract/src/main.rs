@@ -81,11 +81,13 @@ pub extern "C" fn init() {
     )
     .unwrap_or_revert();
 
-    let public_minting: bool = get_named_arg_with_user_errors(
-        ARG_PUBLIC_MINTING,
-        NFTCoreError::MissingPublicMinting,
-        NFTCoreError::InvalidPublicMinting,
+    let minting_mode: MintingMode = get_named_arg_with_user_errors::<u8>(
+        ARG_MINTING_MODE,
+        NFTCoreError::MissingMintingMode,
+        NFTCoreError::InvalidMintingMode,
     )
+        .unwrap_or_revert()
+        .try_into()
     .unwrap_or_revert();
 
     let ownership_mode: OwnershipMode = get_named_arg_with_user_errors::<u8>(
@@ -97,10 +99,10 @@ pub extern "C" fn init() {
     .try_into()
     .unwrap_or_revert();
 
-    let asset_type: NFTAssetType = get_named_arg_with_user_errors::<u8>(
-        ARG_NFT_ASSET_TYPE,
-        NFTCoreError::MissingOwnershipMode,
-        NFTCoreError::InvalidOwnershipMode,
+    let nft_kind: NFTKind = get_named_arg_with_user_errors::<u8>(
+        ARG_NFT_KIND,
+        NFTCoreError::MissingNftKind,
+        NFTCoreError::InvalidNftKind,
     )
     .unwrap_or_revert()
     .try_into()
@@ -131,14 +133,14 @@ pub extern "C" fn init() {
         storage::new_uref(ownership_mode as u8).into(),
     );
 
-    runtime::put_key(NFT_ASSET_TYPE, storage::new_uref(asset_type as u8).into());
+    runtime::put_key(NFT_KIND, storage::new_uref(nft_kind as u8).into());
 
     runtime::put_key(JSON_SCHEMA, storage::new_uref(json_schema).into());
 
     // Initialize contract with variables which must be present but maybe set to
     // different values after initialization.
     runtime::put_key(ALLOW_MINTING, storage::new_uref(allow_minting).into());
-    runtime::put_key(PUBLIC_MINTING, storage::new_uref(public_minting).into());
+    runtime::put_key(MINTING_MODE, storage::new_uref(minting_mode as u8).into());
     // This is an internal variable that the installing account cannot change
     // but is incremented by the contract itself.
     runtime::put_key(
@@ -227,14 +229,16 @@ pub extern "C" fn mint() {
     }
 
     let caller = runtime::get_caller();
-    let private_minting = !get_stored_value_with_user_errors::<bool>(
-        PUBLIC_MINTING,
-        NFTCoreError::MissingPublicMinting,
-        NFTCoreError::InvalidPublicMinting,
-    );
+    let minting_mode: MintingMode = get_stored_value_with_user_errors::<u8>(
+        MINTING_MODE,
+        NFTCoreError::MissingMintingMode,
+        NFTCoreError::InvalidMintingMode,
+    )
+        .try_into()
+        .unwrap_or_revert();
 
     // Revert if minting is private and caller is not installer.
-    if private_minting {
+    if let MintingMode::Installer = minting_mode {
         let installer_account = runtime::get_key(INSTALLER)
             .unwrap_or_revert_with(NFTCoreError::MissingInstallerKey)
             .into_account()
@@ -246,16 +250,16 @@ pub extern "C" fn mint() {
         }
     }
 
+
     // The contract's ownership behavior (determined at installation) determines,
     // who owns the NFT we are about to mint.()
     let ownership_mode = utils::get_ownership_mode().unwrap_or_revert();
     let token_owner_key = {
         match ownership_mode {
             OwnershipMode::Minter => Key::Account(caller),
-            OwnershipMode::Assigned | OwnershipMode::TransferableUnchecked => {
+            OwnershipMode::Assigned | OwnershipMode::Transferable => {
                 runtime::get_named_arg::<Key>(ARG_TOKEN_OWNER)
             }
-            OwnershipMode::TransferableChecked => runtime::get_named_arg::<Key>(ARG_TOKEN_OWNER),
         }
     };
 
@@ -404,12 +408,11 @@ pub extern "C" fn burn() {
 #[no_mangle]
 pub extern "C" fn approve() {
     // If we are in minter or assigned mode it makes no sense to approve an operator. Hence we revert.
-    let _ownership_mode = match utils::get_ownership_mode().unwrap_or_revert() {
+    let _ownership_mode = match get_ownership_mode().unwrap_or_revert() {
         OwnershipMode::Minter | OwnershipMode::Assigned => {
             runtime::revert(NFTCoreError::InvalidOwnershipMode)
         }
-        OwnershipMode::TransferableChecked => OwnershipMode::TransferableChecked,
-        OwnershipMode::TransferableUnchecked => OwnershipMode::TransferableUnchecked,
+        OwnershipMode::Transferable => OwnershipMode::Transferable
     };
 
     let caller = runtime::get_caller();
@@ -484,8 +487,7 @@ pub extern "C" fn set_approval_for_all() {
         OwnershipMode::Minter | OwnershipMode::Assigned => {
             runtime::revert(NFTCoreError::InvalidOwnershipMode)
         }
-        OwnershipMode::TransferableChecked => OwnershipMode::TransferableChecked,
-        OwnershipMode::TransferableUnchecked => OwnershipMode::TransferableUnchecked,
+        OwnershipMode::Transferable => OwnershipMode::Transferable,
     };
     // If approve_all is true we approve operator for all caller_owned tokens.
     // If false we set operator to None for all caller_owned_tokens
@@ -531,8 +533,7 @@ pub extern "C" fn transfer() {
         OwnershipMode::Minter | OwnershipMode::Assigned => {
             runtime::revert(NFTCoreError::InvalidOwnershipMode)
         }
-        OwnershipMode::TransferableChecked => OwnershipMode::TransferableChecked,
-        OwnershipMode::TransferableUnchecked => OwnershipMode::TransferableUnchecked,
+        OwnershipMode::Transferable => OwnershipMode::Transferable,
     };
 
     // Get token_id argument
@@ -824,16 +825,9 @@ pub extern "C" fn get_approved() {
         .unwrap_or_revert_with(NFTCoreError::FailedToConvertToCLValue);
 
     runtime::ret(approved_cl_value);
-
-    // let caller = Key::Account(runtime::get_caller());
-
-    // let approved_cl_value =
-    //     CLValue::from_t(Some(caller)).unwrap_or_revert_with(NFTCoreError::FailedToConvertToCLValue);
-
-    // runtime::ret(approved_cl_value);
 }
 
-fn store() -> (ContractHash, ContractVersion) {
+fn install_nft_contract() -> (ContractHash, ContractVersion) {
     let entry_points = {
         let mut entry_points = EntryPoints::new();
 
@@ -848,7 +842,9 @@ fn store() -> (ContractHash, ContractVersion) {
                 Parameter::new(ARG_COLLECTION_SYMBOL, CLType::String),
                 Parameter::new(ARG_TOTAL_TOKEN_SUPPLY, CLType::U256),
                 Parameter::new(ARG_ALLOW_MINTING, CLType::Bool),
-                Parameter::new(ARG_PUBLIC_MINTING, CLType::Bool),
+                Parameter::new(ARG_MINTING_MODE, CLType::U8),
+                Parameter::new(ARG_OWNERSHIP_MODE, CLType::U8),
+                Parameter::new(ARG_NFT_KIND, CLType::U8),
                 Parameter::new(ARG_JSON_SCHEMA, CLType::String),
             ],
             CLType::Unit,
@@ -890,6 +886,7 @@ fn store() -> (ContractHash, ContractVersion) {
             vec![
                 Parameter::new(ARG_TOKEN_OWNER, CLType::Key),
                 Parameter::new(ARG_TOKEN_META_DATA, CLType::String),
+                Parameter::new(ARG_TOKEN_URI, CLType::String),
             ],
             CLType::Unit,
             EntryPointAccess::Public,
@@ -1018,6 +1015,8 @@ fn store() -> (ContractHash, ContractVersion) {
 
 #[no_mangle]
 pub extern "C" fn call() {
+    // Represents the name of the NFT collection
+    // This value cannot be changed after installation.
     let collection_name: String = get_named_arg_with_user_errors(
         ARG_COLLECTION_NAME,
         NFTCoreError::MissingCollectionName,
@@ -1025,6 +1024,9 @@ pub extern "C" fn call() {
     )
     .unwrap_or_revert();
 
+    // TODO: figure out examples of collection_symbol
+    // The symbol for the NFT collection.
+    // This value cannot be changed after installation.
     let collection_symbol: String = get_named_arg_with_user_errors(
         ARG_COLLECTION_SYMBOL,
         NFTCoreError::MissingCollectionSymbol,
@@ -1032,6 +1034,9 @@ pub extern "C" fn call() {
     )
     .unwrap_or_revert();
 
+    // This represents the total number of NFTs that will
+    // be minted by a specific instance of a contract.
+    // This value cannot be changed after installation.
     let total_token_supply: U256 = get_named_arg_with_user_errors(
         ARG_TOTAL_TOKEN_SUPPLY,
         NFTCoreError::MissingTotalTokenSupply,
@@ -1045,12 +1050,18 @@ pub extern "C" fn call() {
     )
     .unwrap_or(true);
 
-    let public_minting: bool = get_optional_named_arg_with_user_errors(
-        ARG_PUBLIC_MINTING,
-        NFTCoreError::InvalidPublicMinting,
-    )
-    .unwrap_or(false);
+    // Represents the modes in which NFTs can be minted, i.e whether a singular known
+    // entity v. users interacting with the contract. Refer to the `MintingMode`
+    // enum in the `src/utils.rs` file for details.
+    // This value cannot be changed after installation.
+    let minting_mode: u8 =
+        get_optional_named_arg_with_user_errors(ARG_MINTING_MODE, NFTCoreError::InvalidMintingMode)
+            .unwrap_or(0);
 
+    // Represents the ownership model of the NFTs that will be minted
+    // over the lifetime of the contract. Refer to the enum `OwnershipMode`
+    // in the `src/utils.rs` file for details.
+    // This value cannot be changed after installation.
     let ownership_mode: u8 = get_named_arg_with_user_errors(
         ARG_OWNERSHIP_MODE,
         NFTCoreError::MissingOwnershipMode,
@@ -1058,13 +1069,20 @@ pub extern "C" fn call() {
     )
     .unwrap_or_revert();
 
-    let nft_asset_type: u8 = get_named_arg_with_user_errors(
-        ARG_NFT_ASSET_TYPE,
-        NFTCoreError::MissingNftAssetType,
-        NFTCoreError::InvalidNftAssetType,
+    // Represents the type of NFT (i.e something physical/digital)
+    // which will be minted over the lifetime of the contract.
+    // Refer to the enum `NFTKind`
+    // in the `src/utils.rs` file for details.
+    // This value cannot be changed after installation.
+    let nft_kind: u8 = get_named_arg_with_user_errors(
+        ARG_NFT_KIND,
+        NFTCoreError::MissingNftKind,
+        NFTCoreError::InvalidNftKind,
     )
     .unwrap_or_revert();
 
+    // The JSON schema representation of the NFT which will be minted.
+    // This value cannot be changed after installation.
     let json_schema: String = get_named_arg_with_user_errors(
         ARG_JSON_SCHEMA,
         NFTCoreError::MissingJsonSchema,
@@ -1072,7 +1090,7 @@ pub extern "C" fn call() {
     )
     .unwrap_or_revert();
 
-    let (contract_hash, contract_version) = store();
+    let (contract_hash, contract_version) = install_nft_contract();
 
     // Store contract_hash and contract_version under the keys CONTRACT_NAME and CONTRACT_VERSION
     runtime::put_key(CONTRACT_NAME, contract_hash.into());
@@ -1087,9 +1105,9 @@ pub extern "C" fn call() {
              ARG_COLLECTION_SYMBOL => collection_symbol,
              ARG_TOTAL_TOKEN_SUPPLY => total_token_supply,
              ARG_ALLOW_MINTING => allow_minting,
-             ARG_PUBLIC_MINTING => public_minting,
              ARG_OWNERSHIP_MODE => ownership_mode,
-             ARG_NFT_ASSET_TYPE => nft_asset_type,
+             ARG_NFT_KIND => nft_kind,
+             ARG_MINTING_MODE => minting_mode,
              ARG_JSON_SCHEMA => json_schema,
         },
     );
