@@ -17,7 +17,7 @@ use crate::utility::support::{
 };
 use crate::utility::{
     constants::{
-        ACCOUNT_USER_1, ACCOUNT_USER_2, ARG_NFT_CONTRACT_HASH, ARG_MINTING_MODE,
+        ACCOUNT_USER_1, ACCOUNT_USER_2, ARG_MINTING_MODE, ARG_NFT_CONTRACT_HASH,
         ARG_TOKEN_META_DATA, ARG_TOKEN_OWNER, BALANCES, CONTRACT_NAME, ENTRY_POINT_MINT,
         NFT_CONTRACT_WASM, NUMBER_OF_MINTED_TOKENS, OWNED_TOKENS, TEST_META_DATA, TOKEN_ISSUERS,
         TOKEN_META_DATA, TOKEN_OWNERS,
@@ -550,12 +550,11 @@ fn should_allow_public_minting_with_flag_set_to_true() {
 
     assert_eq!(
         public_minting_status,
-        MintingMode::Public as u8
-        ,
+        MintingMode::Public as u8,
         "public minting should be set to true"
     );
 
-    let nft_contract_key: Key =  get_nft_contract_hash(&builder).into();
+    let nft_contract_key: Key = get_nft_contract_hash(&builder).into();
 
     let mint_session_call = ExecuteRequestBuilder::standard(
         account_1_public_key.to_account_hash(),
@@ -630,7 +629,6 @@ fn should_disallow_public_minting_with_flag_set_to_false() {
         MintingMode::Installer as u8,
         "public minting should be set to false"
     );
-
 
     let mint_session_call = ExecuteRequestBuilder::standard(
         account_1_public_key.to_account_hash(),

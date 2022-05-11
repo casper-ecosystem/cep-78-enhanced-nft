@@ -37,9 +37,6 @@ pub(crate) fn upsert_dictionary_value_from_key<T: CLTyped + FromBytes + ToBytes>
     }
 }
 
-
-
-
 #[repr(u8)]
 pub enum WhitelistMode {
     Unlocked = 0,
@@ -94,6 +91,12 @@ impl TryFrom<u8> for MintingMode {
             _ => Err(NFTCoreError::InvalidMintingMode),
         }
     }
+}
+
+#[repr(u8)]
+pub enum NFTIdentifierMode {
+    Ordinal,
+    Hash
 }
 
 #[repr(u8)]

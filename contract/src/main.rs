@@ -86,8 +86,8 @@ pub extern "C" fn init() {
         NFTCoreError::MissingMintingMode,
         NFTCoreError::InvalidMintingMode,
     )
-        .unwrap_or_revert()
-        .try_into()
+    .unwrap_or_revert()
+    .try_into()
     .unwrap_or_revert();
 
     let ownership_mode: OwnershipMode = get_named_arg_with_user_errors::<u8>(
@@ -234,8 +234,8 @@ pub extern "C" fn mint() {
         NFTCoreError::MissingMintingMode,
         NFTCoreError::InvalidMintingMode,
     )
-        .try_into()
-        .unwrap_or_revert();
+    .try_into()
+    .unwrap_or_revert();
 
     // Revert if minting is private and caller is not installer.
     if let MintingMode::Installer = minting_mode {
@@ -249,7 +249,6 @@ pub extern "C" fn mint() {
             runtime::revert(NFTCoreError::InvalidMinter)
         }
     }
-
 
     // The contract's ownership behavior (determined at installation) determines,
     // who owns the NFT we are about to mint.()
@@ -412,7 +411,7 @@ pub extern "C" fn approve() {
         OwnershipMode::Minter | OwnershipMode::Assigned => {
             runtime::revert(NFTCoreError::InvalidOwnershipMode)
         }
-        OwnershipMode::Transferable => OwnershipMode::Transferable
+        OwnershipMode::Transferable => OwnershipMode::Transferable,
     };
 
     let caller = runtime::get_caller();

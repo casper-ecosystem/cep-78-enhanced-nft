@@ -4,7 +4,7 @@ use casper_types::{account::AccountHash, CLValue, RuntimeArgs, U256};
 
 use super::constants::{
     ARG_ALLOW_MINTING, ARG_COLLECTION_NAME, ARG_COLLECTION_SYMBOL, ARG_JSON_SCHEMA,
-    ARG_NFT_KIND, ARG_OWNERSHIP_MODE, ARG_MINTING_MODE, ARG_TOTAL_TOKEN_SUPPLY,
+    ARG_MINTING_MODE, ARG_NFT_KIND, ARG_OWNERSHIP_MODE, ARG_TOTAL_TOKEN_SUPPLY,
 };
 
 #[repr(u8)]
@@ -18,13 +18,14 @@ pub enum MintingMode {
 #[repr(u8)]
 #[derive(Debug)]
 pub enum OwnershipMode {
-    Minter = 0,                // The minter owns it and can never transfer it.
-    Assigned = 1,              // The minter assigns it to an address and can never be transferred.
+    Minter = 0,       // The minter owns it and can never transfer it.
+    Assigned = 1,     // The minter assigns it to an address and can never be transferred.
     Transferable = 2, // The NFT can be transferred even to an recipient that does not exist.
 }
 
 #[repr(u8)]
 #[derive(Debug)]
+#[allow(dead_code)]
 pub enum NFTKind {
     Physical = 0,
     Digital = 1, // The minter assigns it to an address and can never be transferred.
@@ -120,8 +121,7 @@ impl InstallerRequestBuilder {
     }
 
     pub(crate) fn with_minting_mode(mut self, minting_mode: Option<u8>) -> Self {
-        self.minting_mode =
-            CLValue::from_t(minting_mode).expect("public minting is legit CLValue");
+        self.minting_mode = CLValue::from_t(minting_mode).expect("public minting is legit CLValue");
         self
     }
 
