@@ -342,9 +342,15 @@ pub extern "C" fn mint() {
     );
     storage::write(number_of_minted_tokens_uref, next_index);
 
-    let owned_tokens_cl_value = CLValue::from_t(owned_tokens_actual_key)
+    let collection_name: String = get_stored_value_with_user_errors(
+        COLLECTION_NAME,
+        NFTCoreError::MissingCollectionName,
+        NFTCoreError::InvalidCollectionName
+    );
+
+    let receipt = CLValue::from_t((owned_tokens_actual_key, collection_name))
         .unwrap_or_revert_with(NFTCoreError::FailedToConvertToCLValue);
-    runtime::ret(owned_tokens_cl_value)
+    runtime::ret(receipt)
 }
 
 // Marks token as burnt. This blocks and future call to transfer token.

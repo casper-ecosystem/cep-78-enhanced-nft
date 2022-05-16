@@ -26,7 +26,7 @@ use crate::utility::{
     support,
 };
 
-fn get_builder(
+fn setup_nft_contract(
     total_token_supply: Option<U256>,
     allowing_minting: Option<bool>,
 ) -> WasmTestBuilder<InMemoryGlobalState> {
@@ -35,6 +35,7 @@ fn get_builder(
 
     let mut install_request_builder =
         InstallerRequestBuilder::new(*DEFAULT_ACCOUNT_ADDR, NFT_CONTRACT_WASM)
+            .with_collection_name("nft_collection".to_string())
             .with_allowing_minting(allowing_minting);
 
     if let Some(total_token_supply) = total_token_supply {
@@ -51,7 +52,7 @@ fn get_builder(
 
 #[test]
 fn should_disallow_minting_when_allow_minting_is_set_to_false() {
-    let mut builder = get_builder(Some(U256::from(2u64)), Some(false));
+    let mut builder = setup_nft_contract(Some(U256::from(2u64)), Some(false));
 
     let mint_request = ExecuteRequestBuilder::contract_call_by_name(
         *DEFAULT_ACCOUNT_ADDR,
@@ -206,7 +207,19 @@ fn should_call_mint_via_session_code() {
 
 #[test]
 fn mint_should_return_dictionary_key_to_callers_owned_tokens() {
-    let mut builder = get_builder(Some(U256::from(2u64)), None);
+    const NFT_COLLECTION_NAME: &str = "enhanced_nft_collection";
+    let mut builder = InMemoryWasmTestBuilder::default();
+    builder.run_genesis(&DEFAULT_RUN_GENESIS_REQUEST).commit();
+
+    let install_request = InstallerRequestBuilder::new(*DEFAULT_ACCOUNT_ADDR, NFT_CONTRACT_WASM)
+        .with_collection_name(NFT_COLLECTION_NAME.to_string())
+        .with_total_token_supply(U256::from(100u8))
+        .with_allowing_minting(Some(true))
+        .build();
+
+    builder.exec(install_request)
+        .expect_success()
+        .commit();
 
     let nft_contract_hash: Key = get_nft_contract_hash(&builder).into();
     let mint_session_call = ExecuteRequestBuilder::standard(
@@ -214,7 +227,6 @@ fn mint_should_return_dictionary_key_to_callers_owned_tokens() {
         MINT_SESSION_WASM,
         runtime_args! {
             ARG_NFT_CONTRACT_HASH => nft_contract_hash,
-            ARG_KEY_NAME => Some(OWNED_TOKENS_DICTIONARY_KEY.to_string()),
             ARG_TOKEN_OWNER => Key::Account(*DEFAULT_ACCOUNT_ADDR),
             ARG_TOKEN_META_DATA => TEST_META_DATA.to_string(),
             ARG_TOKEN_URI => TEST_URI.to_string()
@@ -226,9 +238,11 @@ fn mint_should_return_dictionary_key_to_callers_owned_tokens() {
 
     let account = builder.get_expected_account(*DEFAULT_ACCOUNT_ADDR);
 
+    let owned_key_name = format!("{}_{}", get_nft_contract_hash(&builder).to_formatted_string(), NFT_COLLECTION_NAME);
+
     let (_, owned_tokens_key) = account
         .named_keys()
-        .get_key_value(OWNED_TOKENS_DICTIONARY_KEY)
+        .get_key_value(&owned_key_name)
         .expect("should have owned_tokens_key");
 
     match builder.query(None, *owned_tokens_key, &[]).unwrap() {
@@ -244,7 +258,6 @@ fn mint_should_return_dictionary_key_to_callers_owned_tokens() {
         MINT_SESSION_WASM,
         runtime_args! {
             ARG_NFT_CONTRACT_HASH => nft_contract_hash,
-            ARG_KEY_NAME => Some(OWNED_TOKENS_DICTIONARY_KEY.to_string()),
             ARG_TOKEN_OWNER => Key::Account(*DEFAULT_ACCOUNT_ADDR),
             ARG_TOKEN_META_DATA => TEST_META_DATA.to_string(),
             ARG_TOKEN_URI => TEST_URI.to_string()
