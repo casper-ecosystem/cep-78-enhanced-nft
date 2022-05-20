@@ -74,7 +74,7 @@ steps:
     status:
     - failure
     branch:
-    - main
+    - dev
 
 volumes:
 - name: rustup
@@ -86,7 +86,9 @@ volumes:
 
 trigger:
   branch:
-  - main
+  - dev
+  - "feat-*"
+  - "release-*"
   event:
     include:
     - pull_request
