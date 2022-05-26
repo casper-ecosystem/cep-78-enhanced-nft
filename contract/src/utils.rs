@@ -94,12 +94,6 @@ impl TryFrom<u8> for MintingMode {
 }
 
 #[repr(u8)]
-pub enum NFTIdentifierMode {
-    Ordinal,
-    Hash
-}
-
-#[repr(u8)]
 pub enum NFTKind {
     /// The NFT represents a real-world physical
     /// like a house.

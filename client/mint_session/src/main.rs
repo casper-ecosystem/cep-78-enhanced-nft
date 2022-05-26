@@ -14,7 +14,6 @@ use casper_types::{runtime_args, ContractHash, Key, RuntimeArgs};
 const ENTRY_POINT_MINT: &str = "mint";
 
 const ARG_NFT_CONTRACT_HASH: &str = "nft_contract_hash";
-const ARG_KEY_NAME: &str = "key_name";
 const ARG_TOKEN_OWNER: &str = "token_owner";
 const ARG_TOKEN_META_DATA: &str = "token_meta_data";
 const ARG_TOKEN_URI: &str = "token_uri";

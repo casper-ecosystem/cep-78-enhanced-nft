@@ -345,7 +345,7 @@ pub extern "C" fn mint() {
     let collection_name: String = get_stored_value_with_user_errors(
         COLLECTION_NAME,
         NFTCoreError::MissingCollectionName,
-        NFTCoreError::InvalidCollectionName
+        NFTCoreError::InvalidCollectionName,
     );
 
     let receipt = CLValue::from_t((owned_tokens_actual_key, collection_name))
@@ -845,7 +845,7 @@ fn install_nft_contract() -> (ContractHash, ContractVersion) {
             vec![
                 Parameter::new(ARG_COLLECTION_NAME, CLType::String),
                 Parameter::new(ARG_COLLECTION_SYMBOL, CLType::String),
-                Parameter::new(ARG_TOTAL_TOKEN_SUPPLY, CLType::U256),
+                Parameter::new(ARG_TOTAL_TOKEN_SUPPLY, CLType::U64),
                 Parameter::new(ARG_ALLOW_MINTING, CLType::Bool),
                 Parameter::new(ARG_MINTING_MODE, CLType::U8),
                 Parameter::new(ARG_OWNERSHIP_MODE, CLType::U8),
