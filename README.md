@@ -82,7 +82,7 @@ mode cannot be changed once the contract has been installed. The mode is set by 
 
 #### Modality Conflicts
 
-The currently implemented modalities have no conflicting behavior.
+The implemented modalities have no conflicting behavior.
 
 
 ### Usage
@@ -95,7 +95,7 @@ The following are the required runtime arguments that must be passed to the inst
 
 * `"collection_name":` The name of the NFT collection, passed in as a `String`. This parameter is required and cannot be changed post installation.
 * `"collection_symbol"`: The symbol representing a given NFT collection, passed in as a `String`. This parameter is required and cannot be changed post installation.
-* `"total_token_supply"`: The total number of NFTs that a specific instance of a contract will mint passed in as a `U512` value. This parameter is required and cannot be changed post installation.
+* `"total_token_supply"`: The total number of NFTs that a specific instance of a contract will mint passed in as a `U64` value. This parameter is required and cannot be changed post installation. 
 * `"ownership_mode"`: The [`OwnershipMode`](#ownership) modality that dictates the ownership behavior of the NFT contract. This argument is passed in as a `u8` value and is required at the time of installation.
 * `"nft_kind"`: The [`NFTKind`](#nftkind) modality that specifies the off-chain items represented by the on-chain NFT data. This argument is passed in as a `u8` value and is required at the time of installation.
 * `"json_schema"`: The JSON schema for the NFT tokens that will be minted by the NFT contract passed in as a `String`. This parameter is required and cannot be changed post installation.

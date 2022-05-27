@@ -217,9 +217,7 @@ fn mint_should_return_dictionary_key_to_callers_owned_tokens() {
         .with_allowing_minting(Some(true))
         .build();
 
-    builder.exec(install_request)
-        .expect_success()
-        .commit();
+    builder.exec(install_request).expect_success().commit();
 
     let nft_contract_hash: Key = get_nft_contract_hash(&builder).into();
     let mint_session_call = ExecuteRequestBuilder::standard(
@@ -238,7 +236,11 @@ fn mint_should_return_dictionary_key_to_callers_owned_tokens() {
 
     let account = builder.get_expected_account(*DEFAULT_ACCOUNT_ADDR);
 
-    let owned_key_name = format!("{}_{}", get_nft_contract_hash(&builder).to_formatted_string(), NFT_COLLECTION_NAME);
+    let owned_key_name = format!(
+        "{}_{}",
+        get_nft_contract_hash(&builder).to_formatted_string(),
+        NFT_COLLECTION_NAME
+    );
 
     let (_, owned_tokens_key) = account
         .named_keys()
