@@ -1,4 +1,4 @@
-use crate::utility::constants::{ARG_KEY_NAME, ARG_NFT_CONTRACT_HASH};
+use crate::utility::constants::{ARG_KEY_NAME, ARG_NFT_CONTRACT_HASH, MINTING_CONTRACT_NAME};
 
 use super::{constants::CONTRACT_NAME, installer_request_builder::InstallerRequestBuilder};
 use casper_engine_test_support::{
@@ -27,6 +27,21 @@ pub(crate) fn get_nft_contract_hash(
 
     ContractHash::new(nft_hash_addr)
 }
+
+pub(crate) fn get_minting_contract_hash(
+    builder: &WasmTestBuilder<InMemoryGlobalState>,
+) -> ContractHash {
+    let minting_contract_hash =  builder
+        .get_expected_account(*DEFAULT_ACCOUNT_ADDR)
+        .named_keys()
+        .get(MINTING_CONTRACT_NAME)
+        .expect("must have minting contract hash entry in named keys")
+        .into_hash()
+        .expect("must get hash_addr");
+
+    ContractHash::new(minting_contract_hash)
+}
+
 
 pub(crate) fn get_dictionary_value_from_key<T: CLTyped + FromBytes>(
     builder: &WasmTestBuilder<InMemoryGlobalState>,

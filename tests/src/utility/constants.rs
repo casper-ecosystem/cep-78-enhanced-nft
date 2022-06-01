@@ -1,7 +1,9 @@
 pub(crate) const NFT_CONTRACT_WASM: &str = "contract.wasm";
 pub(crate) const MINT_SESSION_WASM: &str = "mint_call.wasm";
 pub(crate) const BALANCE_OF_SESSION_WASM: &str = "balance_of_call.wasm";
+pub(crate) const MINTING_CONTRACT_WASM: &str = "minting_contract.wasm";
 pub(crate) const CONTRACT_NAME: &str = "nft_contract";
+pub(crate) const MINTING_CONTRACT_NAME: &str = "minting_contract_hash";
 pub(crate) const NFT_TEST_COLLECTION: &str = "nft_test";
 pub(crate) const NFT_TEST_SYMBOL: &str = "TEST";
 
