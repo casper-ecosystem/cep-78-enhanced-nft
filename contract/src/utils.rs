@@ -15,7 +15,7 @@ use casper_types::{
 
 use core::convert::TryFrom;
 
-use crate::{constants::OWNERSHIP_MODE, CONTRACT_WHITELIST, error::NFTCoreError};
+use crate::{constants::OWNERSHIP_MODE, error::NFTCoreError, CONTRACT_WHITELIST};
 
 const _CONTRACT_WHITELIST: &str = "contract_whitelist";
 
@@ -353,7 +353,8 @@ pub(crate) fn to_ptr<T: ToBytes>(t: T) -> (*const u8, usize, Vec<u8>) {
 
 pub(crate) fn get_calling_contract_hash() -> ContractHash {
     let contract_hash = *runtime::get_call_stack()
-        .iter().nth_back(1)
+        .iter()
+        .nth_back(1)
         .unwrap_or_revert()
         .contract_hash()
         .unwrap_or_revert();

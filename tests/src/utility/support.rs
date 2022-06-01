@@ -31,7 +31,7 @@ pub(crate) fn get_nft_contract_hash(
 pub(crate) fn get_minting_contract_hash(
     builder: &WasmTestBuilder<InMemoryGlobalState>,
 ) -> ContractHash {
-    let minting_contract_hash =  builder
+    let minting_contract_hash = builder
         .get_expected_account(*DEFAULT_ACCOUNT_ADDR)
         .named_keys()
         .get(MINTING_CONTRACT_NAME)
@@ -41,7 +41,6 @@ pub(crate) fn get_minting_contract_hash(
 
     ContractHash::new(minting_contract_hash)
 }
-
 
 pub(crate) fn get_dictionary_value_from_key<T: CLTyped + FromBytes>(
     builder: &WasmTestBuilder<InMemoryGlobalState>,

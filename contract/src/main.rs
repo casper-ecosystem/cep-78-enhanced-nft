@@ -230,6 +230,30 @@ pub extern "C" fn set_variables() {
         );
         storage::write(allow_minting_uref, allow_minting);
     }
+
+    if let Some(new_contract_whitelist) = get_optional_named_arg_with_user_errors::<Vec<ContractHash>>(
+        ARG_CONTRACT_WHITELIST,
+        NFTCoreError::MissingContractWhiteList,
+    ) {
+        let whitelist_mode: WhitelistMode = get_stored_value_with_user_errors::<u8>(
+            WHITELIST_MODE,
+            NFTCoreError::MissingWhitelistMode,
+            NFTCoreError::InvalidWhitelistMode,
+        )
+        .try_into()
+        .unwrap_or_revert();
+        match whitelist_mode {
+            WhitelistMode::Unlocked => {
+                let whitelist_uref = get_uref(
+                    CONTRACT_WHITELIST,
+                    NFTCoreError::MissingContractWhiteList,
+                    NFTCoreError::InvalidWhitelistMode,
+                );
+                storage::write(whitelist_uref, new_contract_whitelist)
+            }
+            WhitelistMode::Locked => runtime::revert(NFTCoreError::InvalidWhitelistMode),
+        }
+    }
 }
 
 // Mints a new token. Minting will fail if allow_minting is set to false.
@@ -306,7 +330,7 @@ pub extern "C" fn mint() {
 
                 // Revert if the calling contract is not in the whitelist.
                 if !contract_whitelist.contains(&calling_contract) {
-                    runtime::revert(NFTCoreError::InvalidContract)
+                    runtime::revert(NFTCoreError::UnlistedContractHash)
                 }
             }
         }
@@ -970,7 +994,13 @@ fn install_nft_contract() -> (ContractHash, ContractVersion) {
         // By switching allow_minting to false we pause minting.
         let set_variables = EntryPoint::new(
             ENTRY_POINT_SET_VARIABLES,
-            vec![Parameter::new(ARG_ALLOW_MINTING, CLType::Bool)],
+            vec![
+                Parameter::new(ARG_ALLOW_MINTING, CLType::Bool),
+                Parameter::new(
+                    ARG_CONTRACT_WHITELIST,
+                    CLType::List(Box::new(CLType::ByteArray(32u32))),
+                ),
+            ],
             CLType::Unit,
             EntryPointAccess::Public,
             EntryPointType::Contract,
