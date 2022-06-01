@@ -14,9 +14,8 @@ use core::convert::TryInto;
 use alloc::{boxed::Box, string::String, string::ToString, vec, vec::Vec};
 
 use casper_types::{
-    account::AccountHash, contracts::NamedKeys, runtime_args, CLType, CLValue, ContractHash,
-    ContractVersion, EntryPoint, EntryPointAccess, EntryPointType, EntryPoints, Key, Parameter,
-    RuntimeArgs, U256,
+    contracts::NamedKeys, runtime_args, CLType, CLValue, ContractHash, ContractVersion, EntryPoint,
+    EntryPointAccess, EntryPointType, EntryPoints, Key, Parameter, RuntimeArgs, U256,
 };
 
 use casper_contract::{
@@ -108,6 +107,38 @@ pub extern "C" fn init() {
     .try_into()
     .unwrap_or_revert();
 
+    let holder_mode: NFTHolderMode = get_named_arg_with_user_errors::<u8>(
+        ARG_HOLDER_MODE,
+        NFTCoreError::MissingHolderMode,
+        NFTCoreError::InvalidHolderMode,
+    )
+    .unwrap_or_revert()
+    .try_into()
+    .unwrap_or_revert();
+
+    let whitelist_mode: WhitelistMode = get_named_arg_with_user_errors::<u8>(
+        ARG_WHITELIST_MODE,
+        NFTCoreError::MissingWhitelistMode,
+        NFTCoreError::InvalidWhitelistMode,
+    )
+    .unwrap_or_revert()
+    .try_into()
+    .unwrap_or_revert();
+
+    let contract_whitelist = get_named_arg_with_user_errors::<Vec<ContractHash>>(
+        ARG_CONTRACT_WHITELIST,
+        NFTCoreError::MissingContractWhiteList,
+        NFTCoreError::InvalidContractWhitelist,
+    )
+    .unwrap_or_revert();
+
+    if WhitelistMode::Locked == whitelist_mode
+        && NFTHolderMode::Contracts == holder_mode
+        && contract_whitelist.is_empty()
+    {
+        runtime::revert(NFTCoreError::EmptyContractWhitelist)
+    }
+
     let json_schema: String = get_named_arg_with_user_errors(
         ARG_JSON_SCHEMA,
         NFTCoreError::MissingJsonSchema,
@@ -132,15 +163,22 @@ pub extern "C" fn init() {
         OWNERSHIP_MODE,
         storage::new_uref(ownership_mode as u8).into(),
     );
-
     runtime::put_key(NFT_KIND, storage::new_uref(nft_kind as u8).into());
-
     runtime::put_key(JSON_SCHEMA, storage::new_uref(json_schema).into());
+    runtime::put_key(MINTING_MODE, storage::new_uref(minting_mode as u8).into());
+    runtime::put_key(HOLDER_MODE, storage::new_uref(holder_mode as u8).into());
+    runtime::put_key(
+        WHITELIST_MODE,
+        storage::new_uref(whitelist_mode as u8).into(),
+    );
+    runtime::put_key(
+        CONTRACT_WHITELIST,
+        storage::new_uref(contract_whitelist).into(),
+    );
 
     // Initialize contract with variables which must be present but maybe set to
     // different values after initialization.
     runtime::put_key(ALLOW_MINTING, storage::new_uref(allow_minting).into());
-    runtime::put_key(MINTING_MODE, storage::new_uref(minting_mode as u8).into());
     // This is an internal variable that the installing account cannot change
     // but is incremented by the contract itself.
     runtime::put_key(
@@ -228,7 +266,14 @@ pub extern "C" fn mint() {
         runtime::revert(NFTCoreError::TokenSupplyDepleted);
     }
 
-    let caller = runtime::get_caller();
+    let holder_mode: NFTHolderMode = get_stored_value_with_user_errors::<u8>(
+        HOLDER_MODE,
+        NFTCoreError::MissingHolderMode,
+        NFTCoreError::InvalidHolderMode,
+    )
+    .try_into()
+    .unwrap_or_revert();
+
     let minting_mode: MintingMode = get_stored_value_with_user_errors::<u8>(
         MINTING_MODE,
         NFTCoreError::MissingMintingMode,
@@ -239,23 +284,43 @@ pub extern "C" fn mint() {
 
     // Revert if minting is private and caller is not installer.
     if let MintingMode::Installer = minting_mode {
-        let installer_account = runtime::get_key(INSTALLER)
-            .unwrap_or_revert_with(NFTCoreError::MissingInstallerKey)
-            .into_account()
-            .unwrap_or_revert_with(NFTCoreError::FailedToConvertToAccountHash);
+        match holder_mode {
+            NFTHolderMode::Accounts => {
+                let installer_account = runtime::get_key(INSTALLER)
+                    .unwrap_or_revert_with(NFTCoreError::MissingInstallerKey)
+                    .into_account()
+                    .unwrap_or_revert_with(NFTCoreError::FailedToConvertToAccountHash);
 
-        // Revert if private minting is required and caller is not installer.
-        if caller != installer_account {
-            runtime::revert(NFTCoreError::InvalidMinter)
+                // Revert if private minting is required and caller is not installer.
+                if runtime::get_caller() != installer_account {
+                    runtime::revert(NFTCoreError::InvalidMinter)
+                }
+            }
+            NFTHolderMode::Contracts => {
+                let calling_contract = get_calling_contract_hash();
+                let contract_whitelist = get_stored_value_with_user_errors::<Vec<ContractHash>>(
+                    CONTRACT_WHITELIST,
+                    NFTCoreError::MissingWhitelistMode,
+                    NFTCoreError::InvalidWhitelistMode,
+                );
+
+                // Revert if the calling contract is not in the whitelist.
+                if !contract_whitelist.contains(&calling_contract) {
+                    runtime::revert(NFTCoreError::InvalidContract)
+                }
+            }
         }
     }
 
     // The contract's ownership behavior (determined at installation) determines,
     // who owns the NFT we are about to mint.()
-    let ownership_mode = utils::get_ownership_mode().unwrap_or_revert();
+    let ownership_mode = get_ownership_mode().unwrap_or_revert();
     let token_owner_key = {
         match ownership_mode {
-            OwnershipMode::Minter => Key::Account(caller),
+            OwnershipMode::Minter => match holder_mode {
+                NFTHolderMode::Accounts => Key::Account(runtime::get_caller()),
+                NFTHolderMode::Contracts => get_calling_contract_hash().into(),
+            },
             OwnershipMode::Assigned | OwnershipMode::Transferable => {
                 runtime::get_named_arg::<Key>(ARG_TOKEN_OWNER)
             }
@@ -283,14 +348,23 @@ pub extern "C" fn mint() {
     upsert_dictionary_value_from_key(TOKEN_OWNERS, dictionary_item_key, token_owner_key);
     upsert_dictionary_value_from_key(TOKEN_META_DATA, dictionary_item_key, token_meta_data);
     upsert_dictionary_value_from_key(TOKEN_URI, dictionary_item_key, token_uri);
-    upsert_dictionary_value_from_key(TOKEN_ISSUERS, dictionary_item_key, Key::Account(caller));
+    upsert_dictionary_value_from_key(TOKEN_ISSUERS, dictionary_item_key, token_owner_key);
 
     // We use the string representation of the account_hash as to not exceed the dictionary_item_key length limit,
     // which is currently set to 64. (Using Key::Account().to_string() exceeds the limit of 64.)
-    let owned_tokens_item_key = token_owner_key
-        .into_account()
-        .unwrap_or_revert_with(NFTCoreError::InvalidKey)
-        .to_string();
+    let owned_tokens_item_key = match holder_mode {
+        NFTHolderMode::Accounts => token_owner_key
+            .into_account()
+            .unwrap_or_revert_with(NFTCoreError::InvalidKey)
+            .to_string(),
+        NFTHolderMode::Contracts => {
+            let owning_contract_hash: ContractHash = token_owner_key
+                .into_hash()
+                .unwrap_or_revert_with(NFTCoreError::InvalidKey)
+                .into();
+            owning_contract_hash.to_string()
+        }
+    };
 
     let owned_tokens_actual_key = Key::dictionary(
         get_uref(
@@ -363,19 +437,27 @@ pub extern "C" fn burn() {
     )
     .unwrap_or_revert();
 
-    let caller: AccountHash = runtime::get_caller();
+    let holder_mode: NFTHolderMode = get_stored_value_with_user_errors::<u8>(
+        HOLDER_MODE,
+        NFTCoreError::MissingHolderMode,
+        NFTCoreError::InvalidHolderMode,
+    )
+    .try_into()
+    .unwrap_or_revert();
+
+    let expected_token_owner: Key = match holder_mode {
+        NFTHolderMode::Accounts => Key::Account(runtime::get_caller()),
+        NFTHolderMode::Contracts => get_calling_contract_hash().into(),
+    };
 
     // Revert if caller is not token_owner. This seems to be the only check we need to do.
     let token_owner =
         match get_dictionary_value_from_key::<Key>(TOKEN_OWNERS, &token_id.to_string()) {
             Some(token_owner_key) => {
-                let token_owner_account_hash = token_owner_key
-                    .into_account()
-                    .unwrap_or_revert_with(NFTCoreError::InvalidKey);
-                if token_owner_account_hash != caller {
+                if token_owner_key != expected_token_owner {
                     runtime::revert(NFTCoreError::InvalidTokenOwner)
                 }
-                token_owner_account_hash
+                token_owner_key
             }
             None => runtime::revert(NFTCoreError::InvalidTokenID),
         };
@@ -390,8 +472,22 @@ pub extern "C" fn burn() {
     // Mark the token as burnt by adding the token_id to the burnt tokens dictionary.
     upsert_dictionary_value_from_key::<()>(BURNT_TOKENS, &token_id.to_string(), ());
 
+    let owned_tokens_item_key = match holder_mode {
+        NFTHolderMode::Accounts => token_owner
+            .into_account()
+            .unwrap_or_revert_with(NFTCoreError::InvalidKey)
+            .to_string(),
+        NFTHolderMode::Contracts => {
+            let owning_contract_hash: ContractHash = token_owner
+                .into_hash()
+                .unwrap_or_revert_with(NFTCoreError::InvalidKey)
+                .into();
+            owning_contract_hash.to_string()
+        }
+    };
+
     let updated_balance =
-        match get_dictionary_value_from_key::<U256>(TOKEN_COUNTS, &token_owner.to_string()) {
+        match get_dictionary_value_from_key::<U256>(TOKEN_COUNTS, &owned_tokens_item_key) {
             Some(balance) => {
                 if balance > U256::zero() {
                     balance - U256::one()
@@ -406,7 +502,7 @@ pub extern "C" fn burn() {
             }
         };
 
-    upsert_dictionary_value_from_key(TOKEN_COUNTS, &caller.to_string(), updated_balance);
+    upsert_dictionary_value_from_key(TOKEN_COUNTS, &owned_tokens_item_key, updated_balance);
 }
 
 // approve marks a token as approved for transfer by an account
@@ -850,6 +946,12 @@ fn install_nft_contract() -> (ContractHash, ContractVersion) {
                 Parameter::new(ARG_MINTING_MODE, CLType::U8),
                 Parameter::new(ARG_OWNERSHIP_MODE, CLType::U8),
                 Parameter::new(ARG_NFT_KIND, CLType::U8),
+                Parameter::new(ARG_HOLDER_MODE, CLType::U8),
+                Parameter::new(ARG_WHITELIST_MODE, CLType::U8),
+                Parameter::new(
+                    ARG_CONTRACT_WHITELIST,
+                    CLType::List(Box::new(CLType::ByteArray(32u32))),
+                ),
                 Parameter::new(ARG_JSON_SCHEMA, CLType::String),
             ],
             CLType::Unit,
@@ -1086,6 +1188,22 @@ pub extern "C" fn call() {
     )
     .unwrap_or_revert();
 
+    let holder_mode: u8 =
+        get_optional_named_arg_with_user_errors(ARG_HOLDER_MODE, NFTCoreError::InvalidHolderMode)
+            .unwrap_or_revert_with(NFTCoreError::InvalidHolderMode);
+
+    let whitelist_lock: u8 = get_optional_named_arg_with_user_errors(
+        ARG_WHITELIST_MODE,
+        NFTCoreError::InvalidWhitelistMode,
+    )
+    .unwrap_or(0u8);
+
+    let contract_white_list: Vec<ContractHash> = get_optional_named_arg_with_user_errors(
+        ARG_CONTRACT_WHITELIST,
+        NFTCoreError::InvalidContractWhitelist,
+    )
+    .unwrap_or_default();
+
     // The JSON schema representation of the NFT which will be minted.
     // This value cannot be changed after installation.
     let json_schema: String = get_named_arg_with_user_errors(
@@ -1113,6 +1231,9 @@ pub extern "C" fn call() {
              ARG_OWNERSHIP_MODE => ownership_mode,
              ARG_NFT_KIND => nft_kind,
              ARG_MINTING_MODE => minting_mode,
+            ARG_HOLDER_MODE => holder_mode,
+            ARG_WHITELIST_MODE => whitelist_lock,
+            ARG_CONTRACT_WHITELIST => contract_white_list,
              ARG_JSON_SCHEMA => json_schema,
         },
     );

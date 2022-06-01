@@ -38,6 +38,7 @@ pub(crate) fn upsert_dictionary_value_from_key<T: CLTyped + FromBytes + ToBytes>
 }
 
 #[repr(u8)]
+#[derive(PartialEq)]
 pub enum WhitelistMode {
     Unlocked = 0,
     Locked = 1,
@@ -56,6 +57,7 @@ impl TryFrom<u8> for WhitelistMode {
 }
 
 #[repr(u8)]
+#[derive(PartialEq)]
 pub enum NFTHolderMode {
     Accounts = 0,
     Contracts = 1,
@@ -349,7 +351,7 @@ pub(crate) fn to_ptr<T: ToBytes>(t: T) -> (*const u8, usize, Vec<u8>) {
     (ptr, size, bytes)
 }
 
-pub(crate) fn _get_calling_contract_hash() -> ContractHash {
+pub(crate) fn get_calling_contract_hash() -> ContractHash {
     let contract_hash = *runtime::get_call_stack()
         .pop()
         .unwrap_or_revert()

@@ -1,11 +1,24 @@
+use crate::utility::constants::{ARG_CONTRACT_WHITELIST, ARG_HOLDER_MODE, ARG_WHITELIST_MODE};
 use casper_engine_test_support::ExecuteRequestBuilder;
 use casper_execution_engine::core::engine_state::ExecuteRequest;
-use casper_types::{account::AccountHash, CLValue, RuntimeArgs, U256};
+use casper_types::{account::AccountHash, CLValue, ContractHash, RuntimeArgs, U256};
 
 use super::constants::{
     ARG_ALLOW_MINTING, ARG_COLLECTION_NAME, ARG_COLLECTION_SYMBOL, ARG_JSON_SCHEMA,
     ARG_MINTING_MODE, ARG_NFT_KIND, ARG_OWNERSHIP_MODE, ARG_TOTAL_TOKEN_SUPPLY,
 };
+
+#[repr(u8)]
+pub enum WhitelistMode {
+    Unlocked = 0,
+    Locked = 1,
+}
+
+#[repr(u8)]
+pub enum NFTHolderMode {
+    Accounts = 0,
+    Contracts = 1,
+}
 
 #[repr(u8)]
 pub enum MintingMode {
@@ -43,6 +56,9 @@ pub(crate) struct InstallerRequestBuilder {
     minting_mode: CLValue,
     ownership_mode: CLValue,
     nft_kind: CLValue,
+    holder_mode: CLValue,
+    whitelist_mode: CLValue,
+    contract_whitelist: CLValue,
     json_schema: CLValue,
 }
 
@@ -65,6 +81,9 @@ impl InstallerRequestBuilder {
             minting_mode: CLValue::from_t(Some(MintingMode::Installer as u8)).unwrap(),
             ownership_mode: CLValue::from_t(OwnershipMode::Minter as u8).unwrap(),
             nft_kind: CLValue::from_t(NFTKind::Physical as u8).unwrap(),
+            holder_mode: CLValue::from_t(Some(NFTHolderMode::Accounts as u8)).unwrap(),
+            whitelist_mode: CLValue::from_t(Some(WhitelistMode::Locked as u8)).unwrap(),
+            contract_whitelist: CLValue::from_t(Some(Vec::<ContractHash>::new())).unwrap(),
             json_schema: CLValue::from_t("my_json_schema".to_string())
                 .expect("my_json_schema is legit CLValue"),
         }
@@ -130,6 +149,21 @@ impl InstallerRequestBuilder {
         self
     }
 
+    pub(crate) fn with_holder_mode(mut self, holder_mode: NFTHolderMode) -> Self {
+        self.holder_mode = CLValue::from_t(Some(holder_mode as u8)).unwrap();
+        self
+    }
+
+    pub(crate) fn with_whitelist_mode(mut self, whitelist_mode: WhitelistMode) -> Self {
+        self.whitelist_mode = CLValue::from_t(Some(whitelist_mode as u8)).unwrap();
+        self
+    }
+
+    pub(crate) fn with_contract_whitelist(mut self, contract_whitelist: Vec<ContractHash>) -> Self {
+        self.contract_whitelist = CLValue::from_t(Some(contract_whitelist)).unwrap();
+        self
+    }
+
     pub(crate) fn _with_json_schema(mut self, json_schema: &str) -> Self {
         self.json_schema = CLValue::from_t(json_schema).expect("json_schema is legit CLValue");
         self
@@ -144,6 +178,9 @@ impl InstallerRequestBuilder {
         runtime_args.insert_cl_value(ARG_MINTING_MODE, self.minting_mode.clone());
         runtime_args.insert_cl_value(ARG_OWNERSHIP_MODE, self.ownership_mode);
         runtime_args.insert_cl_value(ARG_NFT_KIND, self.nft_kind);
+        runtime_args.insert_cl_value(ARG_HOLDER_MODE, self.holder_mode);
+        runtime_args.insert_cl_value(ARG_WHITELIST_MODE, self.whitelist_mode);
+        runtime_args.insert_cl_value(ARG_CONTRACT_WHITELIST, self.contract_whitelist);
         runtime_args.insert_cl_value(ARG_JSON_SCHEMA, self.json_schema);
         ExecuteRequestBuilder::standard(self.account_hash, &self.session_file, runtime_args).build()
     }

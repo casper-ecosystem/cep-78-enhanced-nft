@@ -85,6 +85,7 @@ pub enum NFTCoreError {
     InvalidContractWhitelist = 80,
     UnlistedContractHash = 81,
     InvalidContract = 82,
+    EmptyContractWhitelist = 83,
 }
 
 impl From<NFTCoreError> for ApiError {
