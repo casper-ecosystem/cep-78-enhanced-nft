@@ -3,6 +3,7 @@ use casper_engine_test_support::{
     DEFAULT_ACCOUNT_PUBLIC_KEY, DEFAULT_RUN_GENESIS_REQUEST,
 };
 use casper_types::{runtime_args, system::mint, ContractHash, Key, RuntimeArgs, U256};
+use casper_types::account::AccountHash;
 
 use crate::utility::{
     constants::{
@@ -16,6 +17,9 @@ use crate::utility::{
     installer_request_builder::{InstallerRequestBuilder, OwnershipMode},
     support::{self, get_dictionary_value_from_key, get_nft_contract_hash},
 };
+use crate::utility::constants::{ARG_CONTRACT_WHITELIST, ENTRY_POINT_MINT, MINTING_CONTRACT_WASM};
+use crate::utility::installer_request_builder::{MintingMode, NFTHolderMode, WhitelistMode};
+use crate::utility::support::{get_minting_contract_hash, query_stored_value};
 
 #[test]
 fn should_dissallow_transfer_with_minter_or_assigned_ownership_mode() {
@@ -597,3 +601,104 @@ fn should_dissallow_same_operator_to_tranfer_token_twice() {
     .build();
     builder.exec(transfer_request).expect_failure();
 }
+
+
+#[test]
+fn should_transfer_between_contract_to_account() {
+    let mut builder = InMemoryWasmTestBuilder::default();
+    builder.run_genesis(&DEFAULT_RUN_GENESIS_REQUEST).commit();
+
+    let minting_contract_install_request = ExecuteRequestBuilder::standard(
+        *DEFAULT_ACCOUNT_ADDR,
+        MINTING_CONTRACT_WASM,
+        runtime_args! {},
+    )
+        .build();
+
+    builder
+        .exec(minting_contract_install_request)
+        .expect_success()
+        .commit();
+
+    let minting_contract_hash = get_minting_contract_hash(&builder);
+    let minting_contract_key: Key = minting_contract_hash.into();
+
+    let contract_whitelist = vec![minting_contract_hash];
+
+    let install_request = InstallerRequestBuilder::new(*DEFAULT_ACCOUNT_ADDR, NFT_CONTRACT_WASM)
+        .with_total_token_supply(U256::from(100u64))
+        .with_holder_mode(NFTHolderMode::Contracts)
+        .with_whitelist_mode(WhitelistMode::Locked)
+        .with_ownership_mode(OwnershipMode::Transferable)
+        .with_minting_mode(Some(MintingMode::Installer as u8))
+        .with_contract_whitelist(contract_whitelist.clone())
+        .build();
+
+    builder.exec(install_request).expect_success().commit();
+
+    let nft_contract_key: Key = get_nft_contract_hash(&builder).into();
+
+    let actual_contract_whitelist: Vec<ContractHash> = query_stored_value(
+        &mut builder,
+        nft_contract_key,
+        vec![ARG_CONTRACT_WHITELIST.to_string()],
+    );
+
+    assert_eq!(actual_contract_whitelist, contract_whitelist);
+
+    let mint_runtime_args = runtime_args! {
+        ARG_NFT_CONTRACT_HASH => nft_contract_key,
+        ARG_TOKEN_OWNER => minting_contract_key,
+        ARG_TOKEN_META_DATA => TEST_META_DATA.to_string(),
+        ARG_TOKEN_URI => TEST_URI.to_string()
+    };
+
+    let minting_request = ExecuteRequestBuilder::contract_call_by_hash(
+        *DEFAULT_ACCOUNT_ADDR,
+        minting_contract_hash,
+        ENTRY_POINT_MINT,
+        mint_runtime_args
+    ).build();
+
+    builder
+        .exec(minting_request)
+        .expect_success()
+        .commit();
+
+    let token_id = U256::zero().to_string();
+
+    let actual_token_owner: Key =
+        get_dictionary_value_from_key(&builder, &nft_contract_key, TOKEN_OWNERS, &token_id);
+
+    assert_eq!(
+        minting_contract_key,
+        actual_token_owner
+    );
+
+    let target_owner_account_hash = AccountHash::new([2u8;32]);
+
+    let transfer_runtime_arguments = runtime_args! {
+        ARG_NFT_CONTRACT_HASH => nft_contract_key,
+        ARG_TOKEN_ID => U256::zero(),
+        ARG_TO_ACCOUNT_HASH => Key::Account(*DEFAULT_ACCOUNT_ADDR),
+        ARG_FROM_ACCOUNT_HASH => minting_contract_key
+    };
+
+    let transfer_request = ExecuteRequestBuilder::contract_call_by_hash(
+        *DEFAULT_ACCOUNT_ADDR,
+        minting_contract_hash,
+        ENTRY_POINT_TRANSFER,
+        transfer_runtime_arguments
+    ).build();
+
+    builder.exec(transfer_request).expect_success().commit();
+
+    let updated_token_owner: Key = get_dictionary_value_from_key(&builder, &nft_contract_key, TOKEN_OWNERS, &token_id);
+
+    assert_eq!(
+        Key::Account(*DEFAULT_ACCOUNT_ADDR),
+        updated_token_owner
+    );
+}
+
+

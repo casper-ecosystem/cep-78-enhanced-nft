@@ -1,6 +1,7 @@
 use core::{convert::TryInto, mem::MaybeUninit};
 
 use alloc::{vec, vec::Vec};
+use alloc::string::{String, ToString};
 use casper_contract::{
     contract_api::{self, runtime, storage},
     ext_ffi,
@@ -15,7 +16,7 @@ use casper_types::{
 
 use core::convert::TryFrom;
 
-use crate::{constants::OWNERSHIP_MODE, error::NFTCoreError, CONTRACT_WHITELIST};
+use crate::{constants::OWNERSHIP_MODE, error::NFTCoreError, CONTRACT_WHITELIST, HOLDER_MODE};
 
 const _CONTRACT_WHITELIST: &str = "contract_whitelist";
 
@@ -57,7 +58,7 @@ impl TryFrom<u8> for WhitelistMode {
 }
 
 #[repr(u8)]
-#[derive(PartialEq)]
+#[derive(PartialEq, Clone, Copy)]
 pub enum NFTHolderMode {
     Accounts = 0,
     Contracts = 1,
@@ -154,6 +155,22 @@ pub(crate) fn get_ownership_mode() -> Result<OwnershipMode, NFTCoreError> {
         NFTCoreError::InvalidOwnershipMode,
     )
     .try_into()
+}
+
+pub(crate) fn get_holder_mode() -> Result<NFTHolderMode, NFTCoreError> {
+    get_stored_value_with_user_errors::<u8>(
+        HOLDER_MODE,
+        NFTCoreError::MissingHolderMode,
+        NFTCoreError::InvalidHolderMode
+    ).try_into()
+}
+
+pub(crate) fn get_owned_tokens_dictionary_item_key(token_owner_key: Key) -> String {
+    match token_owner_key {
+        Key::Account(token_owner_account_hash) => token_owner_account_hash.to_string(),
+        Key::Hash(token_owner_hash_addr) => ContractHash::new(token_owner_hash_addr).to_string(),
+        _ => runtime::revert(NFTCoreError::InvalidKey)
+    }
 }
 
 pub(crate) fn get_dictionary_value_from_key<T: CLTyped + FromBytes>(
