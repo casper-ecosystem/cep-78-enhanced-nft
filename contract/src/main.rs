@@ -374,8 +374,7 @@ pub extern "C" fn mint() {
     upsert_dictionary_value_from_key(TOKEN_URI, dictionary_item_key, token_uri);
     upsert_dictionary_value_from_key(TOKEN_ISSUERS, dictionary_item_key, token_owner_key);
 
-    // We use the string representation of the account_hash as to not exceed the dictionary_item_key length limit,
-    // which is currently set to 64. (Using Key::Account().to_string() exceeds the limit of 64.)
+
     let owned_tokens_item_key = get_owned_tokens_dictionary_item_key(token_owner_key);
 
     let owned_tokens_actual_key = Key::dictionary(
@@ -484,19 +483,7 @@ pub extern "C" fn burn() {
     // Mark the token as burnt by adding the token_id to the burnt tokens dictionary.
     upsert_dictionary_value_from_key::<()>(BURNT_TOKENS, &token_id.to_string(), ());
 
-    let owned_tokens_item_key = match holder_mode {
-        NFTHolderMode::Accounts => token_owner
-            .into_account()
-            .unwrap_or_revert_with(NFTCoreError::InvalidKey)
-            .to_string(),
-        NFTHolderMode::Contracts => {
-            let owning_contract_hash: ContractHash = token_owner
-                .into_hash()
-                .unwrap_or_revert_with(NFTCoreError::InvalidKey)
-                .into();
-            owning_contract_hash.to_string()
-        }
-    };
+    let owned_tokens_item_key = get_owned_tokens_dictionary_item_key(token_owner);
 
     let updated_balance =
         match get_dictionary_value_from_key::<U256>(TOKEN_COUNTS, &owned_tokens_item_key) {

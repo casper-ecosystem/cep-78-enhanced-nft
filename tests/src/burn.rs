@@ -14,6 +14,9 @@ use crate::utility::{
     installer_request_builder::{InstallerRequestBuilder, OwnershipMode},
     support::{self, get_nft_contract_hash},
 };
+use crate::utility::constants::{ENTRY_POINT_MINT, MINTING_CONTRACT_WASM, TOKEN_COUNTS};
+use crate::utility::installer_request_builder::{MintingMode, NFTHolderMode, WhitelistMode};
+use crate::utility::support::{get_dictionary_value_from_key, get_minting_contract_hash, get_owned_tokens_dictionary_item_key};
 
 #[test]
 fn should_burn_minted_token() {
@@ -394,3 +397,92 @@ fn should_return_expected_error_when_burning_not_owned_token() {
         "should disallow burning on mismatch of owner key",
     );
 }
+
+#[test]
+fn should_allow_contract_to_burn_token() {
+    let mut builder = InMemoryWasmTestBuilder::default();
+    builder.run_genesis(&DEFAULT_RUN_GENESIS_REQUEST).commit();
+
+    let minting_contract_install_request = ExecuteRequestBuilder::standard(
+        *DEFAULT_ACCOUNT_ADDR,
+        MINTING_CONTRACT_WASM,
+        runtime_args! {},
+    )
+        .build();
+
+    builder
+        .exec(minting_contract_install_request)
+        .expect_success()
+        .commit();
+
+    let minting_contract_hash = get_minting_contract_hash(&builder);
+
+    let contract_whitelist = vec![minting_contract_hash];
+
+    let install_request = InstallerRequestBuilder::new(*DEFAULT_ACCOUNT_ADDR, NFT_CONTRACT_WASM)
+        .with_total_token_supply(U256::from(100u64))
+        .with_holder_mode(NFTHolderMode::Contracts)
+        .with_whitelist_mode(WhitelistMode::Locked)
+        .with_ownership_mode(OwnershipMode::Minter)
+        .with_minting_mode(Some(MintingMode::Installer as u8))
+        .with_contract_whitelist(contract_whitelist.clone())
+        .build();
+
+    builder.exec(install_request).expect_success().commit();
+
+    let nft_contract_key: Key = get_nft_contract_hash(&builder).into();
+
+    let mint_runtime_args = runtime_args! {
+        ARG_NFT_CONTRACT_HASH => nft_contract_key,
+        ARG_TOKEN_OWNER => Key::Account(*DEFAULT_ACCOUNT_ADDR),
+        ARG_TOKEN_META_DATA => TEST_META_DATA.to_string(),
+        ARG_TOKEN_URI => TEST_URI.to_string()
+    };
+
+    let mint_via_contract_call = ExecuteRequestBuilder::contract_call_by_hash(
+        *DEFAULT_ACCOUNT_ADDR,
+        minting_contract_hash,
+        ENTRY_POINT_MINT,
+        mint_runtime_args,
+    )
+        .build();
+
+    builder
+        .exec(mint_via_contract_call)
+        .expect_success()
+        .commit();
+
+    let current_token_balance = get_dictionary_value_from_key::<U256>(
+        &builder,
+        &nft_contract_key,
+        TOKEN_COUNTS,
+        &minting_contract_hash.to_string()
+    );
+
+    assert_eq!(U256::one(), current_token_balance);
+
+    let burn_via_contract_call = ExecuteRequestBuilder::contract_call_by_hash(
+        *DEFAULT_ACCOUNT_ADDR,
+        minting_contract_hash,
+        ENTRY_POINT_BURN,
+        runtime_args! {
+            ARG_NFT_CONTRACT_HASH => nft_contract_key,
+            ARG_TOKEN_ID => U256::zero()
+        }
+    ).build();
+
+    builder
+        .exec(burn_via_contract_call)
+        .expect_success()
+        .commit();
+
+    let updated_token_balance  = get_dictionary_value_from_key::<U256>(
+        &builder,
+        &nft_contract_key,
+        TOKEN_COUNTS,
+        &minting_contract_hash.to_string()
+    );
+
+    assert_eq!(updated_token_balance, U256::zero())
+}
+

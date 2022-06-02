@@ -37,6 +37,7 @@ pub(crate) const ARG_NFT_KIND: &str = "nft_kind";
 pub(crate) const TOKEN_OWNERS: &str = "token_owners";
 pub(crate) const OWNED_TOKENS: &str = "owned_tokens";
 pub(crate) const BURNT_TOKENS: &str = "burnt_tokens";
+pub(crate) const TOKEN_COUNTS: &str = "balances";
 pub(crate) const OPERATOR: &str = "operator";
 pub(crate) const BALANCES: &str = "balances";
 pub(crate) const ARG_OPERATOR: &str = "operator";

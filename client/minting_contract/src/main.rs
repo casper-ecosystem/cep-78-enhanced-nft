@@ -20,6 +20,7 @@ const ACCESS_KEY_NAME: &str = "minting_contract_access_uref";
 
 const ENTRY_POINT_MINT: &str = "mint";
 const ENTRY_POINT_TRANSFER: &str = "transfer";
+const ENTRY_POINT_BURN: &str = "burn";
 
 const ARG_NFT_CONTRACT_HASH: &str = "nft_contract_hash";
 const ARG_TOKEN_OWNER: &str = "token_owner";
@@ -77,6 +78,25 @@ pub extern "C" fn transfer() {
     );
 }
 
+#[no_mangle]
+pub extern "C" fn burn() {
+    let nft_contract_hash: ContractHash = runtime::get_named_arg::<Key>(ARG_NFT_CONTRACT_HASH)
+        .into_hash()
+        .map(|hash| ContractHash::new(hash))
+        .unwrap();
+
+    let token_id = runtime::get_named_arg::<U256>(ARG_TOKEN_ID);
+
+    runtime::call_contract::<()>(
+        nft_contract_hash,
+        ENTRY_POINT_BURN,
+        runtime_args! {
+            ARG_TOKEN_ID => token_id
+        }
+    )
+}
+
+
 
 
 fn install_minting_contract() -> (ContractHash, ContractVersion) {
@@ -105,9 +125,19 @@ fn install_minting_contract() -> (ContractHash, ContractVersion) {
         EntryPointType::Contract,
     );
 
+    let burn_entry_point = EntryPoint::new(
+        ENTRY_POINT_BURN,
+        vec![Parameter::new(ARG_TOKEN_ID, CLType::U256)],
+        CLType::Unit,
+        EntryPointAccess::Public,
+        EntryPointType::Contract,
+    );
+
+
     let mut entry_points = EntryPoints::new();
     entry_points.add_entry_point(mint_entry_point);
     entry_points.add_entry_point(transfer_entry_point);
+    entry_points.add_entry_point(burn_entry_point);
 
     let named_keys = {
         let mut named_keys = NamedKeys::new();
