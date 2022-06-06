@@ -1,9 +1,7 @@
-use casper_engine_test_support::{
-    ExecuteRequestBuilder, InMemoryWasmTestBuilder, DEFAULT_ACCOUNT_ADDR,
-    DEFAULT_ACCOUNT_PUBLIC_KEY, DEFAULT_RUN_GENESIS_REQUEST,
-};
-use casper_types::{runtime_args, system::mint, ContractHash, Key, RuntimeArgs, U256};
+use casper_engine_test_support::{ExecuteRequestBuilder, InMemoryWasmTestBuilder, DEFAULT_ACCOUNT_ADDR, DEFAULT_ACCOUNT_PUBLIC_KEY, DEFAULT_RUN_GENESIS_REQUEST, DEFAULT_ACCOUNT_INITIAL_BALANCE, MINIMUM_ACCOUNT_CREATION_BALANCE};
+use casper_types::{runtime_args, system::mint, ContractHash, Key, RuntimeArgs, U256, SecretKey, PublicKey, U512};
 use casper_types::account::AccountHash;
+
 
 use crate::utility::{
     constants::{
@@ -19,7 +17,7 @@ use crate::utility::{
 };
 use crate::utility::constants::{ARG_CONTRACT_WHITELIST, ENTRY_POINT_MINT, MINTING_CONTRACT_WASM};
 use crate::utility::installer_request_builder::{MintingMode, NFTHolderMode, WhitelistMode};
-use crate::utility::support::{get_minting_contract_hash, query_stored_value};
+use crate::utility::support::{assert_expected_error, get_minting_contract_hash, query_stored_value};
 
 #[test]
 fn should_dissallow_transfer_with_minter_or_assigned_ownership_mode() {
@@ -702,3 +700,84 @@ fn should_transfer_between_contract_to_account() {
 }
 
 
+#[test]
+fn should_prevent_transfer_when_caller_is_not_owner() {
+    const ARG_AMOUNT: &str = "amount";
+    const ARG_TARGET: &str = "target";
+    const ARG_ID: &str = "id";
+    const ID_NONE: Option<u64> = None;
+
+    let mut builder = InMemoryWasmTestBuilder::default();
+    builder.run_genesis(&DEFAULT_RUN_GENESIS_REQUEST).commit();
+
+    // Create an account that is not the owner of the NFT to transfer the token itself.
+    let other_account_secret_key = SecretKey::ed25519_from_bytes([9u8;32])
+        .unwrap();
+    let other_account_public_key = PublicKey::from(&other_account_secret_key);
+
+    let other_account_fund_request = ExecuteRequestBuilder::transfer(
+        *DEFAULT_ACCOUNT_ADDR,
+        runtime_args! {
+            ARG_TARGET => other_account_public_key.to_account_hash(),
+            ARG_AMOUNT => U512::from(MINIMUM_ACCOUNT_CREATION_BALANCE),
+            ARG_ID => ID_NONE
+        }
+    ).build();
+
+    builder.exec(other_account_fund_request).expect_success().commit();
+
+
+    let install_request = InstallerRequestBuilder::new(*DEFAULT_ACCOUNT_ADDR, NFT_CONTRACT_WASM)
+        .with_collection_name(NFT_TEST_COLLECTION.to_string())
+        .with_collection_symbol(NFT_TEST_SYMBOL.to_string())
+        .with_total_token_supply(U256::from(100u64))
+        .with_ownership_mode(OwnershipMode::Transferable)
+        .with_holder_mode(NFTHolderMode::Accounts)
+        .build();
+
+    builder.exec(install_request).expect_success().commit();
+
+    let nft_contract_hash = get_nft_contract_hash(&builder);
+
+    let nft_contract_key: Key = nft_contract_hash.into();
+
+    let mint_session_call = ExecuteRequestBuilder::standard(
+        *DEFAULT_ACCOUNT_ADDR,
+        MINT_SESSION_WASM,
+        runtime_args! {
+            ARG_NFT_CONTRACT_HASH => nft_contract_key,
+            ARG_TOKEN_OWNER => Key::Account(*DEFAULT_ACCOUNT_ADDR),
+            ARG_TOKEN_META_DATA => TEST_META_DATA.to_string(),
+            ARG_TOKEN_URI => TEST_URI.to_string()
+        },
+    )
+        .build();
+
+    builder.exec(mint_session_call).expect_success().commit();
+
+    let actual_token_owner: Key = get_dictionary_value_from_key(
+        &builder,
+        &nft_contract_key,
+        TOKEN_OWNERS,
+        &U256::zero().to_string()
+    );
+
+    assert_eq!(Key::Account(*DEFAULT_ACCOUNT_ADDR), actual_token_owner);
+
+    let unauthorized_transfer = ExecuteRequestBuilder::contract_call_by_hash(
+        other_account_public_key.to_account_hash(),
+        nft_contract_hash,
+        ENTRY_POINT_TRANSFER,
+        runtime_args! {
+            ARG_TOKEN_ID => U256::zero(),
+            ARG_FROM_ACCOUNT_HASH => Key::Account(*DEFAULT_ACCOUNT_ADDR),
+            ARG_TO_ACCOUNT_HASH => Key::Account(other_account_public_key.to_account_hash())
+        }
+    ).build();
+
+    builder.exec(unauthorized_transfer).expect_failure();
+
+    let error = builder.get_error().expect("previous execution must have failed");
+
+    assert_expected_error(error, 1u16, "transfer from another account must raise InvalidAccount");
+}

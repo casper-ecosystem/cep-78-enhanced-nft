@@ -10,7 +10,6 @@ mod utils;
 
 extern crate alloc;
 use core::convert::TryInto;
-
 use alloc::{boxed::Box, string::String, string::ToString, vec, vec::Vec};
 
 use casper_types::{
@@ -1230,9 +1229,9 @@ pub extern "C" fn call() {
              ARG_OWNERSHIP_MODE => ownership_mode,
              ARG_NFT_KIND => nft_kind,
              ARG_MINTING_MODE => minting_mode,
-            ARG_HOLDER_MODE => holder_mode,
-            ARG_WHITELIST_MODE => whitelist_lock,
-            ARG_CONTRACT_WHITELIST => contract_white_list,
+             ARG_HOLDER_MODE => holder_mode,
+             ARG_WHITELIST_MODE => whitelist_lock,
+             ARG_CONTRACT_WHITELIST => contract_white_list,
              ARG_JSON_SCHEMA => json_schema,
         },
     );
