@@ -17,7 +17,10 @@ const ARG_KEY_NAME: &str = "key_name";
 
 #[no_mangle]
 pub extern "C" fn call() {
-    let nft_contract_hash: ContractHash = runtime::get_named_arg(ARG_NFT_CONTRACT_HASH);
+    let nft_contract_hash: ContractHash = runtime::get_named_arg::<Key>(ARG_NFT_CONTRACT_HASH)
+        .into_hash()
+        .map(|hash| ContractHash::new(hash))
+        .unwrap();
     let key_name: String = runtime::get_named_arg(ARG_KEY_NAME);
     let token_owner: Key = runtime::get_named_arg(ARG_TOKEN_OWNER);
 
