@@ -2,7 +2,7 @@ use casper_engine_test_support::{
     ExecuteRequestBuilder, InMemoryWasmTestBuilder, DEFAULT_ACCOUNT_ADDR,
     DEFAULT_RUN_GENESIS_REQUEST,
 };
-use casper_types::{runtime_args, system::mint, ContractHash, Key, RuntimeArgs, U256};
+use casper_types::{runtime_args, system::mint, ContractHash, Key, RuntimeArgs};
 
 use crate::utility::{
     constants::{
@@ -16,17 +16,17 @@ use crate::utility::{
 };
 use crate::utility::constants::{ENTRY_POINT_MINT, MINTING_CONTRACT_WASM, TOKEN_COUNTS};
 use crate::utility::installer_request_builder::{MintingMode, NFTHolderMode, WhitelistMode};
-use crate::utility::support::{get_dictionary_value_from_key, get_minting_contract_hash, get_owned_tokens_dictionary_item_key};
+use crate::utility::support::{get_dictionary_value_from_key, get_minting_contract_hash};
 
 #[test]
 fn should_burn_minted_token() {
-    const TOKEN_ID: U256 = U256::zero();
+    const TOKEN_ID: u64 = 0;
     let mut builder = InMemoryWasmTestBuilder::default();
     builder.run_genesis(&DEFAULT_RUN_GENESIS_REQUEST).commit();
 
     let install_request_builder =
         InstallerRequestBuilder::new(*DEFAULT_ACCOUNT_ADDR, NFT_CONTRACT_WASM)
-            .with_total_token_supply(U256::from(100u64))
+            .with_total_token_supply(100u64)
             .with_ownership_mode(OwnershipMode::Transferable)
             .build();
 
@@ -58,23 +58,23 @@ fn should_burn_minted_token() {
 
     builder.exec(mint_session_call).expect_success().commit();
 
-    let actual_owned_tokens = support::get_dictionary_value_from_key::<Vec<U256>>(
+    let actual_owned_tokens = support::get_dictionary_value_from_key::<Vec<u64>>(
         &builder,
         nft_contract_key,
         OWNED_TOKENS,
         &DEFAULT_ACCOUNT_ADDR.clone().to_string(),
     );
 
-    let expected_owned_tokens = vec![U256::zero()];
+    let expected_owned_tokens = vec![0u64];
     assert_eq!(expected_owned_tokens, actual_owned_tokens);
-    let actual_balance_before_burn = support::get_dictionary_value_from_key::<U256>(
+    let actual_balance_before_burn = support::get_dictionary_value_from_key::<u64>(
         &builder,
         nft_contract_key,
         BALANCES,
         &DEFAULT_ACCOUNT_ADDR.clone().to_string(),
     );
 
-    let expected_balance_before_burn = U256::one();
+    let expected_balance_before_burn = 1u64;
     assert_eq!(actual_balance_before_burn, expected_balance_before_burn);
 
     let burn_request = ExecuteRequestBuilder::contract_call_by_name(
@@ -82,7 +82,7 @@ fn should_burn_minted_token() {
         CONTRACT_NAME,
         ENTRY_POINT_BURN,
         runtime_args! {
-            ARG_TOKEN_ID => U256::zero(),
+            ARG_TOKEN_ID => 0u64,
         },
     )
     .build();
@@ -97,14 +97,14 @@ fn should_burn_minted_token() {
     );
 
     // This will error of token is not registered as
-    let actual_balance = support::get_dictionary_value_from_key::<U256>(
+    let actual_balance = support::get_dictionary_value_from_key::<u64>(
         &builder,
         nft_contract_key,
         BALANCES,
         &DEFAULT_ACCOUNT_ADDR.clone().to_string(),
     );
 
-    let expected_balance = U256::zero();
+    let expected_balance = 0u64;
     assert_eq!(actual_balance, expected_balance);
 }
 
@@ -115,7 +115,7 @@ fn should_not_burn_previously_burnt_token() {
 
     let install_request_builder =
         InstallerRequestBuilder::new(*DEFAULT_ACCOUNT_ADDR, NFT_CONTRACT_WASM)
-            .with_total_token_supply(U256::from(100u64))
+            .with_total_token_supply(100u64)
             .with_ownership_mode(OwnershipMode::Transferable)
             .build();
 
@@ -146,14 +146,14 @@ fn should_not_burn_previously_burnt_token() {
 
     builder.exec(mint_session_call).expect_success().commit();
 
-    let actual_owned_tokens = support::get_dictionary_value_from_key::<Vec<U256>>(
+    let actual_owned_tokens = support::get_dictionary_value_from_key::<Vec<u64>>(
         &builder,
         nft_contract_key,
         OWNED_TOKENS,
         &DEFAULT_ACCOUNT_ADDR.clone().to_string(),
     );
 
-    let expected_owned_tokens = vec![U256::zero()];
+    let expected_owned_tokens = vec![0u64];
     assert_eq!(expected_owned_tokens, actual_owned_tokens);
 
     let burn_request = ExecuteRequestBuilder::contract_call_by_name(
@@ -161,7 +161,7 @@ fn should_not_burn_previously_burnt_token() {
         CONTRACT_NAME,
         ENTRY_POINT_BURN,
         runtime_args! {
-            ARG_TOKEN_ID => U256::zero(),
+            ARG_TOKEN_ID => 0u64,
         },
     )
     .build();
@@ -173,7 +173,7 @@ fn should_not_burn_previously_burnt_token() {
         CONTRACT_NAME,
         ENTRY_POINT_BURN,
         runtime_args! {
-            ARG_TOKEN_ID => U256::zero(),
+            ARG_TOKEN_ID => 0u64,
         },
     )
     .build();
@@ -195,7 +195,7 @@ fn should_return_expected_error_when_burning_non_existing_token() {
 
     let install_request_builder =
         InstallerRequestBuilder::new(*DEFAULT_ACCOUNT_ADDR, NFT_CONTRACT_WASM)
-            .with_total_token_supply(U256::from(100u64))
+            .with_total_token_supply(100u64)
             .with_ownership_mode(OwnershipMode::Transferable)
             .build();
 
@@ -209,7 +209,7 @@ fn should_return_expected_error_when_burning_non_existing_token() {
         CONTRACT_NAME,
         ENTRY_POINT_BURN,
         runtime_args! {
-            ARG_TOKEN_ID => U256::zero(),
+            ARG_TOKEN_ID => 0u64,
         },
     )
     .build();
@@ -231,7 +231,7 @@ fn should_return_expected_error_burning_of_others_users_token() {
 
     let install_request_builder =
         InstallerRequestBuilder::new(*DEFAULT_ACCOUNT_ADDR, NFT_CONTRACT_WASM)
-            .with_total_token_supply(U256::from(100u64))
+            .with_total_token_supply(100u64)
             .with_ownership_mode(OwnershipMode::Transferable)
             .build();
 
@@ -281,14 +281,14 @@ fn should_return_expected_error_burning_of_others_users_token() {
 
     builder.exec(mint_session_call).expect_success().commit();
 
-    let actual_owned_tokens = support::get_dictionary_value_from_key::<Vec<U256>>(
+    let actual_owned_tokens = support::get_dictionary_value_from_key::<Vec<u64>>(
         &builder,
         nft_contract_key,
         OWNED_TOKENS,
         &DEFAULT_ACCOUNT_ADDR.clone().to_string(),
     );
 
-    let expected_owned_tokens = vec![U256::zero()];
+    let expected_owned_tokens = vec![0u64];
     assert_eq!(expected_owned_tokens, actual_owned_tokens);
 
     let incorrect_burn_request = ExecuteRequestBuilder::contract_call_by_hash(
@@ -296,7 +296,7 @@ fn should_return_expected_error_burning_of_others_users_token() {
         ContractHash::new(nft_contract_hash),
         ENTRY_POINT_BURN,
         runtime_args! {
-            ARG_TOKEN_ID => U256::zero(),
+            ARG_TOKEN_ID => 0u64,
         },
     )
     .build();
@@ -306,8 +306,6 @@ fn should_return_expected_error_burning_of_others_users_token() {
     let error = builder.get_error().expect("must have error");
 
     support::assert_expected_error(error, 6u16, "should disallow burning of other users' token");
-
-    // TODO is this really diffferent than should_return_expected_error_when_burning_not_owned_token() ???
 }
 
 #[test]
@@ -317,7 +315,7 @@ fn should_return_expected_error_when_burning_not_owned_token() {
 
     let install_request_builder =
         InstallerRequestBuilder::new(*DEFAULT_ACCOUNT_ADDR, NFT_CONTRACT_WASM)
-            .with_total_token_supply(U256::from(100u64))
+            .with_total_token_supply(100u64)
             .with_ownership_mode(OwnershipMode::Transferable)
             .build();
 
@@ -368,14 +366,14 @@ fn should_return_expected_error_when_burning_not_owned_token() {
 
     builder.exec(mint_session_call).expect_success().commit();
 
-    let actual_owned_tokens = support::get_dictionary_value_from_key::<Vec<U256>>(
+    let actual_owned_tokens = support::get_dictionary_value_from_key::<Vec<u64>>(
         &builder,
         nft_contract_key,
         OWNED_TOKENS,
         &DEFAULT_ACCOUNT_ADDR.clone().to_string(),
     );
 
-    let expected_owned_tokens = vec![U256::zero()];
+    let expected_owned_tokens = vec![0u64];
     assert_eq!(expected_owned_tokens, actual_owned_tokens);
 
     let incorrect_burn_request = ExecuteRequestBuilder::contract_call_by_hash(
@@ -383,7 +381,7 @@ fn should_return_expected_error_when_burning_not_owned_token() {
         ContractHash::new(nft_contract_hash),
         ENTRY_POINT_BURN,
         runtime_args! {
-            ARG_TOKEN_ID => U256::zero()
+            ARG_TOKEN_ID => 0u64
         },
     )
     .build();
@@ -420,7 +418,7 @@ fn should_allow_contract_to_burn_token() {
     let contract_whitelist = vec![minting_contract_hash];
 
     let install_request = InstallerRequestBuilder::new(*DEFAULT_ACCOUNT_ADDR, NFT_CONTRACT_WASM)
-        .with_total_token_supply(U256::from(100u64))
+        .with_total_token_supply(100u64)
         .with_holder_mode(NFTHolderMode::Contracts)
         .with_whitelist_mode(WhitelistMode::Locked)
         .with_ownership_mode(OwnershipMode::Minter)
@@ -452,14 +450,14 @@ fn should_allow_contract_to_burn_token() {
         .expect_success()
         .commit();
 
-    let current_token_balance = get_dictionary_value_from_key::<U256>(
+    let current_token_balance = get_dictionary_value_from_key::<u64>(
         &builder,
         &nft_contract_key,
         TOKEN_COUNTS,
         &minting_contract_hash.to_string()
     );
 
-    assert_eq!(U256::one(), current_token_balance);
+    assert_eq!(1u64, current_token_balance);
 
     let burn_via_contract_call = ExecuteRequestBuilder::contract_call_by_hash(
         *DEFAULT_ACCOUNT_ADDR,
@@ -467,7 +465,7 @@ fn should_allow_contract_to_burn_token() {
         ENTRY_POINT_BURN,
         runtime_args! {
             ARG_NFT_CONTRACT_HASH => nft_contract_key,
-            ARG_TOKEN_ID => U256::zero()
+            ARG_TOKEN_ID => 0u64
         }
     ).build();
 
@@ -476,13 +474,13 @@ fn should_allow_contract_to_burn_token() {
         .expect_success()
         .commit();
 
-    let updated_token_balance  = get_dictionary_value_from_key::<U256>(
+    let updated_token_balance  = get_dictionary_value_from_key::<u64>(
         &builder,
         &nft_contract_key,
         TOKEN_COUNTS,
         &minting_contract_hash.to_string()
     );
 
-    assert_eq!(updated_token_balance, U256::zero())
+    assert_eq!(updated_token_balance, 0u64)
 }
 

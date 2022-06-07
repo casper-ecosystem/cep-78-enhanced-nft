@@ -2,7 +2,7 @@ use casper_engine_test_support::{
     ExecuteRequestBuilder, InMemoryWasmTestBuilder, DEFAULT_ACCOUNT_ADDR,
     DEFAULT_RUN_GENESIS_REQUEST,
 };
-use casper_types::{runtime_args, ContractHash, Key, RuntimeArgs, U256};
+use casper_types::{runtime_args, ContractHash, Key, RuntimeArgs};
 
 use crate::utility::{
     constants::{
@@ -23,7 +23,7 @@ fn only_installer_should_be_able_to_toggle_allow_minting() {
     let install_request = InstallerRequestBuilder::new(*DEFAULT_ACCOUNT_ADDR, NFT_CONTRACT_WASM)
         .with_collection_name(NFT_TEST_COLLECTION.to_string())
         .with_collection_symbol(NFT_TEST_SYMBOL.to_string())
-        .with_total_token_supply(U256::one())
+        .with_total_token_supply(1u64)
         .with_allowing_minting(Some(false))
         .build();
 

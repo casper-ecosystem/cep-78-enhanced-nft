@@ -2,7 +2,7 @@ use casper_engine_test_support::{
     ExecuteRequestBuilder, InMemoryWasmTestBuilder, DEFAULT_ACCOUNT_ADDR,
     DEFAULT_RUN_GENESIS_REQUEST,
 };
-use casper_types::{runtime_args, CLValue, ContractHash, RuntimeArgs, U256};
+use casper_types::{runtime_args, CLValue, ContractHash, RuntimeArgs};
 
 use crate::utility::constants::{ARG_CONTRACT_WHITELIST, ARG_HOLDER_MODE, ARG_WHITELIST_MODE};
 use crate::utility::installer_request_builder::{NFTHolderMode, WhitelistMode};
@@ -24,7 +24,7 @@ fn should_install_contract() {
     let install_request = InstallerRequestBuilder::new(*DEFAULT_ACCOUNT_ADDR, NFT_CONTRACT_WASM)
         .with_collection_name(NFT_TEST_COLLECTION.to_string())
         .with_collection_symbol(NFT_TEST_SYMBOL.to_string())
-        .with_total_token_supply(U256::from(1u64))
+        .with_total_token_supply(1u64)
         .build();
 
     builder.exec(install_request).expect_success().commit();
@@ -59,7 +59,7 @@ fn should_install_contract() {
         "collection_symbol initialized at installation should exist"
     );
 
-    let query_result: U256 = support::query_stored_value(
+    let query_result: u64 = support::query_stored_value(
         &mut builder,
         *nft_contract_key,
         vec![ARG_TOTAL_TOKEN_SUPPLY.to_string()],
@@ -67,7 +67,7 @@ fn should_install_contract() {
 
     assert_eq!(
         query_result,
-        U256::from(1u64),
+        1u64,
         "total_token_supply initialized at installation should exist"
     );
 
@@ -90,7 +90,7 @@ fn should_install_contract() {
         "minting mode should default to installer"
     );
 
-    let query_result: U256 = support::query_stored_value(
+    let query_result: u64 = support::query_stored_value(
         &mut builder,
         *nft_contract_key,
         vec![NUMBER_OF_MINTED_TOKENS.to_string()],
@@ -98,7 +98,7 @@ fn should_install_contract() {
 
     assert_eq!(
         query_result,
-        U256::zero(),
+        0u64,
         "number_of_minted_tokens initialized at installation should exist"
     );
 }
@@ -110,7 +110,7 @@ fn should_only_allow_init_during_installation_session() {
 
     let install_request_builder =
         InstallerRequestBuilder::new(*DEFAULT_ACCOUNT_ADDR, NFT_CONTRACT_WASM)
-            .with_total_token_supply(U256::from(2u64));
+            .with_total_token_supply(2u64);
     builder
         .exec(install_request_builder.build())
         .expect_success()
@@ -148,7 +148,7 @@ fn should_install_with_allow_minting_set_to_false() {
     let install_request = InstallerRequestBuilder::new(*DEFAULT_ACCOUNT_ADDR, NFT_CONTRACT_WASM)
         .with_collection_name(NFT_TEST_COLLECTION.to_string())
         .with_collection_symbol(NFT_TEST_SYMBOL.to_string())
-        .with_total_token_supply(U256::from(1u64))
+        .with_total_token_supply(1u64)
         .build();
 
     builder.exec(install_request).expect_success().commit();
@@ -159,7 +159,7 @@ fn should_reject_invalid_collection_name() {
     let install_request_builder =
         InstallerRequestBuilder::new(*DEFAULT_ACCOUNT_ADDR, NFT_CONTRACT_WASM)
             .with_invalid_collection_name(
-                CLValue::from_t::<U256>(U256::zero()).expect("expected CLValue"),
+                CLValue::from_t::<u64>(0u64).expect("expected CLValue"),
             );
 
     support::assert_expected_invalid_installer_request(
@@ -174,7 +174,7 @@ fn should_reject_invalid_collection_symbol() {
     let install_request_builder =
         InstallerRequestBuilder::new(*DEFAULT_ACCOUNT_ADDR, NFT_CONTRACT_WASM)
             .with_invalid_collection_symbol(
-                CLValue::from_t::<U256>(U256::zero()).expect("expected CLValue"),
+                CLValue::from_t::<u64>(0u64).expect("expected CLValue"),
             );
 
     support::assert_expected_invalid_installer_request(

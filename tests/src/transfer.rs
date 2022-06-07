@@ -1,5 +1,5 @@
 use casper_engine_test_support::{ExecuteRequestBuilder, InMemoryWasmTestBuilder, DEFAULT_ACCOUNT_ADDR, DEFAULT_ACCOUNT_PUBLIC_KEY, DEFAULT_RUN_GENESIS_REQUEST, DEFAULT_ACCOUNT_INITIAL_BALANCE, MINIMUM_ACCOUNT_CREATION_BALANCE};
-use casper_types::{runtime_args, system::mint, ContractHash, Key, RuntimeArgs, U256, SecretKey, PublicKey, U512};
+use casper_types::{runtime_args, system::mint, ContractHash, Key, RuntimeArgs, SecretKey, PublicKey, U512};
 use casper_types::account::AccountHash;
 
 
@@ -27,7 +27,7 @@ fn should_dissallow_transfer_with_minter_or_assigned_ownership_mode() {
     let install_request = InstallerRequestBuilder::new(*DEFAULT_ACCOUNT_ADDR, NFT_CONTRACT_WASM)
         .with_collection_name(NFT_TEST_COLLECTION.to_string())
         .with_collection_symbol(NFT_TEST_SYMBOL.to_string())
-        .with_total_token_supply(U256::from(1u64))
+        .with_total_token_supply(1u64)
         .with_ownership_mode(OwnershipMode::Minter)
         .build();
 
@@ -67,13 +67,13 @@ fn should_dissallow_transfer_with_minter_or_assigned_ownership_mode() {
         .get(CONTRACT_NAME)
         .expect("must have key in named keys");
 
-    let actual_owner_balance: U256 = support::get_dictionary_value_from_key(
+    let actual_owner_balance: u64 = support::get_dictionary_value_from_key(
         &builder,
         nft_contract_key,
         BALANCES,
         &token_owner.to_string(),
     );
-    let expected_owner_balance = U256::one();
+    let expected_owner_balance = 1u64;
     assert_eq!(actual_owner_balance, expected_owner_balance);
 
     let (_, token_receiver) = support::create_dummy_key_pair(ACCOUNT_USER_1);
@@ -82,7 +82,7 @@ fn should_dissallow_transfer_with_minter_or_assigned_ownership_mode() {
         nft_contract_hash,
         ENTRY_POINT_TRANSFER,
         runtime_args! {
-            ARG_TOKEN_ID => U256::zero(),// We need mint to return the token_id!!
+            ARG_TOKEN_ID => 0u64,// We need mint to return the token_id!!
             ARG_FROM_ACCOUNT_HASH => Key::Account(token_owner),
             ARG_TO_ACCOUNT_HASH =>  Key::Account( token_receiver.to_account_hash()),
         },
@@ -106,7 +106,7 @@ fn should_transfer_token_from_sender_to_receiver() {
     let install_request = InstallerRequestBuilder::new(*DEFAULT_ACCOUNT_ADDR, NFT_CONTRACT_WASM)
         .with_collection_name(NFT_TEST_COLLECTION.to_string())
         .with_collection_symbol(NFT_TEST_SYMBOL.to_string())
-        .with_total_token_supply(U256::from(1u64))
+        .with_total_token_supply(1u64)
         .with_ownership_mode(OwnershipMode::Transferable)
         .build();
 
@@ -146,13 +146,13 @@ fn should_transfer_token_from_sender_to_receiver() {
         .get(CONTRACT_NAME)
         .expect("must have key in named keys");
 
-    let actual_owner_balance: U256 = support::get_dictionary_value_from_key(
+    let actual_owner_balance: u64 = support::get_dictionary_value_from_key(
         &builder,
         nft_contract_key,
         BALANCES,
         &token_owner.to_string(),
     );
-    let expected_owner_balance = U256::one();
+    let expected_owner_balance = 1u64;
     assert_eq!(actual_owner_balance, expected_owner_balance);
 
     let (_, token_receiver) = support::create_dummy_key_pair(ACCOUNT_USER_1);
@@ -161,7 +161,7 @@ fn should_transfer_token_from_sender_to_receiver() {
         nft_contract_hash,
         ENTRY_POINT_TRANSFER,
         runtime_args! {
-            ARG_TOKEN_ID => U256::zero(),// We need mint to return the token_id!!
+            ARG_TOKEN_ID => 0u64,// We need mint to return the token_id!!
             ARG_FROM_ACCOUNT_HASH => Key::Account(token_owner),
             ARG_TO_ACCOUNT_HASH =>  Key::Account( token_receiver.to_account_hash()),
         },
@@ -173,39 +173,39 @@ fn should_transfer_token_from_sender_to_receiver() {
         &builder,
         nft_contract_key,
         TOKEN_OWNERS,
-        &U256::zero().to_string(),
+        &0u64.to_string(),
     )
     .into_account()
     .unwrap();
 
     assert_eq!(actual_token_owner, token_receiver.to_account_hash()); // Change  token_receiver to token_owner for red test
 
-    let actual_owned_tokens: Vec<U256> = support::get_dictionary_value_from_key(
+    let actual_owned_tokens: Vec<u64> = support::get_dictionary_value_from_key(
         &builder,
         nft_contract_key,
         OWNED_TOKENS,
         &token_receiver.to_account_hash().to_string(),
     );
 
-    let expected_owned_tokens = vec![U256::zero()]; //Change zero() to one() for red test
+    let expected_owned_tokens = vec![0u64]; //Change zero() to one() for red test
     assert_eq!(actual_owned_tokens, expected_owned_tokens);
 
-    let actual_sender_balance: U256 = support::get_dictionary_value_from_key(
+    let actual_sender_balance: u64 = support::get_dictionary_value_from_key(
         &builder,
         nft_contract_key,
         BALANCES,
         &token_owner.to_string(),
     );
-    let expected_sender_balance = U256::zero();
+    let expected_sender_balance = 0u64;
     assert_eq!(actual_sender_balance, expected_sender_balance);
 
-    let actual_receiver_balance: U256 = support::get_dictionary_value_from_key(
+    let actual_receiver_balance: u64 = support::get_dictionary_value_from_key(
         &builder,
         nft_contract_key,
         BALANCES,
         &token_receiver.to_account_hash().to_string(),
     );
-    let expected_receiver_balance = U256::one();
+    let expected_receiver_balance = 1u64;
     assert_eq!(actual_receiver_balance, expected_receiver_balance);
 }
 
@@ -217,7 +217,7 @@ fn approve_token_for_transfer_should_add_entry_to_approved_dictionary() {
     let install_request = InstallerRequestBuilder::new(*DEFAULT_ACCOUNT_ADDR, NFT_CONTRACT_WASM)
         .with_collection_name(NFT_TEST_COLLECTION.to_string())
         .with_collection_symbol(NFT_TEST_SYMBOL.to_string())
-        .with_total_token_supply(U256::one())
+        .with_total_token_supply(1u64)
         .with_ownership_mode(OwnershipMode::Transferable)
         .build();
 
@@ -255,7 +255,7 @@ fn approve_token_for_transfer_should_add_entry_to_approved_dictionary() {
         nft_contract_hash,
         ENTRY_POINT_APPROVE,
         runtime_args! {
-            ARG_TOKEN_ID => U256::zero(),
+            ARG_TOKEN_ID => 0u64,
             ARG_OPERATOR => Key::Account(approve_public_key.to_account_hash())
         },
     )
@@ -272,7 +272,7 @@ fn approve_token_for_transfer_should_add_entry_to_approved_dictionary() {
         &builder,
         nft_contract_key,
         OPERATOR,
-        &U256::zero().to_string(),
+        &0u64.to_string(),
     );
 
     assert_eq!(
@@ -289,7 +289,7 @@ fn should_dissallow_approving_when_ownership_mode_is_minter_or_assigned() {
     let install_request = InstallerRequestBuilder::new(*DEFAULT_ACCOUNT_ADDR, NFT_CONTRACT_WASM)
         .with_collection_name(NFT_TEST_COLLECTION.to_string())
         .with_collection_symbol(NFT_TEST_SYMBOL.to_string())
-        .with_total_token_supply(U256::one())
+        .with_total_token_supply(1u64)
         .with_ownership_mode(OwnershipMode::Assigned)
         .build();
 
@@ -328,7 +328,7 @@ fn should_dissallow_approving_when_ownership_mode_is_minter_or_assigned() {
         nft_contract_hash,
         ENTRY_POINT_APPROVE,
         runtime_args! {
-            ARG_TOKEN_ID => U256::zero(),
+            ARG_TOKEN_ID => 0u64,
             ARG_OPERATOR => Key::Account(approve_public_key.to_account_hash())
         },
     )
@@ -351,7 +351,7 @@ fn should_be_able_to_transfer_token_using_approved_operator() {
     let install_request = InstallerRequestBuilder::new(*DEFAULT_ACCOUNT_ADDR, NFT_CONTRACT_WASM)
         .with_collection_name(NFT_TEST_COLLECTION.to_string())
         .with_collection_symbol(NFT_TEST_SYMBOL.to_string())
-        .with_total_token_supply(U256::one())
+        .with_total_token_supply(1u64)
         .with_ownership_mode(OwnershipMode::Transferable)
         .build();
 
@@ -403,7 +403,7 @@ fn should_be_able_to_transfer_token_using_approved_operator() {
         nft_contract_hash,
         ENTRY_POINT_APPROVE,
         runtime_args! {
-            ARG_TOKEN_ID => U256::zero(),
+            ARG_TOKEN_ID => 0u64,
             ARG_OPERATOR => Key::Account (operator.to_account_hash())
         },
     )
@@ -419,7 +419,7 @@ fn should_be_able_to_transfer_token_using_approved_operator() {
         &builder,
         nft_contract_key,
         OPERATOR,
-        &U256::zero().to_string(),
+        &0u64.to_string(),
     );
 
     let expected_operator = Some(Key::Account(operator.to_account_hash()));
@@ -449,7 +449,7 @@ fn should_be_able_to_transfer_token_using_approved_operator() {
         nft_contract_hash,
         ENTRY_POINT_TRANSFER,
         runtime_args! {
-            ARG_TOKEN_ID => U256::zero(),
+            ARG_TOKEN_ID => 0u64,
             ARG_FROM_ACCOUNT_HASH =>  Key::Account(token_owner),
             ARG_TO_ACCOUNT_HASH => Key::Account( to_account_public_key.to_account_hash()),
         },
@@ -461,7 +461,7 @@ fn should_be_able_to_transfer_token_using_approved_operator() {
         &builder,
         nft_contract_key,
         OPERATOR,
-        &U256::zero().to_string(),
+        &0u64.to_string(),
     );
 
     assert_eq!(
@@ -478,7 +478,7 @@ fn should_dissallow_same_operator_to_tranfer_token_twice() {
     let install_request = InstallerRequestBuilder::new(*DEFAULT_ACCOUNT_ADDR, NFT_CONTRACT_WASM)
         .with_collection_name(NFT_TEST_COLLECTION.to_string())
         .with_collection_symbol(NFT_TEST_SYMBOL.to_string())
-        .with_total_token_supply(U256::one())
+        .with_total_token_supply(1u64)
         .with_ownership_mode(OwnershipMode::Transferable)
         .build();
 
@@ -530,7 +530,7 @@ fn should_dissallow_same_operator_to_tranfer_token_twice() {
         nft_contract_hash,
         ENTRY_POINT_APPROVE,
         runtime_args! {
-            ARG_TOKEN_ID => U256::zero(),
+            ARG_TOKEN_ID => 0u64,
             ARG_OPERATOR => Key::Account (operator.to_account_hash())
         },
     )
@@ -546,7 +546,7 @@ fn should_dissallow_same_operator_to_tranfer_token_twice() {
         &builder,
         nft_contract_key,
         OPERATOR,
-        &U256::zero().to_string(),
+        &0u64.to_string(),
     );
 
     let expected_operator = Some(Key::Account(operator.to_account_hash()));
@@ -577,7 +577,7 @@ fn should_dissallow_same_operator_to_tranfer_token_twice() {
         nft_contract_hash,
         ENTRY_POINT_TRANSFER,
         runtime_args! {
-            ARG_TOKEN_ID => U256::zero(),
+            ARG_TOKEN_ID => 0u64,
             ARG_FROM_ACCOUNT_HASH =>  Key::Account(token_owner),
             ARG_TO_ACCOUNT_HASH => Key::Account( to_account_public_key.to_account_hash()),
         },
@@ -591,7 +591,7 @@ fn should_dissallow_same_operator_to_tranfer_token_twice() {
         nft_contract_hash,
         ENTRY_POINT_TRANSFER,
         runtime_args! {
-            ARG_TOKEN_ID => U256::zero(),
+            ARG_TOKEN_ID => 0u64,
             ARG_FROM_ACCOUNT_HASH =>  Key::Account(token_owner),
             ARG_TO_ACCOUNT_HASH => Key::Account( to_other_account_public_key.to_account_hash()),
         },
@@ -624,7 +624,7 @@ fn should_transfer_between_contract_to_account() {
     let contract_whitelist = vec![minting_contract_hash];
 
     let install_request = InstallerRequestBuilder::new(*DEFAULT_ACCOUNT_ADDR, NFT_CONTRACT_WASM)
-        .with_total_token_supply(U256::from(100u64))
+        .with_total_token_supply(100u64)
         .with_holder_mode(NFTHolderMode::Contracts)
         .with_whitelist_mode(WhitelistMode::Locked)
         .with_ownership_mode(OwnershipMode::Transferable)
@@ -663,7 +663,7 @@ fn should_transfer_between_contract_to_account() {
         .expect_success()
         .commit();
 
-    let token_id = U256::zero().to_string();
+    let token_id = 0u64.to_string();
 
     let actual_token_owner: Key =
         get_dictionary_value_from_key(&builder, &nft_contract_key, TOKEN_OWNERS, &token_id);
@@ -677,7 +677,7 @@ fn should_transfer_between_contract_to_account() {
 
     let transfer_runtime_arguments = runtime_args! {
         ARG_NFT_CONTRACT_HASH => nft_contract_key,
-        ARG_TOKEN_ID => U256::zero(),
+        ARG_TOKEN_ID => 0u64,
         ARG_TO_ACCOUNT_HASH => Key::Account(*DEFAULT_ACCOUNT_ADDR),
         ARG_FROM_ACCOUNT_HASH => minting_contract_key
     };
@@ -730,7 +730,7 @@ fn should_prevent_transfer_when_caller_is_not_owner() {
     let install_request = InstallerRequestBuilder::new(*DEFAULT_ACCOUNT_ADDR, NFT_CONTRACT_WASM)
         .with_collection_name(NFT_TEST_COLLECTION.to_string())
         .with_collection_symbol(NFT_TEST_SYMBOL.to_string())
-        .with_total_token_supply(U256::from(100u64))
+        .with_total_token_supply(100u64)
         .with_ownership_mode(OwnershipMode::Transferable)
         .with_holder_mode(NFTHolderMode::Accounts)
         .build();
@@ -759,7 +759,7 @@ fn should_prevent_transfer_when_caller_is_not_owner() {
         &builder,
         &nft_contract_key,
         TOKEN_OWNERS,
-        &U256::zero().to_string()
+        &0u64.to_string()
     );
 
     assert_eq!(Key::Account(*DEFAULT_ACCOUNT_ADDR), actual_token_owner);
@@ -769,7 +769,7 @@ fn should_prevent_transfer_when_caller_is_not_owner() {
         nft_contract_hash,
         ENTRY_POINT_TRANSFER,
         runtime_args! {
-            ARG_TOKEN_ID => U256::zero(),
+            ARG_TOKEN_ID => 0u64,
             ARG_FROM_ACCOUNT_HASH => Key::Account(*DEFAULT_ACCOUNT_ADDR),
             ARG_TO_ACCOUNT_HASH => Key::Account(other_account_public_key.to_account_hash())
         }

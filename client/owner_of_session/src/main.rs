@@ -7,7 +7,7 @@ compile_error!("target arch should be wasm32: compile with '--target wasm32-unkn
 extern crate alloc;
 use alloc::string::String;
 use casper_contract::contract_api::{runtime, storage};
-use casper_types::{runtime_args, ContractHash, Key, RuntimeArgs, U256};
+use casper_types::{runtime_args, ContractHash, Key, RuntimeArgs};
 
 const ENTRY_POINT_OWNER_OF: &str = "owner_of";
 const ARG_NFT_CONTRACT_HASH: &str = "nft_contract_hash";
@@ -19,7 +19,7 @@ pub extern "C" fn call() {
     let nft_contract_hash: ContractHash = runtime::get_named_arg(ARG_NFT_CONTRACT_HASH);
     let key_name: String = runtime::get_named_arg(ARG_KEY_NAME);
 
-    let token_id: U256 = runtime::get_named_arg(ARG_TOKEN_ID);
+    let token_id = runtime::get_named_arg::<u64>(ARG_TOKEN_ID);
     let owner = runtime::call_contract::<Key>(
         nft_contract_hash,
         ENTRY_POINT_OWNER_OF,

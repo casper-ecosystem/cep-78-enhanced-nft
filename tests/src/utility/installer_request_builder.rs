@@ -1,7 +1,7 @@
 use crate::utility::constants::{ARG_CONTRACT_WHITELIST, ARG_HOLDER_MODE, ARG_WHITELIST_MODE};
 use casper_engine_test_support::ExecuteRequestBuilder;
 use casper_execution_engine::core::engine_state::ExecuteRequest;
-use casper_types::{account::AccountHash, CLValue, ContractHash, RuntimeArgs, U256};
+use casper_types::{account::AccountHash, CLValue, ContractHash, RuntimeArgs};
 
 use super::constants::{
     ARG_ALLOW_MINTING, ARG_COLLECTION_NAME, ARG_COLLECTION_SYMBOL, ARG_JSON_SCHEMA,
@@ -75,7 +75,7 @@ impl InstallerRequestBuilder {
             session_file: String::default(),
             collection_name: CLValue::from_t("name".to_string()).expect("name is legit CLValue"),
             collection_symbol: CLValue::from_t("SYM").expect("collection_symbol is legit CLValue"),
-            total_token_supply: CLValue::from_t(U256::one())
+            total_token_supply: CLValue::from_t(1u64)
                 .expect("total_token_supply is legit CLValue"),
             allow_minting: CLValue::from_t(Some(true)).unwrap(),
             minting_mode: CLValue::from_t(Some(MintingMode::Installer as u8)).unwrap(),
@@ -121,7 +121,7 @@ impl InstallerRequestBuilder {
         self
     }
 
-    pub(crate) fn with_total_token_supply(mut self, total_token_supply: U256) -> Self {
+    pub(crate) fn with_total_token_supply(mut self, total_token_supply: u64) -> Self {
         self.total_token_supply =
             CLValue::from_t(total_token_supply).expect("total_token_supply is legit CLValue");
         self
