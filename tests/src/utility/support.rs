@@ -143,13 +143,13 @@ pub(crate) fn query_stored_value<T: CLTyped + FromBytes>(
 pub(crate) fn call_entry_point_with_ret<T: CLTyped + FromBytes>(
     builder: &mut InMemoryWasmTestBuilder,
     account_hash: AccountHash,
-    nft_contract_hash: ContractHash,
+    nft_contract_key: Key,
     mut runtime_args: RuntimeArgs,
     wasm_file_name: &str,
     key_name: &str,
 ) -> T {
     runtime_args
-        .insert(ARG_NFT_CONTRACT_HASH, nft_contract_hash)
+        .insert(ARG_NFT_CONTRACT_HASH, nft_contract_key)
         .unwrap();
 
     runtime_args

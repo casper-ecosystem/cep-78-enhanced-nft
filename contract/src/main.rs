@@ -9,8 +9,12 @@ mod error;
 mod utils;
 
 extern crate alloc;
-use core::convert::TryInto;
+
 use alloc::{boxed::Box, string::String, string::ToString, vec, vec::Vec};
+use core::convert::TryInto;
+
+//use serde_json;
+use serde_json_wasm;
 
 use casper_types::{
     contracts::NamedKeys, runtime_args, CLType, CLValue, ContractHash, ContractVersion, EntryPoint,
@@ -145,6 +149,10 @@ pub extern "C" fn init() {
     )
     .unwrap_or_revert();
 
+    // let (token_schema,_) = serde_json_core::from_str::<MetadataSchema>(&json_schema)
+    //     .map_err(|_| NFTCoreError::InvalidJsonSchema)
+    //     .unwrap_or_revert();
+
     // Put all created URefs into the contract's context (necessary to retain access rights,
     // for future use).
     //
@@ -180,10 +188,7 @@ pub extern "C" fn init() {
     runtime::put_key(ALLOW_MINTING, storage::new_uref(allow_minting).into());
     // This is an internal variable that the installing account cannot change
     // but is incremented by the contract itself.
-    runtime::put_key(
-        NUMBER_OF_MINTED_TOKENS,
-        storage::new_uref(0u64).into(),
-    );
+    runtime::put_key(NUMBER_OF_MINTED_TOKENS, storage::new_uref(0u64).into());
 
     // Create the data dictionaries to store essential values, topically.
     storage::new_dictionary(TOKEN_OWNERS)
@@ -357,22 +362,30 @@ pub extern "C" fn mint() {
     )
     .unwrap_or_revert();
 
-    // Get token metadata
-    let token_meta_data: String = get_named_arg_with_user_errors(
+    let token_metadata = get_named_arg_with_user_errors::<String>(
         ARG_TOKEN_META_DATA,
         NFTCoreError::MissingTokenMetaData,
         NFTCoreError::InvalidTokenMetaData,
     )
     .unwrap_or_revert();
 
+    runtime::print(&token_metadata);
+
+    // Get token metadata if valid.
+    let token_metadata =
+        validate_metadata(
+            get_metadata_schema(),
+            token_metadata,
+        )
+        .unwrap_or_revert();
+
     // This is the token ID.
     let dictionary_item_key = &next_index.to_string();
 
     upsert_dictionary_value_from_key(TOKEN_OWNERS, dictionary_item_key, token_owner_key);
-    upsert_dictionary_value_from_key(TOKEN_META_DATA, dictionary_item_key, token_meta_data);
+    upsert_dictionary_value_from_key(TOKEN_META_DATA, dictionary_item_key, token_metadata);
     upsert_dictionary_value_from_key(TOKEN_URI, dictionary_item_key, token_uri);
     upsert_dictionary_value_from_key(TOKEN_ISSUERS, dictionary_item_key, token_owner_key);
-
 
     let owned_tokens_item_key = get_owned_tokens_dictionary_item_key(token_owner_key);
 
@@ -514,15 +527,11 @@ pub extern "C" fn approve() {
         OwnershipMode::Transferable => OwnershipMode::Transferable,
     };
 
-
-
     let holder_mode = get_holder_mode().unwrap_or_revert_with(NFTCoreError::InvalidHolderMode);
 
     let caller: Key = match holder_mode {
         NFTHolderMode::Accounts => Key::Account(runtime::get_caller()),
-        NFTHolderMode::Contracts => {
-            get_calling_contract_hash().into()
-        }
+        NFTHolderMode::Contracts => get_calling_contract_hash().into(),
     };
 
     let token_id = get_named_arg_with_user_errors::<u64>(
@@ -577,11 +586,7 @@ pub extern "C" fn approve() {
         NFTCoreError::InvalidStorageUref,
     );
 
-    storage::dictionary_put(
-        approved_uref,
-        &token_id.to_string(),
-        Some(operator),
-    );
+    storage::dictionary_put(approved_uref, &token_id.to_string(), Some(operator));
 }
 
 // Approves the specified operator for transfer token_owner's tokens.
@@ -614,9 +619,7 @@ pub extern "C" fn set_approval_for_all() {
 
     let caller: Key = match holder_mode {
         NFTHolderMode::Accounts => Key::Account(runtime::get_caller()),
-        NFTHolderMode::Contracts => {
-            get_calling_contract_hash().into()
-        }
+        NFTHolderMode::Contracts => get_calling_contract_hash().into(),
     };
 
     let caller_dictionary_item_key = get_owned_tokens_dictionary_item_key(caller);
@@ -627,7 +630,9 @@ pub extern "C" fn set_approval_for_all() {
         NFTCoreError::InvalidStorageUref,
     );
 
-    if let Some(owned_tokens) = get_dictionary_value_from_key::<Vec<u64>>(OWNED_TOKENS, &caller_dictionary_item_key) {
+    if let Some(owned_tokens) =
+        get_dictionary_value_from_key::<Vec<u64>>(OWNED_TOKENS, &caller_dictionary_item_key)
+    {
         // Depending on approve_all we either approve all or disapprove all.
         for t in owned_tokens {
             if approve_all {
@@ -672,7 +677,6 @@ pub extern "C" fn transfer() {
             None => runtime::revert(NFTCoreError::InvalidTokenID),
         };
 
-
     let from_token_owner_key = get_named_arg_with_user_errors::<Key>(
         ARG_FROM_ACCOUNT_HASH,
         NFTCoreError::MissingAccountHash,
@@ -686,15 +690,13 @@ pub extern "C" fn transfer() {
 
     let caller = match holder_mode {
         NFTHolderMode::Accounts => Key::Account(runtime::get_caller()),
-        NFTHolderMode::Contracts => get_calling_contract_hash().into()
+        NFTHolderMode::Contracts => get_calling_contract_hash().into(),
     };
 
     // Check if caller is approved to execute transfer
     let is_approved =
         match get_dictionary_value_from_key::<Option<Key>>(OPERATOR, &token_id.to_string()) {
-            Some(Some(approved_key)) => {
-                approved_key == caller
-            }
+            Some(Some(approved_key)) => approved_key == caller,
             Some(None) | None => false,
         };
 
@@ -725,10 +727,7 @@ pub extern "C" fn transfer() {
     }
 
     // Update to_account owned_tokens. Revert if owned_tokens list is not found
-    match get_dictionary_value_from_key::<Vec<u64>>(
-        OWNED_TOKENS,
-        &from_owner_item_key,
-    ) {
+    match get_dictionary_value_from_key::<Vec<u64>>(OWNED_TOKENS, &from_owner_item_key) {
         Some(mut owned_tokens) => {
             // Check that token_id is in owned tokens list. If so remove token_id from list
             // If not revert.
@@ -737,33 +736,27 @@ pub extern "C" fn transfer() {
             } else {
                 runtime::revert(NFTCoreError::InvalidTokenOwner)
             }
-            upsert_dictionary_value_from_key(
-                OWNED_TOKENS,
-                &from_owner_item_key,
-                owned_tokens,
-            );
+            upsert_dictionary_value_from_key(OWNED_TOKENS, &from_owner_item_key, owned_tokens);
         }
         None => runtime::revert(NFTCoreError::InvalidTokenID),
     }
 
     // Update the from_account balance
-    let updated_from_account_balance = match get_dictionary_value_from_key::<u64>(
-        TOKEN_COUNTS,
-        &from_owner_item_key,
-    ) {
-        Some(balance) => {
-            if balance > 0u64 {
-                balance - 1u64
-            } else {
+    let updated_from_account_balance =
+        match get_dictionary_value_from_key::<u64>(TOKEN_COUNTS, &from_owner_item_key) {
+            Some(balance) => {
+                if balance > 0u64 {
+                    balance - 1u64
+                } else {
+                    // This should never happen...
+                    runtime::revert(NFTCoreError::FatalTokenIdDuplication);
+                }
+            }
+            None => {
                 // This should never happen...
                 runtime::revert(NFTCoreError::FatalTokenIdDuplication);
             }
-        }
-        None => {
-            // This should never happen...
-            runtime::revert(NFTCoreError::FatalTokenIdDuplication);
-        }
-    };
+        };
     upsert_dictionary_value_from_key(
         TOKEN_COUNTS,
         &from_owner_item_key,

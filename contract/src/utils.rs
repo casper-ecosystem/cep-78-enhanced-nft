@@ -1,22 +1,25 @@
-use core::{convert::TryInto, mem::MaybeUninit};
-
-use alloc::{vec, vec::Vec};
+use alloc::collections::BTreeMap;
 use alloc::string::{String, ToString};
+use alloc::{vec, vec::Vec};
+use core::convert::TryFrom;
+use core::{convert::TryInto, mem::MaybeUninit};
 use casper_contract::{
     contract_api::{self, runtime, storage},
     ext_ffi,
     unwrap_or_revert::UnwrapOrRevert,
 };
+use casper_contract::contract_api::runtime::revert;
 use casper_types::{
     account::AccountHash,
     api_error,
-    bytesrepr::{self, FromBytes, ToBytes},
-    ApiError, CLTyped, ContractHash, Key, URef,
+    bytesrepr::{self, Error, FromBytes, ToBytes},
+    ApiError, CLType, CLTyped, ContractHash, Key, URef,
 };
 
-use core::convert::TryFrom;
+use serde::{Serialize, Deserialize};
+use serde_json_wasm;
 
-use crate::{constants::OWNERSHIP_MODE, error::NFTCoreError, CONTRACT_WHITELIST, HOLDER_MODE};
+use crate::{constants::OWNERSHIP_MODE, error::NFTCoreError, CONTRACT_WHITELIST, HOLDER_MODE, METADATA_SCHEMA, NFT_KIND};
 
 const _CONTRACT_WHITELIST: &str = "contract_whitelist";
 
@@ -100,14 +103,14 @@ impl TryFrom<u8> for MintingMode {
 pub enum NFTKind {
     /// The NFT represents a real-world physical
     /// like a house.
-    Physical,
+    Physical = 0,
     /// The NFT represents a digital asset like a unique
     /// JPEG or digital art.
-    Digital,
+    Digital = 1,
     /// The NFT is the virtual representation
     /// of a physical notion, e.g a patent
     /// or copyright.
-    Virtual,
+    Virtual = 2,
 }
 
 impl TryFrom<u8> for NFTKind {
@@ -161,15 +164,16 @@ pub(crate) fn get_holder_mode() -> Result<NFTHolderMode, NFTCoreError> {
     get_stored_value_with_user_errors::<u8>(
         HOLDER_MODE,
         NFTCoreError::MissingHolderMode,
-        NFTCoreError::InvalidHolderMode
-    ).try_into()
+        NFTCoreError::InvalidHolderMode,
+    )
+    .try_into()
 }
 
 pub(crate) fn get_owned_tokens_dictionary_item_key(token_owner_key: Key) -> String {
     match token_owner_key {
         Key::Account(token_owner_account_hash) => token_owner_account_hash.to_string(),
         Key::Hash(token_owner_hash_addr) => ContractHash::new(token_owner_hash_addr).to_string(),
-        _ => runtime::revert(NFTCoreError::InvalidKey)
+        _ => runtime::revert(NFTCoreError::InvalidKey),
     }
 }
 
@@ -384,4 +388,149 @@ pub(crate) fn get_calling_contract_hash() -> ContractHash {
         runtime::revert(NFTCoreError::UnlistedContractHash)
     }
     contract_hash
+}
+
+// A parser will attempt to serialize
+
+// Metadata mutability is different from schema mutability.
+#[derive(Serialize, Deserialize, Clone)]
+pub(crate) struct MetadataSchemaProperty {
+    property_type: String,
+    description: String,
+    required: bool
+}
+
+impl ToBytes for MetadataSchemaProperty {
+    fn to_bytes(&self) -> Result<Vec<u8>, Error> {
+        let mut result = bytesrepr::allocate_buffer(self)?;
+        result.extend(self.property_type.to_bytes()?);
+        result.extend(self.description.to_bytes()?);
+        result.extend(self.required.to_bytes()?);
+        Ok(result)
+    }
+
+    fn serialized_length(&self) -> usize {
+        self.property_type.serialized_length() + self.description.serialized_length()
+            + self.required.serialized_length()
+    }
+}
+
+impl FromBytes for MetadataSchemaProperty {
+    fn from_bytes(bytes: &[u8]) -> Result<(Self, &[u8]), Error> {
+        let (property_type, remainder) = String::from_bytes(bytes)?;
+        let (description, remainder) = String::from_bytes(remainder)?;
+        let (required, remainder) = bool::from_bytes(remainder)?;
+        let metadata_schema_property = MetadataSchemaProperty {
+            property_type,
+            description,
+            required
+        };
+        Ok((metadata_schema_property, remainder))
+    }
+}
+
+impl CLTyped for MetadataSchemaProperty {
+    fn cl_type() -> CLType {
+        CLType::Any
+    }
+}
+
+
+#[derive(Serialize, Deserialize, Clone)]
+pub(crate) struct MetadataSchema {
+    // name: MetadataSchemaProperty,
+    // symbol: MetadataSchemaProperty,
+    // token_uri: MetadataSchemaProperty,
+    properties: BTreeMap<String, MetadataSchemaProperty>,
+}
+
+impl MetadataSchema {
+    pub(crate) fn new(nft_kind: NFTKind) -> Self {
+        match nft_kind {
+            _ => {
+                let mut properties = BTreeMap::new();
+                properties.insert("name".to_string(), MetadataSchemaProperty { property_type: "String".to_string(), description: "The name of the NFT".to_string(), required: true});
+                properties.insert("symbol".to_string(), MetadataSchemaProperty { property_type: "String".to_string(), description: "The symbol of the NFT".to_string(), required: true});
+                properties.insert("token_uri".to_string(), MetadataSchemaProperty { property_type: "String".to_string(), description: "The URI pointing to an off chain resource".to_string(), required: true});
+                MetadataSchema {
+                    properties
+                }
+            }
+        }
+    }
+}
+
+
+impl ToBytes for MetadataSchema {
+    fn to_bytes(&self) -> Result<Vec<u8>, Error> {
+        let mut result = bytesrepr::allocate_buffer(self)?;
+        // result.extend(self.name.to_bytes()?);
+        // result.extend(self.symbol.to_bytes()?);
+        // result.extend(self.token_uri.to_bytes()?);
+        result.extend(self.properties.to_bytes()?);
+        Ok(result)
+    }
+
+    fn serialized_length(&self) -> usize {
+        // self.name.serialized_length()
+        //     + self.symbol.serialized_length()
+        //     + self.token_uri.serialized_length()
+            self.properties.serialized_length()
+    }
+}
+
+impl FromBytes for MetadataSchema {
+    fn from_bytes(bytes: &[u8]) -> Result<(Self, &[u8]), Error> {
+        // let (name, remainder) = String::from_bytes(bytes)?;
+        // let (symbol, remainder) = String::from_bytes(remainder)?;
+        // let (token_uri, remainder) = String::from_bytes(remainder)?;
+        let (properties, remainder) =
+            BTreeMap::<String, MetadataSchemaProperty>::from_bytes(bytes)?;
+        let metadata_schema = MetadataSchema {
+            // name,
+            // symbol,
+            // token_uri,
+            properties,
+        };
+        Ok((metadata_schema, remainder))
+    }
+}
+
+impl CLTyped for MetadataSchema {
+    fn cl_type() -> CLType {
+        CLType::Any
+    }
+}
+
+#[derive(Serialize, Deserialize)]
+struct Metadata {
+    name: String,
+    symbol: String,
+    token_uri: String,
+}
+
+pub(crate) fn validate_metadata(token_schema: MetadataSchema, token_metadata: String) -> Result<String, NFTCoreError> {
+    let metadata =
+        serde_json_wasm::from_str::<Metadata>(&token_metadata).map_err(|error| {
+            NFTCoreError::InvalidJsonMetadata
+        })?;
+
+    for (property_name, property) in token_schema.properties.iter() {
+        if property.required {
+            match property_name.as_str() {
+                "name" => if metadata.name.len() <= 0 { return Err(NFTCoreError::InvalidJsonMetadata); } ,
+                "symbol" => if metadata.symbol.len() <= 0 { return Err(NFTCoreError::InvalidJsonMetadata); },
+                "token_uri" => if metadata.token_uri.len() <= 0 { return Err(NFTCoreError::InvalidJsonMetadata); }
+                _ => {}
+            }
+        }
+    }
+    Ok(token_metadata)
+}
+
+pub(crate) fn get_metadata_schema() -> MetadataSchema {
+    let nft_kind: NFTKind = get_stored_value_with_user_errors::<u8>(NFT_KIND, NFTCoreError::MissingNftKind, NFTCoreError::InvalidNftKind)
+        .try_into()
+        .unwrap_or_revert();
+    MetadataSchema::new(nft_kind)
 }

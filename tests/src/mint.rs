@@ -6,12 +6,7 @@ use casper_engine_test_support::{
 use casper_execution_engine::storage::global_state::in_memory::InMemoryGlobalState;
 use casper_types::{runtime_args, system::mint, ContractHash, Key, RuntimeArgs};
 
-use crate::utility::constants::{
-    ARG_APPROVE_ALL, ARG_CONTRACT_WHITELIST, ARG_KEY_NAME, ARG_OPERATOR, ARG_TOKEN_ID,
-    ARG_TOKEN_URI, BALANCE_OF_SESSION_WASM, ENTRY_POINT_APPROVE, ENTRY_POINT_SET_APPROVE_FOR_ALL,
-    ENTRY_POINT_SET_VARIABLES, MINTING_CONTRACT_WASM, MINT_SESSION_WASM,
-    OWNED_TOKENS_DICTIONARY_KEY, TEST_URI,
-};
+use crate::utility::constants::{ARG_APPROVE_ALL, ARG_CONTRACT_WHITELIST, ARG_KEY_NAME, ARG_OPERATOR, ARG_TOKEN_ID, ARG_TOKEN_URI, BALANCE_OF_SESSION_WASM, ENTRY_POINT_APPROVE, ENTRY_POINT_SET_APPROVE_FOR_ALL, ENTRY_POINT_SET_VARIABLES, MINTING_CONTRACT_WASM, MINT_SESSION_WASM, OWNED_TOKENS_DICTIONARY_KEY, TEST_URI, MALFORMED_META_DATA};
 use crate::utility::installer_request_builder::{
     MintingMode, NFTHolderMode, OwnershipMode, WhitelistMode,
 };
@@ -30,6 +25,15 @@ use crate::utility::{
     installer_request_builder::InstallerRequestBuilder,
     support,
 };
+
+use serde::{Serialize, Deserialize};
+
+#[derive(Serialize, Deserialize, Debug)]
+struct Metadata {
+    name: String,
+    symbol: String,
+    token_uri: String,
+}
 
 fn setup_nft_contract(
     total_token_supply: Option<u64>,
@@ -118,7 +122,7 @@ fn entry_points_with_ret_should_return_correct_value() {
     let actual_balance: u64 = call_entry_point_with_ret(
         &mut builder,
         account_hash,
-        nft_contract_hash,
+        nft_contract_key,
         runtime_args! {
             ARG_TOKEN_OWNER => Key::Account(*DEFAULT_ACCOUNT_ADDR),
         },
@@ -135,7 +139,7 @@ fn entry_points_with_ret_should_return_correct_value() {
     let actual_owner: Key = call_entry_point_with_ret(
         &mut builder,
         account_hash,
-        nft_contract_hash,
+        nft_contract_key,
         runtime_args! {
             ARG_TOKEN_ID => 0u64,
         },
@@ -165,7 +169,7 @@ fn entry_points_with_ret_should_return_correct_value() {
     let actual_operator: Option<Key> = call_entry_point_with_ret(
         &mut builder,
         account_hash,
-        nft_contract_hash,
+        nft_contract_key,
         runtime_args! {
             ARG_TOKEN_ID => 0u64,
         },
@@ -182,9 +186,17 @@ fn entry_points_with_ret_should_return_correct_value() {
 }
 
 #[test]
-fn should_call_mint_via_session_code() {
+fn should_mint() {
     let mut builder = InMemoryWasmTestBuilder::default();
     builder.run_genesis(&DEFAULT_RUN_GENESIS_REQUEST).commit();
+
+    let metadata = Metadata {
+        name: "Ed".to_string(),
+        symbol: "avc".to_string(),
+        token_uri: "http://www.google.com".to_string()
+    };
+
+    let json_metadata = serde_json::to_string(&metadata).expect("must convert to JSON string");
 
     let install_request_builder =
         InstallerRequestBuilder::new(*DEFAULT_ACCOUNT_ADDR, NFT_CONTRACT_WASM)
@@ -203,7 +215,7 @@ fn should_call_mint_via_session_code() {
             ARG_NFT_CONTRACT_HASH => nft_contract_key,
             ARG_KEY_NAME => Some(OWNED_TOKENS_DICTIONARY_KEY.to_string()),
             ARG_TOKEN_OWNER => Key::Account(*DEFAULT_ACCOUNT_ADDR),
-            ARG_TOKEN_META_DATA => TEST_META_DATA.to_string(),
+            ARG_TOKEN_META_DATA => json_metadata,
             ARG_TOKEN_URI => TEST_URI.to_string()
         },
     )
@@ -802,7 +814,7 @@ fn should_set_approval_for_all() {
     let actual_operator: Option<Key> = call_entry_point_with_ret(
         &mut builder,
         *DEFAULT_ACCOUNT_ADDR,
-        nft_contract_hash,
+        nft_contract_key,
         runtime_args! {
             ARG_TOKEN_ID => 0u64,
         },
@@ -820,7 +832,7 @@ fn should_set_approval_for_all() {
     let actual_operator: Option<Key> = call_entry_point_with_ret(
         &mut builder,
         *DEFAULT_ACCOUNT_ADDR,
-        nft_contract_hash,
+        nft_contract_key,
         runtime_args! {
             ARG_TOKEN_ID => 0u64,
         },
@@ -1069,4 +1081,40 @@ fn should_be_able_to_update_whitelist_for_minting() {
         .exec(mint_via_contract_call)
         .expect_success()
         .commit();
+}
+
+
+#[test]
+fn should_not_mint_with_invalid_metadata() {
+
+    let mut builder = InMemoryWasmTestBuilder::default();
+    builder.run_genesis(&DEFAULT_RUN_GENESIS_REQUEST).commit();
+
+    let install_request_builder =
+        InstallerRequestBuilder::new(*DEFAULT_ACCOUNT_ADDR, NFT_CONTRACT_WASM)
+            .with_total_token_supply(2u64);
+    builder
+        .exec(install_request_builder.build())
+        .expect_success()
+        .commit();
+
+    let nft_contract_key: Key = get_nft_contract_hash(&builder).into();
+
+    let mint_session_call = ExecuteRequestBuilder::standard(
+        *DEFAULT_ACCOUNT_ADDR,
+        MINT_SESSION_WASM,
+        runtime_args! {
+            ARG_NFT_CONTRACT_HASH => nft_contract_key,
+            ARG_KEY_NAME => Some(OWNED_TOKENS_DICTIONARY_KEY.to_string()),
+            ARG_TOKEN_OWNER => Key::Account(*DEFAULT_ACCOUNT_ADDR),
+            ARG_TOKEN_META_DATA => MALFORMED_META_DATA,
+            ARG_TOKEN_URI => TEST_URI.to_string()
+        },
+    )
+        .build();
+
+    builder.exec(mint_session_call).expect_failure();
+
+    let error = builder.get_error().expect("mint request must have failed");
+    assert_expected_error(error, 84, "InvalidJsonMetadata error (84) must have been raised")
 }

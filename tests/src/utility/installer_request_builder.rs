@@ -1,12 +1,38 @@
-use crate::utility::constants::{ARG_CONTRACT_WHITELIST, ARG_HOLDER_MODE, ARG_WHITELIST_MODE};
+use std::collections::BTreeMap;
+
+use once_cell::sync::Lazy;
+use serde::{Serialize, Deserialize};
+
 use casper_engine_test_support::ExecuteRequestBuilder;
 use casper_execution_engine::core::engine_state::ExecuteRequest;
 use casper_types::{account::AccountHash, CLValue, ContractHash, RuntimeArgs};
+
+use crate::utility::constants::{ARG_CONTRACT_WHITELIST, ARG_HOLDER_MODE, ARG_WHITELIST_MODE};
+
 
 use super::constants::{
     ARG_ALLOW_MINTING, ARG_COLLECTION_NAME, ARG_COLLECTION_SYMBOL, ARG_JSON_SCHEMA,
     ARG_MINTING_MODE, ARG_NFT_KIND, ARG_OWNERSHIP_MODE, ARG_TOTAL_TOKEN_SUPPLY,
 };
+
+static TEST_METADATA_SCHEMA: Lazy<MetadataSchema> = Lazy::new(|| {
+    let mut properties = BTreeMap::new();
+    properties.insert("name".to_string(), MetadataSchemaProperty { property_type: "String".to_string(), description: "The name of the NFT".to_string(), required: true});
+    properties.insert("symbol".to_string(), MetadataSchemaProperty { property_type: "String".to_string(), description: "The symbol of the NFT".to_string(), required: true});
+    properties.insert("token_uri".to_string(), MetadataSchemaProperty { property_type: "String".to_string(), description: "The URI pointing to an off chain resource".to_string(), required: true});
+    MetadataSchema {
+        properties
+    }
+});
+
+static TEST_METADATA: Lazy<Metadata> = Lazy::new(|| {
+    Metadata {
+        name: "Ed".to_string(),
+        symbol: "adv".to_string(),
+        token_uri: "www.google.come".to_string()
+    }
+});
+
 
 #[repr(u8)]
 pub enum WhitelistMode {
@@ -45,6 +71,30 @@ pub enum NFTKind {
     Virtual = 2, // The NFT can be transferred even to an recipient that does not exist
 }
 
+
+#[derive(Serialize, Deserialize, Clone)]
+pub(crate) struct MetadataSchemaProperty {
+    property_type: String,
+    description: String,
+    required: bool,
+}
+
+#[derive(Serialize, Deserialize, Clone)]
+pub(crate) struct MetadataSchema {
+    // name: MetadataSchemaProperty,
+    // symbol: MetadataSchemaProperty,
+    // token_uri: MetadataSchemaProperty,
+    properties: BTreeMap<String, MetadataSchemaProperty>,
+}
+
+#[derive(Serialize, Deserialize)]
+struct Metadata {
+    name: String,
+    symbol: String,
+    token_uri: String,
+}
+
+
 #[derive(Debug)]
 pub(crate) struct InstallerRequestBuilder {
     account_hash: AccountHash,
@@ -70,6 +120,7 @@ impl InstallerRequestBuilder {
     }
 
     pub(crate) fn default() -> Self {
+        // let json_schema: String = serde_json::to_string(&*TEST_METADATA_SCHEMA).expect("must convert metadata schema to json string");
         InstallerRequestBuilder {
             account_hash: AccountHash::default(),
             session_file: String::default(),
@@ -84,8 +135,8 @@ impl InstallerRequestBuilder {
             holder_mode: CLValue::from_t(Some(NFTHolderMode::Accounts as u8)).unwrap(),
             whitelist_mode: CLValue::from_t(Some(WhitelistMode::Locked as u8)).unwrap(),
             contract_whitelist: CLValue::from_t(Some(Vec::<ContractHash>::new())).unwrap(),
-            json_schema: CLValue::from_t("my_json_schema".to_string())
-                .expect("my_json_schema is legit CLValue"),
+            json_schema: CLValue::from_t("test".to_string())
+                .expect("test_metadata was created from a concrete value"),
         }
     }
 
