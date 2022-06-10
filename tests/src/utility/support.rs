@@ -46,10 +46,9 @@ pub(crate) fn get_owned_tokens_dictionary_item_key(token_owner_key: Key) -> Stri
     match token_owner_key {
         Key::Account(token_owner_account_hash) => token_owner_account_hash.to_string(),
         Key::Hash(token_owner_hash_addr) => ContractHash::new(token_owner_hash_addr).to_string(),
-        _ => panic!("Invalid Key variant")
+        _ => panic!("Invalid Key variant"),
     }
 }
-
 
 pub(crate) fn get_dictionary_value_from_key<T: CLTyped + FromBytes>(
     builder: &WasmTestBuilder<InMemoryGlobalState>,

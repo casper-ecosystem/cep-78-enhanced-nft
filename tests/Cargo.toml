@@ -7,11 +7,6 @@ edition = "2018"
 casper-engine-test-support = { version = "2.2.0", features = ["test-support"] }
 casper-execution-engine = "2.0.0"
 casper-types = "1.4.5"
-#casper-engine-test-support = {path = "/home/karandh/casper/casper-node/execution_engine_testing/test_support" ,features = ["test-support"]}
-#casper-execution-engine = { path = "/home/karandh/casper/casper-node/execution_engine"}
-#casper-types = { path = "/home/karandh/casper/casper-node/types"}
 serde = { version = "1.0", default-features = false }
 serde_json = "1.0.81"
-#serde-json-wasm = { path = "/home/karandh/casper/serde-json-wasm" }
-#serde-json-core = { version = "0.4.0" , features = ["std"], default-features =  false}
 once_cell = "1"

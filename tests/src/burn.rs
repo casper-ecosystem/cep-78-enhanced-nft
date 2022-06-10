@@ -4,19 +4,19 @@ use casper_engine_test_support::{
 };
 use casper_types::{runtime_args, system::mint, ContractHash, Key, RuntimeArgs};
 
+use crate::utility::constants::{ENTRY_POINT_MINT, MINTING_CONTRACT_WASM, TOKEN_COUNTS};
+use crate::utility::installer_request_builder::{MintingMode, NFTHolderMode, WhitelistMode};
+use crate::utility::support::{get_dictionary_value_from_key, get_minting_contract_hash};
 use crate::utility::{
     constants::{
         ACCOUNT_USER_1, ARG_KEY_NAME, ARG_NFT_CONTRACT_HASH, ARG_TOKEN_ID, ARG_TOKEN_META_DATA,
         ARG_TOKEN_OWNER, ARG_TOKEN_URI, BALANCES, BURNT_TOKENS, CONTRACT_NAME, ENTRY_POINT_BURN,
         MINT_SESSION_WASM, NFT_CONTRACT_WASM, OWNED_TOKENS, OWNED_TOKENS_DICTIONARY_KEY,
-        TEST_META_DATA, TEST_URI,
+        TEST_PRETTY_META_DATA, TEST_URI,
     },
     installer_request_builder::{InstallerRequestBuilder, OwnershipMode},
     support::{self, get_nft_contract_hash},
 };
-use crate::utility::constants::{ENTRY_POINT_MINT, MINTING_CONTRACT_WASM, TOKEN_COUNTS};
-use crate::utility::installer_request_builder::{MintingMode, NFTHolderMode, WhitelistMode};
-use crate::utility::support::{get_dictionary_value_from_key, get_minting_contract_hash};
 
 #[test]
 fn should_burn_minted_token() {
@@ -50,7 +50,7 @@ fn should_burn_minted_token() {
             ARG_NFT_CONTRACT_HASH => Key::Hash(nft_contract_hash.value()),
             ARG_KEY_NAME => Some(OWNED_TOKENS_DICTIONARY_KEY.to_string()),
             ARG_TOKEN_OWNER => Key::Account(*DEFAULT_ACCOUNT_ADDR),
-            ARG_TOKEN_META_DATA => TEST_META_DATA.to_string(),
+            ARG_TOKEN_META_DATA => TEST_PRETTY_META_DATA.to_string(),
             ARG_TOKEN_URI => TEST_URI.to_string(),
         },
     )
@@ -138,7 +138,7 @@ fn should_not_burn_previously_burnt_token() {
             ARG_NFT_CONTRACT_HASH => Key::Hash(nft_contract_hash.value()),
             ARG_KEY_NAME => Some(OWNED_TOKENS_DICTIONARY_KEY.to_string()),
             ARG_TOKEN_OWNER => Key::Account(*DEFAULT_ACCOUNT_ADDR),
-            ARG_TOKEN_META_DATA => TEST_META_DATA.to_string(),
+            ARG_TOKEN_META_DATA => TEST_PRETTY_META_DATA.to_string(),
             ARG_TOKEN_URI => TEST_URI.to_string(),
         },
     )
@@ -273,7 +273,7 @@ fn should_return_expected_error_burning_of_others_users_token() {
             ARG_NFT_CONTRACT_HASH => Key::Hash(nft_contract_hash),
             ARG_KEY_NAME => Option::<String>::None,
             ARG_TOKEN_OWNER => Key::Account(*DEFAULT_ACCOUNT_ADDR),
-            ARG_TOKEN_META_DATA => TEST_META_DATA.to_string(),
+            ARG_TOKEN_META_DATA => TEST_PRETTY_META_DATA.to_string(),
             ARG_TOKEN_URI => TEST_URI.to_string(),
         },
     )
@@ -358,7 +358,7 @@ fn should_return_expected_error_when_burning_not_owned_token() {
             ARG_NFT_CONTRACT_HASH => Key::Hash(nft_contract_hash),
             ARG_KEY_NAME => Some(OWNED_TOKENS_DICTIONARY_KEY.to_string()),
             ARG_TOKEN_OWNER => Key::Account(*DEFAULT_ACCOUNT_ADDR),
-            ARG_TOKEN_META_DATA => TEST_META_DATA.to_string(),
+            ARG_TOKEN_META_DATA => TEST_PRETTY_META_DATA.to_string(),
             ARG_TOKEN_URI => TEST_URI.to_string(),
         },
     )
@@ -406,7 +406,7 @@ fn should_allow_contract_to_burn_token() {
         MINTING_CONTRACT_WASM,
         runtime_args! {},
     )
-        .build();
+    .build();
 
     builder
         .exec(minting_contract_install_request)
@@ -433,7 +433,7 @@ fn should_allow_contract_to_burn_token() {
     let mint_runtime_args = runtime_args! {
         ARG_NFT_CONTRACT_HASH => nft_contract_key,
         ARG_TOKEN_OWNER => Key::Account(*DEFAULT_ACCOUNT_ADDR),
-        ARG_TOKEN_META_DATA => TEST_META_DATA.to_string(),
+        ARG_TOKEN_META_DATA => TEST_PRETTY_META_DATA.to_string(),
         ARG_TOKEN_URI => TEST_URI.to_string()
     };
 
@@ -443,7 +443,7 @@ fn should_allow_contract_to_burn_token() {
         ENTRY_POINT_MINT,
         mint_runtime_args,
     )
-        .build();
+    .build();
 
     builder
         .exec(mint_via_contract_call)
@@ -454,7 +454,7 @@ fn should_allow_contract_to_burn_token() {
         &builder,
         &nft_contract_key,
         TOKEN_COUNTS,
-        &minting_contract_hash.to_string()
+        &minting_contract_hash.to_string(),
     );
 
     assert_eq!(1u64, current_token_balance);
@@ -466,21 +466,21 @@ fn should_allow_contract_to_burn_token() {
         runtime_args! {
             ARG_NFT_CONTRACT_HASH => nft_contract_key,
             ARG_TOKEN_ID => 0u64
-        }
-    ).build();
+        },
+    )
+    .build();
 
     builder
         .exec(burn_via_contract_call)
         .expect_success()
         .commit();
 
-    let updated_token_balance  = get_dictionary_value_from_key::<u64>(
+    let updated_token_balance = get_dictionary_value_from_key::<u64>(
         &builder,
         &nft_contract_key,
         TOKEN_COUNTS,
-        &minting_contract_hash.to_string()
+        &minting_contract_hash.to_string(),
     );
 
     assert_eq!(updated_token_balance, 0u64)
 }
-

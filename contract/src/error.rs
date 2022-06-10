@@ -86,7 +86,20 @@ pub enum NFTCoreError {
     UnlistedContractHash = 81,
     InvalidContract = 82,
     EmptyContractWhitelist = 83,
-    InvalidJsonMetadata = 84,
+    MissingReceiptName = 84,
+    InvalidReceiptName = 85,
+    InvalidJsonMetadata = 86,
+    InvalidJsonFormat = 87,
+    FailedToParseCep99Metadata = 88,
+    FailedToParse721Metadata = 89,
+    FailedToParseCustomMetadata = 90,
+    InvalidCEP99Metadata = 91,
+    FailedToJsonifyCEP99Metadata = 92,
+    InvalidNFT721Metadata = 93,
+    FailedToJsonifyNFT721Metadata = 94,
+    InvalidCustomMetadata = 95,
+    MissingNFTMetadataKind = 96,
+    InvalidNFTMetadataKind = 97,
 }
 
 impl From<NFTCoreError> for ApiError {

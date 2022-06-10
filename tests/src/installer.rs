@@ -66,8 +66,7 @@ fn should_install_contract() {
     );
 
     assert_eq!(
-        query_result,
-        1u64,
+        query_result, 1u64,
         "total_token_supply initialized at installation should exist"
     );
 
@@ -97,8 +96,7 @@ fn should_install_contract() {
     );
 
     assert_eq!(
-        query_result,
-        0u64,
+        query_result, 0u64,
         "number_of_minted_tokens initialized at installation should exist"
     );
 }
@@ -158,9 +156,7 @@ fn should_install_with_allow_minting_set_to_false() {
 fn should_reject_invalid_collection_name() {
     let install_request_builder =
         InstallerRequestBuilder::new(*DEFAULT_ACCOUNT_ADDR, NFT_CONTRACT_WASM)
-            .with_invalid_collection_name(
-                CLValue::from_t::<u64>(0u64).expect("expected CLValue"),
-            );
+            .with_invalid_collection_name(CLValue::from_t::<u64>(0u64).expect("expected CLValue"));
 
     support::assert_expected_invalid_installer_request(
         install_request_builder,

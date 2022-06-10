@@ -10,15 +10,16 @@ mod utils;
 
 extern crate alloc;
 
-use alloc::{boxed::Box, string::String, string::ToString, vec, vec::Vec};
+use alloc::{boxed::Box, format, string::String, string::ToString, vec, vec::Vec};
 use core::convert::TryInto;
+use core::hash::Hash;
 
-//use serde_json;
 use serde_json_wasm;
 
 use casper_types::{
-    contracts::NamedKeys, runtime_args, CLType, CLValue, ContractHash, ContractVersion, EntryPoint,
-    EntryPointAccess, EntryPointType, EntryPoints, Key, Parameter, RuntimeArgs,
+    contracts::NamedKeys, runtime_args, ApiError, CLType, CLValue, ContractHash,
+    ContractPackageHash, ContractVersion, EntryPoint, EntryPointAccess, EntryPointType,
+    EntryPoints, Key, Parameter, RuntimeArgs,
 };
 
 use casper_contract::{
@@ -149,6 +150,21 @@ pub extern "C" fn init() {
     )
     .unwrap_or_revert();
 
+    let receipt_name: String = get_named_arg_with_user_errors(
+        ARG_RECEIPT_NAME,
+        NFTCoreError::MissingReceiptName,
+        NFTCoreError::InvalidReceiptName,
+    )
+    .unwrap_or_revert();
+
+    let nft_metadata_kind: NFTMetadataKind = get_named_arg_with_user_errors::<u8>(
+        ARG_NFT_METADATA_KIND,
+        NFTCoreError::MissingNFTMetadataKind,
+        NFTCoreError::InvalidNFTMetadataKind,
+    ).unwrap_or_revert()
+        .try_into()
+        .unwrap_or_revert();
+
     // let (token_schema,_) = serde_json_core::from_str::<MetadataSchema>(&json_schema)
     //     .map_err(|_| NFTCoreError::InvalidJsonSchema)
     //     .unwrap_or_revert();
@@ -182,6 +198,8 @@ pub extern "C" fn init() {
         CONTRACT_WHITELIST,
         storage::new_uref(contract_whitelist).into(),
     );
+    runtime::put_key(RECEIPT_NAME, storage::new_uref(receipt_name).into());
+    runtime::put_key(NFT_METADATA_KIND, storage::new_uref(nft_metadata_kind as u8).into());
 
     // Initialize contract with variables which must be present but maybe set to
     // different values after initialization.
@@ -206,6 +224,12 @@ pub extern "C" fn init() {
         .unwrap_or_revert_with(NFTCoreError::FailedToCreateDictionary);
     storage::new_dictionary(TOKEN_URI)
         .unwrap_or_revert_with(NFTCoreError::FailedToCreateDictionary);
+    // storage::new_dictionary("raw_metadata")
+    //     .unwrap_or_revert_with(NFTCoreError::FailedToCreateDictionary);
+    // storage::new_dictionary("cep99")
+    //     .unwrap_or_revert_with(NFTCoreError::FailedToCreateDictionary);
+    // storage::new_dictionary("nft721")
+    //     .unwrap_or_revert_with(NFTCoreError::FailedToCreateDictionary);
 }
 
 // set_variables allows the user to set any variable or any combination of variables simultaneously.
@@ -355,13 +379,6 @@ pub extern "C" fn mint() {
         }
     };
 
-    let token_uri: String = get_named_arg_with_user_errors(
-        ARG_TOKEN_URI,
-        NFTCoreError::MissingTokenURI,
-        NFTCoreError::InvalidTokenURI,
-    )
-    .unwrap_or_revert();
-
     let token_metadata = get_named_arg_with_user_errors::<String>(
         ARG_TOKEN_META_DATA,
         NFTCoreError::MissingTokenMetaData,
@@ -372,22 +389,26 @@ pub extern "C" fn mint() {
     runtime::print(&token_metadata);
 
     // Get token metadata if valid.
-    let token_metadata =
-        validate_metadata(
-            get_metadata_schema(),
-            token_metadata,
-        )
-        .unwrap_or_revert();
+    let metadata_kind: NFTMetadataKind = get_stored_value_with_user_errors::<u8>(
+        NFT_METADATA_KIND,
+        NFTCoreError::MissingNFTMetadataKind,
+        NFTCoreError::InvalidNFTMetadataKind
+    ).try_into().unwrap_or_revert();
+
+    let metadata = validate_metadata(metadata_kind, token_metadata).unwrap_or_revert();
+
+    runtime::print(&metadata);
 
     // This is the token ID.
     let dictionary_item_key = &next_index.to_string();
 
     upsert_dictionary_value_from_key(TOKEN_OWNERS, dictionary_item_key, token_owner_key);
-    upsert_dictionary_value_from_key(TOKEN_META_DATA, dictionary_item_key, token_metadata);
-    upsert_dictionary_value_from_key(TOKEN_URI, dictionary_item_key, token_uri);
+    upsert_dictionary_value_from_key(TOKEN_META_DATA, dictionary_item_key, metadata);
     upsert_dictionary_value_from_key(TOKEN_ISSUERS, dictionary_item_key, token_owner_key);
 
     let owned_tokens_item_key = get_owned_tokens_dictionary_item_key(token_owner_key);
+
+
 
     let owned_tokens_actual_key = Key::dictionary(
         get_uref(
@@ -439,13 +460,14 @@ pub extern "C" fn mint() {
     );
     storage::write(number_of_minted_tokens_uref, next_index);
 
-    let collection_name: String = get_stored_value_with_user_errors(
-        COLLECTION_NAME,
-        NFTCoreError::MissingCollectionName,
-        NFTCoreError::InvalidCollectionName,
+    let receipt_name = get_stored_value_with_user_errors::<String>(
+        RECEIPT_NAME,
+        NFTCoreError::MissingReceiptName,
+        NFTCoreError::InvalidReceiptName
     );
 
-    let receipt = CLValue::from_t((owned_tokens_actual_key, collection_name))
+    runtime::print("added metadata to dictionary");
+    let receipt = CLValue::from_t((receipt_name, owned_tokens_actual_key))
         .unwrap_or_revert_with(NFTCoreError::FailedToConvertToCLValue);
     runtime::ret(receipt)
 }
@@ -954,6 +976,7 @@ fn install_nft_contract() -> (ContractHash, ContractVersion) {
                     CLType::List(Box::new(CLType::ByteArray(32u32))),
                 ),
                 Parameter::new(ARG_JSON_SCHEMA, CLType::String),
+                Parameter::new(ARG_RECEIPT_NAME, CLType::String),
             ],
             CLType::Unit,
             EntryPointAccess::Public,
@@ -1000,7 +1023,6 @@ fn install_nft_contract() -> (ContractHash, ContractVersion) {
             vec![
                 Parameter::new(ARG_TOKEN_OWNER, CLType::Key),
                 Parameter::new(ARG_TOKEN_META_DATA, CLType::String),
-                Parameter::new(ARG_TOKEN_URI, CLType::String),
             ],
             CLType::Unit,
             EntryPointAccess::Public,
@@ -1211,6 +1233,12 @@ pub extern "C" fn call() {
     )
     .unwrap_or_default();
 
+    let nft_metadata_kind: u8 = get_named_arg_with_user_errors(
+        ARG_NFT_METADATA_KIND,
+        NFTCoreError::MissingNFTMetadataKind,
+        NFTCoreError::InvalidNFTMetadataKind
+    ).unwrap_or_revert();
+
     // The JSON schema representation of the NFT which will be minted.
     // This value cannot be changed after installation.
     let json_schema: String = get_named_arg_with_user_errors(
@@ -1225,6 +1253,18 @@ pub extern "C" fn call() {
     // Store contract_hash and contract_version under the keys CONTRACT_NAME and CONTRACT_VERSION
     runtime::put_key(CONTRACT_NAME, contract_hash.into());
     runtime::put_key(CONTRACT_VERSION, storage::new_uref(contract_version).into());
+
+    let package_hash: ContractPackageHash = runtime::get_key(HASH_KEY_NAME)
+        .unwrap_or_revert()
+        .into_hash()
+        .map(|addr| ContractPackageHash::new(addr))
+        .unwrap();
+
+    let receipt_name = format!(
+        "nft-{}-{}",
+        collection_name,
+        package_hash.to_formatted_string()
+    );
 
     // Call contract to initialize it
     runtime::call_contract::<()>(
@@ -1242,6 +1282,8 @@ pub extern "C" fn call() {
              ARG_WHITELIST_MODE => whitelist_lock,
              ARG_CONTRACT_WHITELIST => contract_white_list,
              ARG_JSON_SCHEMA => json_schema,
+             ARG_RECEIPT_NAME => receipt_name,
+             ARG_NFT_METADATA_KIND => nft_metadata_kind
         },
     );
 }
