@@ -5,7 +5,7 @@ use serde::{Deserialize, Serialize};
 
 use casper_engine_test_support::ExecuteRequestBuilder;
 use casper_execution_engine::core::engine_state::ExecuteRequest;
-use casper_types::{account::AccountHash, CLValue, ContractHash, ContractPackageHash, RuntimeArgs};
+use casper_types::{account::AccountHash, CLValue, ContractHash, RuntimeArgs};
 
 use crate::utility::constants::{ARG_CONTRACT_WHITELIST, ARG_HOLDER_MODE, ARG_IDENTIFIER_MODE, ARG_WHITELIST_MODE};
 

@@ -1,6 +1,6 @@
 use casper_engine_test_support::{
     ExecuteRequestBuilder, InMemoryWasmTestBuilder, DEFAULT_ACCOUNT_ADDR,
-    DEFAULT_ACCOUNT_INITIAL_BALANCE, DEFAULT_ACCOUNT_PUBLIC_KEY, DEFAULT_RUN_GENESIS_REQUEST,
+    DEFAULT_ACCOUNT_PUBLIC_KEY, DEFAULT_RUN_GENESIS_REQUEST,
     MINIMUM_ACCOUNT_CREATION_BALANCE,
 };
 use casper_types::account::AccountHash;
@@ -119,14 +119,7 @@ fn should_transfer_token_from_sender_to_receiver() {
 
     builder.exec(install_request).expect_success().commit();
 
-    let account = builder.get_expected_account(*DEFAULT_ACCOUNT_ADDR);
-    let nft_contract_hash = account
-        .named_keys()
-        .get(CONTRACT_NAME)
-        .cloned()
-        .and_then(Key::into_hash)
-        .map(ContractHash::new)
-        .expect("failed to find nft contract");
+
 
     let token_owner = *DEFAULT_ACCOUNT_ADDR;
 
@@ -658,7 +651,7 @@ fn should_transfer_between_contract_to_account() {
 
     assert_eq!(minting_contract_key, actual_token_owner);
 
-    let target_owner_account_hash = AccountHash::new([2u8; 32]);
+
 
     let transfer_runtime_arguments = runtime_args! {
         ARG_NFT_CONTRACT_HASH => nft_contract_key,

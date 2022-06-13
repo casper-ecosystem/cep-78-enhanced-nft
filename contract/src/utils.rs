@@ -670,7 +670,8 @@ pub(crate) fn validate_metadata(
                     revert(NFTCoreError::InvalidCustomMetadata)
                 }
             }
-            Ok(token_metadata)
+            serde_json_wasm::to_string_pretty(&custom_metadata.attributes)
+                .map_err(|_| NFTCoreError::FailedToJsonifyCustomMetadata)
         }
     }
 }

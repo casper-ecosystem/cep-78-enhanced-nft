@@ -24,7 +24,7 @@ use crate::utility::{
         query_stored_value,
     }
 };
-use crate::utility::constants::{METADATA_CEP78, RECEIPT_NAME, TEST_PRETTY_CEP78_METADATA};
+use crate::utility::constants::{METADATA_CEP78, METADATA_CUSTOM_VALIDATED, METADATA_RAW, RECEIPT_NAME, TEST_PRETTY_CEP78_METADATA};
 use crate::utility::installer_request_builder::{NFTIdentifierMode, NFTMetadataKind, TEST_CUSTOM_METADATA, TEST_CUSTOM_METADATA_SCHEMA};
 
 #[derive(Serialize, Deserialize, Debug)]
@@ -1207,8 +1207,6 @@ fn should_mint_with_custom_metadata_validation() {
     let custom_json_schema = serde_json::to_string(&*TEST_CUSTOM_METADATA_SCHEMA)
         .expect("must convert to json schema");
 
-    println!("{}", custom_json_schema);
-
     let install_request =
         InstallerRequestBuilder::new(*DEFAULT_ACCOUNT_ADDR, NFT_CONTRACT_WASM)
             .with_total_token_supply(2u64)
@@ -1240,7 +1238,62 @@ fn should_mint_with_custom_metadata_validation() {
         .build();
 
     builder.exec(mint_session_call).expect_success().commit();
+
+    let actual_metadata = get_dictionary_value_from_key::<String>(
+        &builder,
+        &nft_contract_key,
+        METADATA_CUSTOM_VALIDATED,
+        &0u64.to_string(),
+    );
+
+    let pretty_custom_metadata = serde_json::to_string_pretty(&*TEST_CUSTOM_METADATA).expect("must convert to json metadata");
+
+    assert_eq!(pretty_custom_metadata, actual_metadata)
 }
+
+#[test]
+fn should_mint_with_raw_metadata() {
+    let mut builder = InMemoryWasmTestBuilder::default();
+    builder.run_genesis(&DEFAULT_RUN_GENESIS_REQUEST).commit();
+
+
+    let install_request =
+        InstallerRequestBuilder::new(*DEFAULT_ACCOUNT_ADDR, NFT_CONTRACT_WASM)
+            .with_total_token_supply(2u64)
+            .with_nft_metadata_kind(NFTMetadataKind::Raw)
+            .build();
+
+    builder
+        .exec(install_request)
+        .expect_success()
+        .commit();
+
+    let nft_contract_key: Key = get_nft_contract_hash(&builder).into();
+
+    let mint_session_call = ExecuteRequestBuilder::standard(
+        *DEFAULT_ACCOUNT_ADDR,
+        MINT_SESSION_WASM,
+        runtime_args! {
+            ARG_NFT_CONTRACT_HASH => nft_contract_key,
+            ARG_KEY_NAME => Some(OWNED_TOKENS_DICTIONARY_KEY.to_string()),
+            ARG_TOKEN_OWNER => Key::Account(*DEFAULT_ACCOUNT_ADDR),
+            ARG_TOKEN_META_DATA => "raw_string".to_string() ,
+        },
+    )
+        .build();
+
+    builder.exec(mint_session_call).expect_success().commit();
+
+    let actual_metadata = get_dictionary_value_from_key::<String>(
+        &builder,
+        &nft_contract_key,
+        METADATA_RAW,
+        &0u64.to_string(),
+    );
+
+    assert_eq!("raw_string".to_string(), actual_metadata)
+}
+
 
 
 #[test]

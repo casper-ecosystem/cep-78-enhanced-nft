@@ -404,9 +404,6 @@ pub extern "C" fn mint() {
     .unwrap_or_revert();
 
 
-
-
-
     // Get token metadata if valid.
     let metadata = validate_metadata(&metadata_kind, token_metadata).unwrap_or_revert();
 

@@ -105,6 +105,7 @@ pub enum NFTCoreError {
     FailedToParseTokenId = 100,
     MissingMetadataMutability = 101,
     InvalidMetadataMutability = 102,
+    FailedToJsonifyCustomMetadata = 103,
 }
 
 impl From<NFTCoreError> for ApiError {
