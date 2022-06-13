@@ -1,3 +1,7 @@
+use blake2::{
+    digest::{Update, VariableOutput},
+    VarBlake2b,
+};
 use crate::utility::constants::{ARG_KEY_NAME, ARG_NFT_CONTRACT_HASH, MINTING_CONTRACT_NAME};
 
 use super::{constants::CONTRACT_NAME, installer_request_builder::InstallerRequestBuilder};
@@ -9,10 +13,7 @@ use casper_execution_engine::{
     core::{engine_state::Error as EngineStateError, execution},
     storage::global_state::in_memory::InMemoryGlobalState,
 };
-use casper_types::{
-    account::AccountHash, bytesrepr::FromBytes, ApiError, CLTyped, ContractHash, Key, PublicKey,
-    RuntimeArgs, SecretKey, URef,
-};
+use casper_types::{account::AccountHash, bytesrepr::FromBytes, ApiError, CLTyped, ContractHash, Key, PublicKey, RuntimeArgs, SecretKey, URef, BLAKE2B_DIGEST_LENGTH};
 
 pub(crate) fn get_nft_contract_hash(
     builder: &WasmTestBuilder<InMemoryGlobalState>,
@@ -162,4 +163,16 @@ pub(crate) fn call_entry_point_with_ret<T: CLTyped + FromBytes>(
 
     println!("Querying: {}", key_name);
     query_stored_value::<T>(builder, account_hash.into(), [key_name.to_string()].into())
+}
+
+pub(crate) fn create_blake2b_hash<T: AsRef<[u8]>>(data: T) -> [u8; BLAKE2B_DIGEST_LENGTH] {
+    let mut result = [0; BLAKE2B_DIGEST_LENGTH];
+    // NOTE: Assumed safe as `BLAKE2B_DIGEST_LENGTH` is a valid value for a hasher
+    let mut hasher = VarBlake2b::new(BLAKE2B_DIGEST_LENGTH).expect("should create hasher");
+
+    hasher.update(data);
+    hasher.finalize_variable(|slice| {
+        result.copy_from_slice(slice);
+    });
+    result
 }

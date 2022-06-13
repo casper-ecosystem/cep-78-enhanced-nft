@@ -30,6 +30,7 @@ pub(crate) const ARG_JSON_SCHEMA: &str = "json_schema";
 pub(crate) const ARG_TOKEN_URI: &str = "token_uri";
 pub(crate) const ARG_APPROVE_ALL: &str = "approve_all";
 pub(crate) const ARG_NFT_METADATA_KIND: &str = "nft_metadata_kind";
+pub(crate) const ARG_IDENTIFIER_MODE: &str = "identifier_mode";
 pub(crate) const TOKEN_ISSUERS: &str = "token_issuers";
 pub(crate) const ARG_OWNERSHIP_MODE: &str = "ownership_mode";
 pub(crate) const ARG_NFT_KIND: &str = "nft_kind";
@@ -49,10 +50,15 @@ pub(crate) const ARG_TOKEN_ID: &str = "token_id";
 pub(crate) const ACCOUNT_USER_1: [u8; 32] = [1u8; 32];
 pub(crate) const ACCOUNT_USER_2: [u8; 32] = [2u8; 32];
 pub(crate) const ACCOUNT_USER_3: [u8; 32] = [2u8; 32];
-pub(crate) const TEST_PRETTY_META_DATA: &str = r#"{
+pub(crate) const TEST_PRETTY_721_META_DATA: &str = r#"{
   "name": "John Doe",
   "symbol": "abc",
   "token_uri": "https://www.google.com"
+}"#;
+pub(crate) const TEST_PRETTY_99_METADATA: &str = r#"{
+  "name": "John Doe",
+  "token_uri": "https://www.google.com",
+  "checksum": "940bffb3f2bba35f84313aa26da09ece3ad47045c6a1292c2bbd2df4ab1a55fb"
 }"#;
 pub(crate) const TEST_COMPACT_META_DATA: &str =
     r#"{"name": "John Doe","symbol": "abc","token_uri": "https://www.google.com"}"#;

@@ -22,7 +22,7 @@ pub extern "C" fn call() {
         .map(|hash| ContractHash::new(hash))
         .unwrap();
     let key_name: String = runtime::get_named_arg(ARG_KEY_NAME);
-    let token_id = runtime::get_named_arg::<u64>(ARG_TOKEN_ID);
+    let token_id = runtime::get_named_arg::<String>(ARG_TOKEN_ID);
 
     let maybe_operator = runtime::call_contract::<Option<Key>>(
         nft_contract_hash,

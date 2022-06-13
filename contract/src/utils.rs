@@ -4,7 +4,6 @@ use alloc::{format, vec, vec::Vec};
 
 use core::marker::PhantomData;
 
-
 use casper_contract::contract_api::runtime::revert;
 use casper_contract::{
     contract_api::{self, runtime, storage},
@@ -18,15 +17,16 @@ use casper_types::{
     ApiError, CLType, CLTyped, ContractHash, Key, URef,
 };
 use core::convert::TryFrom;
-use core::{convert::TryInto, mem::MaybeUninit};
 use core::fmt::{Formatter, Write};
+use core::{convert::TryInto, mem::MaybeUninit};
 
 use serde::{Deserialize, Serialize};
 use serde_json_wasm;
 
-use crate::{constants::OWNERSHIP_MODE, error::NFTCoreError, CONTRACT_WHITELIST, HOLDER_MODE, METADATA_SCHEMA, NFT_KIND, ARG_JSON_SCHEMA};
-
-const _CONTRACT_WHITELIST: &str = "contract_whitelist";
+use crate::{
+    constants::OWNERSHIP_MODE, error::NFTCoreError, ARG_JSON_SCHEMA, CONTRACT_WHITELIST,
+    HOLDER_MODE, METADATA_SCHEMA, NFT_KIND,
+};
 
 pub(crate) fn upsert_dictionary_value_from_key<T: CLTyped + FromBytes + ToBytes>(
     dictionary_name: &str,
@@ -39,7 +39,6 @@ pub(crate) fn upsert_dictionary_value_from_key<T: CLTyped + FromBytes + ToBytes>
         NFTCoreError::InvalidStorageUref,
     );
 
-    // TODO: Write a test for this upsert method.
     match storage::dictionary_get::<T>(seed_uref, key) {
         Ok(None | Some(_)) => storage::dictionary_put(seed_uref, key, value),
         Err(error) => runtime::revert(error),
@@ -148,11 +147,10 @@ impl TryFrom<u8> for NFTMetadataKind {
             1 => Ok(NFTMetadataKind::NFT721),
             2 => Ok(NFTMetadataKind::Raw),
             3 => Ok(NFTMetadataKind::CustomValidated),
-            _ => Err(NFTCoreError::InvalidNFTMetadataKind)
+            _ => Err(NFTCoreError::InvalidNFTMetadataKind),
         }
     }
 }
-
 
 #[repr(u8)]
 pub enum OwnershipMode {
@@ -178,6 +176,25 @@ impl TryFrom<u8> for OwnershipMode {
         }
     }
 }
+
+#[repr(u8)]
+pub enum NFTIdentifierMode {
+    Ordinal = 0,
+    Hash = 1,
+}
+
+impl TryFrom<u8> for NFTIdentifierMode {
+    type Error = NFTCoreError;
+
+    fn try_from(value: u8) -> Result<Self, Self::Error> {
+        match value {
+            0 => Ok(NFTIdentifierMode::Ordinal),
+            1 => Ok(NFTIdentifierMode::Hash),
+            _ => Err(NFTCoreError::InvalidIdentifierMode)
+        }
+    }
+}
+
 
 pub(crate) fn get_ownership_mode() -> Result<OwnershipMode, NFTCoreError> {
     get_stored_value_with_user_errors::<u8>(
@@ -465,14 +482,13 @@ impl CLTyped for MetadataSchemaProperty {
 }
 
 #[derive(Serialize, Deserialize, Clone)]
-pub(crate) struct MetadataSchema {
+pub(crate) struct CustomMetadataSchema {
     properties: BTreeMap<String, MetadataSchemaProperty>,
 }
 
-
-pub(crate) fn get_metadata_schema(kind: &NFTMetadataKind) -> MetadataSchema {
+pub(crate) fn get_metadata_schema(kind: &NFTMetadataKind) -> CustomMetadataSchema {
     match kind {
-        NFTMetadataKind::Raw => MetadataSchema {
+        NFTMetadataKind::Raw => CustomMetadataSchema {
             properties: BTreeMap::new(),
         },
         NFTMetadataKind::NFT721 => {
@@ -501,7 +517,7 @@ pub(crate) fn get_metadata_schema(kind: &NFTMetadataKind) -> MetadataSchema {
                     required: true,
                 },
             );
-            MetadataSchema { properties }
+            CustomMetadataSchema { properties }
         }
         NFTMetadataKind::CEP99 => {
             let mut properties = BTreeMap::new();
@@ -529,22 +545,24 @@ pub(crate) fn get_metadata_schema(kind: &NFTMetadataKind) -> MetadataSchema {
                     required: true,
                 },
             );
-            MetadataSchema { properties }
+            CustomMetadataSchema { properties }
         }
         NFTMetadataKind::CustomValidated => {
-            let json_properties = get_stored_value_with_user_errors::<String>(ARG_JSON_SCHEMA,
-            NFTCoreError::MissingJsonSchema,
-            NFTCoreError::InvalidJsonSchema);
-            let properties = serde_json_wasm::from_str::<BTreeMap<String, MetadataSchemaProperty>>(&json_properties)
-                .map_err(|_| NFTCoreError::InvalidJsonSchema)
-                .unwrap_or_revert();
-            MetadataSchema { properties}
+            let custom_schema_json = get_stored_value_with_user_errors::<String>(
+                ARG_JSON_SCHEMA,
+                NFTCoreError::MissingJsonSchema,
+                NFTCoreError::InvalidJsonSchema,
+            );
+            let custom_metadata_schema =
+                serde_json_wasm::from_str::<CustomMetadataSchema>(&custom_schema_json)
+                    .map_err(|_| NFTCoreError::InvalidJsonSchema)
+                    .unwrap_or_revert();
+            custom_metadata_schema
         }
     }
 }
 
-
-impl ToBytes for MetadataSchema {
+impl ToBytes for CustomMetadataSchema {
     fn to_bytes(&self) -> Result<Vec<u8>, Error> {
         let mut result = bytesrepr::allocate_buffer(self)?;
         result.extend(self.properties.to_bytes()?);
@@ -556,18 +574,16 @@ impl ToBytes for MetadataSchema {
     }
 }
 
-impl FromBytes for MetadataSchema {
+impl FromBytes for CustomMetadataSchema {
     fn from_bytes(bytes: &[u8]) -> Result<(Self, &[u8]), Error> {
         let (properties, remainder) =
             BTreeMap::<String, MetadataSchemaProperty>::from_bytes(bytes)?;
-        let metadata_schema = MetadataSchema {
-            properties,
-        };
+        let metadata_schema = CustomMetadataSchema { properties };
         Ok((metadata_schema, remainder))
     }
 }
 
-impl CLTyped for MetadataSchema {
+impl CLTyped for CustomMetadataSchema {
     fn cl_type() -> CLType {
         CLType::Any
     }
@@ -581,7 +597,6 @@ pub(crate) struct MetadataNFT721 {
     token_uri: String,
 }
 
-
 #[derive(Serialize, Deserialize)]
 pub(crate) struct MetadataCEP99 {
     name: String,
@@ -589,16 +604,13 @@ pub(crate) struct MetadataCEP99 {
     checksum: String,
 }
 
-
 pub(crate) type MetadataRaw = String;
-
 
 // Using a structure for the purposes of serialization formatting.
 #[derive(Serialize, Deserialize)]
 pub(crate) struct CustomMetadata {
     attributes: BTreeMap<String, String>,
 }
-
 
 pub(crate) fn validate_metadata(
     metadata_kind: NFTMetadataKind,
@@ -650,16 +662,16 @@ pub(crate) fn validate_metadata(
             serde_json_wasm::to_string_pretty(&metadata)
                 .map_err(|_| NFTCoreError::FailedToJsonifyNFT721Metadata)
         }
-        NFTMetadataKind::Raw => {
-            Ok(token_metadata)
-        }
+        NFTMetadataKind::Raw => Ok(token_metadata),
         NFTMetadataKind::CustomValidated => {
-            let custom_metadata = serde_json_wasm::from_str::<BTreeMap<String, String>>(&token_metadata)
-                .map(|attributes| CustomMetadata {attributes})
-                .map_err(|_| NFTCoreError::FailedToParseCustomMetadata)?;
+            let custom_metadata =
+                serde_json_wasm::from_str::<BTreeMap<String, String>>(&token_metadata)
+                    .map(|attributes| CustomMetadata { attributes })
+                    .map_err(|_| NFTCoreError::FailedToParseCustomMetadata)?;
 
             for (property_name, property_type) in token_schema.properties.iter() {
-                if property_type.required && custom_metadata.attributes.get(property_name).is_none() {
+                if property_type.required && custom_metadata.attributes.get(property_name).is_none()
+                {
                     revert(NFTCoreError::InvalidCustomMetadata)
                 }
             }
@@ -667,5 +679,3 @@ pub(crate) fn validate_metadata(
         }
     }
 }
-
-

@@ -100,6 +100,9 @@ pub enum NFTCoreError {
     InvalidCustomMetadata = 95,
     MissingNFTMetadataKind = 96,
     InvalidNFTMetadataKind = 97,
+    MissingIdentifierMode = 98,
+    InvalidIdentifierMode = 99,
+    FailedToParseTokenId = 100,
 }
 
 impl From<NFTCoreError> for ApiError {
