@@ -4,18 +4,20 @@ use casper_engine_test_support::{
 };
 use casper_types::{runtime_args, system::mint, ContractHash, Key, RuntimeArgs};
 
-use crate::utility::constants::{ENTRY_POINT_MINT, MINTING_CONTRACT_WASM, TOKEN_COUNTS};
-use crate::utility::installer_request_builder::{MintingMode, NFTHolderMode, WhitelistMode};
-use crate::utility::support::{get_dictionary_value_from_key, get_minting_contract_hash};
 use crate::utility::{
     constants::{
         ACCOUNT_USER_1, ARG_KEY_NAME, ARG_NFT_CONTRACT_HASH, ARG_TOKEN_ID, ARG_TOKEN_META_DATA,
         ARG_TOKEN_OWNER, ARG_TOKEN_URI, BALANCES, BURNT_TOKENS, CONTRACT_NAME, ENTRY_POINT_BURN,
-        MINT_SESSION_WASM, NFT_CONTRACT_WASM, OWNED_TOKENS, OWNED_TOKENS_DICTIONARY_KEY,
-        TEST_PRETTY_721_META_DATA, TEST_URI,
+        ENTRY_POINT_MINT, MINTING_CONTRACT_WASM, MINT_SESSION_WASM, NFT_CONTRACT_WASM,
+        OWNED_TOKENS, OWNED_TOKENS_DICTIONARY_KEY, TEST_PRETTY_721_META_DATA, TEST_URI,
+        TOKEN_COUNTS,
     },
-    installer_request_builder::{InstallerRequestBuilder, OwnershipMode},
-    support::{self, get_nft_contract_hash},
+    installer_request_builder::{
+        InstallerRequestBuilder, MintingMode, NFTHolderMode, OwnershipMode, WhitelistMode,
+    },
+    support::{
+        self, get_dictionary_value_from_key, get_minting_contract_hash, get_nft_contract_hash,
+    },
 };
 
 #[test]

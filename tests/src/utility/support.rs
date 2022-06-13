@@ -1,8 +1,8 @@
+use crate::utility::constants::{ARG_KEY_NAME, ARG_NFT_CONTRACT_HASH, MINTING_CONTRACT_NAME};
 use blake2::{
     digest::{Update, VariableOutput},
     VarBlake2b,
 };
-use crate::utility::constants::{ARG_KEY_NAME, ARG_NFT_CONTRACT_HASH, MINTING_CONTRACT_NAME};
 
 use super::{constants::CONTRACT_NAME, installer_request_builder::InstallerRequestBuilder};
 use casper_engine_test_support::{
@@ -13,7 +13,10 @@ use casper_execution_engine::{
     core::{engine_state::Error as EngineStateError, execution},
     storage::global_state::in_memory::InMemoryGlobalState,
 };
-use casper_types::{account::AccountHash, bytesrepr::FromBytes, ApiError, CLTyped, ContractHash, Key, PublicKey, RuntimeArgs, SecretKey, URef, BLAKE2B_DIGEST_LENGTH};
+use casper_types::{
+    account::AccountHash, bytesrepr::FromBytes, ApiError, CLTyped, ContractHash, Key, PublicKey,
+    RuntimeArgs, SecretKey, URef, BLAKE2B_DIGEST_LENGTH,
+};
 
 pub(crate) fn get_nft_contract_hash(
     builder: &WasmTestBuilder<InMemoryGlobalState>,
@@ -42,8 +45,6 @@ pub(crate) fn get_minting_contract_hash(
 
     ContractHash::new(minting_contract_hash)
 }
-
-
 
 pub(crate) fn get_dictionary_value_from_key<T: CLTyped + FromBytes>(
     builder: &WasmTestBuilder<InMemoryGlobalState>,

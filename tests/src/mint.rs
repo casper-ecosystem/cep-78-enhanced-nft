@@ -1,31 +1,34 @@
 use serde::{Deserialize, Serialize};
 
-use casper_execution_engine::storage::global_state::in_memory::InMemoryGlobalState;
 use casper_engine_test_support::{
     ExecuteRequestBuilder, InMemoryWasmTestBuilder, WasmTestBuilder, DEFAULT_ACCOUNT_ADDR,
     DEFAULT_RUN_GENESIS_REQUEST,
 };
+use casper_execution_engine::storage::global_state::in_memory::InMemoryGlobalState;
 use casper_types::{runtime_args, system::mint, ContractHash, Key, RuntimeArgs};
 
 use crate::utility::{
     constants::{
-        ACCOUNT_USER_1, ACCOUNT_USER_2, ARG_MINTING_MODE, ARG_NFT_CONTRACT_HASH,
-        ARG_TOKEN_META_DATA, ARG_TOKEN_OWNER, BALANCES, CONTRACT_NAME, ENTRY_POINT_MINT,
-        NFT_CONTRACT_WASM, NUMBER_OF_MINTED_TOKENS, OWNED_TOKENS, TEST_PRETTY_721_META_DATA,
-        TOKEN_ISSUERS, METADATA_NFT721, TOKEN_OWNERS, ARG_APPROVE_ALL, ARG_CONTRACT_WHITELIST, ARG_KEY_NAME, ARG_OPERATOR, ARG_TOKEN_ID,
-        ARG_TOKEN_URI, BALANCE_OF_SESSION_WASM, ENTRY_POINT_APPROVE, ENTRY_POINT_SET_APPROVE_FOR_ALL,
-        ENTRY_POINT_SET_VARIABLES, MALFORMED_META_DATA, MINTING_CONTRACT_WASM, MINT_SESSION_WASM,
-        OWNED_TOKENS_DICTIONARY_KEY, TEST_COMPACT_META_DATA, TEST_URI,
+        ACCOUNT_USER_1, ACCOUNT_USER_2, ARG_APPROVE_ALL, ARG_CONTRACT_WHITELIST, ARG_KEY_NAME,
+        ARG_MINTING_MODE, ARG_NFT_CONTRACT_HASH, ARG_OPERATOR, ARG_TOKEN_ID, ARG_TOKEN_META_DATA,
+        ARG_TOKEN_OWNER, ARG_TOKEN_URI, BALANCES, BALANCE_OF_SESSION_WASM, CONTRACT_NAME,
+        ENTRY_POINT_APPROVE, ENTRY_POINT_MINT, ENTRY_POINT_SET_APPROVE_FOR_ALL,
+        ENTRY_POINT_SET_VARIABLES, MALFORMED_META_DATA, METADATA_CEP78, METADATA_CUSTOM_VALIDATED,
+        METADATA_NFT721, METADATA_RAW, MINTING_CONTRACT_WASM, MINT_SESSION_WASM, NFT_CONTRACT_WASM,
+        NUMBER_OF_MINTED_TOKENS, OWNED_TOKENS, OWNED_TOKENS_DICTIONARY_KEY, RECEIPT_NAME,
+        TEST_COMPACT_META_DATA, TEST_PRETTY_721_META_DATA, TEST_PRETTY_CEP78_METADATA, TEST_URI,
+        TOKEN_ISSUERS, TOKEN_OWNERS,
     },
-    installer_request_builder::{InstallerRequestBuilder,  MintingMode, NFTHolderMode, OwnershipMode, WhitelistMode},
+    installer_request_builder::{
+        InstallerRequestBuilder, MintingMode, NFTHolderMode, NFTIdentifierMode, NFTMetadataKind,
+        OwnershipMode, WhitelistMode, TEST_CUSTOM_METADATA, TEST_CUSTOM_METADATA_SCHEMA,
+    },
     support::{
         self, assert_expected_error, call_entry_point_with_ret, create_dummy_key_pair,
         get_dictionary_value_from_key, get_minting_contract_hash, get_nft_contract_hash,
         query_stored_value,
-    }
+    },
 };
-use crate::utility::constants::{METADATA_CEP78, METADATA_CUSTOM_VALIDATED, METADATA_RAW, RECEIPT_NAME, TEST_PRETTY_CEP78_METADATA};
-use crate::utility::installer_request_builder::{NFTIdentifierMode, NFTMetadataKind, TEST_CUSTOM_METADATA, TEST_CUSTOM_METADATA_SCHEMA};
 
 #[derive(Serialize, Deserialize, Debug)]
 struct Metadata {
@@ -253,7 +256,7 @@ fn mint_should_return_dictionary_key_to_callers_owned_tokens() {
     let receipt: String = query_stored_value(
         &mut builder,
         nft_contract_hash,
-        vec![RECEIPT_NAME.to_string()]
+        vec![RECEIPT_NAME.to_string()],
     );
 
     let (_, owned_tokens_key) = account
@@ -285,7 +288,9 @@ fn mint_should_return_dictionary_key_to_callers_owned_tokens() {
 
     match builder.query(None, *owned_tokens_key, &[]).unwrap() {
         casper_types::StoredValue::CLValue(val) => {
-            let expected = val.into_t::<Vec<String>>().expect("should still be Vec<U256>");
+            let expected = val
+                .into_t::<Vec<String>>()
+                .expect("should still be Vec<U256>");
             println!("{:?}", expected);
         }
         _ => panic!("also the wrong stored value type"),
@@ -1160,17 +1165,12 @@ fn should_mint_with_valid_cep99_metadata() {
     let mut builder = InMemoryWasmTestBuilder::default();
     builder.run_genesis(&DEFAULT_RUN_GENESIS_REQUEST).commit();
 
-    let install_request =
-        InstallerRequestBuilder::new(*DEFAULT_ACCOUNT_ADDR, NFT_CONTRACT_WASM)
-            .with_total_token_supply(2u64)
-            .with_nft_metadata_kind(NFTMetadataKind::CEP99)
-            .build();
+    let install_request = InstallerRequestBuilder::new(*DEFAULT_ACCOUNT_ADDR, NFT_CONTRACT_WASM)
+        .with_total_token_supply(2u64)
+        .with_nft_metadata_kind(NFTMetadataKind::CEP99)
+        .build();
 
-    builder
-        .exec(install_request)
-        .expect_success()
-        .commit();
-
+    builder.exec(install_request).expect_success().commit();
 
     let nft_contract_key: Key = get_nft_contract_hash(&builder).into();
 
@@ -1185,7 +1185,7 @@ fn should_mint_with_valid_cep99_metadata() {
             ARG_TOKEN_URI => TEST_URI.to_string()
         },
     )
-        .build();
+    .build();
 
     builder.exec(mint_session_call).expect_success().commit();
 
@@ -1204,25 +1204,21 @@ fn should_mint_with_custom_metadata_validation() {
     let mut builder = InMemoryWasmTestBuilder::default();
     builder.run_genesis(&DEFAULT_RUN_GENESIS_REQUEST).commit();
 
-    let custom_json_schema = serde_json::to_string(&*TEST_CUSTOM_METADATA_SCHEMA)
-        .expect("must convert to json schema");
+    let custom_json_schema =
+        serde_json::to_string(&*TEST_CUSTOM_METADATA_SCHEMA).expect("must convert to json schema");
 
-    let install_request =
-        InstallerRequestBuilder::new(*DEFAULT_ACCOUNT_ADDR, NFT_CONTRACT_WASM)
-            .with_total_token_supply(2u64)
-            .with_nft_metadata_kind(NFTMetadataKind::CustomValidated)
-            .with_json_schema(custom_json_schema)
-            .build();
+    let install_request = InstallerRequestBuilder::new(*DEFAULT_ACCOUNT_ADDR, NFT_CONTRACT_WASM)
+        .with_total_token_supply(2u64)
+        .with_nft_metadata_kind(NFTMetadataKind::CustomValidated)
+        .with_json_schema(custom_json_schema)
+        .build();
 
-    builder
-        .exec(install_request)
-        .expect_success()
-        .commit();
+    builder.exec(install_request).expect_success().commit();
 
     let nft_contract_key: Key = get_nft_contract_hash(&builder).into();
 
-    let custom_metadata = serde_json::to_string(&*TEST_CUSTOM_METADATA)
-        .expect("must convert to json metadata");
+    let custom_metadata =
+        serde_json::to_string(&*TEST_CUSTOM_METADATA).expect("must convert to json metadata");
 
     let mint_session_call = ExecuteRequestBuilder::standard(
         *DEFAULT_ACCOUNT_ADDR,
@@ -1235,7 +1231,7 @@ fn should_mint_with_custom_metadata_validation() {
             ARG_TOKEN_URI => TEST_URI.to_string()
         },
     )
-        .build();
+    .build();
 
     builder.exec(mint_session_call).expect_success().commit();
 
@@ -1246,7 +1242,8 @@ fn should_mint_with_custom_metadata_validation() {
         &0u64.to_string(),
     );
 
-    let pretty_custom_metadata = serde_json::to_string_pretty(&*TEST_CUSTOM_METADATA).expect("must convert to json metadata");
+    let pretty_custom_metadata = serde_json::to_string_pretty(&*TEST_CUSTOM_METADATA)
+        .expect("must convert to json metadata");
 
     assert_eq!(pretty_custom_metadata, actual_metadata)
 }
@@ -1256,17 +1253,12 @@ fn should_mint_with_raw_metadata() {
     let mut builder = InMemoryWasmTestBuilder::default();
     builder.run_genesis(&DEFAULT_RUN_GENESIS_REQUEST).commit();
 
+    let install_request = InstallerRequestBuilder::new(*DEFAULT_ACCOUNT_ADDR, NFT_CONTRACT_WASM)
+        .with_total_token_supply(2u64)
+        .with_nft_metadata_kind(NFTMetadataKind::Raw)
+        .build();
 
-    let install_request =
-        InstallerRequestBuilder::new(*DEFAULT_ACCOUNT_ADDR, NFT_CONTRACT_WASM)
-            .with_total_token_supply(2u64)
-            .with_nft_metadata_kind(NFTMetadataKind::Raw)
-            .build();
-
-    builder
-        .exec(install_request)
-        .expect_success()
-        .commit();
+    builder.exec(install_request).expect_success().commit();
 
     let nft_contract_key: Key = get_nft_contract_hash(&builder).into();
 
@@ -1280,7 +1272,7 @@ fn should_mint_with_raw_metadata() {
             ARG_TOKEN_META_DATA => "raw_string".to_string() ,
         },
     )
-        .build();
+    .build();
 
     builder.exec(mint_session_call).expect_success().commit();
 
@@ -1294,8 +1286,6 @@ fn should_mint_with_raw_metadata() {
     assert_eq!("raw_string".to_string(), actual_metadata)
 }
 
-
-
 #[test]
 fn should_mint_with_hash_identifier_mode() {
     let mut builder = InMemoryWasmTestBuilder::default();
@@ -1306,8 +1296,7 @@ fn should_mint_with_hash_identifier_mode() {
         .with_total_token_supply(10u64)
         .build();
 
-    builder.exec(install_request)        .expect_success()
-        .commit();
+    builder.exec(install_request).expect_success().commit();
 
     let nft_contract_key: Key = get_nft_contract_hash(&builder).into();
 
@@ -1321,17 +1310,18 @@ fn should_mint_with_hash_identifier_mode() {
             ARG_TOKEN_URI => TEST_URI.to_string()
         },
     )
-        .build();
+    .build();
 
     builder.exec(mint_session_call).expect_success().commit();
 
-    let token_id_hash: String = base16::encode_lower(&support::create_blake2b_hash(&TEST_PRETTY_721_META_DATA));
+    let token_id_hash: String =
+        base16::encode_lower(&support::create_blake2b_hash(&TEST_PRETTY_721_META_DATA));
 
     let actual_token_ids = get_dictionary_value_from_key::<Vec<String>>(
         &builder,
         &nft_contract_key,
         OWNED_TOKENS,
-        &DEFAULT_ACCOUNT_ADDR.clone().to_string()
+        &DEFAULT_ACCOUNT_ADDR.clone().to_string(),
     );
 
     assert_eq!(vec![token_id_hash], actual_token_ids);

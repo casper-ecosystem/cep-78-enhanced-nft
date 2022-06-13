@@ -1,11 +1,12 @@
-use alloc::collections::{BTreeMap};
-use alloc::string::{String, ToString};
-use alloc::{vec, vec::Vec};
+use alloc::{
+    collections::BTreeMap,
+    string::{String, ToString},
+    vec,
+    vec::Vec,
+};
 
-
-use casper_contract::contract_api::runtime::revert;
 use casper_contract::{
-    contract_api::{self, runtime, storage},
+    contract_api::{self, runtime, runtime::revert, storage},
     ext_ffi,
     unwrap_or_revert::UnwrapOrRevert,
 };
@@ -20,9 +21,11 @@ use core::convert::TryFrom;
 use core::{convert::TryInto, mem::MaybeUninit};
 
 use serde::{Deserialize, Serialize};
-use casper_serde_json_wasm;
 
-use crate::{constants::OWNERSHIP_MODE, error::NFTCoreError, ARG_JSON_SCHEMA, CONTRACT_WHITELIST, HOLDER_MODE, METADATA_CEP78, METADATA_NFT721, METADATA_RAW, METADATA_CUSTOM_VALIDATED};
+use crate::{
+    constants::OWNERSHIP_MODE, error::NFTCoreError, ARG_JSON_SCHEMA, CONTRACT_WHITELIST,
+    HOLDER_MODE, METADATA_CEP78, METADATA_CUSTOM_VALIDATED, METADATA_NFT721, METADATA_RAW,
+};
 
 pub(crate) fn upsert_dictionary_value_from_key<T: CLTyped + FromBytes + ToBytes>(
     dictionary_name: &str,
@@ -186,7 +189,7 @@ impl TryFrom<u8> for NFTIdentifierMode {
         match value {
             0 => Ok(NFTIdentifierMode::Ordinal),
             1 => Ok(NFTIdentifierMode::Hash),
-            _ => Err(NFTCoreError::InvalidIdentifierMode)
+            _ => Err(NFTCoreError::InvalidIdentifierMode),
         }
     }
 }
@@ -430,7 +433,6 @@ pub(crate) fn get_calling_contract_hash() -> ContractHash {
     contract_hash
 }
 
-
 // Metadata mutability is different from schema mutability.
 #[derive(Serialize, Deserialize, Clone)]
 pub(crate) struct MetadataSchemaProperty {
@@ -547,11 +549,10 @@ pub(crate) fn get_metadata_schema(kind: &NFTMetadataKind) -> CustomMetadataSchem
                 NFTCoreError::MissingJsonSchema,
                 NFTCoreError::InvalidJsonSchema,
             );
-            let custom_metadata_schema =
-                casper_serde_json_wasm::from_str::<CustomMetadataSchema>(&custom_schema_json)
-                    .map_err(|_| NFTCoreError::InvalidJsonSchema)
-                    .unwrap_or_revert();
-            custom_metadata_schema
+
+            casper_serde_json_wasm::from_str::<CustomMetadataSchema>(&custom_schema_json)
+                .map_err(|_| NFTCoreError::InvalidJsonSchema)
+                .unwrap_or_revert()
         }
     }
 }
@@ -597,8 +598,6 @@ pub(crate) struct MetadataCEP78 {
     token_uri: String,
     checksum: String,
 }
-
-
 
 // Using a structure for the purposes of serialization formatting.
 #[derive(Serialize, Deserialize)]
@@ -675,9 +674,7 @@ pub(crate) fn validate_metadata(
     }
 }
 
-pub(crate) fn get_metadata_dictionary_name(
-    metadata_kind: &NFTMetadataKind
-) -> String {
+pub(crate) fn get_metadata_dictionary_name(metadata_kind: &NFTMetadataKind) -> String {
     let name = match metadata_kind {
         NFTMetadataKind::CEP78 => METADATA_CEP78,
         NFTMetadataKind::NFT721 => METADATA_NFT721,

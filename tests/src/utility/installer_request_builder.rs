@@ -7,11 +7,14 @@ use casper_engine_test_support::ExecuteRequestBuilder;
 use casper_execution_engine::core::engine_state::ExecuteRequest;
 use casper_types::{account::AccountHash, CLValue, ContractHash, RuntimeArgs};
 
-use crate::utility::constants::{ARG_CONTRACT_WHITELIST, ARG_HOLDER_MODE, ARG_IDENTIFIER_MODE, ARG_WHITELIST_MODE};
+use crate::utility::constants::{
+    ARG_CONTRACT_WHITELIST, ARG_HOLDER_MODE, ARG_IDENTIFIER_MODE, ARG_WHITELIST_MODE,
+};
 
 use super::constants::{
     ARG_ALLOW_MINTING, ARG_COLLECTION_NAME, ARG_COLLECTION_SYMBOL, ARG_JSON_SCHEMA,
-    ARG_MINTING_MODE, ARG_NFT_KIND, ARG_OWNERSHIP_MODE, ARG_TOTAL_TOKEN_SUPPLY, ARG_NFT_METADATA_KIND
+    ARG_MINTING_MODE, ARG_NFT_KIND, ARG_NFT_METADATA_KIND, ARG_OWNERSHIP_MODE,
+    ARG_TOTAL_TOKEN_SUPPLY,
 };
 
 pub(crate) static TEST_CUSTOM_METADATA_SCHEMA: Lazy<CustomMetadataSchema> = Lazy::new(|| {
@@ -41,7 +44,6 @@ pub(crate) static TEST_CUSTOM_METADATA: Lazy<BTreeMap<String, String>> = Lazy::n
     attributes.insert("mythology".to_string(), "Nordic".to_string());
     attributes
 });
-
 
 #[repr(u8)]
 pub enum WhitelistMode {
@@ -112,7 +114,6 @@ pub enum NFTIdentifierMode {
     Ordinal = 0,
     Hash = 1,
 }
-
 
 #[derive(Debug)]
 pub(crate) struct InstallerRequestBuilder {

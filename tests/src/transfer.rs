@@ -1,29 +1,30 @@
 use casper_engine_test_support::{
     ExecuteRequestBuilder, InMemoryWasmTestBuilder, DEFAULT_ACCOUNT_ADDR,
-    DEFAULT_ACCOUNT_PUBLIC_KEY, DEFAULT_RUN_GENESIS_REQUEST,
-    MINIMUM_ACCOUNT_CREATION_BALANCE,
+    DEFAULT_ACCOUNT_PUBLIC_KEY, DEFAULT_RUN_GENESIS_REQUEST, MINIMUM_ACCOUNT_CREATION_BALANCE,
 };
-use casper_types::account::AccountHash;
 use casper_types::{
-    runtime_args, system::mint, ContractHash, Key, PublicKey, RuntimeArgs, SecretKey, U512,
+    account::AccountHash, runtime_args, system::mint, ContractHash, Key, PublicKey, RuntimeArgs,
+    SecretKey, U512,
 };
 
-use crate::utility::constants::{ARG_CONTRACT_WHITELIST, ENTRY_POINT_MINT, MINTING_CONTRACT_WASM, TRANSFER_SESSION_WASM};
-use crate::utility::installer_request_builder::{MintingMode, NFTHolderMode, NFTIdentifierMode, WhitelistMode};
-use crate::utility::support::{
-    assert_expected_error, get_minting_contract_hash, query_stored_value,
-};
 use crate::utility::{
     constants::{
-        ACCOUNT_USER_1, ACCOUNT_USER_2, ACCOUNT_USER_3, ARG_SOURCE_KEY, ARG_KEY_NAME,
-        ARG_NFT_CONTRACT_HASH, ARG_OPERATOR, ARG_TOKEN_ID, ARG_TOKEN_META_DATA, ARG_TOKEN_OWNER,
-        ARG_TOKEN_URI, ARG_TARGET_KEY, BALANCES, CONTRACT_NAME, ENTRY_POINT_APPROVE,
-        ENTRY_POINT_TRANSFER, MINT_SESSION_WASM, NFT_CONTRACT_WASM, NFT_TEST_COLLECTION,
-        NFT_TEST_SYMBOL, OPERATOR, OWNED_TOKENS, OWNED_TOKENS_DICTIONARY_KEY,
-        TEST_PRETTY_721_META_DATA, TEST_URI, TOKEN_OWNERS,
+        ACCOUNT_USER_1, ACCOUNT_USER_2, ACCOUNT_USER_3, ARG_CONTRACT_WHITELIST, ARG_KEY_NAME,
+        ARG_NFT_CONTRACT_HASH, ARG_OPERATOR, ARG_SOURCE_KEY, ARG_TARGET_KEY, ARG_TOKEN_ID,
+        ARG_TOKEN_META_DATA, ARG_TOKEN_OWNER, ARG_TOKEN_URI, BALANCES, CONTRACT_NAME,
+        ENTRY_POINT_APPROVE, ENTRY_POINT_MINT, ENTRY_POINT_TRANSFER, MINTING_CONTRACT_WASM,
+        MINT_SESSION_WASM, NFT_CONTRACT_WASM, NFT_TEST_COLLECTION, NFT_TEST_SYMBOL, OPERATOR,
+        OWNED_TOKENS, OWNED_TOKENS_DICTIONARY_KEY, TEST_PRETTY_721_META_DATA, TEST_URI,
+        TOKEN_OWNERS, TRANSFER_SESSION_WASM,
     },
-    installer_request_builder::{InstallerRequestBuilder, OwnershipMode},
-    support::{self, get_dictionary_value_from_key, get_nft_contract_hash},
+    installer_request_builder::{
+        InstallerRequestBuilder, MintingMode, NFTHolderMode, NFTIdentifierMode, OwnershipMode,
+        WhitelistMode,
+    },
+    support::{
+        self, assert_expected_error, get_dictionary_value_from_key, get_minting_contract_hash,
+        get_nft_contract_hash, query_stored_value,
+    },
 };
 
 #[test]
@@ -119,8 +120,6 @@ fn should_transfer_token_from_sender_to_receiver() {
 
     builder.exec(install_request).expect_success().commit();
 
-
-
     let token_owner = *DEFAULT_ACCOUNT_ADDR;
 
     let nft_contract_key: Key = get_nft_contract_hash(&builder).into();
@@ -156,7 +155,7 @@ fn should_transfer_token_from_sender_to_receiver() {
     assert_eq!(actual_owner_balance, expected_owner_balance);
 
     let (_, token_receiver) = support::create_dummy_key_pair(ACCOUNT_USER_1);
-    let transfer_request =  ExecuteRequestBuilder::standard(
+    let transfer_request = ExecuteRequestBuilder::standard(
         *DEFAULT_ACCOUNT_ADDR,
         TRANSFER_SESSION_WASM,
         runtime_args! {
@@ -165,7 +164,8 @@ fn should_transfer_token_from_sender_to_receiver() {
             ARG_SOURCE_KEY => Key::Account(*DEFAULT_ACCOUNT_ADDR),
             ARG_TARGET_KEY =>  Key::Account(token_receiver.to_account_hash()),
         },
-    ).build();
+    )
+    .build();
     builder.exec(transfer_request).expect_success().commit();
 
     let actual_token_owner = support::get_dictionary_value_from_key::<Key>(
@@ -448,7 +448,8 @@ fn should_be_able_to_transfer_token_using_approved_operator() {
             ARG_SOURCE_KEY =>  Key::Account(token_owner),
             ARG_TARGET_KEY => Key::Account(to_account_public_key.to_account_hash()),
         },
-    ).build();
+    )
+    .build();
     builder.exec(transfer_request).expect_success().commit();
 
     let actual_approved_account_hash: Option<Key> =
@@ -567,7 +568,8 @@ fn should_dissallow_same_operator_to_tranfer_token_twice() {
             ARG_SOURCE_KEY =>  Key::Account(token_owner),
             ARG_TARGET_KEY => Key::Account(to_account_public_key.to_account_hash()),
         },
-    ).build();
+    )
+    .build();
     builder.exec(transfer_request).expect_success().commit();
 
     let (_, to_other_account_public_key) = support::create_dummy_key_pair(ACCOUNT_USER_3);
@@ -580,7 +582,8 @@ fn should_dissallow_same_operator_to_tranfer_token_twice() {
             ARG_SOURCE_KEY =>  Key::Account(token_owner),
             ARG_TARGET_KEY => Key::Account(to_other_account_public_key.to_account_hash()),
         },
-    ).build();
+    )
+    .build();
     builder.exec(transfer_request).expect_failure();
 }
 
@@ -650,8 +653,6 @@ fn should_transfer_between_contract_to_account() {
         get_dictionary_value_from_key(&builder, &nft_contract_key, TOKEN_OWNERS, &token_id);
 
     assert_eq!(minting_contract_key, actual_token_owner);
-
-
 
     let transfer_runtime_arguments = runtime_args! {
         ARG_NFT_CONTRACT_HASH => nft_contract_key,
@@ -738,7 +739,6 @@ fn should_prevent_transfer_when_caller_is_not_owner() {
 
     assert_eq!(Key::Account(*DEFAULT_ACCOUNT_ADDR), actual_token_owner);
 
-
     let unauthorized_transfer = ExecuteRequestBuilder::standard(
         other_account_public_key.to_account_hash(),
         TRANSFER_SESSION_WASM,
@@ -748,7 +748,8 @@ fn should_prevent_transfer_when_caller_is_not_owner() {
             ARG_SOURCE_KEY => Key::Account(*DEFAULT_ACCOUNT_ADDR),
             ARG_TARGET_KEY => Key::Account(other_account_public_key.to_account_hash())
         },
-    ).build();
+    )
+    .build();
 
     builder.exec(unauthorized_transfer).expect_failure();
 
@@ -774,8 +775,7 @@ fn should_transfer_token_in_hash_identifier_mode() {
         .with_total_token_supply(10u64)
         .build();
 
-    builder.exec(install_request)        .expect_success()
-        .commit();
+    builder.exec(install_request).expect_success().commit();
 
     let nft_contract_hash = get_nft_contract_hash(&builder);
     let nft_contract_key: Key = nft_contract_hash.into();
@@ -790,14 +790,14 @@ fn should_transfer_token_in_hash_identifier_mode() {
             ARG_TOKEN_URI => TEST_URI.to_string()
         },
     )
-        .build();
+    .build();
 
     builder.exec(mint_session_call).expect_success().commit();
 
-    let token_id_hash: String = base16::encode_lower(&support::create_blake2b_hash(&TEST_PRETTY_721_META_DATA));
+    let token_id_hash: String =
+        base16::encode_lower(&support::create_blake2b_hash(&TEST_PRETTY_721_META_DATA));
 
-
-    let transfer_request =  ExecuteRequestBuilder::standard(
+    let transfer_request = ExecuteRequestBuilder::standard(
         *DEFAULT_ACCOUNT_ADDR,
         TRANSFER_SESSION_WASM,
         runtime_args! {
@@ -806,8 +806,8 @@ fn should_transfer_token_in_hash_identifier_mode() {
             ARG_SOURCE_KEY => Key::Account(*DEFAULT_ACCOUNT_ADDR),
             ARG_TARGET_KEY =>  Key::Account( AccountHash::new([3u8;32])),
         },
-    ).build();
+    )
+    .build();
 
     builder.exec(transfer_request).expect_success().commit();
-
 }

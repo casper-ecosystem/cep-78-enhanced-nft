@@ -4,15 +4,14 @@ use casper_engine_test_support::{
 };
 use casper_types::{runtime_args, CLValue, ContractHash, RuntimeArgs};
 
-use crate::utility::constants::{ARG_CONTRACT_WHITELIST, ARG_HOLDER_MODE, ARG_WHITELIST_MODE};
-use crate::utility::installer_request_builder::{NFTHolderMode, WhitelistMode};
 use crate::utility::{
     constants::{
-        ARG_ALLOW_MINTING, ARG_COLLECTION_NAME, ARG_COLLECTION_SYMBOL, ARG_MINTING_MODE,
-        ARG_TOTAL_TOKEN_SUPPLY, CONTRACT_NAME, ENTRY_POINT_INIT, NFT_CONTRACT_WASM,
-        NFT_TEST_COLLECTION, NFT_TEST_SYMBOL, NUMBER_OF_MINTED_TOKENS,
+        ARG_ALLOW_MINTING, ARG_COLLECTION_NAME, ARG_COLLECTION_SYMBOL, ARG_CONTRACT_WHITELIST,
+        ARG_HOLDER_MODE, ARG_MINTING_MODE, ARG_TOTAL_TOKEN_SUPPLY, ARG_WHITELIST_MODE,
+        CONTRACT_NAME, ENTRY_POINT_INIT, NFT_CONTRACT_WASM, NFT_TEST_COLLECTION, NFT_TEST_SYMBOL,
+        NUMBER_OF_MINTED_TOKENS,
     },
-    installer_request_builder::InstallerRequestBuilder,
+    installer_request_builder::{InstallerRequestBuilder, NFTHolderMode, WhitelistMode},
     support,
 };
 
