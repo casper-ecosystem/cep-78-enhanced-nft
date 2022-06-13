@@ -26,8 +26,8 @@ const ARG_NFT_CONTRACT_HASH: &str = "nft_contract_hash";
 const ARG_TOKEN_OWNER: &str = "token_owner";
 const ARG_TOKEN_META_DATA: &str = "token_meta_data";
 const ARG_TOKEN_URI: &str = "token_uri";
-const ARG_TO_ACCOUNT_HASH: &str = "to_account_hash";
-const ARG_FROM_ACCOUNT_HASH: &str = "from_account_hash";
+const ARG_TARGET_KEY: &str = "target_key";
+const ARG_SOURCE_KEY: &str = "source_key";
 const ARG_TOKEN_ID: &str = "token_id";
 
 
@@ -63,18 +63,20 @@ pub extern "C" fn transfer() {
         .unwrap();
 
     let token_id = runtime::get_named_arg::<String>(ARG_TOKEN_ID);
-    let from_token_owner = runtime::get_named_arg::<Key>(ARG_FROM_ACCOUNT_HASH);
-    let target_token_owner = runtime::get_named_arg::<Key>(ARG_TO_ACCOUNT_HASH);
+    let from_token_owner = runtime::get_named_arg::<Key>(ARG_SOURCE_KEY);
+    let target_token_owner = runtime::get_named_arg::<Key>(ARG_TARGET_KEY);
 
-    runtime::call_contract::<()>(
+    let (collection_name, owned_tokens_dictionary_key) = runtime::call_contract::<(String, Key)>(
         nft_contract_hash,
         ENTRY_POINT_TRANSFER,
         runtime_args! {
             ARG_TOKEN_ID => token_id,
-            ARG_FROM_ACCOUNT_HASH => from_token_owner,
-            ARG_TO_ACCOUNT_HASH => target_token_owner
+            ARG_SOURCE_KEY => from_token_owner,
+            ARG_TARGET_KEY => target_token_owner
         }
     );
+
+    runtime::put_key(&collection_name, owned_tokens_dictionary_key)
 }
 
 #[no_mangle]
@@ -114,8 +116,8 @@ fn install_minting_contract() -> (ContractHash, ContractVersion) {
         ENTRY_POINT_TRANSFER,
         vec![
             Parameter::new(ARG_TOKEN_ID, CLType::String),
-            Parameter::new(ARG_FROM_ACCOUNT_HASH, CLType::Key),
-            Parameter::new(ARG_TO_ACCOUNT_HASH, CLType::Key),
+            Parameter::new(ARG_SOURCE_KEY, CLType::Key),
+            Parameter::new(ARG_TARGET_KEY, CLType::Key),
         ],
         CLType::Unit,
         EntryPointAccess::Public,

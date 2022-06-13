@@ -12,12 +12,12 @@ extern crate alloc;
 
 use alloc::{boxed::Box, format, string::String, string::ToString, vec, vec::Vec};
 use core::convert::TryInto;
-use core::hash::Hash;
 
-use serde_json_wasm;
+
+
 
 use casper_types::{
-    contracts::NamedKeys, runtime_args, ApiError, CLType, CLValue, ContractHash,
+    contracts::NamedKeys, runtime_args, CLType, CLValue, ContractHash,
     ContractPackageHash, ContractVersion, EntryPoint, EntryPointAccess, EntryPointType,
     EntryPoints, Key, Parameter, RuntimeArgs,
 };
@@ -174,6 +174,8 @@ pub extern "C" fn init() {
         .try_into()
         .unwrap_or_revert();
 
+
+
     // Put all created URefs into the contract's context (necessary to retain access rights,
     // for future use).
     //
@@ -222,8 +224,6 @@ pub extern "C" fn init() {
         .unwrap_or_revert_with(NFTCoreError::FailedToCreateDictionary);
     storage::new_dictionary(TOKEN_ISSUERS)
         .unwrap_or_revert_with(NFTCoreError::FailedToCreateDictionary);
-    storage::new_dictionary(TOKEN_META_DATA)
-        .unwrap_or_revert_with(NFTCoreError::FailedToCreateDictionary);
     storage::new_dictionary(OWNED_TOKENS)
         .unwrap_or_revert_with(NFTCoreError::FailedToCreateDictionary);
     storage::new_dictionary(OPERATOR).unwrap_or_revert_with(NFTCoreError::FailedToCreateDictionary);
@@ -231,14 +231,14 @@ pub extern "C" fn init() {
         .unwrap_or_revert_with(NFTCoreError::FailedToCreateDictionary);
     storage::new_dictionary(TOKEN_COUNTS)
         .unwrap_or_revert_with(NFTCoreError::FailedToCreateDictionary);
-    storage::new_dictionary(TOKEN_URI)
+    storage::new_dictionary(METADATA_CUSTOM_VALIDATED)
         .unwrap_or_revert_with(NFTCoreError::FailedToCreateDictionary);
-    // storage::new_dictionary("raw_metadata")
-    //     .unwrap_or_revert_with(NFTCoreError::FailedToCreateDictionary);
-    // storage::new_dictionary("cep99")
-    //     .unwrap_or_revert_with(NFTCoreError::FailedToCreateDictionary);
-    // storage::new_dictionary("nft721")
-    //     .unwrap_or_revert_with(NFTCoreError::FailedToCreateDictionary);
+    storage::new_dictionary(METADATA_CEP78)
+        .unwrap_or_revert_with(NFTCoreError::FailedToCreateDictionary);
+    storage::new_dictionary(METADATA_NFT721)
+        .unwrap_or_revert_with(NFTCoreError::FailedToCreateDictionary);
+    storage::new_dictionary(METADATA_RAW)
+        .unwrap_or_revert_with(NFTCoreError::FailedToCreateDictionary);
 }
 
 // set_variables allows the user to set any variable or any combination of variables simultaneously.
@@ -388,6 +388,14 @@ pub extern "C" fn mint() {
         }
     };
 
+    let metadata_kind: NFTMetadataKind = get_stored_value_with_user_errors::<u8>(
+        NFT_METADATA_KIND,
+        NFTCoreError::MissingNFTMetadataKind,
+        NFTCoreError::InvalidNFTMetadataKind,
+    )
+        .try_into()
+        .unwrap_or_revert();
+
     let token_metadata = get_named_arg_with_user_errors::<String>(
         ARG_TOKEN_META_DATA,
         NFTCoreError::MissingTokenMetaData,
@@ -395,20 +403,13 @@ pub extern "C" fn mint() {
     )
     .unwrap_or_revert();
 
-    runtime::print(&token_metadata);
+
+
+
 
     // Get token metadata if valid.
-    let metadata_kind: NFTMetadataKind = get_stored_value_with_user_errors::<u8>(
-        NFT_METADATA_KIND,
-        NFTCoreError::MissingNFTMetadataKind,
-        NFTCoreError::InvalidNFTMetadataKind,
-    )
-    .try_into()
-    .unwrap_or_revert();
+    let metadata = validate_metadata(&metadata_kind, token_metadata).unwrap_or_revert();
 
-    let metadata = validate_metadata(metadata_kind, token_metadata).unwrap_or_revert();
-
-    runtime::print(&metadata);
 
     let identifier_mode: NFTIdentifierMode = get_stored_value_with_user_errors::<u8>(
         IDENTIFIER_MODE,
@@ -426,8 +427,8 @@ pub extern "C" fn mint() {
     };
 
     upsert_dictionary_value_from_key(TOKEN_OWNERS, &token_id, token_owner_key);
-    upsert_dictionary_value_from_key(TOKEN_META_DATA, &token_id, metadata);
     upsert_dictionary_value_from_key(TOKEN_ISSUERS, &token_id, token_owner_key);
+    upsert_dictionary_value_from_key(&get_metadata_dictionary_name(&metadata_kind), &token_id, metadata);
 
     let owned_tokens_item_key = get_owned_tokens_dictionary_item_key(token_owner_key);
 
@@ -703,7 +704,7 @@ pub extern "C" fn set_approval_for_all() {
 #[no_mangle]
 pub extern "C" fn transfer() {
     // If we are in minter or assigned mode we are not allowed to transfer ownership of token, hence we revert.
-    let ownership_mode = match utils::get_ownership_mode().unwrap_or_revert() {
+    let _ownership_mode = match utils::get_ownership_mode().unwrap_or_revert() {
         OwnershipMode::Minter | OwnershipMode::Assigned => {
             runtime::revert(NFTCoreError::InvalidOwnershipMode)
         }
@@ -732,7 +733,7 @@ pub extern "C" fn transfer() {
         };
 
     let from_token_owner_key = get_named_arg_with_user_errors::<Key>(
-        ARG_FROM_ACCOUNT_HASH,
+        ARG_SOURCE_KEY,
         NFTCoreError::MissingAccountHash,
         NFTCoreError::InvalidAccountHash,
     )
@@ -760,7 +761,7 @@ pub extern "C" fn transfer() {
     }
 
     let target_owner_key: Key = get_named_arg_with_user_errors(
-        ARG_TO_ACCOUNT_HASH,
+        ARG_TARGET_KEY,
         NFTCoreError::MissingAccountHash,
         NFTCoreError::InvalidAccountHash,
     )
@@ -852,9 +853,28 @@ pub extern "C" fn transfer() {
     );
 
     storage::dictionary_put(approved_uref, &token_id.to_string(), Option::<Key>::None);
+
+    let owned_tokens_actual_key = Key::dictionary(
+        get_uref(
+            OWNED_TOKENS,
+            NFTCoreError::MissingOwnedTokens,
+            NFTCoreError::InvalidOwnedTokens,
+        ),
+        target_owner_item_key.as_bytes(),
+    );
+
+    let receipt_name = get_stored_value_with_user_errors::<String>(
+        RECEIPT_NAME,
+        NFTCoreError::MissingReceiptName,
+        NFTCoreError::InvalidReceiptName,
+    );
+
+    let receipt = CLValue::from_t((receipt_name, owned_tokens_actual_key))
+        .unwrap_or_revert_with(NFTCoreError::FailedToConvertToCLValue);
+    runtime::ret(receipt)
 }
 
-// Returns the length of the Vec<u64> in OWNED_TOKENS dictionary. If key is not found
+// Returns the length of the Vec<String> in OWNED_TOKENS dictionary. If key is not found
 // it returns 0.
 #[no_mangle]
 pub extern "C" fn balance_of() {
@@ -955,13 +975,19 @@ pub extern "C" fn metadata() {
         }
     }
 
+    let metadata_kind: NFTMetadataKind = get_stored_value_with_user_errors::<u8>(
+        METADATA_SCHEMA,
+        NFTCoreError::MissingNFTMetadataKind,
+        NFTCoreError::InvalidNFTMetadataKind
+    ).try_into()
+        .unwrap_or_revert();
+
     let maybe_token_metadata =
-        get_dictionary_value_from_key::<String>(TOKEN_META_DATA, &token_id.to_string());
+        get_dictionary_value_from_key::<String>(&get_metadata_dictionary_name(&metadata_kind), &token_id.to_string());
 
     if let Some(metadata) = maybe_token_metadata {
         let metadata_cl_value =
             CLValue::from_t(metadata).unwrap_or_revert_with(NFTCoreError::FailedToConvertToCLValue);
-
         runtime::ret(metadata_cl_value);
     } else {
         runtime::revert(NFTCoreError::InvalidTokenID)
@@ -1017,6 +1043,7 @@ pub extern "C" fn get_approved() {
 
     runtime::ret(approved_cl_value);
 }
+
 
 fn install_nft_contract() -> (ContractHash, ContractVersion) {
     let entry_points = {
@@ -1119,8 +1146,8 @@ fn install_nft_contract() -> (ContractHash, ContractVersion) {
             ENTRY_POINT_TRANSFER,
             vec![
                 Parameter::new(ARG_TOKEN_ID, CLType::String),
-                Parameter::new(ARG_FROM_ACCOUNT_HASH, CLType::Key),
-                Parameter::new(ARG_TO_ACCOUNT_HASH, CLType::Key),
+                Parameter::new(ARG_SOURCE_KEY, CLType::Key),
+                Parameter::new(ARG_TARGET_KEY, CLType::Key),
             ],
             CLType::Unit,
             EntryPointAccess::Public,

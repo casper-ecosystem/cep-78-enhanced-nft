@@ -103,6 +103,8 @@ pub enum NFTCoreError {
     MissingIdentifierMode = 98,
     InvalidIdentifierMode = 99,
     FailedToParseTokenId = 100,
+    MissingMetadataMutability = 101,
+    InvalidMetadataMutability = 102,
 }
 
 impl From<NFTCoreError> for ApiError {

@@ -2,6 +2,7 @@ pub(crate) const NFT_CONTRACT_WASM: &str = "contract.wasm";
 pub(crate) const MINT_SESSION_WASM: &str = "mint_call.wasm";
 pub(crate) const BALANCE_OF_SESSION_WASM: &str = "balance_of_call.wasm";
 pub(crate) const MINTING_CONTRACT_WASM: &str = "minting_contract.wasm";
+pub(crate) const TRANSFER_SESSION_WASM: &str = "transfer_call.wasm";
 pub(crate) const CONTRACT_NAME: &str = "nft_contract";
 pub(crate) const MINTING_CONTRACT_NAME: &str = "minting_contract_hash";
 pub(crate) const NFT_TEST_COLLECTION: &str = "nft_test";
@@ -23,7 +24,10 @@ pub(crate) const ARG_WHITELIST_MODE: &str = "whitelist_mode";
 pub(crate) const ARG_CONTRACT_WHITELIST: &str = "contract_whitelist";
 pub(crate) const NUMBER_OF_MINTED_TOKENS: &str = "number_of_minted_tokens";
 pub(crate) const ARG_TOKEN_META_DATA: &str = "token_meta_data";
-pub(crate) const TOKEN_META_DATA: &str = "token_meta_data_json";
+pub(crate) const METADATA_CUSTOM_VALIDATED: &str = "metadata_custom_validated";
+pub(crate) const METADATA_CEP78: &str = "metadata_cep78";
+pub(crate) const METADATA_NFT721: &str = "metadata_nft721";
+pub(crate) const METADATA_RAW: &str = "metadata_raw";
 pub(crate) const ARG_TOKEN_OWNER: &str = "token_owner";
 pub(crate) const ARG_NFT_CONTRACT_HASH: &str = "nft_contract_hash";
 pub(crate) const ARG_JSON_SCHEMA: &str = "json_schema";
@@ -44,8 +48,8 @@ pub(crate) const RECEIPT_NAME: &str = "receipt_name";
 pub(crate) const ARG_OPERATOR: &str = "operator";
 pub(crate) const OWNED_TOKENS_DICTIONARY_KEY: &str = "owned_tokens_dictionary_key";
 pub(crate) const ARG_KEY_NAME: &str = "key_name";
-pub(crate) const ARG_TO_ACCOUNT_HASH: &str = "to_account_hash";
-pub(crate) const ARG_FROM_ACCOUNT_HASH: &str = "from_account_hash";
+pub(crate) const ARG_TARGET_KEY: &str = "target_key";
+pub(crate) const ARG_SOURCE_KEY: &str = "source_key";
 pub(crate) const ARG_TOKEN_ID: &str = "token_id";
 pub(crate) const ACCOUNT_USER_1: [u8; 32] = [1u8; 32];
 pub(crate) const ACCOUNT_USER_2: [u8; 32] = [2u8; 32];
@@ -55,7 +59,7 @@ pub(crate) const TEST_PRETTY_721_META_DATA: &str = r#"{
   "symbol": "abc",
   "token_uri": "https://www.google.com"
 }"#;
-pub(crate) const TEST_PRETTY_99_METADATA: &str = r#"{
+pub(crate) const TEST_PRETTY_CEP78_METADATA: &str = r#"{
   "name": "John Doe",
   "token_uri": "https://www.google.com",
   "checksum": "940bffb3f2bba35f84313aa26da09ece3ad47045c6a1292c2bbd2df4ab1a55fb"

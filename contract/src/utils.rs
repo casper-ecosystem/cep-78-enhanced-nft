@@ -1,8 +1,8 @@
-use alloc::collections::{BTreeMap, BTreeSet};
+use alloc::collections::{BTreeMap};
 use alloc::string::{String, ToString};
-use alloc::{format, vec, vec::Vec};
+use alloc::{vec, vec::Vec};
 
-use core::marker::PhantomData;
+
 
 use casper_contract::contract_api::runtime::revert;
 use casper_contract::{
@@ -17,16 +17,13 @@ use casper_types::{
     ApiError, CLType, CLTyped, ContractHash, Key, URef,
 };
 use core::convert::TryFrom;
-use core::fmt::{Formatter, Write};
+
 use core::{convert::TryInto, mem::MaybeUninit};
 
 use serde::{Deserialize, Serialize};
 use serde_json_wasm;
 
-use crate::{
-    constants::OWNERSHIP_MODE, error::NFTCoreError, ARG_JSON_SCHEMA, CONTRACT_WHITELIST,
-    HOLDER_MODE, METADATA_SCHEMA, NFT_KIND,
-};
+use crate::{constants::OWNERSHIP_MODE, error::NFTCoreError, ARG_JSON_SCHEMA, CONTRACT_WHITELIST, HOLDER_MODE, METADATA_CEP78, METADATA_NFT721, METADATA_RAW, METADATA_CUSTOM_VALIDATED};
 
 pub(crate) fn upsert_dictionary_value_from_key<T: CLTyped + FromBytes + ToBytes>(
     dictionary_name: &str,
@@ -132,7 +129,7 @@ impl TryFrom<u8> for NFTKind {
 
 #[repr(u8)]
 pub enum NFTMetadataKind {
-    CEP99 = 0,
+    CEP78 = 0,
     NFT721 = 1,
     Raw = 2,
     CustomValidated = 3,
@@ -143,7 +140,7 @@ impl TryFrom<u8> for NFTMetadataKind {
 
     fn try_from(value: u8) -> Result<Self, Self::Error> {
         match value {
-            0 => Ok(NFTMetadataKind::CEP99),
+            0 => Ok(NFTMetadataKind::CEP78),
             1 => Ok(NFTMetadataKind::NFT721),
             2 => Ok(NFTMetadataKind::Raw),
             3 => Ok(NFTMetadataKind::CustomValidated),
@@ -194,7 +191,6 @@ impl TryFrom<u8> for NFTIdentifierMode {
         }
     }
 }
-
 
 pub(crate) fn get_ownership_mode() -> Result<OwnershipMode, NFTCoreError> {
     get_stored_value_with_user_errors::<u8>(
@@ -435,7 +431,6 @@ pub(crate) fn get_calling_contract_hash() -> ContractHash {
     contract_hash
 }
 
-// A parser will attempt to serialize
 
 // Metadata mutability is different from schema mutability.
 #[derive(Serialize, Deserialize, Clone)]
@@ -519,7 +514,7 @@ pub(crate) fn get_metadata_schema(kind: &NFTMetadataKind) -> CustomMetadataSchem
             );
             CustomMetadataSchema { properties }
         }
-        NFTMetadataKind::CEP99 => {
+        NFTMetadataKind::CEP78 => {
             let mut properties = BTreeMap::new();
             properties.insert(
                 "name".to_string(),
@@ -598,13 +593,13 @@ pub(crate) struct MetadataNFT721 {
 }
 
 #[derive(Serialize, Deserialize)]
-pub(crate) struct MetadataCEP99 {
+pub(crate) struct MetadataCEP78 {
     name: String,
     token_uri: String,
     checksum: String,
 }
 
-pub(crate) type MetadataRaw = String;
+
 
 // Using a structure for the purposes of serialization formatting.
 #[derive(Serialize, Deserialize)]
@@ -613,13 +608,13 @@ pub(crate) struct CustomMetadata {
 }
 
 pub(crate) fn validate_metadata(
-    metadata_kind: NFTMetadataKind,
+    metadata_kind: &NFTMetadataKind,
     token_metadata: String,
 ) -> Result<String, NFTCoreError> {
-    let token_schema = get_metadata_schema(&metadata_kind);
+    let token_schema = get_metadata_schema(metadata_kind);
     match metadata_kind {
-        NFTMetadataKind::CEP99 => {
-            let metadata = serde_json_wasm::from_str::<MetadataCEP99>(&token_metadata)
+        NFTMetadataKind::CEP78 => {
+            let metadata = serde_json_wasm::from_str::<MetadataCEP78>(&token_metadata)
                 .map_err(|_| NFTCoreError::FailedToParseCep99Metadata)?;
 
             if let Some(name_property) = token_schema.properties.get("name") {
@@ -678,4 +673,16 @@ pub(crate) fn validate_metadata(
             Ok(token_metadata)
         }
     }
+}
+
+pub(crate) fn get_metadata_dictionary_name(
+    metadata_kind: &NFTMetadataKind
+) -> String {
+    let name = match metadata_kind {
+        NFTMetadataKind::CEP78 => METADATA_CEP78,
+        NFTMetadataKind::NFT721 => METADATA_NFT721,
+        NFTMetadataKind::Raw => METADATA_RAW,
+        NFTMetadataKind::CustomValidated => METADATA_CUSTOM_VALIDATED,
+    };
+    name.to_string()
 }

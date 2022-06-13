@@ -12,7 +12,7 @@ use crate::utility::{
         ACCOUNT_USER_1, ACCOUNT_USER_2, ARG_MINTING_MODE, ARG_NFT_CONTRACT_HASH,
         ARG_TOKEN_META_DATA, ARG_TOKEN_OWNER, BALANCES, CONTRACT_NAME, ENTRY_POINT_MINT,
         NFT_CONTRACT_WASM, NUMBER_OF_MINTED_TOKENS, OWNED_TOKENS, TEST_PRETTY_721_META_DATA,
-        TOKEN_ISSUERS, TOKEN_META_DATA, TOKEN_OWNERS, ARG_APPROVE_ALL, ARG_CONTRACT_WHITELIST, ARG_KEY_NAME, ARG_OPERATOR, ARG_TOKEN_ID,
+        TOKEN_ISSUERS, METADATA_NFT721, TOKEN_OWNERS, ARG_APPROVE_ALL, ARG_CONTRACT_WHITELIST, ARG_KEY_NAME, ARG_OPERATOR, ARG_TOKEN_ID,
         ARG_TOKEN_URI, BALANCE_OF_SESSION_WASM, ENTRY_POINT_APPROVE, ENTRY_POINT_SET_APPROVE_FOR_ALL,
         ENTRY_POINT_SET_VARIABLES, MALFORMED_META_DATA, MINTING_CONTRACT_WASM, MINT_SESSION_WASM,
         OWNED_TOKENS_DICTIONARY_KEY, TEST_COMPACT_META_DATA, TEST_URI,
@@ -24,7 +24,7 @@ use crate::utility::{
         query_stored_value,
     }
 };
-use crate::utility::constants::{RECEIPT_NAME, TEST_PRETTY_99_METADATA};
+use crate::utility::constants::{METADATA_CEP78, RECEIPT_NAME, TEST_PRETTY_CEP78_METADATA};
 use crate::utility::installer_request_builder::{NFTIdentifierMode, NFTMetadataKind, TEST_CUSTOM_METADATA, TEST_CUSTOM_METADATA_SCHEMA};
 
 #[derive(Serialize, Deserialize, Debug)]
@@ -344,7 +344,7 @@ fn mint_should_increment_number_of_minted_tokens_by_one_and_add_public_key_to_to
     let actual_token_meta_data = support::get_dictionary_value_from_key::<String>(
         &builder,
         nft_contract_key,
-        TOKEN_META_DATA,
+        METADATA_NFT721,
         &0u64.to_string(),
     );
 
@@ -428,7 +428,7 @@ fn should_set_meta_data() {
     let actual_token_meta_data = support::get_dictionary_value_from_key::<String>(
         &builder,
         nft_contract_key,
-        TOKEN_META_DATA,
+        METADATA_NFT721,
         &0u64.to_string(),
     );
 
@@ -1148,7 +1148,7 @@ fn should_mint_with_compactified_metadata() {
     let actual_metadata = get_dictionary_value_from_key::<String>(
         &builder,
         &nft_contract_key,
-        TOKEN_META_DATA,
+        METADATA_NFT721,
         &0u64.to_string(),
     );
 
@@ -1181,7 +1181,7 @@ fn should_mint_with_valid_cep99_metadata() {
             ARG_NFT_CONTRACT_HASH => nft_contract_key,
             ARG_KEY_NAME => Some(OWNED_TOKENS_DICTIONARY_KEY.to_string()),
             ARG_TOKEN_OWNER => Key::Account(*DEFAULT_ACCOUNT_ADDR),
-            ARG_TOKEN_META_DATA => TEST_PRETTY_99_METADATA,
+            ARG_TOKEN_META_DATA => TEST_PRETTY_CEP78_METADATA,
             ARG_TOKEN_URI => TEST_URI.to_string()
         },
     )
@@ -1192,11 +1192,11 @@ fn should_mint_with_valid_cep99_metadata() {
     let actual_metadata = get_dictionary_value_from_key::<String>(
         &builder,
         &nft_contract_key,
-        TOKEN_META_DATA,
+        METADATA_CEP78,
         &0u64.to_string(),
     );
 
-    assert_eq!(TEST_PRETTY_99_METADATA, actual_metadata)
+    assert_eq!(TEST_PRETTY_CEP78_METADATA, actual_metadata)
 }
 
 #[test]
