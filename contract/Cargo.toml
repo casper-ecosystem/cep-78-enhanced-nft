@@ -7,10 +7,9 @@ edition = "2018"
 casper-contract = {version = "1.4.3", features = ["test-support"]}
 casper-types = "1.4.5"
 serde = { version = "1", features = ["derive", "alloc"], default-features = false }
-#serde_json = { version = "1.0", default-features = false, features = ["alloc"] }
-serde-json-wasm = { path = "/home/karandh/casper/serde-json-wasm" }
-#serde-json-core = { version = "0.4.0" }
+#serde-json-wasm = { path = "/home/karandh/casper/serde-json-wasm" }
 base16 = { version = "0.2", default-features = false, features = ["alloc"] }
+casper-serde-json-wasm = { git = "https://github.com/darthsiroftardis/casper-serde-json-wasm", branch = "casper-no-std"}
 
 [[bin]]
 name = "contract"
