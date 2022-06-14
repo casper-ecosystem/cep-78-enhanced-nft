@@ -1336,12 +1336,11 @@ fn should_fail_to_mint_when_immediate_caller_is_account_in_contract_mode() {
     let mut builder = InMemoryWasmTestBuilder::default();
     builder.run_genesis(&DEFAULT_RUN_GENESIS_REQUEST).commit();
 
-    let install_request =
-        InstallerRequestBuilder::new(*DEFAULT_ACCOUNT_ADDR, NFT_CONTRACT_WASM)
-            .with_total_token_supply(2u64)
-            .with_holder_mode(NFTHolderMode::Contracts)
-            .with_whitelist_mode(WhitelistMode::Unlocked)
-            .build();
+    let install_request = InstallerRequestBuilder::new(*DEFAULT_ACCOUNT_ADDR, NFT_CONTRACT_WASM)
+        .with_total_token_supply(2u64)
+        .with_holder_mode(NFTHolderMode::Contracts)
+        .with_whitelist_mode(WhitelistMode::Unlocked)
+        .build();
 
     builder.exec(install_request).expect_success().commit();
 
@@ -1356,11 +1355,9 @@ fn should_fail_to_mint_when_immediate_caller_is_account_in_contract_mode() {
             ARG_TOKEN_META_DATA => TEST_COMPACT_META_DATA,
         },
     )
-        .build();
+    .build();
 
-    builder
-        .exec(mint_session_call)
-        .expect_failure();
+    builder.exec(mint_session_call).expect_failure();
 
     let error = builder.get_error().expect("must have error");
 

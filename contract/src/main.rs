@@ -1447,22 +1447,37 @@ pub extern "C" fn call() {
     )
     .unwrap_or_revert();
 
+    // Represents whether Accounts or Contracts, or both can hold NFTs for
+    // a given contract instance. Refer to the enum `NFTHolderMode`
+    // in the `src/utils.rs` file for details.
+    // This value cannot be changed after installation
     let holder_mode: u8 =
         get_optional_named_arg_with_user_errors(ARG_HOLDER_MODE, NFTCoreError::InvalidHolderMode)
             .unwrap_or_revert_with(NFTCoreError::InvalidHolderMode);
 
+    // Represents whether a given contract whitelist can be modified
+    // for a given NFT contract instance. If not provided as an argument
+    // it will default to unlocked.
+    // This value cannot be changed after installation
     let whitelist_lock: u8 = get_optional_named_arg_with_user_errors(
         ARG_WHITELIST_MODE,
         NFTCoreError::InvalidWhitelistMode,
     )
     .unwrap_or(0u8);
 
+    // A whitelist of contract hashes specifying which contracts can mint
+    // NFTs in the contract holder mode with restricted minting.
+    // This value can only be modified if the whitelist lock is
+    // set to be unlocked.
     let contract_white_list: Vec<ContractHash> = get_optional_named_arg_with_user_errors(
         ARG_CONTRACT_WHITELIST,
         NFTCoreError::InvalidContractWhitelist,
     )
     .unwrap_or_default();
 
+    // Represents the schema for the metadata for a given NFT contract instance.
+    // Refer to the `NFTMetadataKind` enum in src/utils for details.
+    // This value cannot be changed after installation.
     let nft_metadata_kind: u8 = get_named_arg_with_user_errors(
         ARG_NFT_METADATA_KIND,
         NFTCoreError::MissingNFTMetadataKind,
@@ -1479,6 +1494,9 @@ pub extern "C" fn call() {
     )
     .unwrap_or_revert();
 
+    // Represents whether NFTs minted by a given contract will be identified
+    // by an ordinal u64 index or a base16 encoded SHA256 hash of an NFTs metadata.
+    // This value cannot be changed after installation.
     let identifier_mode: u8 = get_named_arg_with_user_errors(
         ARG_IDENTIFIER_MODE,
         NFTCoreError::MissingIdentifierMode,
@@ -1498,6 +1516,10 @@ pub extern "C" fn call() {
         .map(ContractPackageHash::new)
         .unwrap();
 
+    // A sentinel string value which represents the entry for the addition
+    // of a read only reference to the NFTs owned by the calling `Account` or `Contract`
+    // This allows for users to look up a set of named keys and correctly identify
+    // the contract package from which the NFTs were obtained.
     let receipt_name = format!(
         "nft-{}-{}",
         collection_name,
