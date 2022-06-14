@@ -17,7 +17,7 @@ use crate::utility::{
         METADATA_NFT721, METADATA_RAW, MINTING_CONTRACT_WASM, MINT_SESSION_WASM, NFT_CONTRACT_WASM,
         NUMBER_OF_MINTED_TOKENS, OWNED_TOKENS, OWNED_TOKENS_DICTIONARY_KEY, RECEIPT_NAME,
         TEST_COMPACT_META_DATA, TEST_PRETTY_721_META_DATA, TEST_PRETTY_CEP78_METADATA, TEST_URI,
-        TOKEN_ISSUERS, TOKEN_OWNERS,
+        TOKEN_ISSUERS, TOKEN_OWNERS, ARG_IS_HASH_IDENTIFIER_MODE
     },
     installer_request_builder::{
         InstallerRequestBuilder, MintingMode, NFTHolderMode, NFTIdentifierMode, NFTMetadataKind,
@@ -139,6 +139,7 @@ fn entry_points_with_ret_should_return_correct_value() {
         account_hash,
         nft_contract_key,
         runtime_args! {
+            ARG_IS_HASH_IDENTIFIER_MODE => false,
             ARG_TOKEN_ID => 0u64,
         },
         "owner_of_call.wasm",
@@ -169,6 +170,7 @@ fn entry_points_with_ret_should_return_correct_value() {
         account_hash,
         nft_contract_key,
         runtime_args! {
+            ARG_IS_HASH_IDENTIFIER_MODE => false,
             ARG_TOKEN_ID => 0u64,
         },
         "get_approved_call.wasm",
@@ -812,6 +814,7 @@ fn should_set_approval_for_all() {
         *DEFAULT_ACCOUNT_ADDR,
         nft_contract_key,
         runtime_args! {
+            ARG_IS_HASH_IDENTIFIER_MODE => false,
             ARG_TOKEN_ID => 0u64,
         },
         "get_approved_call.wasm",
@@ -830,6 +833,7 @@ fn should_set_approval_for_all() {
         *DEFAULT_ACCOUNT_ADDR,
         nft_contract_key,
         runtime_args! {
+            ARG_IS_HASH_IDENTIFIER_MODE => false,
             ARG_TOKEN_ID => 0u64,
         },
         "get_approved_call.wasm",
