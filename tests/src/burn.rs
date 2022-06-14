@@ -22,7 +22,7 @@ use crate::utility::{
 
 #[test]
 fn should_burn_minted_token() {
-    let token_id = String::from("0");
+    let token_id = 0u64;
     let mut builder = InMemoryWasmTestBuilder::default();
     builder.run_genesis(&DEFAULT_RUN_GENESIS_REQUEST).commit();
 
@@ -60,14 +60,14 @@ fn should_burn_minted_token() {
 
     builder.exec(mint_session_call).expect_success().commit();
 
-    let actual_owned_tokens = support::get_dictionary_value_from_key::<Vec<String>>(
+    let actual_owned_tokens = support::get_dictionary_value_from_key::<Vec<u64>>(
         &builder,
         nft_contract_key,
         OWNED_TOKENS,
         &DEFAULT_ACCOUNT_ADDR.clone().to_string(),
     );
 
-    let expected_owned_tokens = vec![token_id.clone()];
+    let expected_owned_tokens = vec![token_id];
     assert_eq!(expected_owned_tokens, actual_owned_tokens);
     let actual_balance_before_burn = support::get_dictionary_value_from_key::<u64>(
         &builder,
@@ -84,7 +84,7 @@ fn should_burn_minted_token() {
         CONTRACT_NAME,
         ENTRY_POINT_BURN,
         runtime_args! {
-            ARG_TOKEN_ID => token_id.clone(),
+            ARG_TOKEN_ID => token_id,
         },
     )
     .build();
@@ -95,7 +95,7 @@ fn should_burn_minted_token() {
         &builder,
         nft_contract_key,
         BURNT_TOKENS,
-        &token_id,
+        &token_id.to_string(),
     );
 
     // This will error of token is not registered as
@@ -148,14 +148,14 @@ fn should_not_burn_previously_burnt_token() {
 
     builder.exec(mint_session_call).expect_success().commit();
 
-    let actual_owned_tokens = support::get_dictionary_value_from_key::<Vec<String>>(
+    let actual_owned_tokens = support::get_dictionary_value_from_key::<Vec<u64>>(
         &builder,
         nft_contract_key,
         OWNED_TOKENS,
         &DEFAULT_ACCOUNT_ADDR.clone().to_string(),
     );
 
-    let expected_owned_tokens = vec![0u64.to_string()];
+    let expected_owned_tokens = vec![0u64];
     assert_eq!(expected_owned_tokens, actual_owned_tokens);
 
     let burn_request = ExecuteRequestBuilder::contract_call_by_name(
@@ -163,7 +163,7 @@ fn should_not_burn_previously_burnt_token() {
         CONTRACT_NAME,
         ENTRY_POINT_BURN,
         runtime_args! {
-            ARG_TOKEN_ID => 0u64.to_string(),
+            ARG_TOKEN_ID => 0u64,
         },
     )
     .build();
@@ -175,7 +175,7 @@ fn should_not_burn_previously_burnt_token() {
         CONTRACT_NAME,
         ENTRY_POINT_BURN,
         runtime_args! {
-            ARG_TOKEN_ID => 0u64.to_string(),
+            ARG_TOKEN_ID => 0u64,
         },
     )
     .build();
@@ -211,7 +211,7 @@ fn should_return_expected_error_when_burning_non_existing_token() {
         CONTRACT_NAME,
         ENTRY_POINT_BURN,
         runtime_args! {
-            ARG_TOKEN_ID => 0u64.to_string(),
+            ARG_TOKEN_ID => 0u64,
         },
     )
     .build();
@@ -283,22 +283,21 @@ fn should_return_expected_error_burning_of_others_users_token() {
 
     builder.exec(mint_session_call).expect_success().commit();
 
-    let actual_owned_tokens = support::get_dictionary_value_from_key::<Vec<String>>(
+    let actual_owned_tokens = support::get_dictionary_value_from_key::<Vec<u64>>(
         &builder,
         nft_contract_key,
         OWNED_TOKENS,
         &DEFAULT_ACCOUNT_ADDR.clone().to_string(),
     );
 
-    let expected_owned_tokens = vec![0u64.to_string()];
-    assert_eq!(expected_owned_tokens, actual_owned_tokens);
+    assert_eq!(vec![0u64], actual_owned_tokens);
 
     let incorrect_burn_request = ExecuteRequestBuilder::contract_call_by_hash(
         account_user_1.to_account_hash(),
         ContractHash::new(nft_contract_hash),
         ENTRY_POINT_BURN,
         runtime_args! {
-            ARG_TOKEN_ID => 0u64.to_string(),
+            ARG_TOKEN_ID => 0u64,
         },
     )
     .build();
@@ -368,22 +367,21 @@ fn should_return_expected_error_when_burning_not_owned_token() {
 
     builder.exec(mint_session_call).expect_success().commit();
 
-    let actual_owned_tokens = support::get_dictionary_value_from_key::<Vec<String>>(
+    let actual_owned_tokens = support::get_dictionary_value_from_key::<Vec<u64>>(
         &builder,
         nft_contract_key,
         OWNED_TOKENS,
         &DEFAULT_ACCOUNT_ADDR.clone().to_string(),
     );
 
-    let expected_owned_tokens = vec![0u64.to_string()];
-    assert_eq!(expected_owned_tokens, actual_owned_tokens);
+    assert_eq!(vec![0u64], actual_owned_tokens);
 
     let incorrect_burn_request = ExecuteRequestBuilder::contract_call_by_hash(
         account_user_1.to_account_hash(),
         ContractHash::new(nft_contract_hash),
         ENTRY_POINT_BURN,
         runtime_args! {
-            ARG_TOKEN_ID => 0u64.to_string()
+            ARG_TOKEN_ID => 0u64
         },
     )
     .build();
@@ -467,7 +465,7 @@ fn should_allow_contract_to_burn_token() {
         ENTRY_POINT_BURN,
         runtime_args! {
             ARG_NFT_CONTRACT_HASH => nft_contract_key,
-            ARG_TOKEN_ID => 0u64.to_string()
+            ARG_TOKEN_ID => 0u64
         },
     )
     .build();

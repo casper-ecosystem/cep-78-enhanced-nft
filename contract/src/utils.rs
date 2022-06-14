@@ -1,4 +1,5 @@
 use alloc::{
+    borrow::ToOwned,
     collections::BTreeMap,
     string::{String, ToString},
     vec,
@@ -18,13 +19,15 @@ use casper_types::{
 };
 use core::convert::TryFrom;
 
+use casper_types::system::CallStackElement;
 use core::{convert::TryInto, mem::MaybeUninit};
 
 use serde::{Deserialize, Serialize};
 
 use crate::{
-    constants::OWNERSHIP_MODE, error::NFTCoreError, ARG_JSON_SCHEMA, CONTRACT_WHITELIST,
+    constants::OWNERSHIP_MODE, error::NFTCoreError, ARG_JSON_SCHEMA, ARG_TOKEN_HASH, ARG_TOKEN_ID,
     HOLDER_MODE, METADATA_CEP78, METADATA_CUSTOM_VALIDATED, METADATA_NFT721, METADATA_RAW,
+    OWNED_TOKENS,
 };
 
 pub(crate) fn upsert_dictionary_value_from_key<T: CLTyped + FromBytes + ToBytes>(
@@ -68,6 +71,7 @@ impl TryFrom<u8> for WhitelistMode {
 pub enum NFTHolderMode {
     Accounts = 0,
     Contracts = 1,
+    Mixed = 2,
 }
 
 impl TryFrom<u8> for NFTHolderMode {
@@ -77,6 +81,7 @@ impl TryFrom<u8> for NFTHolderMode {
         match value {
             0 => Ok(NFTHolderMode::Accounts),
             1 => Ok(NFTHolderMode::Contracts),
+            2 => Ok(NFTHolderMode::Mixed),
             _ => Err(NFTCoreError::InvalidHolderMode),
         }
     }
@@ -216,7 +221,7 @@ pub(crate) fn get_owned_tokens_dictionary_item_key(token_owner_key: Key) -> Stri
     match token_owner_key {
         Key::Account(token_owner_account_hash) => token_owner_account_hash.to_string(),
         Key::Hash(token_owner_hash_addr) => ContractHash::new(token_owner_hash_addr).to_string(),
-        _ => runtime::revert(NFTCoreError::InvalidKey),
+        _ => revert(NFTCoreError::InvalidKey),
     }
 }
 
@@ -415,22 +420,149 @@ pub(crate) fn to_ptr<T: ToBytes>(t: T) -> (*const u8, usize, Vec<u8>) {
     (ptr, size, bytes)
 }
 
-pub(crate) fn get_calling_contract_hash() -> ContractHash {
-    let contract_hash = *runtime::get_call_stack()
+pub(crate) fn get_verified_caller() -> Result<Key, NFTCoreError> {
+    let holder_mode = get_holder_mode()?;
+    match *runtime::get_call_stack()
         .iter()
         .nth_back(1)
+        .to_owned()
         .unwrap_or_revert()
-        .contract_hash()
-        .unwrap_or_revert();
-    let whitelist = get_stored_value_with_user_errors::<Vec<ContractHash>>(
-        CONTRACT_WHITELIST,
-        NFTCoreError::MissingContractWhiteList,
-        NFTCoreError::InvalidContractWhitelist,
-    );
-    if !whitelist.contains(&contract_hash) {
-        runtime::revert(NFTCoreError::UnlistedContractHash)
+    {
+        CallStackElement::Session {
+            account_hash: calling_account_hash,
+        } => {
+            if let NFTHolderMode::Contracts = holder_mode {
+                return Err(NFTCoreError::InvalidHolderMode);
+            }
+            Ok(Key::Account(calling_account_hash))
+        }
+        CallStackElement::StoredSession { contract_hash, .. }
+        | CallStackElement::StoredContract { contract_hash, .. } => {
+            if let NFTHolderMode::Accounts = holder_mode {
+                return Err(NFTCoreError::InvalidHolderMode);
+            }
+            Ok(contract_hash.into())
+        }
     }
-    contract_hash
+}
+
+#[derive(PartialEq, Clone)]
+pub(crate) enum TokenIdentifier {
+    Index(u64),
+    Hash(String),
+}
+
+impl TokenIdentifier {
+    pub(crate) fn new_index(index: u64) -> Self {
+        TokenIdentifier::Index(index)
+    }
+
+    pub(crate) fn new_hash(hash: String) -> Self {
+        TokenIdentifier::Hash(hash)
+    }
+
+    pub(crate) fn get_index(&self) -> Option<u64> {
+        if let Self::Index(index) = self {
+            return Some(*index);
+        }
+        None
+    }
+
+    pub(crate) fn get_hash(self) -> Option<String> {
+        if let Self::Hash(hash) = self {
+            return Some(hash);
+        }
+        None
+    }
+
+    pub(crate) fn get_dictionary_item_key(&self) -> String {
+        match self {
+            TokenIdentifier::Index(token_index) => token_index.to_string(),
+            TokenIdentifier::Hash(hash) => hash.clone(),
+        }
+    }
+}
+
+pub(crate) fn get_token_identifier_from_runtime_args(
+    identifier_mode: &NFTIdentifierMode,
+) -> TokenIdentifier {
+    match identifier_mode {
+        NFTIdentifierMode::Ordinal => get_named_arg_with_user_errors::<u64>(
+            ARG_TOKEN_ID,
+            NFTCoreError::MissingTokenID,
+            NFTCoreError::InvalidTokenID,
+        )
+        .map(TokenIdentifier::new_index)
+        .unwrap_or_revert(),
+        NFTIdentifierMode::Hash => get_named_arg_with_user_errors::<String>(
+            ARG_TOKEN_HASH,
+            NFTCoreError::MissingTokenID,
+            NFTCoreError::InvalidTokenID,
+        )
+        .map(TokenIdentifier::new_hash)
+        .unwrap_or_revert(),
+    }
+}
+
+pub(crate) fn get_token_identifiers_from_dictionary(
+    identifier_mode: &NFTIdentifierMode,
+    owners_item_key: &str,
+) -> Option<Vec<TokenIdentifier>> {
+    match identifier_mode {
+        NFTIdentifierMode::Ordinal => {
+            get_dictionary_value_from_key::<Vec<u64>>(OWNED_TOKENS, owners_item_key).map(
+                |token_indices| {
+                    token_indices
+                        .into_iter()
+                        .map(TokenIdentifier::new_index)
+                        .collect()
+                },
+            )
+        }
+        NFTIdentifierMode::Hash => {
+            get_dictionary_value_from_key::<Vec<String>>(OWNED_TOKENS, owners_item_key).map(
+                |token_hashes| {
+                    token_hashes
+                        .into_iter()
+                        .map(TokenIdentifier::new_hash)
+                        .collect()
+                },
+            )
+        }
+    }
+}
+
+pub(crate) fn upsert_token_identifiers(
+    identifier_mode: &NFTIdentifierMode,
+    owners_item_key: &str,
+    token_identifiers: Vec<TokenIdentifier>,
+) -> Result<(), NFTCoreError> {
+    match identifier_mode {
+        NFTIdentifierMode::Ordinal => {
+            let token_indices: Vec<u64> = token_identifiers
+                .into_iter()
+                .map(|token_identifier| {
+                    token_identifier
+                        .get_index()
+                        .unwrap_or_revert_with(NFTCoreError::InvalidIdentifierMode)
+                })
+                .collect();
+            upsert_dictionary_value_from_key(OWNED_TOKENS, owners_item_key, token_indices);
+            Ok(())
+        }
+        NFTIdentifierMode::Hash => {
+            let token_hashes: Vec<String> = token_identifiers
+                .into_iter()
+                .map(|token_identifier| {
+                    token_identifier
+                        .get_hash()
+                        .unwrap_or_revert_with(NFTCoreError::InvalidIdentifierMode)
+                })
+                .collect();
+            upsert_dictionary_value_from_key(OWNED_TOKENS, owners_item_key, token_hashes);
+            Ok(())
+        }
+    }
 }
 
 // Metadata mutability is different from schema mutability.

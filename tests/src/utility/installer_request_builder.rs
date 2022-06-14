@@ -55,6 +55,7 @@ pub enum WhitelistMode {
 pub enum NFTHolderMode {
     Accounts = 0,
     Contracts = 1,
+    Mixed = 2,
 }
 
 #[repr(u8)]
@@ -152,7 +153,7 @@ impl InstallerRequestBuilder {
             minting_mode: CLValue::from_t(Some(MintingMode::Installer as u8)).unwrap(),
             ownership_mode: CLValue::from_t(OwnershipMode::Minter as u8).unwrap(),
             nft_kind: CLValue::from_t(NFTKind::Physical as u8).unwrap(),
-            holder_mode: CLValue::from_t(Some(NFTHolderMode::Accounts as u8)).unwrap(),
+            holder_mode: CLValue::from_t(Some(NFTHolderMode::Mixed as u8)).unwrap(),
             whitelist_mode: CLValue::from_t(Some(WhitelistMode::Locked as u8)).unwrap(),
             contract_whitelist: CLValue::from_t(Some(Vec::<ContractHash>::new())).unwrap(),
             json_schema: CLValue::from_t("test".to_string())

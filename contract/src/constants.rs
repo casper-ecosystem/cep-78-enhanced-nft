@@ -2,6 +2,7 @@ pub const ARG_COLLECTION_NAME: &str = "collection_name";
 pub const ARG_COLLECTION_SYMBOL: &str = "collection_symbol";
 pub const ARG_TOTAL_TOKEN_SUPPLY: &str = "total_token_supply";
 pub const ARG_TOKEN_ID: &str = "token_id";
+pub const ARG_TOKEN_HASH: &str = "token_hash";
 pub const ARG_TOKEN_OWNER: &str = "token_owner";
 pub const ARG_TARGET_KEY: &str = "target_key";
 pub const ARG_SOURCE_KEY: &str = "source_key";

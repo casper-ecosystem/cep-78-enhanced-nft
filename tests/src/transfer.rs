@@ -9,13 +9,14 @@ use casper_types::{
 
 use crate::utility::{
     constants::{
-        ACCOUNT_USER_1, ACCOUNT_USER_2, ACCOUNT_USER_3, ARG_CONTRACT_WHITELIST, ARG_KEY_NAME,
-        ARG_NFT_CONTRACT_HASH, ARG_OPERATOR, ARG_SOURCE_KEY, ARG_TARGET_KEY, ARG_TOKEN_ID,
-        ARG_TOKEN_META_DATA, ARG_TOKEN_OWNER, ARG_TOKEN_URI, BALANCES, CONTRACT_NAME,
-        ENTRY_POINT_APPROVE, ENTRY_POINT_MINT, ENTRY_POINT_TRANSFER, MINTING_CONTRACT_WASM,
-        MINT_SESSION_WASM, NFT_CONTRACT_WASM, NFT_TEST_COLLECTION, NFT_TEST_SYMBOL, OPERATOR,
-        OWNED_TOKENS, OWNED_TOKENS_DICTIONARY_KEY, TEST_PRETTY_721_META_DATA, TEST_URI,
-        TOKEN_OWNERS, TRANSFER_SESSION_WASM,
+        ACCOUNT_USER_1, ACCOUNT_USER_2, ACCOUNT_USER_3, ARG_CONTRACT_WHITELIST,
+        ARG_IS_HASH_IDENTIFIER_MODE, ARG_KEY_NAME, ARG_NFT_CONTRACT_HASH, ARG_OPERATOR,
+        ARG_SOURCE_KEY, ARG_TARGET_KEY, ARG_TOKEN_HASH, ARG_TOKEN_ID, ARG_TOKEN_META_DATA,
+        ARG_TOKEN_OWNER, ARG_TOKEN_URI, BALANCES, CONTRACT_NAME, ENTRY_POINT_APPROVE,
+        ENTRY_POINT_MINT, ENTRY_POINT_TRANSFER, MINTING_CONTRACT_WASM, MINT_SESSION_WASM,
+        NFT_CONTRACT_WASM, NFT_TEST_COLLECTION, NFT_TEST_SYMBOL, OPERATOR, OWNED_TOKENS,
+        OWNED_TOKENS_DICTIONARY_KEY, TEST_PRETTY_721_META_DATA, TEST_URI, TOKEN_OWNERS,
+        TRANSFER_SESSION_WASM,
     },
     installer_request_builder::{
         InstallerRequestBuilder, MintingMode, NFTHolderMode, NFTIdentifierMode, OwnershipMode,
@@ -90,9 +91,10 @@ fn should_dissallow_transfer_with_minter_or_assigned_ownership_mode() {
         nft_contract_hash,
         ENTRY_POINT_TRANSFER,
         runtime_args! {
-            ARG_TOKEN_ID => 0u64,// We need mint to return the token_id!!
             ARG_SOURCE_KEY => Key::Account(token_owner),
             ARG_TARGET_KEY =>  Key::Account( token_receiver.to_account_hash()),
+            ARG_IS_HASH_IDENTIFIER_MODE => false,
+            ARG_TOKEN_ID => 0u64,
         },
     )
     .build();
@@ -160,7 +162,8 @@ fn should_transfer_token_from_sender_to_receiver() {
         TRANSFER_SESSION_WASM,
         runtime_args! {
             ARG_NFT_CONTRACT_HASH => nft_contract_key,
-            ARG_TOKEN_ID => 0u64.to_string(),
+            ARG_TOKEN_ID => 0u64,
+            ARG_IS_HASH_IDENTIFIER_MODE => false,
             ARG_SOURCE_KEY => Key::Account(*DEFAULT_ACCOUNT_ADDR),
             ARG_TARGET_KEY =>  Key::Account(token_receiver.to_account_hash()),
         },
@@ -179,15 +182,14 @@ fn should_transfer_token_from_sender_to_receiver() {
 
     assert_eq!(actual_token_owner, token_receiver.to_account_hash()); // Change  token_receiver to token_owner for red test
 
-    let actual_owned_tokens: Vec<String> = support::get_dictionary_value_from_key(
+    let actual_owned_tokens: Vec<u64> = support::get_dictionary_value_from_key(
         &builder,
         &nft_contract_key,
         OWNED_TOKENS,
         &token_receiver.to_account_hash().to_string(),
     );
 
-    let expected_owned_tokens = vec![0u64.to_string()];
-    assert_eq!(actual_owned_tokens, expected_owned_tokens);
+    assert_eq!(actual_owned_tokens, vec![0u64]);
 
     let actual_sender_balance: u64 = support::get_dictionary_value_from_key(
         &builder,
@@ -254,7 +256,7 @@ fn approve_token_for_transfer_should_add_entry_to_approved_dictionary() {
         nft_contract_hash,
         ENTRY_POINT_APPROVE,
         runtime_args! {
-            ARG_TOKEN_ID => 0u64.to_string(),
+            ARG_TOKEN_ID => 0u64,
             ARG_OPERATOR => Key::Account(approve_public_key.to_account_hash())
         },
     )
@@ -402,7 +404,7 @@ fn should_be_able_to_transfer_token_using_approved_operator() {
         nft_contract_hash,
         ENTRY_POINT_APPROVE,
         runtime_args! {
-            ARG_TOKEN_ID => 0u64.to_string(),
+            ARG_TOKEN_ID => 0u64,
             ARG_OPERATOR => Key::Account (operator.to_account_hash())
         },
     )
@@ -438,15 +440,16 @@ fn should_be_able_to_transfer_token_using_approved_operator() {
         .exec(transfer_to_to_account)
         .expect_success()
         .commit();
-
+    //
     let transfer_request = ExecuteRequestBuilder::standard(
         *DEFAULT_ACCOUNT_ADDR,
         TRANSFER_SESSION_WASM,
         runtime_args! {
             ARG_NFT_CONTRACT_HASH => nft_contract_key,
-            ARG_TOKEN_ID => 0u64.to_string(),
             ARG_SOURCE_KEY =>  Key::Account(token_owner),
             ARG_TARGET_KEY => Key::Account(to_account_public_key.to_account_hash()),
+            ARG_IS_HASH_IDENTIFIER_MODE => false,
+            ARG_TOKEN_ID => 0u64,
         },
     )
     .build();
@@ -521,7 +524,7 @@ fn should_dissallow_same_operator_to_tranfer_token_twice() {
         nft_contract_hash,
         ENTRY_POINT_APPROVE,
         runtime_args! {
-            ARG_TOKEN_ID => 0u64.to_string(),
+            ARG_TOKEN_ID => 0u64,
             ARG_OPERATOR => Key::Account (operator.to_account_hash())
         },
     )
@@ -564,7 +567,8 @@ fn should_dissallow_same_operator_to_tranfer_token_twice() {
         TRANSFER_SESSION_WASM,
         runtime_args! {
             ARG_NFT_CONTRACT_HASH => nft_contract_key,
-            ARG_TOKEN_ID => 0u64.to_string(),
+            ARG_TOKEN_ID => 0u64,
+            ARG_IS_HASH_IDENTIFIER_MODE => false,
             ARG_SOURCE_KEY =>  Key::Account(token_owner),
             ARG_TARGET_KEY => Key::Account(to_account_public_key.to_account_hash()),
         },
@@ -578,7 +582,8 @@ fn should_dissallow_same_operator_to_tranfer_token_twice() {
         TRANSFER_SESSION_WASM,
         runtime_args! {
             ARG_NFT_CONTRACT_HASH => nft_contract_key,
-            ARG_TOKEN_ID => 0u64.to_string(),
+            ARG_TOKEN_ID => 0u64,
+            ARG_IS_HASH_IDENTIFIER_MODE => false,
             ARG_SOURCE_KEY =>  Key::Account(token_owner),
             ARG_TARGET_KEY => Key::Account(to_other_account_public_key.to_account_hash()),
         },
@@ -656,7 +661,7 @@ fn should_transfer_between_contract_to_account() {
 
     let transfer_runtime_arguments = runtime_args! {
         ARG_NFT_CONTRACT_HASH => nft_contract_key,
-        ARG_TOKEN_ID => 0u64.to_string(),
+        ARG_TOKEN_ID => 0u64,
         ARG_TARGET_KEY => Key::Account(*DEFAULT_ACCOUNT_ADDR),
         ARG_SOURCE_KEY => minting_contract_key
     };
@@ -744,7 +749,8 @@ fn should_prevent_transfer_when_caller_is_not_owner() {
         TRANSFER_SESSION_WASM,
         runtime_args! {
             ARG_NFT_CONTRACT_HASH => nft_contract_key,
-            ARG_TOKEN_ID => 0u64.to_string(),
+            ARG_TOKEN_ID => 0u64,
+            ARG_IS_HASH_IDENTIFIER_MODE => false,
             ARG_SOURCE_KEY => Key::Account(*DEFAULT_ACCOUNT_ADDR),
             ARG_TARGET_KEY => Key::Account(other_account_public_key.to_account_hash())
         },
@@ -794,7 +800,7 @@ fn should_transfer_token_in_hash_identifier_mode() {
 
     builder.exec(mint_session_call).expect_success().commit();
 
-    let token_id_hash: String =
+    let token_hash: String =
         base16::encode_lower(&support::create_blake2b_hash(&TEST_PRETTY_721_META_DATA));
 
     let transfer_request = ExecuteRequestBuilder::standard(
@@ -802,9 +808,10 @@ fn should_transfer_token_in_hash_identifier_mode() {
         TRANSFER_SESSION_WASM,
         runtime_args! {
             ARG_NFT_CONTRACT_HASH => nft_contract_key,
-            ARG_TOKEN_ID => token_id_hash,
+            ARG_IS_HASH_IDENTIFIER_MODE => true,
+            ARG_TOKEN_HASH => token_hash,
             ARG_SOURCE_KEY => Key::Account(*DEFAULT_ACCOUNT_ADDR),
-            ARG_TARGET_KEY =>  Key::Account( AccountHash::new([3u8;32])),
+            ARG_TARGET_KEY =>  Key::Account(AccountHash::new([3u8;32])),
         },
     )
     .build();

@@ -23,7 +23,7 @@ pub extern "C" fn call() {
         .unwrap();
     let key_name: String = runtime::get_named_arg(ARG_KEY_NAME);
 
-    let token_id = runtime::get_named_arg::<String>(ARG_TOKEN_ID);
+    let token_id = runtime::get_named_arg::<u64>(ARG_TOKEN_ID);
     let owner = runtime::call_contract::<Key>(
         nft_contract_hash,
         ENTRY_POINT_OWNER_OF,

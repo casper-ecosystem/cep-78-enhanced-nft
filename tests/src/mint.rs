@@ -139,7 +139,7 @@ fn entry_points_with_ret_should_return_correct_value() {
         account_hash,
         nft_contract_key,
         runtime_args! {
-            ARG_TOKEN_ID => 0u64.to_string(),
+            ARG_TOKEN_ID => 0u64,
         },
         "owner_of_call.wasm",
         "owner_of",
@@ -157,7 +157,7 @@ fn entry_points_with_ret_should_return_correct_value() {
         nft_contract_hash,
         ENTRY_POINT_APPROVE,
         runtime_args! {
-            ARG_TOKEN_ID => 0u64.to_string(),
+            ARG_TOKEN_ID => 0u64,
             ARG_OPERATOR => Key::Account(operator_public_key.to_account_hash())
         },
     )
@@ -169,7 +169,7 @@ fn entry_points_with_ret_should_return_correct_value() {
         account_hash,
         nft_contract_key,
         runtime_args! {
-            ARG_TOKEN_ID => 0u64.to_string(),
+            ARG_TOKEN_ID => 0u64,
         },
         "get_approved_call.wasm",
         "get_approved",
@@ -266,8 +266,10 @@ fn mint_should_return_dictionary_key_to_callers_owned_tokens() {
 
     match builder.query(None, *owned_tokens_key, &[]).unwrap() {
         casper_types::StoredValue::CLValue(val) => {
-            let expected = val.into_t::<Vec<String>>().expect("should be Vec<String>");
-            println!("{:?}", expected);
+            let expected = val
+                .into_t::<Vec<u64>>()
+                .expect("should be Vec<u64> as Identifier defaults to indices");
+            assert_eq!(vec![0u64], expected);
         }
         _ => panic!("wrong stored value type"),
     }
@@ -288,10 +290,8 @@ fn mint_should_return_dictionary_key_to_callers_owned_tokens() {
 
     match builder.query(None, *owned_tokens_key, &[]).unwrap() {
         casper_types::StoredValue::CLValue(val) => {
-            let expected = val
-                .into_t::<Vec<String>>()
-                .expect("should still be Vec<U256>");
-            println!("{:?}", expected);
+            let expected = val.into_t::<Vec<u64>>().expect("should still be Vec<U256>");
+            assert_eq!(vec![0u64, 1u64], expected);
         }
         _ => panic!("also the wrong stored value type"),
     }
@@ -366,15 +366,14 @@ fn mint_should_increment_number_of_minted_tokens_by_one_and_add_public_key_to_to
 
     assert_eq!(DEFAULT_ACCOUNT_ADDR.clone(), minter_account_hash);
 
-    let actual_token_ids = support::get_dictionary_value_from_key::<Vec<String>>(
+    let actual_token_ids = support::get_dictionary_value_from_key::<Vec<u64>>(
         &builder,
         nft_contract_key,
         OWNED_TOKENS,
         &DEFAULT_ACCOUNT_ADDR.clone().to_string(),
     );
 
-    let expected_token_ids = vec![0u64.to_string()];
-    assert_eq!(expected_token_ids, actual_token_ids);
+    assert_eq!(vec![0u64], actual_token_ids);
 
     // If total_token_supply is initialized to 1 the following test should fail.
     // If we set total_token_supply > 1 it should pass
@@ -813,7 +812,7 @@ fn should_set_approval_for_all() {
         *DEFAULT_ACCOUNT_ADDR,
         nft_contract_key,
         runtime_args! {
-            ARG_TOKEN_ID => 0u64.to_string(),
+            ARG_TOKEN_ID => 0u64,
         },
         "get_approved_call.wasm",
         "get_approved",
@@ -831,7 +830,7 @@ fn should_set_approval_for_all() {
         *DEFAULT_ACCOUNT_ADDR,
         nft_contract_key,
         runtime_args! {
-            ARG_TOKEN_ID => 0u64.to_string(),
+            ARG_TOKEN_ID => 0u64,
         },
         "get_approved_call.wasm",
         "get_approved",

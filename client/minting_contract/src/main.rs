@@ -62,7 +62,7 @@ pub extern "C" fn transfer() {
         .map(|hash| ContractHash::new(hash))
         .unwrap();
 
-    let token_id = runtime::get_named_arg::<String>(ARG_TOKEN_ID);
+    let token_id = runtime::get_named_arg::<u64>(ARG_TOKEN_ID);
     let from_token_owner = runtime::get_named_arg::<Key>(ARG_SOURCE_KEY);
     let target_token_owner = runtime::get_named_arg::<Key>(ARG_TARGET_KEY);
 
@@ -86,7 +86,7 @@ pub extern "C" fn burn() {
         .map(|hash| ContractHash::new(hash))
         .unwrap();
 
-    let token_id = runtime::get_named_arg::<String>(ARG_TOKEN_ID);
+    let token_id = runtime::get_named_arg::<u64>(ARG_TOKEN_ID);
 
     runtime::call_contract::<()>(
         nft_contract_hash,
@@ -115,7 +115,7 @@ fn install_minting_contract() -> (ContractHash, ContractVersion) {
     let transfer_entry_point = EntryPoint::new(
         ENTRY_POINT_TRANSFER,
         vec![
-            Parameter::new(ARG_TOKEN_ID, CLType::String),
+            Parameter::new(ARG_TOKEN_ID, CLType::U64),
             Parameter::new(ARG_SOURCE_KEY, CLType::Key),
             Parameter::new(ARG_TARGET_KEY, CLType::Key),
         ],
@@ -126,7 +126,7 @@ fn install_minting_contract() -> (ContractHash, ContractVersion) {
 
     let burn_entry_point = EntryPoint::new(
         ENTRY_POINT_BURN,
-        vec![Parameter::new(ARG_TOKEN_ID, CLType::String)],
+        vec![Parameter::new(ARG_TOKEN_ID, CLType::U64)],
         CLType::Unit,
         EntryPointAccess::Public,
         EntryPointType::Contract,
