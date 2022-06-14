@@ -1330,3 +1330,39 @@ fn should_mint_with_hash_identifier_mode() {
 
     assert_eq!(vec![token_id_hash], actual_token_ids);
 }
+
+#[test]
+fn should_fail_to_mint_when_immediate_caller_is_account_in_contract_mode() {
+    let mut builder = InMemoryWasmTestBuilder::default();
+    builder.run_genesis(&DEFAULT_RUN_GENESIS_REQUEST).commit();
+
+    let install_request =
+        InstallerRequestBuilder::new(*DEFAULT_ACCOUNT_ADDR, NFT_CONTRACT_WASM)
+            .with_total_token_supply(2u64)
+            .with_holder_mode(NFTHolderMode::Contracts)
+            .with_whitelist_mode(WhitelistMode::Unlocked)
+            .build();
+
+    builder.exec(install_request).expect_success().commit();
+
+    let nft_contract_key: Key = get_nft_contract_hash(&builder).into();
+
+    let mint_session_call = ExecuteRequestBuilder::standard(
+        *DEFAULT_ACCOUNT_ADDR,
+        MINT_SESSION_WASM,
+        runtime_args! {
+            ARG_NFT_CONTRACT_HASH => nft_contract_key,
+            ARG_TOKEN_OWNER => Key::Account(*DEFAULT_ACCOUNT_ADDR),
+            ARG_TOKEN_META_DATA => TEST_COMPACT_META_DATA,
+        },
+    )
+        .build();
+
+    builder
+        .exec(mint_session_call)
+        .expect_failure();
+
+    let error = builder.get_error().expect("must have error");
+
+    assert_expected_error(error, 76, "InvalidHolderMode(76) must have been raised");
+}

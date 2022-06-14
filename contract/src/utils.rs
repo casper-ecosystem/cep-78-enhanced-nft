@@ -164,8 +164,6 @@ pub enum OwnershipMode {
     Assigned = 1,
     /// The NFT can be transferred even to an recipient that does not exist.
     Transferable = 2,
-    // TODO
-    // Platform = 3,
 }
 
 impl TryFrom<u8> for OwnershipMode {
