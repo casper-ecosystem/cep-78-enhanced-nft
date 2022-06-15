@@ -1,11 +1,62 @@
+use std::collections::BTreeMap;
+
+use once_cell::sync::Lazy;
+use serde::{Deserialize, Serialize};
+
 use casper_engine_test_support::ExecuteRequestBuilder;
 use casper_execution_engine::core::engine_state::ExecuteRequest;
-use casper_types::{account::AccountHash, CLValue, RuntimeArgs, U256};
+use casper_types::{account::AccountHash, CLValue, ContractHash, RuntimeArgs};
+
+use crate::utility::constants::{
+    ARG_CONTRACT_WHITELIST, ARG_HOLDER_MODE, ARG_IDENTIFIER_MODE, ARG_WHITELIST_MODE,
+};
 
 use super::constants::{
     ARG_ALLOW_MINTING, ARG_COLLECTION_NAME, ARG_COLLECTION_SYMBOL, ARG_JSON_SCHEMA,
-    ARG_MINTING_MODE, ARG_NFT_KIND, ARG_OWNERSHIP_MODE, ARG_TOTAL_TOKEN_SUPPLY,
+    ARG_MINTING_MODE, ARG_NFT_KIND, ARG_NFT_METADATA_KIND, ARG_OWNERSHIP_MODE,
+    ARG_TOTAL_TOKEN_SUPPLY,
 };
+
+pub(crate) static TEST_CUSTOM_METADATA_SCHEMA: Lazy<CustomMetadataSchema> = Lazy::new(|| {
+    let mut properties = BTreeMap::new();
+    properties.insert(
+        "deity_name".to_string(),
+        MetadataSchemaProperty {
+            name: "deity_name".to_string(),
+            description: "The name of deity from a particular pantheon.".to_string(),
+            required: true,
+        },
+    );
+    properties.insert(
+        "mythology".to_string(),
+        MetadataSchemaProperty {
+            name: "mythology".to_string(),
+            description: "The mythology the deity belongs to.".to_string(),
+            required: true,
+        },
+    );
+    CustomMetadataSchema { properties }
+});
+
+pub(crate) static TEST_CUSTOM_METADATA: Lazy<BTreeMap<String, String>> = Lazy::new(|| {
+    let mut attributes = BTreeMap::new();
+    attributes.insert("deity_name".to_string(), "Baldur".to_string());
+    attributes.insert("mythology".to_string(), "Nordic".to_string());
+    attributes
+});
+
+#[repr(u8)]
+pub enum WhitelistMode {
+    Unlocked = 0,
+    Locked = 1,
+}
+
+#[repr(u8)]
+pub enum NFTHolderMode {
+    Accounts = 0,
+    Contracts = 1,
+    Mixed = 2,
+}
 
 #[repr(u8)]
 pub enum MintingMode {
@@ -32,6 +83,39 @@ pub enum NFTKind {
     Virtual = 2, // The NFT can be transferred even to an recipient that does not exist
 }
 
+#[derive(Serialize, Deserialize, Clone)]
+pub(crate) struct MetadataSchemaProperty {
+    name: String,
+    description: String,
+    required: bool,
+}
+
+#[derive(Serialize, Deserialize, Clone)]
+pub(crate) struct CustomMetadataSchema {
+    properties: BTreeMap<String, MetadataSchemaProperty>,
+}
+
+#[derive(Serialize, Deserialize)]
+struct Metadata {
+    name: String,
+    symbol: String,
+    token_uri: String,
+}
+
+#[repr(u8)]
+pub enum NFTMetadataKind {
+    CEP99 = 0,
+    NFT721 = 1,
+    Raw = 2,
+    CustomValidated = 3,
+}
+
+#[repr(u8)]
+pub enum NFTIdentifierMode {
+    Ordinal = 0,
+    Hash = 1,
+}
+
 #[derive(Debug)]
 pub(crate) struct InstallerRequestBuilder {
     account_hash: AccountHash,
@@ -43,7 +127,12 @@ pub(crate) struct InstallerRequestBuilder {
     minting_mode: CLValue,
     ownership_mode: CLValue,
     nft_kind: CLValue,
+    holder_mode: CLValue,
+    whitelist_mode: CLValue,
+    contract_whitelist: CLValue,
     json_schema: CLValue,
+    nft_metadata_kind: CLValue,
+    identifier_mode: CLValue,
 }
 
 impl InstallerRequestBuilder {
@@ -59,14 +148,18 @@ impl InstallerRequestBuilder {
             session_file: String::default(),
             collection_name: CLValue::from_t("name".to_string()).expect("name is legit CLValue"),
             collection_symbol: CLValue::from_t("SYM").expect("collection_symbol is legit CLValue"),
-            total_token_supply: CLValue::from_t(U256::one())
-                .expect("total_token_supply is legit CLValue"),
+            total_token_supply: CLValue::from_t(1u64).expect("total_token_supply is legit CLValue"),
             allow_minting: CLValue::from_t(Some(true)).unwrap(),
             minting_mode: CLValue::from_t(Some(MintingMode::Installer as u8)).unwrap(),
             ownership_mode: CLValue::from_t(OwnershipMode::Minter as u8).unwrap(),
             nft_kind: CLValue::from_t(NFTKind::Physical as u8).unwrap(),
-            json_schema: CLValue::from_t("my_json_schema".to_string())
-                .expect("my_json_schema is legit CLValue"),
+            holder_mode: CLValue::from_t(Some(NFTHolderMode::Mixed as u8)).unwrap(),
+            whitelist_mode: CLValue::from_t(Some(WhitelistMode::Locked as u8)).unwrap(),
+            contract_whitelist: CLValue::from_t(Some(Vec::<ContractHash>::new())).unwrap(),
+            json_schema: CLValue::from_t("test".to_string())
+                .expect("test_metadata was created from a concrete value"),
+            nft_metadata_kind: CLValue::from_t(NFTMetadataKind::NFT721 as u8).unwrap(),
+            identifier_mode: CLValue::from_t(NFTIdentifierMode::Ordinal as u8).unwrap(),
         }
     }
 
@@ -102,7 +195,7 @@ impl InstallerRequestBuilder {
         self
     }
 
-    pub(crate) fn with_total_token_supply(mut self, total_token_supply: U256) -> Self {
+    pub(crate) fn with_total_token_supply(mut self, total_token_supply: u64) -> Self {
         self.total_token_supply =
             CLValue::from_t(total_token_supply).expect("total_token_supply is legit CLValue");
         self
@@ -130,8 +223,33 @@ impl InstallerRequestBuilder {
         self
     }
 
-    pub(crate) fn _with_json_schema(mut self, json_schema: &str) -> Self {
+    pub(crate) fn with_holder_mode(mut self, holder_mode: NFTHolderMode) -> Self {
+        self.holder_mode = CLValue::from_t(Some(holder_mode as u8)).unwrap();
+        self
+    }
+
+    pub(crate) fn with_whitelist_mode(mut self, whitelist_mode: WhitelistMode) -> Self {
+        self.whitelist_mode = CLValue::from_t(Some(whitelist_mode as u8)).unwrap();
+        self
+    }
+
+    pub(crate) fn with_contract_whitelist(mut self, contract_whitelist: Vec<ContractHash>) -> Self {
+        self.contract_whitelist = CLValue::from_t(Some(contract_whitelist)).unwrap();
+        self
+    }
+
+    pub(crate) fn with_nft_metadata_kind(mut self, nft_metadata_kind: NFTMetadataKind) -> Self {
+        self.nft_metadata_kind = CLValue::from_t(nft_metadata_kind as u8).unwrap();
+        self
+    }
+
+    pub(crate) fn with_json_schema(mut self, json_schema: String) -> Self {
         self.json_schema = CLValue::from_t(json_schema).expect("json_schema is legit CLValue");
+        self
+    }
+
+    pub(crate) fn with_identifier_mode(mut self, identifier_mode: NFTIdentifierMode) -> Self {
+        self.identifier_mode = CLValue::from_t(identifier_mode as u8).unwrap();
         self
     }
 
@@ -144,7 +262,12 @@ impl InstallerRequestBuilder {
         runtime_args.insert_cl_value(ARG_MINTING_MODE, self.minting_mode.clone());
         runtime_args.insert_cl_value(ARG_OWNERSHIP_MODE, self.ownership_mode);
         runtime_args.insert_cl_value(ARG_NFT_KIND, self.nft_kind);
+        runtime_args.insert_cl_value(ARG_HOLDER_MODE, self.holder_mode);
+        runtime_args.insert_cl_value(ARG_WHITELIST_MODE, self.whitelist_mode);
+        runtime_args.insert_cl_value(ARG_CONTRACT_WHITELIST, self.contract_whitelist);
         runtime_args.insert_cl_value(ARG_JSON_SCHEMA, self.json_schema);
+        runtime_args.insert_cl_value(ARG_NFT_METADATA_KIND, self.nft_metadata_kind);
+        runtime_args.insert_cl_value(ARG_IDENTIFIER_MODE, self.identifier_mode);
         ExecuteRequestBuilder::standard(self.account_hash, &self.session_file, runtime_args).build()
     }
 }

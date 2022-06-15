@@ -1,4 +1,8 @@
-use crate::utility::constants::{ARG_KEY_NAME, ARG_NFT_CONTRACT_HASH};
+use crate::utility::constants::{ARG_KEY_NAME, ARG_NFT_CONTRACT_HASH, MINTING_CONTRACT_NAME};
+use blake2::{
+    digest::{Update, VariableOutput},
+    VarBlake2b,
+};
 
 use super::{constants::CONTRACT_NAME, installer_request_builder::InstallerRequestBuilder};
 use casper_engine_test_support::{
@@ -11,7 +15,7 @@ use casper_execution_engine::{
 };
 use casper_types::{
     account::AccountHash, bytesrepr::FromBytes, ApiError, CLTyped, ContractHash, Key, PublicKey,
-    RuntimeArgs, SecretKey, URef,
+    RuntimeArgs, SecretKey, URef, BLAKE2B_DIGEST_LENGTH,
 };
 
 pub(crate) fn get_nft_contract_hash(
@@ -26,6 +30,20 @@ pub(crate) fn get_nft_contract_hash(
         .expect("must get hash_addr");
 
     ContractHash::new(nft_hash_addr)
+}
+
+pub(crate) fn get_minting_contract_hash(
+    builder: &WasmTestBuilder<InMemoryGlobalState>,
+) -> ContractHash {
+    let minting_contract_hash = builder
+        .get_expected_account(*DEFAULT_ACCOUNT_ADDR)
+        .named_keys()
+        .get(MINTING_CONTRACT_NAME)
+        .expect("must have minting contract hash entry in named keys")
+        .into_hash()
+        .expect("must get hash_addr");
+
+    ContractHash::new(minting_contract_hash)
 }
 
 pub(crate) fn get_dictionary_value_from_key<T: CLTyped + FromBytes>(
@@ -120,13 +138,13 @@ pub(crate) fn query_stored_value<T: CLTyped + FromBytes>(
 pub(crate) fn call_entry_point_with_ret<T: CLTyped + FromBytes>(
     builder: &mut InMemoryWasmTestBuilder,
     account_hash: AccountHash,
-    nft_contract_hash: ContractHash,
+    nft_contract_key: Key,
     mut runtime_args: RuntimeArgs,
     wasm_file_name: &str,
     key_name: &str,
 ) -> T {
     runtime_args
-        .insert(ARG_NFT_CONTRACT_HASH, nft_contract_hash)
+        .insert(ARG_NFT_CONTRACT_HASH, nft_contract_key)
         .unwrap();
 
     runtime_args
@@ -140,4 +158,16 @@ pub(crate) fn call_entry_point_with_ret<T: CLTyped + FromBytes>(
 
     println!("Querying: {}", key_name);
     query_stored_value::<T>(builder, account_hash.into(), [key_name.to_string()].into())
+}
+
+pub(crate) fn create_blake2b_hash<T: AsRef<[u8]>>(data: T) -> [u8; BLAKE2B_DIGEST_LENGTH] {
+    let mut result = [0; BLAKE2B_DIGEST_LENGTH];
+    // NOTE: Assumed safe as `BLAKE2B_DIGEST_LENGTH` is a valid value for a hasher
+    let mut hasher = VarBlake2b::new(BLAKE2B_DIGEST_LENGTH).expect("should create hasher");
+
+    hasher.update(data);
+    hasher.finalize_variable(|slice| {
+        result.copy_from_slice(slice);
+    });
+    result
 }

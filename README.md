@@ -1,17 +1,17 @@
 # Enhanced NFT standard
 
 ## Design goals
-- User attempting to use an NFT contract should be able to install the contract
-  with any differentiating arguments easily. Must work out of the box.
-- Reference implementation must be straightforward/clear and obvious.
-- Externally observable association between `Accounts` and `NFT`s they "own".
-- Should be well documented with sufficient/exhaustive tests.
-- Must be entirely self-contained within a singular repo, this includes the contract, tests 
-  and any utilities such as clients and/or links to documentation. 
-- Must support mainstream expectations about common NFT, additional features beyond the norms 
-  as long as they don't interfere with the core functionality.
-- Metadata and Payload should be conformant with the community standards and need not be
-  constrained to CLType.
+- DApp developer attempting to create an NFT contract should be able to install the contract as is,
+  configured for the specific builtin behavior they want their NFT contract instance to have. Must work out of the box.
+- Reference implementation must be straightforward, clear, and obvious.
+- Externally observable association between `Accounts` and/or `Contracts` and `NFT`s they "own".
+- Should be well documented with exhaustive tests that prove all possible combinations of defined behavior work as intended.
+- Must be entirely self-contained within a singular repo, this includes the all code, all tests 
+  all relevant Casperlabs provided SDKs, and all relevant documentation. 
+- Must support mainstream expectations about common NFT conventions.
+- A given NFT contract instance must be able to choose when created if it is using a Metadata schema conformant with existing community standards or a specific custom schema which they provide.
+- A NFT contract instance must validate provided metadata against the specified metadata schema for that contract.
+- Standardized session code to interact with an NFT contract instance must be usable as is, so that a given DApp developer doesn't have to write any Wasm producing logic for normal usage of NFT contract instances produced by this contract.
 
 ## Features and usage
 
