@@ -23,7 +23,7 @@ jobs:
       - run: make test
 
       - name: Slack Notification
-        uses: ravsamhq/notify-slack-action@v1
+        uses: ravsamhq/notify-slack-action@4ed28566c2bdcdaee6dca2b46b9666d01b4ed8a4 #v1.10.0
         if: always()
         with:
           status: ${{ job.status }}
