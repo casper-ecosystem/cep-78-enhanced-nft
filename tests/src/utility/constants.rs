@@ -14,6 +14,7 @@ pub(crate) const ENTRY_POINT_BURN: &str = "burn";
 pub(crate) const ENTRY_POINT_TRANSFER: &str = "transfer";
 pub(crate) const ENTRY_POINT_APPROVE: &str = "approve";
 pub(crate) const ENTRY_POINT_SET_APPROVE_FOR_ALL: &str = "set_approval_for_all";
+pub(crate) const ENTRY_POINT_SET_TOKEN_METADATA: &str = "set_token_metadata";
 pub(crate) const ARG_COLLECTION_NAME: &str = "collection_name";
 pub(crate) const ARG_COLLECTION_SYMBOL: &str = "collection_symbol";
 pub(crate) const ARG_TOTAL_TOKEN_SUPPLY: &str = "total_token_supply";
@@ -35,6 +36,7 @@ pub(crate) const ARG_TOKEN_URI: &str = "token_uri";
 pub(crate) const ARG_APPROVE_ALL: &str = "approve_all";
 pub(crate) const ARG_NFT_METADATA_KIND: &str = "nft_metadata_kind";
 pub(crate) const ARG_IDENTIFIER_MODE: &str = "identifier_mode";
+pub(crate) const ARG_METADATA_MUTABILITY: &str = "metadata_mutability";
 pub(crate) const TOKEN_ISSUERS: &str = "token_issuers";
 pub(crate) const ARG_OWNERSHIP_MODE: &str = "ownership_mode";
 pub(crate) const ARG_NFT_KIND: &str = "nft_kind";
@@ -61,10 +63,20 @@ pub(crate) const TEST_PRETTY_721_META_DATA: &str = r#"{
   "symbol": "abc",
   "token_uri": "https://www.google.com"
 }"#;
+pub(crate) const TEST_PRETTY_UPDATED_721_META_DATA: &str = r#"{
+  "name": "John Doe",
+  "symbol": "abc",
+  "token_uri": "https://www.foobar.com"
+}"#;
 pub(crate) const TEST_PRETTY_CEP78_METADATA: &str = r#"{
   "name": "John Doe",
   "token_uri": "https://www.google.com",
   "checksum": "940bffb3f2bba35f84313aa26da09ece3ad47045c6a1292c2bbd2df4ab1a55fb"
+}"#;
+pub(crate) const TEST_PRETTY_UPDATED_CEP78_METADATA: &str = r#"{
+  "name": "John Doe",
+  "token_uri": "https://www.google.com",
+  "checksum": "fda4feaa137e83972db628e521c92159f5dc253da1565c9da697b8ad845a0788"
 }"#;
 pub(crate) const TEST_COMPACT_META_DATA: &str =
     r#"{"name": "John Doe","symbol": "abc","token_uri": "https://www.google.com"}"#;

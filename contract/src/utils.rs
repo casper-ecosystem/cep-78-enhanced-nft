@@ -197,6 +197,24 @@ impl TryFrom<u8> for NFTIdentifierMode {
     }
 }
 
+#[repr(u8)]
+pub enum MetadataMutability {
+    Immutable = 0,
+    Mutable = 1,
+}
+
+impl TryFrom<u8> for MetadataMutability {
+    type Error = NFTCoreError;
+
+    fn try_from(value: u8) -> Result<Self, Self::Error> {
+        match value {
+            0 => Ok(MetadataMutability::Immutable),
+            1 => Ok(MetadataMutability::Mutable),
+            _ => Err(NFTCoreError::InvalidMetadataMutability),
+        }
+    }
+}
+
 pub(crate) fn get_ownership_mode() -> Result<OwnershipMode, NFTCoreError> {
     get_stored_value_with_user_errors::<u8>(
         OWNERSHIP_MODE,
@@ -488,14 +506,14 @@ pub(crate) fn get_token_identifier_from_runtime_args(
         NFTIdentifierMode::Ordinal => get_named_arg_with_user_errors::<u64>(
             ARG_TOKEN_ID,
             NFTCoreError::MissingTokenID,
-            NFTCoreError::InvalidTokenID,
+            NFTCoreError::InvalidTokenIdentifier,
         )
         .map(TokenIdentifier::new_index)
         .unwrap_or_revert(),
         NFTIdentifierMode::Hash => get_named_arg_with_user_errors::<String>(
             ARG_TOKEN_HASH,
             NFTCoreError::MissingTokenID,
-            NFTCoreError::InvalidTokenID,
+            NFTCoreError::InvalidTokenIdentifier,
         )
         .map(TokenIdentifier::new_hash)
         .unwrap_or_revert(),

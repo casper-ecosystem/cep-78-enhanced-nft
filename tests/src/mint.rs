@@ -1171,7 +1171,7 @@ fn should_mint_with_valid_cep99_metadata() {
 
     let install_request = InstallerRequestBuilder::new(*DEFAULT_ACCOUNT_ADDR, NFT_CONTRACT_WASM)
         .with_total_token_supply(2u64)
-        .with_nft_metadata_kind(NFTMetadataKind::CEP99)
+        .with_nft_metadata_kind(NFTMetadataKind::CEP78)
         .build();
 
     builder.exec(install_request).expect_success().commit();

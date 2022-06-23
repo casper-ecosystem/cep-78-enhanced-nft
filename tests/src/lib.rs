@@ -18,6 +18,10 @@ mod set_variables;
 // around transfer token ownership
 #[cfg(test)]
 mod transfer;
+// A collection of tests that are focused
+// around updating metadata.
+#[cfg(test)]
+mod metadata;
 
 // A collection of helper methods and constants.
 #[cfg(test)]
