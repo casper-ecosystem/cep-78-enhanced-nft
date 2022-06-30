@@ -39,6 +39,7 @@ pub(crate) const ARG_METADATA_MUTABILITY: &str = "metadata_mutability";
 pub(crate) const TOKEN_ISSUERS: &str = "token_issuers";
 pub(crate) const ARG_OWNERSHIP_MODE: &str = "ownership_mode";
 pub(crate) const ARG_NFT_KIND: &str = "nft_kind";
+pub(crate) const TOKEN_COUNTS: &str = "balances";
 pub(crate) const TOKEN_OWNERS: &str = "token_owners";
 pub(crate) const OWNED_TOKENS: &str = "owned_tokens";
 pub(crate) const BURNT_TOKENS: &str = "burnt_tokens";

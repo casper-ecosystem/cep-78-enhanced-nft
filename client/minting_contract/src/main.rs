@@ -25,7 +25,6 @@ const ENTRY_POINT_BURN: &str = "burn";
 const ARG_NFT_CONTRACT_HASH: &str = "nft_contract_hash";
 const ARG_TOKEN_OWNER: &str = "token_owner";
 const ARG_TOKEN_META_DATA: &str = "token_meta_data";
-const ARG_TOKEN_URI: &str = "token_uri";
 const ARG_TARGET_KEY: &str = "target_key";
 const ARG_SOURCE_KEY: &str = "source_key";
 const ARG_TOKEN_ID: &str = "token_id";
@@ -40,7 +39,6 @@ pub extern "C" fn mint() {
 
     let token_owner = runtime::get_named_arg::<Key>(ARG_TOKEN_OWNER);
     let token_metadata: String = runtime::get_named_arg(ARG_TOKEN_META_DATA);
-    let token_uri: String = runtime::get_named_arg(ARG_TOKEN_URI);
 
     let (collection_name, owned_tokens_dictionary_key, ) = runtime::call_contract::<(String, Key)>(
         nft_contract_hash,
@@ -48,7 +46,6 @@ pub extern "C" fn mint() {
         runtime_args! {
             ARG_TOKEN_OWNER => token_owner,
             ARG_TOKEN_META_DATA => token_metadata,
-            ARG_TOKEN_URI =>token_uri,
         },
     );
 
@@ -105,7 +102,6 @@ fn install_minting_contract() -> (ContractHash, ContractVersion) {
             Parameter::new(ARG_TOKEN_META_DATA, CLType::Key),
             Parameter::new(ARG_TOKEN_OWNER, CLType::Key),
             Parameter::new(ARG_TOKEN_META_DATA, CLType::String),
-            Parameter::new(ARG_TOKEN_URI, CLType::String)
         ],
         CLType::Unit,
             EntryPointAccess::Public,
