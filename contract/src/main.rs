@@ -169,6 +169,8 @@ pub extern "C" fn init() {
     .try_into()
     .unwrap_or_revert();
 
+    // Attempt to parse the provided schema and fail installation
+    // if the schema cannot be parsed.
     if let NFTMetadataKind::CustomValidated = nft_metadata_kind {
         casper_serde_json_wasm::from_str::<CustomMetadataSchema>(&json_schema)
             .map_err(|_| NFTCoreError::InvalidJsonSchema)
