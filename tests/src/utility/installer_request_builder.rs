@@ -171,7 +171,7 @@ impl InstallerRequestBuilder {
             ownership_mode: CLValue::from_t(OwnershipMode::Minter as u8).unwrap(),
             nft_kind: CLValue::from_t(NFTKind::Physical as u8).unwrap(),
             holder_mode: CLValue::from_t(Some(NFTHolderMode::Mixed as u8)).unwrap(),
-            whitelist_mode: CLValue::from_t(Some(WhitelistMode::Locked as u8)).unwrap(),
+            whitelist_mode: CLValue::from_t(Some(WhitelistMode::Unlocked as u8)).unwrap(),
             contract_whitelist: CLValue::from_t(Some(Vec::<ContractHash>::new())).unwrap(),
             json_schema: CLValue::from_t("test".to_string())
                 .expect("test_metadata was created from a concrete value"),

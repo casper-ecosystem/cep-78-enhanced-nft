@@ -30,6 +30,7 @@ use crate::utility::{
         query_stored_value,
     },
 };
+use crate::utility::installer_request_builder::MetadataMutability;
 
 #[derive(Serialize, Deserialize, Debug)]
 struct Metadata {
@@ -1297,6 +1298,7 @@ fn should_mint_with_hash_identifier_mode() {
 
     let install_request = InstallerRequestBuilder::new(*DEFAULT_ACCOUNT_ADDR, NFT_CONTRACT_WASM)
         .with_identifier_mode(NFTIdentifierMode::Hash)
+        .with_metadata_mutability(MetadataMutability::Immutable)
         .with_total_token_supply(10u64)
         .build();
 

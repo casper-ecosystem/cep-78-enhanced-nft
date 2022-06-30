@@ -19,6 +19,7 @@ use crate::utility::{
     },
     support,
 };
+use crate::utility::support::assert_expected_error;
 
 #[test]
 fn should_prevent_update_in_immutable_mode() {
@@ -69,6 +70,26 @@ fn should_prevent_update_in_immutable_mode() {
 
     support::assert_expected_error(error, 104, "must match ForbiddenMetadataUpdate(104)")
 }
+
+#[test]
+fn should_prevent_install_with_hash_identifier_in_mutable_mode() {
+    let mut builder = InMemoryWasmTestBuilder::default();
+    builder.run_genesis(&DEFAULT_RUN_GENESIS_REQUEST).commit();
+
+    let install_request = InstallerRequestBuilder::new(*DEFAULT_ACCOUNT_ADDR, NFT_CONTRACT_WASM)
+        .with_total_token_supply(10u64)
+        .with_nft_metadata_kind(NFTMetadataKind::NFT721)
+        .with_identifier_mode(NFTIdentifierMode::Hash)
+        .with_metadata_mutability(MetadataMutability::Mutable)
+        .build();
+
+    builder.exec(install_request).expect_failure();
+
+    let error = builder.get_error().expect("must fail at installation");
+
+    assert_expected_error(error, 102, "Should raise InvalidMetadataMutability(102)")
+}
+
 
 #[test]
 fn should_prevent_update_for_invalid_metadata() {
@@ -131,7 +152,7 @@ fn should_prevent_metadata_update_by_non_owner_key() {
         .with_total_token_supply(10u64)
         .with_ownership_mode(OwnershipMode::Transferable)
         .with_nft_metadata_kind(NFTMetadataKind::NFT721)
-        .with_identifier_mode(NFTIdentifierMode::Hash)
+        .with_identifier_mode(NFTIdentifierMode::Ordinal)
         .with_metadata_mutability(MetadataMutability::Mutable)
         .build();
 
@@ -154,14 +175,12 @@ fn should_prevent_metadata_update_by_non_owner_key() {
 
     builder.exec(mint_token_request).expect_success().commit();
 
-    let token_hash: String =
-        base16::encode_lower(&support::create_blake2b_hash(&TEST_PRETTY_721_META_DATA));
 
     let original_metadata = support::get_dictionary_value_from_key::<String>(
         &builder,
         &nft_contract_key,
         METADATA_NFT721,
-        &token_hash,
+        &0u64.to_string(),
     );
 
     assert_eq!(TEST_PRETTY_721_META_DATA, original_metadata);
@@ -170,7 +189,7 @@ fn should_prevent_metadata_update_by_non_owner_key() {
         &builder,
         &nft_contract_key,
         TOKEN_OWNERS,
-        &token_hash,
+        &0u64.to_string(),
     );
 
     assert_eq!(token_owner_key, nft_owner_account_key);
@@ -180,7 +199,7 @@ fn should_prevent_metadata_update_by_non_owner_key() {
         support::get_nft_contract_hash(&builder),
         ENTRY_POINT_SET_TOKEN_METADATA,
         runtime_args! {
-            ARG_TOKEN_HASH => token_hash,
+            ARG_TOKEN_ID => 0u64,
             ARG_TOKEN_META_DATA => TEST_PRETTY_UPDATED_721_META_DATA
         },
     )
@@ -329,26 +348,10 @@ fn should_update_metadata_for_nft721_using_token_id() {
 }
 
 #[test]
-fn should_update_metadata_for_nft721_using_token_hash() {
-    should_allow_update_for_valid_metadata_based_on_kind(
-        NFTMetadataKind::NFT721,
-        NFTIdentifierMode::Hash,
-    )
-}
-
-#[test]
 fn should_update_metadata_for_cep78_using_token_id() {
     should_allow_update_for_valid_metadata_based_on_kind(
         NFTMetadataKind::CEP78,
         NFTIdentifierMode::Ordinal,
-    )
-}
-
-#[test]
-fn should_update_metadata_for_cep78_using_token_hash() {
-    should_allow_update_for_valid_metadata_based_on_kind(
-        NFTMetadataKind::CEP78,
-        NFTIdentifierMode::Hash,
     )
 }
 
@@ -361,9 +364,6 @@ fn should_update_metadata_for_custom_validated_using_token_id() {
 }
 
 #[test]
-fn should_update_metadata_for_custom_validated_using_token_hash() {
-    should_allow_update_for_valid_metadata_based_on_kind(
-        NFTMetadataKind::CustomValidated,
-        NFTIdentifierMode::Hash,
-    )
+fn get_schema() {
+    println!("{}",serde_json::to_string_pretty(&*TEST_CUSTOM_METADATA).unwrap())
 }

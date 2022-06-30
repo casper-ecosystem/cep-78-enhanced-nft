@@ -27,6 +27,7 @@ use crate::utility::{
         get_nft_contract_hash, query_stored_value,
     },
 };
+use crate::utility::installer_request_builder::MetadataMutability;
 
 #[test]
 fn should_dissallow_transfer_with_minter_or_assigned_ownership_mode() {
@@ -778,6 +779,7 @@ fn should_transfer_token_in_hash_identifier_mode() {
     let install_request = InstallerRequestBuilder::new(*DEFAULT_ACCOUNT_ADDR, NFT_CONTRACT_WASM)
         .with_identifier_mode(NFTIdentifierMode::Hash)
         .with_ownership_mode(OwnershipMode::Transferable)
+        .with_metadata_mutability(MetadataMutability::Immutable)
         .with_total_token_supply(10u64)
         .build();
 

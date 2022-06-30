@@ -28,7 +28,6 @@ use casper_types::{
 use casper_contract::{
     contract_api::{
         runtime,
-        runtime::revert,
         storage::{self},
     },
     unwrap_or_revert::UnwrapOrRevert,
@@ -140,10 +139,8 @@ pub extern "C" fn init() {
     )
     .unwrap_or_revert();
 
-    if WhitelistMode::Locked == whitelist_mode
-        && NFTHolderMode::Contracts == holder_mode
-        && contract_whitelist.is_empty()
-    {
+
+    if WhitelistMode::Locked == whitelist_mode && contract_whitelist.is_empty() && NFTHolderMode::Accounts != holder_mode {
         runtime::revert(NFTCoreError::EmptyContractWhitelist)
     }
 
@@ -169,6 +166,12 @@ pub extern "C" fn init() {
     .unwrap_or_revert()
     .try_into()
     .unwrap_or_revert();
+
+    if let NFTMetadataKind::CustomValidated = nft_metadata_kind {
+        casper_serde_json_wasm::from_str::<CustomMetadataSchema>(&json_schema)
+            .map_err(|_| NFTCoreError::InvalidJsonSchema)
+            .unwrap_or_revert();
+    }
 
     let identifier_mode: NFTIdentifierMode = get_named_arg_with_user_errors::<u8>(
         ARG_IDENTIFIER_MODE,
@@ -325,8 +328,12 @@ pub extern "C" fn mint() {
 
     // If contract minting behavior is currently toggled off we revert.
     if !minting_status {
-        revert(NFTCoreError::MintingIsPaused);
+        runtime::revert(NFTCoreError::MintingIsPaused);
     }
+
+    // if mint_pre_condition_hash.exists() { let value = runtime::call_contact(pre_condition_hash,
+    // runtime_args).unwrap() } if mint_post_condition_hash.exists() { let val =
+    // runtime::call_contact(post_condition_hash, runtime_args).unwrap() }
 
     let total_token_supply = get_stored_value_with_user_errors::<u64>(
         TOTAL_TOKEN_SUPPLY,
@@ -343,7 +350,7 @@ pub extern "C" fn mint() {
 
     // Revert if the token supply has been exhausted.
     if next_index >= total_token_supply {
-        revert(NFTCoreError::TokenSupplyDepleted);
+        runtime::revert(NFTCoreError::TokenSupplyDepleted);
     }
 
     let minting_mode: MintingMode = get_stored_value_with_user_errors::<u8>(
@@ -370,7 +377,7 @@ pub extern "C" fn mint() {
                 );
                 // Revert if the calling contract is not in the whitelist.
                 if !contract_whitelist.contains(&calling_contract) {
-                    revert(NFTCoreError::UnlistedContractHash)
+                    runtime::revert(NFTCoreError::UnlistedContractHash)
                 }
             }
             KeyTag::Account => {
@@ -384,7 +391,7 @@ pub extern "C" fn mint() {
                     runtime::revert(NFTCoreError::InvalidMinter)
                 }
             }
-            _ => revert(NFTCoreError::InvalidKey),
+            _ => runtime::revert(NFTCoreError::InvalidKey),
         }
     }
 
@@ -635,12 +642,12 @@ pub extern "C" fn burn() {
                     balance - 1u64
                 } else {
                     // This should never happen if contract is implemented correctly.
-                    revert(NFTCoreError::FatalTokenIdDuplication);
+                    runtime::revert(NFTCoreError::FatalTokenIdDuplication);
                 }
             }
             None => {
                 // This should never happen if contract is implemented correctly.
-                revert(NFTCoreError::FatalTokenIdDuplication);
+                runtime::revert(NFTCoreError::FatalTokenIdDuplication);
             }
         };
 
@@ -682,7 +689,7 @@ pub extern "C" fn approve() {
         // Revert if token_id is out of bounds
         if let TokenIdentifier::Index(index) = &token_identifier {
             if *index >= number_of_minted_tokens {
-                revert(NFTCoreError::InvalidTokenIdentifier);
+                runtime::revert(NFTCoreError::InvalidTokenIdentifier);
             }
         }
     }
@@ -1190,7 +1197,7 @@ pub extern "C" fn set_token_metadata() {
     .unwrap_or_revert();
 
     if let MetadataMutability::Immutable = metadata_mutability {
-        revert(NFTCoreError::ForbiddenMetadataUpdate)
+        runtime::revert(NFTCoreError::ForbiddenMetadataUpdate)
     }
 
     let identifier_mode: NFTIdentifierMode = get_stored_value_with_user_errors::<u8>(
@@ -1211,10 +1218,10 @@ pub extern "C" fn set_token_metadata() {
     if let Some(token_owner_key) = token_owner {
         let caller = get_verified_caller().unwrap_or_revert();
         if caller != token_owner_key {
-            revert(NFTCoreError::InvalidTokenOwner)
+            runtime::revert(NFTCoreError::InvalidTokenOwner)
         }
     } else {
-        revert(NFTCoreError::InvalidTokenIdentifier)
+        runtime::revert(NFTCoreError::InvalidTokenIdentifier)
     }
 
     let metadata_kind: NFTMetadataKind = get_stored_value_with_user_errors::<u8>(
@@ -1319,7 +1326,7 @@ fn install_nft_contract() -> (ContractHash, ContractVersion) {
                 Parameter::new(ARG_TOKEN_OWNER, CLType::Key),
                 Parameter::new(ARG_TOKEN_META_DATA, CLType::String),
             ],
-            CLType::Unit,
+            CLType::Tuple2([Box::new(CLType::String), Box::new(CLType::Key)]),
             EntryPointAccess::Public,
             EntryPointType::Contract,
         );
@@ -1428,6 +1435,7 @@ fn install_nft_contract() -> (ContractHash, ContractVersion) {
             EntryPointType::Contract,
         );
 
+        // This entrypoint updates the metadata if valid.
         let set_token_metadata = EntryPoint::new(
             ENTRY_POINT_SET_TOKEN_METADATA,
             vec![
@@ -1603,6 +1611,10 @@ pub extern "C" fn call() {
         NFTCoreError::InvalidMetadataMutability,
     )
     .unwrap_or_revert();
+
+    if identifier_mode == 1 && metadata_mutability == 1 {
+        runtime::revert(NFTCoreError::InvalidMetadataMutability)
+    }
 
     let (contract_hash, contract_version) = install_nft_contract();
 
