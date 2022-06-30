@@ -139,8 +139,10 @@ pub extern "C" fn init() {
     )
     .unwrap_or_revert();
 
-
-    if WhitelistMode::Locked == whitelist_mode && contract_whitelist.is_empty() && NFTHolderMode::Accounts != holder_mode {
+    if WhitelistMode::Locked == whitelist_mode
+        && contract_whitelist.is_empty()
+        && NFTHolderMode::Accounts != holder_mode
+    {
         runtime::revert(NFTCoreError::EmptyContractWhitelist)
     }
 

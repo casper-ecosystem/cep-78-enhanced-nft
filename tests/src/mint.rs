@@ -17,12 +17,12 @@ use crate::utility::{
         METADATA_CEP78, METADATA_CUSTOM_VALIDATED, METADATA_NFT721, METADATA_RAW,
         MINTING_CONTRACT_WASM, MINT_SESSION_WASM, NFT_CONTRACT_WASM, NUMBER_OF_MINTED_TOKENS,
         OWNED_TOKENS, OWNED_TOKENS_DICTIONARY_KEY, RECEIPT_NAME, TEST_COMPACT_META_DATA,
-        TEST_PRETTY_721_META_DATA, TEST_PRETTY_CEP78_METADATA, TOKEN_ISSUERS,
-        TOKEN_OWNERS,
+        TEST_PRETTY_721_META_DATA, TEST_PRETTY_CEP78_METADATA, TOKEN_ISSUERS, TOKEN_OWNERS,
     },
     installer_request_builder::{
-        InstallerRequestBuilder, MintingMode, NFTHolderMode, NFTIdentifierMode, NFTMetadataKind,
-        OwnershipMode, WhitelistMode, TEST_CUSTOM_METADATA, TEST_CUSTOM_METADATA_SCHEMA,
+        InstallerRequestBuilder, MetadataMutability, MintingMode, NFTHolderMode, NFTIdentifierMode,
+        NFTMetadataKind, OwnershipMode, WhitelistMode, TEST_CUSTOM_METADATA,
+        TEST_CUSTOM_METADATA_SCHEMA,
     },
     support::{
         self, assert_expected_error, call_entry_point_with_ret, create_dummy_key_pair,
@@ -30,7 +30,6 @@ use crate::utility::{
         query_stored_value,
     },
 };
-use crate::utility::installer_request_builder::MetadataMutability;
 
 #[derive(Serialize, Deserialize, Debug)]
 struct Metadata {

@@ -439,7 +439,6 @@ pub(crate) fn to_ptr<T: ToBytes>(t: T) -> (*const u8, usize, Vec<u8>) {
     (ptr, size, bytes)
 }
 
-
 pub(crate) fn get_verified_caller() -> Result<Key, NFTCoreError> {
     let holder_mode = get_holder_mode()?;
     match *runtime::get_call_stack()
@@ -791,7 +790,7 @@ pub(crate) fn validate_metadata(
 
             if let Some(name_property) = token_schema.properties.get("name") {
                 if name_property.required && metadata.name.is_empty() {
-                    runtime:: revert(NFTCoreError::InvalidNFT721Metadata)
+                    runtime::revert(NFTCoreError::InvalidNFT721Metadata)
                 }
             }
             if let Some(token_uri_property) = token_schema.properties.get("token_uri") {

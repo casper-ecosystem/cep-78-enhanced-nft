@@ -18,8 +18,8 @@ use crate::utility::{
         TEST_CUSTOM_UPDATED_METADATA,
     },
     support,
+    support::assert_expected_error,
 };
-use crate::utility::support::assert_expected_error;
 
 #[test]
 fn should_prevent_update_in_immutable_mode() {
@@ -89,7 +89,6 @@ fn should_prevent_install_with_hash_identifier_in_mutable_mode() {
 
     assert_expected_error(error, 102, "Should raise InvalidMetadataMutability(102)")
 }
-
 
 #[test]
 fn should_prevent_update_for_invalid_metadata() {
@@ -174,7 +173,6 @@ fn should_prevent_metadata_update_by_non_owner_key() {
     .build();
 
     builder.exec(mint_token_request).expect_success().commit();
-
 
     let original_metadata = support::get_dictionary_value_from_key::<String>(
         &builder,
@@ -365,5 +363,8 @@ fn should_update_metadata_for_custom_validated_using_token_id() {
 
 #[test]
 fn get_schema() {
-    println!("{}",serde_json::to_string_pretty(&*TEST_CUSTOM_METADATA).unwrap())
+    println!(
+        "{}",
+        serde_json::to_string_pretty(&*TEST_CUSTOM_METADATA).unwrap()
+    )
 }

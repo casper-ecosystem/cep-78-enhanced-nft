@@ -7,18 +7,17 @@ use casper_types::{runtime_args, system::mint, ContractHash, Key, RuntimeArgs};
 use crate::utility::{
     constants::{
         ACCOUNT_USER_1, ARG_KEY_NAME, ARG_NFT_CONTRACT_HASH, ARG_TOKEN_ID, ARG_TOKEN_META_DATA,
-        ARG_TOKEN_OWNER, BALANCES, BURNT_TOKENS, CONTRACT_NAME, ENTRY_POINT_BURN,
-        ENTRY_POINT_MINT, MINTING_CONTRACT_WASM, MINT_SESSION_WASM, NFT_CONTRACT_WASM,
-        OWNED_TOKENS, OWNED_TOKENS_DICTIONARY_KEY, TEST_PRETTY_721_META_DATA, TOKEN_COUNTS,
+        ARG_TOKEN_OWNER, BALANCES, BURNT_TOKENS, CONTRACT_NAME, ENTRY_POINT_BURN, ENTRY_POINT_MINT,
+        MINTING_CONTRACT_WASM, MINT_SESSION_WASM, NFT_CONTRACT_WASM, OWNED_TOKENS,
+        OWNED_TOKENS_DICTIONARY_KEY, TEST_PRETTY_721_META_DATA, TOKEN_COUNTS,
     },
     installer_request_builder::{
         InstallerRequestBuilder, MintingMode, NFTHolderMode, OwnershipMode, WhitelistMode,
     },
     support::{
-        self, get_minting_contract_hash, get_nft_contract_hash,
+        self, get_dictionary_value_from_key, get_minting_contract_hash, get_nft_contract_hash,
     },
 };
-use crate::utility::support::get_dictionary_value_from_key;
 
 #[test]
 fn should_burn_minted_token() {

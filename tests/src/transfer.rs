@@ -12,22 +12,20 @@ use crate::utility::{
         ACCOUNT_USER_1, ACCOUNT_USER_2, ACCOUNT_USER_3, ARG_CONTRACT_WHITELIST,
         ARG_IS_HASH_IDENTIFIER_MODE, ARG_KEY_NAME, ARG_NFT_CONTRACT_HASH, ARG_OPERATOR,
         ARG_SOURCE_KEY, ARG_TARGET_KEY, ARG_TOKEN_HASH, ARG_TOKEN_ID, ARG_TOKEN_META_DATA,
-        ARG_TOKEN_OWNER, BALANCES, CONTRACT_NAME, ENTRY_POINT_APPROVE,
-        ENTRY_POINT_MINT, ENTRY_POINT_TRANSFER, MINTING_CONTRACT_WASM, MINT_SESSION_WASM,
-        NFT_CONTRACT_WASM, NFT_TEST_COLLECTION, NFT_TEST_SYMBOL, OPERATOR, OWNED_TOKENS,
-        OWNED_TOKENS_DICTIONARY_KEY, TEST_PRETTY_721_META_DATA, TOKEN_OWNERS,
-        TRANSFER_SESSION_WASM,
+        ARG_TOKEN_OWNER, BALANCES, CONTRACT_NAME, ENTRY_POINT_APPROVE, ENTRY_POINT_MINT,
+        ENTRY_POINT_TRANSFER, MINTING_CONTRACT_WASM, MINT_SESSION_WASM, NFT_CONTRACT_WASM,
+        NFT_TEST_COLLECTION, NFT_TEST_SYMBOL, OPERATOR, OWNED_TOKENS, OWNED_TOKENS_DICTIONARY_KEY,
+        TEST_PRETTY_721_META_DATA, TOKEN_OWNERS, TRANSFER_SESSION_WASM,
     },
     installer_request_builder::{
-        InstallerRequestBuilder, MintingMode, NFTHolderMode, NFTIdentifierMode, OwnershipMode,
-        WhitelistMode,
+        InstallerRequestBuilder, MetadataMutability, MintingMode, NFTHolderMode, NFTIdentifierMode,
+        OwnershipMode, WhitelistMode,
     },
     support::{
         self, assert_expected_error, get_dictionary_value_from_key, get_minting_contract_hash,
         get_nft_contract_hash, query_stored_value,
     },
 };
-use crate::utility::installer_request_builder::MetadataMutability;
 
 #[test]
 fn should_dissallow_transfer_with_minter_or_assigned_ownership_mode() {
