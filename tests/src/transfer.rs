@@ -12,10 +12,10 @@ use crate::utility::{
         ACCOUNT_USER_1, ACCOUNT_USER_2, ACCOUNT_USER_3, ARG_CONTRACT_WHITELIST,
         ARG_IS_HASH_IDENTIFIER_MODE, ARG_KEY_NAME, ARG_NFT_CONTRACT_HASH, ARG_OPERATOR,
         ARG_SOURCE_KEY, ARG_TARGET_KEY, ARG_TOKEN_HASH, ARG_TOKEN_ID, ARG_TOKEN_META_DATA,
-        ARG_TOKEN_OWNER, ARG_TOKEN_URI, BALANCES, CONTRACT_NAME, ENTRY_POINT_APPROVE,
+        ARG_TOKEN_OWNER, BALANCES, CONTRACT_NAME, ENTRY_POINT_APPROVE,
         ENTRY_POINT_MINT, ENTRY_POINT_TRANSFER, MINTING_CONTRACT_WASM, MINT_SESSION_WASM,
         NFT_CONTRACT_WASM, NFT_TEST_COLLECTION, NFT_TEST_SYMBOL, OPERATOR, OWNED_TOKENS,
-        OWNED_TOKENS_DICTIONARY_KEY, TEST_PRETTY_721_META_DATA, TEST_URI, TOKEN_OWNERS,
+        OWNED_TOKENS_DICTIONARY_KEY, TEST_PRETTY_721_META_DATA, TOKEN_OWNERS,
         TRANSFER_SESSION_WASM,
     },
     installer_request_builder::{
@@ -64,7 +64,7 @@ fn should_dissallow_transfer_with_minter_or_assigned_ownership_mode() {
             ARG_KEY_NAME => Some(OWNED_TOKENS_DICTIONARY_KEY.to_string()),
             ARG_TOKEN_OWNER => Key::Account(*DEFAULT_ACCOUNT_ADDR),
             ARG_TOKEN_META_DATA => TEST_PRETTY_721_META_DATA.to_string(),
-            ARG_TOKEN_URI => TEST_URI.to_string()
+
         },
     )
     .build();
@@ -135,7 +135,7 @@ fn should_transfer_token_from_sender_to_receiver() {
             ARG_KEY_NAME => Some(OWNED_TOKENS_DICTIONARY_KEY.to_string()),
             ARG_TOKEN_OWNER => Key::Account(*DEFAULT_ACCOUNT_ADDR),
             ARG_TOKEN_META_DATA => TEST_PRETTY_721_META_DATA.to_string(),
-            ARG_TOKEN_URI => TEST_URI.to_string()
+
         },
     )
     .build();
@@ -244,7 +244,7 @@ fn approve_token_for_transfer_should_add_entry_to_approved_dictionary() {
             ARG_KEY_NAME => Some(OWNED_TOKENS_DICTIONARY_KEY.to_string()),
             ARG_TOKEN_OWNER => Key::Account(*DEFAULT_ACCOUNT_ADDR),
             ARG_TOKEN_META_DATA => TEST_PRETTY_721_META_DATA.to_string(),
-            ARG_TOKEN_URI => TEST_URI.to_string()
+
         },
     )
     .build();
@@ -316,7 +316,7 @@ fn should_dissallow_approving_when_ownership_mode_is_minter_or_assigned() {
             ARG_KEY_NAME => Some(OWNED_TOKENS_DICTIONARY_KEY.to_string()),
             ARG_TOKEN_OWNER => Key::Account(*DEFAULT_ACCOUNT_ADDR),
             ARG_TOKEN_META_DATA => TEST_PRETTY_721_META_DATA.to_string(),
-            ARG_TOKEN_URI => TEST_URI.to_string()
+
 
         },
     )
@@ -379,7 +379,7 @@ fn should_be_able_to_transfer_token_using_approved_operator() {
             ARG_KEY_NAME => Some(OWNED_TOKENS_DICTIONARY_KEY.to_string()),
             ARG_TOKEN_OWNER => Key::Account(*DEFAULT_ACCOUNT_ADDR),
             ARG_TOKEN_META_DATA => TEST_PRETTY_721_META_DATA.to_string(),
-            ARG_TOKEN_URI => TEST_URI.to_string()
+
         },
     )
     .build();
@@ -499,7 +499,7 @@ fn should_dissallow_same_operator_to_tranfer_token_twice() {
             ARG_KEY_NAME => Some(OWNED_TOKENS_DICTIONARY_KEY.to_string()),
             ARG_TOKEN_OWNER => Key::Account(*DEFAULT_ACCOUNT_ADDR),
             ARG_TOKEN_META_DATA => TEST_PRETTY_721_META_DATA.to_string(),
-            ARG_TOKEN_URI => TEST_URI.to_string()
+
         },
     )
     .build();
@@ -640,7 +640,7 @@ fn should_transfer_between_contract_to_account() {
         ARG_NFT_CONTRACT_HASH => nft_contract_key,
         ARG_TOKEN_OWNER => minting_contract_key,
         ARG_TOKEN_META_DATA => TEST_PRETTY_721_META_DATA.to_string(),
-        ARG_TOKEN_URI => TEST_URI.to_string()
+
     };
 
     let minting_request = ExecuteRequestBuilder::contract_call_by_hash(
@@ -733,7 +733,7 @@ fn should_prevent_transfer_when_caller_is_not_owner() {
             ARG_NFT_CONTRACT_HASH => nft_contract_key,
             ARG_TOKEN_OWNER => Key::Account(*DEFAULT_ACCOUNT_ADDR),
             ARG_TOKEN_META_DATA => TEST_PRETTY_721_META_DATA.to_string(),
-            ARG_TOKEN_URI => TEST_URI.to_string()
+
         },
     )
     .build();
@@ -795,7 +795,7 @@ fn should_transfer_token_in_hash_identifier_mode() {
             ARG_NFT_CONTRACT_HASH => nft_contract_key,
             ARG_TOKEN_OWNER => Key::Account(*DEFAULT_ACCOUNT_ADDR),
             ARG_TOKEN_META_DATA => TEST_PRETTY_721_META_DATA ,
-            ARG_TOKEN_URI => TEST_URI.to_string()
+
         },
     )
     .build();
