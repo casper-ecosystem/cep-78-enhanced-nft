@@ -184,8 +184,6 @@ impl TryFrom<u8> for OwnershipMode {
 pub enum NFTIdentifierMode {
     Ordinal = 0,
     Hash = 1,
-    // ContentGeneratedHash = 2,
-    // Imputed = 3,
 }
 
 impl TryFrom<u8> for NFTIdentifierMode {

@@ -190,16 +190,12 @@ fn should_mint() {
     let mut builder = InMemoryWasmTestBuilder::default();
     builder.run_genesis(&DEFAULT_RUN_GENESIS_REQUEST).commit();
 
-    let metadata = Metadata {
-        name: "Ed".to_string(),
-        symbol: "avc".to_string(),
-        token_uri: "http://www.google.com".to_string(),
-    };
 
-    let json_metadata = serde_json::to_string(&metadata).expect("must convert to JSON string");
+    let json_metadata = serde_json::to_string(&TEST_PRETTY_CEP78_METADATA).expect("must convert to JSON string");
 
     let install_request_builder =
         InstallerRequestBuilder::new(*DEFAULT_ACCOUNT_ADDR, NFT_CONTRACT_WASM)
+            .with_nft_metadata_kind(NFTMetadataKind::CEP78)
             .with_total_token_supply(2u64);
     builder
         .exec(install_request_builder.build())

@@ -74,7 +74,7 @@ pub(crate) const TEST_PRETTY_CEP78_METADATA: &str = r#"{
 }"#;
 pub(crate) const TEST_PRETTY_UPDATED_CEP78_METADATA: &str = r#"{
   "name": "John Doe",
-  "token_uri": "https://www.google.com",
+  "token_uri": "https://www.foobar.com",
   "checksum": "fda4feaa137e83972db628e521c92159f5dc253da1565c9da697b8ad845a0788"
 }"#;
 pub(crate) const TEST_COMPACT_META_DATA: &str =
@@ -82,5 +82,5 @@ pub(crate) const TEST_COMPACT_META_DATA: &str =
 pub(crate) const MALFORMED_META_DATA: &str = r#"{
   "name": "John Doe",
   "symbol": abc,
-  "token_uri": "https://www.google.com"
+  "token_uri": "https://www.barfoo.com"
 }"#;

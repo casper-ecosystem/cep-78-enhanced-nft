@@ -131,7 +131,7 @@ This modality dictates the schema for the metadata for NFTs minted by a given in
 ```json
 {
   "name": "John Doe",
-  "token_uri": "https://www.google.com",
+  "token_uri": "https://www.barfoo.com",
   "checksum": "940bffb3f2bba35f84313aa26da09ece3ad47045c6a1292c2bbd2df4ab1a55fb"
 }
 ```
@@ -141,7 +141,7 @@ This modality dictates the schema for the metadata for NFTs minted by a given in
 {
   "name": "John Doe",
   "symbol": "abc",
-  "token_uri": "https://www.google.com"
+  "token_uri": "https://www.barfoo.com"
 }
 ```
 
