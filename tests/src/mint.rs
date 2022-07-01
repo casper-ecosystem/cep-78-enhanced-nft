@@ -190,8 +190,8 @@ fn should_mint() {
     let mut builder = InMemoryWasmTestBuilder::default();
     builder.run_genesis(&DEFAULT_RUN_GENESIS_REQUEST).commit();
 
-
-    let json_metadata = serde_json::to_string(&TEST_PRETTY_CEP78_METADATA).expect("must convert to JSON string");
+    let json_metadata =
+        serde_json::to_string(&TEST_PRETTY_CEP78_METADATA).expect("must convert to JSON string");
 
     let install_request_builder =
         InstallerRequestBuilder::new(*DEFAULT_ACCOUNT_ADDR, NFT_CONTRACT_WASM)
