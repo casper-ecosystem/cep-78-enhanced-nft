@@ -1,4 +1,4 @@
-# Enhanced NFT standard
+# CEP-78: Enhanced NFT standard
 
 ## Design goals
 - DApp developer attempting to create an NFT contract should be able to install the contract as is,
