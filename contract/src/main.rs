@@ -504,7 +504,7 @@ pub extern "C" fn mint() {
                 runtime::revert(NFTCoreError::FatalTokenIdDuplication);
             }
 
-            owned_tokens.push(token_identifier);
+            owned_tokens.push(token_identifier.clone());
             match identifier_mode {
                 NFTIdentifierMode::Ordinal => {
                     let token_indices: Vec<u64> = owned_tokens
@@ -540,7 +540,7 @@ pub extern "C" fn mint() {
                 NFTIdentifierMode::Hash => upsert_dictionary_value_from_key(
                     OWNED_TOKENS,
                     &owned_tokens_item_key,
-                    vec![token_identifier.get_hash().unwrap_or_revert()],
+                    vec![token_identifier.clone().get_hash().unwrap_or_revert()],
                 ),
             };
         }
@@ -569,8 +569,14 @@ pub extern "C" fn mint() {
         NFTCoreError::InvalidReceiptName,
     );
 
-    let receipt = CLValue::from_t((receipt_name, owned_tokens_actual_key))
-        .unwrap_or_revert_with(NFTCoreError::FailedToConvertToCLValue);
+    let token_identifier_string = token_identifier.get_dictionary_item_key();
+
+    let receipt = CLValue::from_t((
+        receipt_name,
+        owned_tokens_actual_key,
+        token_identifier_string,
+    ))
+    .unwrap_or_revert_with(NFTCoreError::FailedToConvertToCLValue);
     runtime::ret(receipt)
 }
 
@@ -1330,7 +1336,11 @@ fn install_nft_contract() -> (ContractHash, ContractVersion) {
                 Parameter::new(ARG_TOKEN_OWNER, CLType::Key),
                 Parameter::new(ARG_TOKEN_META_DATA, CLType::String),
             ],
-            CLType::Tuple2([Box::new(CLType::String), Box::new(CLType::Key)]),
+            CLType::Tuple3([
+                Box::new(CLType::String),
+                Box::new(CLType::Key),
+                Box::new(CLType::String),
+            ]),
             EntryPointAccess::Public,
             EntryPointType::Contract,
         );

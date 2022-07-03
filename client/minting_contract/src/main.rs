@@ -40,7 +40,7 @@ pub extern "C" fn mint() {
     let token_owner = runtime::get_named_arg::<Key>(ARG_TOKEN_OWNER);
     let token_metadata: String = runtime::get_named_arg(ARG_TOKEN_META_DATA);
 
-    let (collection_name, owned_tokens_dictionary_key, ) = runtime::call_contract::<(String, Key)>(
+    let (collection_name, owned_tokens_dictionary_key,_token_id_string ) = runtime::call_contract::<(String, Key, String)>(
         nft_contract_hash,
         ENTRY_POINT_MINT,
         runtime_args! {
