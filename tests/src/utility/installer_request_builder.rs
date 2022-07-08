@@ -8,14 +8,10 @@ use casper_execution_engine::core::engine_state::ExecuteRequest;
 use casper_types::{account::AccountHash, CLValue, ContractHash, RuntimeArgs};
 
 use crate::utility::constants::{
-    ARG_CONTRACT_WHITELIST, ARG_HOLDER_MODE, ARG_IDENTIFIER_MODE, ARG_METADATA_MUTABILITY,
-    ARG_WHITELIST_MODE,
-};
-
-use super::constants::{
-    ARG_ALLOW_MINTING, ARG_COLLECTION_NAME, ARG_COLLECTION_SYMBOL, ARG_JSON_SCHEMA,
-    ARG_MINTING_MODE, ARG_NFT_KIND, ARG_NFT_METADATA_KIND, ARG_OWNERSHIP_MODE,
-    ARG_TOTAL_TOKEN_SUPPLY,
+    ARG_ALLOW_MINTING, ARG_BURN_MODE, ARG_COLLECTION_NAME, ARG_COLLECTION_SYMBOL,
+    ARG_CONTRACT_WHITELIST, ARG_HOLDER_MODE, ARG_IDENTIFIER_MODE, ARG_JSON_SCHEMA,
+    ARG_METADATA_MUTABILITY, ARG_MINTING_MODE, ARG_NFT_KIND, ARG_NFT_METADATA_KIND,
+    ARG_OWNERSHIP_MODE, ARG_TOTAL_TOKEN_SUPPLY, ARG_WHITELIST_MODE,
 };
 
 pub(crate) static TEST_CUSTOM_METADATA_SCHEMA: Lazy<CustomMetadataSchema> = Lazy::new(|| {
@@ -132,6 +128,12 @@ pub enum MetadataMutability {
     Mutable = 1,
 }
 
+#[repr(u8)]
+pub enum BurnMode {
+    Burnable = 0,
+    NonBurnable = 1,
+}
+
 #[derive(Debug)]
 pub(crate) struct InstallerRequestBuilder {
     account_hash: AccountHash,
@@ -150,6 +152,7 @@ pub(crate) struct InstallerRequestBuilder {
     nft_metadata_kind: CLValue,
     identifier_mode: CLValue,
     metadata_mutability: CLValue,
+    burn_mode: CLValue,
 }
 
 impl InstallerRequestBuilder {
@@ -178,6 +181,7 @@ impl InstallerRequestBuilder {
             nft_metadata_kind: CLValue::from_t(NFTMetadataKind::NFT721 as u8).unwrap(),
             identifier_mode: CLValue::from_t(NFTIdentifierMode::Ordinal as u8).unwrap(),
             metadata_mutability: CLValue::from_t(MetadataMutability::Mutable as u8).unwrap(),
+            burn_mode: CLValue::from_t(Some(BurnMode::Burnable as u8)).unwrap(),
         }
     }
 
@@ -279,6 +283,11 @@ impl InstallerRequestBuilder {
         self
     }
 
+    pub(crate) fn with_burn_mode(mut self, burn_mode: BurnMode) -> Self {
+        self.burn_mode = CLValue::from_t(Some(burn_mode as u8)).unwrap();
+        self
+    }
+
     pub(crate) fn build(self) -> ExecuteRequest {
         let mut runtime_args = RuntimeArgs::new();
         runtime_args.insert_cl_value(ARG_COLLECTION_NAME, self.collection_name);
@@ -295,6 +304,7 @@ impl InstallerRequestBuilder {
         runtime_args.insert_cl_value(ARG_NFT_METADATA_KIND, self.nft_metadata_kind);
         runtime_args.insert_cl_value(ARG_IDENTIFIER_MODE, self.identifier_mode);
         runtime_args.insert_cl_value(ARG_METADATA_MUTABILITY, self.metadata_mutability);
+        runtime_args.insert_cl_value(ARG_BURN_MODE, self.burn_mode);
         ExecuteRequestBuilder::standard(self.account_hash, &self.session_file, runtime_args).build()
     }
 }
