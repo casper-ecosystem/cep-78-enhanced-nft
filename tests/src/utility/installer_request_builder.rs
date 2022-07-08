@@ -8,7 +8,8 @@ use casper_execution_engine::core::engine_state::ExecuteRequest;
 use casper_types::{account::AccountHash, CLValue, ContractHash, RuntimeArgs};
 
 use crate::utility::constants::{
-    ARG_CONTRACT_WHITELIST, ARG_HOLDER_MODE, ARG_IDENTIFIER_MODE, ARG_WHITELIST_MODE,
+    ARG_CONTRACT_WHITELIST, ARG_HOLDER_MODE, ARG_IDENTIFIER_MODE, ARG_METADATA_MUTABILITY,
+    ARG_WHITELIST_MODE,
 };
 
 use super::constants::{
@@ -42,6 +43,13 @@ pub(crate) static TEST_CUSTOM_METADATA: Lazy<BTreeMap<String, String>> = Lazy::n
     let mut attributes = BTreeMap::new();
     attributes.insert("deity_name".to_string(), "Baldur".to_string());
     attributes.insert("mythology".to_string(), "Nordic".to_string());
+    attributes
+});
+pub(crate) static TEST_CUSTOM_UPDATED_METADATA: Lazy<BTreeMap<String, String>> = Lazy::new(|| {
+    let mut attributes = BTreeMap::new();
+    attributes.insert("deity_name".to_string(), "Baldur".to_string());
+    attributes.insert("mythology".to_string(), "Nordic".to_string());
+    attributes.insert("enemy".to_string(), "Loki".to_string());
     attributes
 });
 
@@ -103,17 +111,25 @@ struct Metadata {
 }
 
 #[repr(u8)]
+#[derive(Copy, Clone)]
 pub enum NFTMetadataKind {
-    CEP99 = 0,
+    CEP78 = 0,
     NFT721 = 1,
     Raw = 2,
     CustomValidated = 3,
 }
 
 #[repr(u8)]
+#[derive(Copy, Clone)]
 pub enum NFTIdentifierMode {
     Ordinal = 0,
     Hash = 1,
+}
+
+#[repr(u8)]
+pub enum MetadataMutability {
+    Immutable = 0,
+    Mutable = 1,
 }
 
 #[derive(Debug)]
@@ -133,6 +149,7 @@ pub(crate) struct InstallerRequestBuilder {
     json_schema: CLValue,
     nft_metadata_kind: CLValue,
     identifier_mode: CLValue,
+    metadata_mutability: CLValue,
 }
 
 impl InstallerRequestBuilder {
@@ -154,12 +171,13 @@ impl InstallerRequestBuilder {
             ownership_mode: CLValue::from_t(OwnershipMode::Minter as u8).unwrap(),
             nft_kind: CLValue::from_t(NFTKind::Physical as u8).unwrap(),
             holder_mode: CLValue::from_t(Some(NFTHolderMode::Mixed as u8)).unwrap(),
-            whitelist_mode: CLValue::from_t(Some(WhitelistMode::Locked as u8)).unwrap(),
+            whitelist_mode: CLValue::from_t(Some(WhitelistMode::Unlocked as u8)).unwrap(),
             contract_whitelist: CLValue::from_t(Some(Vec::<ContractHash>::new())).unwrap(),
             json_schema: CLValue::from_t("test".to_string())
                 .expect("test_metadata was created from a concrete value"),
             nft_metadata_kind: CLValue::from_t(NFTMetadataKind::NFT721 as u8).unwrap(),
             identifier_mode: CLValue::from_t(NFTIdentifierMode::Ordinal as u8).unwrap(),
+            metadata_mutability: CLValue::from_t(MetadataMutability::Mutable as u8).unwrap(),
         }
     }
 
@@ -253,6 +271,14 @@ impl InstallerRequestBuilder {
         self
     }
 
+    pub(crate) fn with_metadata_mutability(
+        mut self,
+        metadata_mutability: MetadataMutability,
+    ) -> Self {
+        self.metadata_mutability = CLValue::from_t(metadata_mutability as u8).unwrap();
+        self
+    }
+
     pub(crate) fn build(self) -> ExecuteRequest {
         let mut runtime_args = RuntimeArgs::new();
         runtime_args.insert_cl_value(ARG_COLLECTION_NAME, self.collection_name);
@@ -268,6 +294,7 @@ impl InstallerRequestBuilder {
         runtime_args.insert_cl_value(ARG_JSON_SCHEMA, self.json_schema);
         runtime_args.insert_cl_value(ARG_NFT_METADATA_KIND, self.nft_metadata_kind);
         runtime_args.insert_cl_value(ARG_IDENTIFIER_MODE, self.identifier_mode);
+        runtime_args.insert_cl_value(ARG_METADATA_MUTABILITY, self.metadata_mutability);
         ExecuteRequestBuilder::standard(self.account_hash, &self.session_file, runtime_args).build()
     }
 }

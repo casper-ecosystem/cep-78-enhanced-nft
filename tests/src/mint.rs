@@ -11,18 +11,18 @@ use crate::utility::{
     constants::{
         ACCOUNT_USER_1, ACCOUNT_USER_2, ARG_APPROVE_ALL, ARG_CONTRACT_WHITELIST,
         ARG_IS_HASH_IDENTIFIER_MODE, ARG_KEY_NAME, ARG_MINTING_MODE, ARG_NFT_CONTRACT_HASH,
-        ARG_OPERATOR, ARG_TOKEN_ID, ARG_TOKEN_META_DATA, ARG_TOKEN_OWNER, ARG_TOKEN_URI, BALANCES,
+        ARG_OPERATOR, ARG_TOKEN_ID, ARG_TOKEN_META_DATA, ARG_TOKEN_OWNER, BALANCES,
         BALANCE_OF_SESSION_WASM, CONTRACT_NAME, ENTRY_POINT_APPROVE, ENTRY_POINT_MINT,
         ENTRY_POINT_SET_APPROVE_FOR_ALL, ENTRY_POINT_SET_VARIABLES, MALFORMED_META_DATA,
         METADATA_CEP78, METADATA_CUSTOM_VALIDATED, METADATA_NFT721, METADATA_RAW,
         MINTING_CONTRACT_WASM, MINT_SESSION_WASM, NFT_CONTRACT_WASM, NUMBER_OF_MINTED_TOKENS,
         OWNED_TOKENS, OWNED_TOKENS_DICTIONARY_KEY, RECEIPT_NAME, TEST_COMPACT_META_DATA,
-        TEST_PRETTY_721_META_DATA, TEST_PRETTY_CEP78_METADATA, TEST_URI, TOKEN_ISSUERS,
-        TOKEN_OWNERS,
+        TEST_PRETTY_721_META_DATA, TEST_PRETTY_CEP78_METADATA, TOKEN_ISSUERS, TOKEN_OWNERS,
     },
     installer_request_builder::{
-        InstallerRequestBuilder, MintingMode, NFTHolderMode, NFTIdentifierMode, NFTMetadataKind,
-        OwnershipMode, WhitelistMode, TEST_CUSTOM_METADATA, TEST_CUSTOM_METADATA_SCHEMA,
+        InstallerRequestBuilder, MetadataMutability, MintingMode, NFTHolderMode, NFTIdentifierMode,
+        NFTMetadataKind, OwnershipMode, WhitelistMode, TEST_CUSTOM_METADATA,
+        TEST_CUSTOM_METADATA_SCHEMA,
     },
     support::{
         self, assert_expected_error, call_entry_point_with_ret, create_dummy_key_pair,
@@ -108,7 +108,6 @@ fn entry_points_with_ret_should_return_correct_value() {
             ARG_KEY_NAME => Some(OWNED_TOKENS_DICTIONARY_KEY.to_string()),
             ARG_TOKEN_OWNER => Key::Account(*DEFAULT_ACCOUNT_ADDR),
             ARG_TOKEN_META_DATA => TEST_PRETTY_721_META_DATA.to_string(),
-            ARG_TOKEN_URI => TEST_URI.to_string(),
         },
     )
     .build();
@@ -191,16 +190,9 @@ fn should_mint() {
     let mut builder = InMemoryWasmTestBuilder::default();
     builder.run_genesis(&DEFAULT_RUN_GENESIS_REQUEST).commit();
 
-    let metadata = Metadata {
-        name: "Ed".to_string(),
-        symbol: "avc".to_string(),
-        token_uri: "http://www.google.com".to_string(),
-    };
-
-    let json_metadata = serde_json::to_string(&metadata).expect("must convert to JSON string");
-
     let install_request_builder =
         InstallerRequestBuilder::new(*DEFAULT_ACCOUNT_ADDR, NFT_CONTRACT_WASM)
+            .with_nft_metadata_kind(NFTMetadataKind::CEP78)
             .with_total_token_supply(2u64);
     builder
         .exec(install_request_builder.build())
@@ -216,8 +208,7 @@ fn should_mint() {
             ARG_NFT_CONTRACT_HASH => nft_contract_key,
             ARG_KEY_NAME => Some(OWNED_TOKENS_DICTIONARY_KEY.to_string()),
             ARG_TOKEN_OWNER => Key::Account(*DEFAULT_ACCOUNT_ADDR),
-            ARG_TOKEN_META_DATA => json_metadata,
-            ARG_TOKEN_URI => TEST_URI.to_string()
+            ARG_TOKEN_META_DATA => TEST_PRETTY_CEP78_METADATA,
         },
     )
     .build();
@@ -247,7 +238,6 @@ fn mint_should_return_dictionary_key_to_callers_owned_tokens() {
             ARG_NFT_CONTRACT_HASH => nft_contract_hash,
             ARG_TOKEN_OWNER => Key::Account(*DEFAULT_ACCOUNT_ADDR),
             ARG_TOKEN_META_DATA => TEST_PRETTY_721_META_DATA.to_string(),
-            ARG_TOKEN_URI => TEST_URI.to_string()
         },
     )
     .build();
@@ -284,7 +274,6 @@ fn mint_should_return_dictionary_key_to_callers_owned_tokens() {
             ARG_NFT_CONTRACT_HASH => nft_contract_hash,
             ARG_TOKEN_OWNER => Key::Account(*DEFAULT_ACCOUNT_ADDR),
             ARG_TOKEN_META_DATA => TEST_PRETTY_721_META_DATA.to_string(),
-            ARG_TOKEN_URI => TEST_URI.to_string()
         },
     )
     .build();
@@ -323,7 +312,6 @@ fn mint_should_increment_number_of_minted_tokens_by_one_and_add_public_key_to_to
             ARG_KEY_NAME => Some(OWNED_TOKENS_DICTIONARY_KEY.to_string()),
             ARG_TOKEN_OWNER => Key::Account(*DEFAULT_ACCOUNT_ADDR),
             ARG_TOKEN_META_DATA => TEST_PRETTY_721_META_DATA.to_string(),
-            ARG_TOKEN_URI => TEST_URI.to_string()
         },
     )
     .build();
@@ -389,7 +377,6 @@ fn mint_should_increment_number_of_minted_tokens_by_one_and_add_public_key_to_to
             ARG_KEY_NAME => Some(OWNED_TOKENS_DICTIONARY_KEY.to_string()),
             ARG_TOKEN_OWNER => Key::Account(*DEFAULT_ACCOUNT_ADDR),
             ARG_TOKEN_META_DATA => TEST_PRETTY_721_META_DATA.to_string(),
-            ARG_TOKEN_URI => TEST_URI.to_string()
         },
     )
     .build();
@@ -419,7 +406,6 @@ fn should_set_meta_data() {
             ARG_KEY_NAME => Some(OWNED_TOKENS_DICTIONARY_KEY.to_string()),
             ARG_TOKEN_OWNER => Key::Account(*DEFAULT_ACCOUNT_ADDR),
             ARG_TOKEN_META_DATA => TEST_PRETTY_721_META_DATA.to_string(),
-            ARG_TOKEN_URI => TEST_URI.to_string()
         },
     )
     .build();
@@ -465,7 +451,6 @@ fn should_set_issuer() {
             ARG_KEY_NAME => Some(OWNED_TOKENS_DICTIONARY_KEY.to_string()),
             ARG_TOKEN_OWNER => Key::Account(*DEFAULT_ACCOUNT_ADDR),
             ARG_TOKEN_META_DATA => TEST_PRETTY_721_META_DATA.to_string(),
-            ARG_TOKEN_URI => TEST_URI.to_string()
         },
     )
     .build();
@@ -513,7 +498,6 @@ fn should_track_token_balance_by_owner() {
             ARG_KEY_NAME => Some(OWNED_TOKENS_DICTIONARY_KEY.to_string()),
             ARG_TOKEN_OWNER => Key::Account(*DEFAULT_ACCOUNT_ADDR),
             ARG_TOKEN_META_DATA => TEST_PRETTY_721_META_DATA.to_string(),
-            ARG_TOKEN_URI => TEST_URI.to_string()
         },
     )
     .build();
@@ -595,7 +579,6 @@ fn should_allow_public_minting_with_flag_set_to_true() {
             ARG_KEY_NAME => Some(OWNED_TOKENS_DICTIONARY_KEY.to_string()),
             ARG_TOKEN_OWNER => Key::Account(account_1_public_key.to_account_hash()),
             ARG_TOKEN_META_DATA => TEST_PRETTY_721_META_DATA.to_string(),
-            ARG_TOKEN_URI => TEST_URI.to_string()
         },
     )
     .build();
@@ -668,7 +651,6 @@ fn should_disallow_public_minting_with_flag_set_to_false() {
             ARG_NFT_CONTRACT_HASH => *nft_contract_key,
             ARG_TOKEN_OWNER => Key::Account(account_1_public_key.to_account_hash()),
             ARG_TOKEN_META_DATA => TEST_PRETTY_721_META_DATA.to_string(),
-            ARG_TOKEN_URI => TEST_URI.to_string()
         },
     )
     .build();
@@ -744,7 +726,6 @@ fn should_allow_minting_for_different_public_key_with_minting_mode_set_to_public
             ARG_KEY_NAME => Some(OWNED_TOKENS_DICTIONARY_KEY.to_string()),
             ARG_TOKEN_OWNER => Key::Account(account_1_public_key.to_account_hash()),
             ARG_TOKEN_META_DATA => TEST_PRETTY_721_META_DATA.to_string(),
-            ARG_TOKEN_URI => TEST_URI.to_string()
         },
     )
     .build();
@@ -773,7 +754,6 @@ fn should_set_approval_for_all() {
             ARG_KEY_NAME => Some(OWNED_TOKENS_DICTIONARY_KEY.to_string()),
             ARG_TOKEN_OWNER => Key::Account(*DEFAULT_ACCOUNT_ADDR),
             ARG_TOKEN_META_DATA => TEST_PRETTY_721_META_DATA.to_string(),
-            ARG_TOKEN_URI => TEST_URI.to_string()
         },
     )
     .build();
@@ -787,7 +767,6 @@ fn should_set_approval_for_all() {
             ARG_KEY_NAME => Some(OWNED_TOKENS_DICTIONARY_KEY.to_string()),
             ARG_TOKEN_OWNER => Key::Account(*DEFAULT_ACCOUNT_ADDR),
             ARG_TOKEN_META_DATA => TEST_PRETTY_721_META_DATA.to_string(),
-            ARG_TOKEN_URI => TEST_URI.to_string()
         },
     )
     .build();
@@ -895,7 +874,6 @@ fn should_allow_whitelisted_contract_to_mint() {
         ARG_NFT_CONTRACT_HASH => nft_contract_key,
         ARG_TOKEN_OWNER => Key::Account(*DEFAULT_ACCOUNT_ADDR),
         ARG_TOKEN_META_DATA => TEST_PRETTY_721_META_DATA.to_string(),
-        ARG_TOKEN_URI => TEST_URI.to_string()
     };
 
     let mint_via_contract_call = ExecuteRequestBuilder::contract_call_by_hash(
@@ -962,7 +940,6 @@ fn should_disallow_unlisted_contract_from_minting() {
         ARG_NFT_CONTRACT_HASH => nft_contract_key,
         ARG_TOKEN_OWNER => Key::Account(*DEFAULT_ACCOUNT_ADDR),
         ARG_TOKEN_META_DATA => TEST_PRETTY_721_META_DATA.to_string(),
-        ARG_TOKEN_URI => TEST_URI.to_string()
     };
 
     let mint_via_contract_call = ExecuteRequestBuilder::contract_call_by_hash(
@@ -1027,7 +1004,6 @@ fn should_be_able_to_update_whitelist_for_minting() {
         ARG_NFT_CONTRACT_HASH => nft_contract_key,
         ARG_TOKEN_OWNER => Key::Account(*DEFAULT_ACCOUNT_ADDR),
         ARG_TOKEN_META_DATA => TEST_PRETTY_721_META_DATA.to_string(),
-        ARG_TOKEN_URI => TEST_URI.to_string()
     };
 
     let mint_via_contract_call = ExecuteRequestBuilder::contract_call_by_hash(
@@ -1107,7 +1083,6 @@ fn should_not_mint_with_invalid_nft721_metadata() {
             ARG_KEY_NAME => Some(OWNED_TOKENS_DICTIONARY_KEY.to_string()),
             ARG_TOKEN_OWNER => Key::Account(*DEFAULT_ACCOUNT_ADDR),
             ARG_TOKEN_META_DATA => MALFORMED_META_DATA,
-            ARG_TOKEN_URI => TEST_URI.to_string()
         },
     )
     .build();
@@ -1147,7 +1122,6 @@ fn should_mint_with_compactified_metadata() {
             ARG_KEY_NAME => Some(OWNED_TOKENS_DICTIONARY_KEY.to_string()),
             ARG_TOKEN_OWNER => Key::Account(*DEFAULT_ACCOUNT_ADDR),
             ARG_TOKEN_META_DATA => TEST_COMPACT_META_DATA,
-            ARG_TOKEN_URI => TEST_URI.to_string()
         },
     )
     .build();
@@ -1171,7 +1145,7 @@ fn should_mint_with_valid_cep99_metadata() {
 
     let install_request = InstallerRequestBuilder::new(*DEFAULT_ACCOUNT_ADDR, NFT_CONTRACT_WASM)
         .with_total_token_supply(2u64)
-        .with_nft_metadata_kind(NFTMetadataKind::CEP99)
+        .with_nft_metadata_kind(NFTMetadataKind::CEP78)
         .build();
 
     builder.exec(install_request).expect_success().commit();
@@ -1186,7 +1160,6 @@ fn should_mint_with_valid_cep99_metadata() {
             ARG_KEY_NAME => Some(OWNED_TOKENS_DICTIONARY_KEY.to_string()),
             ARG_TOKEN_OWNER => Key::Account(*DEFAULT_ACCOUNT_ADDR),
             ARG_TOKEN_META_DATA => TEST_PRETTY_CEP78_METADATA,
-            ARG_TOKEN_URI => TEST_URI.to_string()
         },
     )
     .build();
@@ -1232,7 +1205,6 @@ fn should_mint_with_custom_metadata_validation() {
             ARG_KEY_NAME => Some(OWNED_TOKENS_DICTIONARY_KEY.to_string()),
             ARG_TOKEN_OWNER => Key::Account(*DEFAULT_ACCOUNT_ADDR),
             ARG_TOKEN_META_DATA => custom_metadata ,
-            ARG_TOKEN_URI => TEST_URI.to_string()
         },
     )
     .build();
@@ -1297,6 +1269,7 @@ fn should_mint_with_hash_identifier_mode() {
 
     let install_request = InstallerRequestBuilder::new(*DEFAULT_ACCOUNT_ADDR, NFT_CONTRACT_WASM)
         .with_identifier_mode(NFTIdentifierMode::Hash)
+        .with_metadata_mutability(MetadataMutability::Immutable)
         .with_total_token_supply(10u64)
         .build();
 
@@ -1311,7 +1284,6 @@ fn should_mint_with_hash_identifier_mode() {
             ARG_NFT_CONTRACT_HASH => nft_contract_key,
             ARG_TOKEN_OWNER => Key::Account(*DEFAULT_ACCOUNT_ADDR),
             ARG_TOKEN_META_DATA => TEST_PRETTY_721_META_DATA ,
-            ARG_TOKEN_URI => TEST_URI.to_string()
         },
     )
     .build();

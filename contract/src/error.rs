@@ -30,7 +30,7 @@ pub enum NFTCoreError {
     MissingTotalTokenSupply = 25,
     InvalidTotalTokenSupply = 26,
     MissingTokenID = 27,
-    InvalidTokenID = 28,
+    InvalidTokenIdentifier = 28,
     MissingTokenOwners = 29,
     MissingAccountHash = 30,
     InvalidAccountHash = 31,
@@ -106,6 +106,7 @@ pub enum NFTCoreError {
     MissingMetadataMutability = 101,
     InvalidMetadataMutability = 102,
     FailedToJsonifyCustomMetadata = 103,
+    ForbiddenMetadataUpdate = 104,
 }
 
 impl From<NFTCoreError> for ApiError {

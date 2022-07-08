@@ -5,9 +5,15 @@ use alloc::{
     vec,
     vec::Vec,
 };
+use core::{
+    convert::{TryFrom, TryInto},
+    mem::MaybeUninit,
+};
+
+use serde::{Deserialize, Serialize};
 
 use casper_contract::{
-    contract_api::{self, runtime, runtime::revert, storage},
+    contract_api::{self, runtime, storage},
     ext_ffi,
     unwrap_or_revert::UnwrapOrRevert,
 };
@@ -15,14 +21,9 @@ use casper_types::{
     account::AccountHash,
     api_error,
     bytesrepr::{self, Error, FromBytes, ToBytes},
+    system::CallStackElement,
     ApiError, CLType, CLTyped, ContractHash, Key, URef,
 };
-use core::convert::TryFrom;
-
-use casper_types::system::CallStackElement;
-use core::{convert::TryInto, mem::MaybeUninit};
-
-use serde::{Deserialize, Serialize};
 
 use crate::{
     constants::OWNERSHIP_MODE, error::NFTCoreError, ARG_JSON_SCHEMA, ARG_TOKEN_HASH, ARG_TOKEN_ID,
@@ -197,6 +198,24 @@ impl TryFrom<u8> for NFTIdentifierMode {
     }
 }
 
+#[repr(u8)]
+pub enum MetadataMutability {
+    Immutable = 0,
+    Mutable = 1,
+}
+
+impl TryFrom<u8> for MetadataMutability {
+    type Error = NFTCoreError;
+
+    fn try_from(value: u8) -> Result<Self, Self::Error> {
+        match value {
+            0 => Ok(MetadataMutability::Immutable),
+            1 => Ok(MetadataMutability::Mutable),
+            _ => Err(NFTCoreError::InvalidMetadataMutability),
+        }
+    }
+}
+
 pub(crate) fn get_ownership_mode() -> Result<OwnershipMode, NFTCoreError> {
     get_stored_value_with_user_errors::<u8>(
         OWNERSHIP_MODE,
@@ -219,7 +238,7 @@ pub(crate) fn get_owned_tokens_dictionary_item_key(token_owner_key: Key) -> Stri
     match token_owner_key {
         Key::Account(token_owner_account_hash) => token_owner_account_hash.to_string(),
         Key::Hash(token_owner_hash_addr) => ContractHash::new(token_owner_hash_addr).to_string(),
-        _ => revert(NFTCoreError::InvalidKey),
+        _ => runtime::revert(NFTCoreError::InvalidKey),
     }
 }
 
@@ -488,14 +507,14 @@ pub(crate) fn get_token_identifier_from_runtime_args(
         NFTIdentifierMode::Ordinal => get_named_arg_with_user_errors::<u64>(
             ARG_TOKEN_ID,
             NFTCoreError::MissingTokenID,
-            NFTCoreError::InvalidTokenID,
+            NFTCoreError::InvalidTokenIdentifier,
         )
         .map(TokenIdentifier::new_index)
         .unwrap_or_revert(),
         NFTIdentifierMode::Hash => get_named_arg_with_user_errors::<String>(
             ARG_TOKEN_HASH,
             NFTCoreError::MissingTokenID,
-            NFTCoreError::InvalidTokenID,
+            NFTCoreError::InvalidTokenIdentifier,
         )
         .map(TokenIdentifier::new_hash)
         .unwrap_or_revert(),
@@ -747,17 +766,17 @@ pub(crate) fn validate_metadata(
 
             if let Some(name_property) = token_schema.properties.get("name") {
                 if name_property.required && metadata.name.is_empty() {
-                    revert(NFTCoreError::InvalidCEP99Metadata)
+                    runtime::revert(NFTCoreError::InvalidCEP99Metadata)
                 }
             }
             if let Some(token_uri_property) = token_schema.properties.get("token_uri") {
                 if token_uri_property.required && metadata.token_uri.is_empty() {
-                    revert(NFTCoreError::InvalidCEP99Metadata)
+                    runtime::revert(NFTCoreError::InvalidCEP99Metadata)
                 }
             }
             if let Some(checksum_property) = token_schema.properties.get("checksum") {
                 if checksum_property.required && metadata.checksum.is_empty() {
-                    revert(NFTCoreError::InvalidCEP99Metadata)
+                    runtime::revert(NFTCoreError::InvalidCEP99Metadata)
                 }
             }
             casper_serde_json_wasm::to_string_pretty(&metadata)
@@ -769,17 +788,17 @@ pub(crate) fn validate_metadata(
 
             if let Some(name_property) = token_schema.properties.get("name") {
                 if name_property.required && metadata.name.is_empty() {
-                    revert(NFTCoreError::InvalidNFT721Metadata)
+                    runtime::revert(NFTCoreError::InvalidNFT721Metadata)
                 }
             }
             if let Some(token_uri_property) = token_schema.properties.get("token_uri") {
                 if token_uri_property.required && metadata.token_uri.is_empty() {
-                    revert(NFTCoreError::InvalidNFT721Metadata)
+                    runtime::revert(NFTCoreError::InvalidNFT721Metadata)
                 }
             }
             if let Some(symbol_property) = token_schema.properties.get("symbol") {
                 if symbol_property.required && metadata.symbol.is_empty() {
-                    revert(NFTCoreError::InvalidNFT721Metadata)
+                    runtime::revert(NFTCoreError::InvalidNFT721Metadata)
                 }
             }
             casper_serde_json_wasm::to_string_pretty(&metadata)
@@ -795,7 +814,7 @@ pub(crate) fn validate_metadata(
             for (property_name, property_type) in token_schema.properties.iter() {
                 if property_type.required && custom_metadata.attributes.get(property_name).is_none()
                 {
-                    revert(NFTCoreError::InvalidCustomMetadata)
+                    runtime::revert(NFTCoreError::InvalidCustomMetadata)
                 }
             }
             casper_serde_json_wasm::to_string_pretty(&custom_metadata.attributes)
