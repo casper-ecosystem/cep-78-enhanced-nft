@@ -1562,7 +1562,7 @@ pub extern "C" fn call() {
 
     // Represents the modes in which NFTs can be minted, i.e whether a singular known
     // entity v. users interacting with the contract. Refer to the `MintingMode`
-    // enum in the `src/utils.rs` file for details.
+    // enum in the `src/modalities.rs` file for details.
     // This value cannot be changed after installation.
     let minting_mode: u8 = utils::get_optional_named_arg_with_user_errors(
         ARG_MINTING_MODE,
@@ -1572,7 +1572,7 @@ pub extern "C" fn call() {
 
     // Represents the ownership model of the NFTs that will be minted
     // over the lifetime of the contract. Refer to the enum `OwnershipMode`
-    // in the `src/utils.rs` file for details.
+    // in the `src/modalities.rs` file for details.
     // This value cannot be changed after installation.
     let ownership_mode: u8 = utils::get_named_arg_with_user_errors(
         ARG_OWNERSHIP_MODE,
@@ -1584,7 +1584,7 @@ pub extern "C" fn call() {
     // Represents the type of NFT (i.e something physical/digital)
     // which will be minted over the lifetime of the contract.
     // Refer to the enum `NFTKind`
-    // in the `src/utils.rs` file for details.
+    // in the `src/modalities.rs` file for details.
     // This value cannot be changed after installation.
     let nft_kind: u8 = utils::get_named_arg_with_user_errors(
         ARG_NFT_KIND,
@@ -1595,7 +1595,7 @@ pub extern "C" fn call() {
 
     // Represents whether Accounts or Contracts, or both can hold NFTs for
     // a given contract instance. Refer to the enum `NFTHolderMode`
-    // in the `src/utils.rs` file for details.
+    // in the `src/modalities.rs` file for details.
     // This value cannot be changed after installation
     let holder_mode: u8 = utils::get_optional_named_arg_with_user_errors(
         ARG_HOLDER_MODE,
@@ -1644,7 +1644,8 @@ pub extern "C" fn call() {
 
     // Represents whether NFTs minted by a given contract will be identified
     // by an ordinal u64 index or a base16 encoded SHA256 hash of an NFTs metadata.
-    // This value cannot be changed after installation.
+    // This value cannot be changed after installation. Refer to `NFTIdentifierMode` in
+    // `src/modalities.rs` for further details.
     let identifier_mode: u8 = utils::get_named_arg_with_user_errors(
         ARG_IDENTIFIER_MODE,
         NFTCoreError::MissingIdentifierMode,
@@ -1653,7 +1654,8 @@ pub extern "C" fn call() {
     .unwrap_or_revert();
 
     // Represents whether the metadata related to NFTs can be updated.
-    // This value cannot be changed after installation.
+    // This value cannot be changed after installation. Refer to `MetadataMutability` in
+    // `src/modalities.rs` for further details.
     let metadata_mutability: u8 = utils::get_named_arg_with_user_errors(
         ARG_METADATA_MUTABILITY,
         NFTCoreError::MissingMetadataMutability,
@@ -1665,6 +1667,9 @@ pub extern "C" fn call() {
         runtime::revert(NFTCoreError::InvalidMetadataMutability)
     }
 
+    // Represents whether the minted tokens can be burnt.
+    // This value cannot be changed post installation. Refer to `BurnMode` in
+    // `src/modalities.rs` for further details.
     let burn_mode: u8 = utils::get_optional_named_arg_with_user_errors(
         ARG_BURN_MODE,
         NFTCoreError::InvalidBurnMode,
