@@ -12,7 +12,7 @@ use crate::utility::{
         OWNED_TOKENS_DICTIONARY_KEY, TEST_PRETTY_721_META_DATA, TOKEN_COUNTS,
     },
     installer_request_builder::{
-        InstallerRequestBuilder, MintingMode, NFTHolderMode, OwnershipMode, WhitelistMode,
+        BurnMode, InstallerRequestBuilder, MintingMode, NFTHolderMode, OwnershipMode, WhitelistMode,
     },
     support::{
         self, get_dictionary_value_from_key, get_minting_contract_hash, get_nft_contract_hash,
@@ -477,4 +477,59 @@ fn should_allow_contract_to_burn_token() {
     );
 
     assert_eq!(updated_token_balance, 0u64)
+}
+
+#[test]
+fn should_not_burn_in_non_burn_mode() {
+    let mut builder = InMemoryWasmTestBuilder::default();
+    builder.run_genesis(&DEFAULT_RUN_GENESIS_REQUEST).commit();
+
+    let install_request = InstallerRequestBuilder::new(*DEFAULT_ACCOUNT_ADDR, NFT_CONTRACT_WASM)
+        .with_total_token_supply(100u64)
+        .with_ownership_mode(OwnershipMode::Transferable)
+        .with_burn_mode(BurnMode::NonBurnable)
+        .build();
+
+    builder.exec(install_request).expect_success().commit();
+
+    let nft_contract_key: Key = get_nft_contract_hash(&builder).into();
+    let burn_mode: u8 = builder
+        .query(None, nft_contract_key, &["burn_mode".to_string()])
+        .unwrap()
+        .as_cl_value()
+        .unwrap()
+        .to_owned()
+        .into_t::<u8>()
+        .unwrap();
+
+    assert_eq!(burn_mode, BurnMode::NonBurnable as u8);
+
+    let mint_session_call = ExecuteRequestBuilder::standard(
+        *DEFAULT_ACCOUNT_ADDR,
+        MINT_SESSION_WASM,
+        runtime_args! {
+            ARG_NFT_CONTRACT_HASH => nft_contract_key,
+            ARG_KEY_NAME => Some(OWNED_TOKENS_DICTIONARY_KEY.to_string()),
+            ARG_TOKEN_OWNER => Key::Account(*DEFAULT_ACCOUNT_ADDR),
+            ARG_TOKEN_META_DATA => TEST_PRETTY_721_META_DATA.to_string(),
+        },
+    )
+    .build();
+
+    builder.exec(mint_session_call).expect_success().commit();
+
+    let token_id = 0u64;
+    let burn_request = ExecuteRequestBuilder::contract_call_by_name(
+        *DEFAULT_ACCOUNT_ADDR,
+        CONTRACT_NAME,
+        ENTRY_POINT_BURN,
+        runtime_args! {
+            ARG_TOKEN_ID => token_id,
+        },
+    )
+    .build();
+    builder.exec(burn_request).expect_failure();
+
+    let error = builder.get_error().expect("burn must have failed");
+    support::assert_expected_error(error, 106, "InvalidBurnMode(106) must have been raised");
 }

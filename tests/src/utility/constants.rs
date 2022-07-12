@@ -36,6 +36,7 @@ pub(crate) const ARG_APPROVE_ALL: &str = "approve_all";
 pub(crate) const ARG_NFT_METADATA_KIND: &str = "nft_metadata_kind";
 pub(crate) const ARG_IDENTIFIER_MODE: &str = "identifier_mode";
 pub(crate) const ARG_METADATA_MUTABILITY: &str = "metadata_mutability";
+pub(crate) const ARG_BURN_MODE: &str = "burn_mode";
 pub(crate) const TOKEN_ISSUERS: &str = "token_issuers";
 pub(crate) const ARG_OWNERSHIP_MODE: &str = "ownership_mode";
 pub(crate) const ARG_NFT_KIND: &str = "nft_kind";
