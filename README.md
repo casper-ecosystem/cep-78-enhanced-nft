@@ -81,7 +81,8 @@ If the `NFTHolderMode` is set to `Contracts` a whitelist of `ContractHash` must 
 | Contracts     | 1   |
 | Mixed         | 2   |
 
-The `NFTHolderMode` mode is a required installation parameter and cannot be changed once the contract has been installed.
+This modality is an optional installation parameter and will default to the `Mixed` mode if not provided. However, this
+mode cannot be changed once the contract has been installed.
 The mode is passed in as a `u8` value to `nft_holder_mode` runtime argument.
 
 
@@ -220,6 +221,21 @@ It is passed in as a `u8` value to the `metadata_mutability` runtime argument.
 | Immutable          | 0   |
 | Mutable            | 1   |
 
+#### BurnMode
+
+The `BurnMode` modaliity dictates whether tokens minted by a given instance of an NFT contract can be burnt. This modality
+provides two options:
+
+1. `Burnable`: Minted tokens can be burnt.
+2. `NonBurnable`: Minted tokens cannot be burnt.
+
+| BurnMode    | u8  |
+|-------------|-----|
+| Burnable    | 0   |
+| NonBurnable | 1   |
+
+This modality is an optional installation parameter and will default to the `Burnable` mode if not provided. However, this
+mode cannot be changed once the contract has been installed. The mode is set by passing a `u8` value to the `burn_mode` runtime argument.
 
 #### Modality Conflicts
 
@@ -250,8 +266,9 @@ The following are the optional parameters that can be passed in at the time of i
 * `"minting_mode"`: The [`MintingMode`](#minting) modality that dictates the access to the `mint()` entry-point in the NFT contract. This is an optional parameter that will default to restricting access to the installer of the contract. This parameter cannot be changed once the contract has been installed.
 * `"allow_minting"`: The `"allow_minting"` flag that allows the installer of the contract to pause the minting of new NFTs. The `allow_minting` is a boolean toggle which allows minting when `true`. If not provided at install the toggle will default to `true`. This value can be changed by the installer by calling the `set_variables()` entrypoint.
 * `"whitelist_mode"`: The [`WhitelistMode`](#whitelistmode) modality dictates whether the contract whitelist can be updated. This is an optional parameter that will default to a unlocked whitelist which can be updated post installation. This parameter cannot be changed once the contract has been installed.
+* `"holder_mode"`: The [`NFTHolderMode`](#nftholdermode) modality dictates which entities can hold NFTs. This is an optional parameter and will default to a mixed mode allowing either `Accounts` or `Contracts` to hold NFTs. This parameter cannot be changed once the contract has been installed.
 * `"contract_whitelist"`: The contract whitelist is a list of contract hashes that specifies which contracts can call the `mint()` entrypoint to mint NFTs. This is an optional parameter which will default to an empty whitelist. This value can be changed via the `set_variables` post installation. If the whitelist mode is set to locked, a non-empty whitelist must be passed, else, installation of the contract will fail.
-
+* `"burn_mode"`: The [`BurnMode`](#burnmode) modality dictates whether minted NFTs can be burnt. This is an optional parameter and will allow tokens to be burnt by default. This parameter cannot be changed once the contract has been installed.
 
 ##### Example deploy
 

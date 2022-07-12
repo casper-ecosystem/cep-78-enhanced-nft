@@ -59,7 +59,6 @@ use crate::{
         BurnMode, MetadataMutability, MintingMode, NFTHolderMode, NFTIdentifierMode, NFTKind,
         NFTMetadataKind, OwnershipMode, TokenIdentifier, WhitelistMode,
     },
-    utils::get_burn_mode,
 };
 
 #[no_mangle]
@@ -626,7 +625,7 @@ pub extern "C" fn mint() {
 // Marks token as burnt. This blocks and future call to transfer token.
 #[no_mangle]
 pub extern "C" fn burn() {
-    if let BurnMode::NonBurnable = get_burn_mode() {
+    if let BurnMode::NonBurnable = utils::get_burn_mode() {
         runtime::revert(NFTCoreError::InvalidBurnMode)
     }
 
@@ -638,22 +637,7 @@ pub extern "C" fn burn() {
     .try_into()
     .unwrap_or_revert();
 
-    let token_identifier = match identifier_mode {
-        NFTIdentifierMode::Ordinal => utils::get_named_arg_with_user_errors::<u64>(
-            ARG_TOKEN_ID,
-            NFTCoreError::MissingTokenID,
-            NFTCoreError::InvalidTokenIdentifier,
-        )
-        .map(TokenIdentifier::new_index)
-        .unwrap_or_revert(),
-        NFTIdentifierMode::Hash => utils::get_named_arg_with_user_errors::<String>(
-            ARG_TOKEN_HASH,
-            NFTCoreError::MissingTokenID,
-            NFTCoreError::InvalidTokenIdentifier,
-        )
-        .map(TokenIdentifier::new_hash)
-        .unwrap_or_revert(),
-    };
+    let token_identifier = utils::get_token_identifier_from_runtime_args(&identifier_mode);
 
     let expected_token_owner: Key = utils::get_verified_caller().unwrap_or_revert();
 
