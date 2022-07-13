@@ -851,6 +851,15 @@ pub extern "C" fn set_approval_for_all() {
     if let Some(owned_tokens) = maybe_owned_tokens {
         // Depending on approve_all we either approve all or disapprove all.
         for token_id in owned_tokens {
+            // We assume a burnt token cannot be approved
+            if utils::get_dictionary_value_from_key::<()>(
+                BURNT_TOKENS,
+                &token_id.get_dictionary_item_key(),
+            )
+            .is_some()
+            {
+                runtime::revert(NFTCoreError::PreviouslyBurntToken);
+            }
             if approve_all {
                 storage::dictionary_put(
                     approved_uref,
@@ -1427,7 +1436,10 @@ fn install_nft_contract() -> (ContractHash, ContractVersion) {
 
         let set_approval_for_all = EntryPoint::new(
             ENTRY_POINT_SET_APPROVE_FOR_ALL,
-            vec![Parameter::new(ARG_TOKEN_OWNER, CLType::Key)],
+            vec![
+                Parameter::new(ARG_TOKEN_OWNER, CLType::Key),
+                Parameter::new(ARG_APPROVE_ALL, CLType::Bool),
+            ],
             CLType::Unit,
             EntryPointAccess::Public,
             EntryPointType::Contract,
