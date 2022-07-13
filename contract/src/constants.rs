@@ -16,12 +16,12 @@ pub const ARG_HOLDER_MODE: &str = "holder_mode";
 pub const ARG_WHITELIST_MODE: &str = "whitelist_mode";
 pub const ARG_NFT_KIND: &str = "nft_kind";
 pub const ARG_JSON_SCHEMA: &str = "json_schema";
-
 pub const ARG_RECEIPT_NAME: &str = "receipt_name";
 pub const ARG_CONTRACT_WHITELIST: &str = "contract_whitelist";
 pub const ARG_NFT_METADATA_KIND: &str = "nft_metadata_kind";
 pub const ARG_IDENTIFIER_MODE: &str = "identifier_mode";
 pub const ARG_METADATA_MUTABILITY: &str = "metadata_mutability";
+pub const ARG_BURN_MODE: &str = "burn_mode";
 
 pub const OPERATOR: &str = "operator";
 pub const NUMBER_OF_MINTED_TOKENS: &str = "number_of_minted_tokens";
@@ -50,6 +50,7 @@ pub const CONTRACT_WHITELIST: &str = "contract_whitelist";
 pub const RECEIPT_NAME: &str = "receipt_name";
 pub const NFT_METADATA_KIND: &str = "nft_metadata_kind";
 pub const IDENTIFIER_MODE: &str = "identifier_mode";
+pub const BURN_MODE: &str = "burn_mode";
 pub const METADATA_MUTABILITY: &str = "metadata_mutability";
 pub const METADATA_CUSTOM_VALIDATED: &str = "metadata_custom_validated";
 pub const METADATA_CEP78: &str = "metadata_cep78";

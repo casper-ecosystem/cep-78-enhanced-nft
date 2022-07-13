@@ -10,13 +10,12 @@ use casper_types::{runtime_args, system::mint, ContractHash, Key, RuntimeArgs};
 use crate::utility::{
     constants::{
         ACCOUNT_USER_1, ACCOUNT_USER_2, ARG_APPROVE_ALL, ARG_CONTRACT_WHITELIST,
-        ARG_IS_HASH_IDENTIFIER_MODE, ARG_KEY_NAME, ARG_MINTING_MODE, ARG_NFT_CONTRACT_HASH,
-        ARG_OPERATOR, ARG_TOKEN_ID, ARG_TOKEN_META_DATA, ARG_TOKEN_OWNER, BALANCES,
-        BALANCE_OF_SESSION_WASM, CONTRACT_NAME, ENTRY_POINT_APPROVE, ENTRY_POINT_MINT,
-        ENTRY_POINT_SET_APPROVE_FOR_ALL, ENTRY_POINT_SET_VARIABLES, MALFORMED_META_DATA,
-        METADATA_CEP78, METADATA_CUSTOM_VALIDATED, METADATA_NFT721, METADATA_RAW,
-        MINTING_CONTRACT_WASM, MINT_SESSION_WASM, NFT_CONTRACT_WASM, NUMBER_OF_MINTED_TOKENS,
-        OWNED_TOKENS, OWNED_TOKENS_DICTIONARY_KEY, RECEIPT_NAME, TEST_COMPACT_META_DATA,
+        ARG_IS_HASH_IDENTIFIER_MODE, ARG_MINTING_MODE, ARG_NFT_CONTRACT_HASH, ARG_OPERATOR,
+        ARG_TOKEN_ID, ARG_TOKEN_META_DATA, ARG_TOKEN_OWNER, BALANCES, BALANCE_OF_SESSION_WASM,
+        CONTRACT_NAME, ENTRY_POINT_APPROVE, ENTRY_POINT_MINT, ENTRY_POINT_SET_APPROVE_FOR_ALL,
+        ENTRY_POINT_SET_VARIABLES, MALFORMED_META_DATA, METADATA_CEP78, METADATA_CUSTOM_VALIDATED,
+        METADATA_NFT721, METADATA_RAW, MINTING_CONTRACT_WASM, MINT_SESSION_WASM, NFT_CONTRACT_WASM,
+        NUMBER_OF_MINTED_TOKENS, OWNED_TOKENS, RECEIPT_NAME, TEST_COMPACT_META_DATA,
         TEST_PRETTY_721_META_DATA, TEST_PRETTY_CEP78_METADATA, TOKEN_ISSUERS, TOKEN_OWNERS,
     },
     installer_request_builder::{
@@ -105,7 +104,6 @@ fn entry_points_with_ret_should_return_correct_value() {
         MINT_SESSION_WASM,
         runtime_args! {
             ARG_NFT_CONTRACT_HASH => nft_contract_key,
-            ARG_KEY_NAME => Some(OWNED_TOKENS_DICTIONARY_KEY.to_string()),
             ARG_TOKEN_OWNER => Key::Account(*DEFAULT_ACCOUNT_ADDR),
             ARG_TOKEN_META_DATA => TEST_PRETTY_721_META_DATA.to_string(),
         },
@@ -206,7 +204,7 @@ fn should_mint() {
         MINT_SESSION_WASM,
         runtime_args! {
             ARG_NFT_CONTRACT_HASH => nft_contract_key,
-            ARG_KEY_NAME => Some(OWNED_TOKENS_DICTIONARY_KEY.to_string()),
+
             ARG_TOKEN_OWNER => Key::Account(*DEFAULT_ACCOUNT_ADDR),
             ARG_TOKEN_META_DATA => TEST_PRETTY_CEP78_METADATA,
         },
@@ -309,7 +307,7 @@ fn mint_should_increment_number_of_minted_tokens_by_one_and_add_public_key_to_to
         MINT_SESSION_WASM,
         runtime_args! {
             ARG_NFT_CONTRACT_HASH => nft_contract_key,
-            ARG_KEY_NAME => Some(OWNED_TOKENS_DICTIONARY_KEY.to_string()),
+
             ARG_TOKEN_OWNER => Key::Account(*DEFAULT_ACCOUNT_ADDR),
             ARG_TOKEN_META_DATA => TEST_PRETTY_721_META_DATA.to_string(),
         },
@@ -374,7 +372,7 @@ fn mint_should_increment_number_of_minted_tokens_by_one_and_add_public_key_to_to
         MINT_SESSION_WASM,
         runtime_args! {
             ARG_NFT_CONTRACT_HASH => *nft_contract_key,
-            ARG_KEY_NAME => Some(OWNED_TOKENS_DICTIONARY_KEY.to_string()),
+
             ARG_TOKEN_OWNER => Key::Account(*DEFAULT_ACCOUNT_ADDR),
             ARG_TOKEN_META_DATA => TEST_PRETTY_721_META_DATA.to_string(),
         },
@@ -403,7 +401,7 @@ fn should_set_meta_data() {
         MINT_SESSION_WASM,
         runtime_args! {
             ARG_NFT_CONTRACT_HASH => nft_contract_key,
-            ARG_KEY_NAME => Some(OWNED_TOKENS_DICTIONARY_KEY.to_string()),
+
             ARG_TOKEN_OWNER => Key::Account(*DEFAULT_ACCOUNT_ADDR),
             ARG_TOKEN_META_DATA => TEST_PRETTY_721_META_DATA.to_string(),
         },
@@ -448,7 +446,7 @@ fn should_set_issuer() {
         MINT_SESSION_WASM,
         runtime_args! {
             ARG_NFT_CONTRACT_HASH => nft_contract_key,
-            ARG_KEY_NAME => Some(OWNED_TOKENS_DICTIONARY_KEY.to_string()),
+
             ARG_TOKEN_OWNER => Key::Account(*DEFAULT_ACCOUNT_ADDR),
             ARG_TOKEN_META_DATA => TEST_PRETTY_721_META_DATA.to_string(),
         },
@@ -495,7 +493,7 @@ fn should_track_token_balance_by_owner() {
         MINT_SESSION_WASM,
         runtime_args! {
             ARG_NFT_CONTRACT_HASH => nft_contract_key,
-            ARG_KEY_NAME => Some(OWNED_TOKENS_DICTIONARY_KEY.to_string()),
+
             ARG_TOKEN_OWNER => Key::Account(*DEFAULT_ACCOUNT_ADDR),
             ARG_TOKEN_META_DATA => TEST_PRETTY_721_META_DATA.to_string(),
         },
@@ -576,7 +574,7 @@ fn should_allow_public_minting_with_flag_set_to_true() {
         MINT_SESSION_WASM,
         runtime_args! {
             ARG_NFT_CONTRACT_HASH => nft_contract_key,
-            ARG_KEY_NAME => Some(OWNED_TOKENS_DICTIONARY_KEY.to_string()),
+
             ARG_TOKEN_OWNER => Key::Account(account_1_public_key.to_account_hash()),
             ARG_TOKEN_META_DATA => TEST_PRETTY_721_META_DATA.to_string(),
         },
@@ -723,7 +721,6 @@ fn should_allow_minting_for_different_public_key_with_minting_mode_set_to_public
         MINT_SESSION_WASM,
         runtime_args! {
             ARG_NFT_CONTRACT_HASH => nft_contract_key,
-            ARG_KEY_NAME => Some(OWNED_TOKENS_DICTIONARY_KEY.to_string()),
             ARG_TOKEN_OWNER => Key::Account(account_1_public_key.to_account_hash()),
             ARG_TOKEN_META_DATA => TEST_PRETTY_721_META_DATA.to_string(),
         },
@@ -751,7 +748,6 @@ fn should_set_approval_for_all() {
         MINT_SESSION_WASM,
         runtime_args! {
             ARG_NFT_CONTRACT_HASH => nft_contract_key,
-            ARG_KEY_NAME => Some(OWNED_TOKENS_DICTIONARY_KEY.to_string()),
             ARG_TOKEN_OWNER => Key::Account(*DEFAULT_ACCOUNT_ADDR),
             ARG_TOKEN_META_DATA => TEST_PRETTY_721_META_DATA.to_string(),
         },
@@ -764,7 +760,6 @@ fn should_set_approval_for_all() {
         MINT_SESSION_WASM,
         runtime_args! {
             ARG_NFT_CONTRACT_HASH => nft_contract_key,
-            ARG_KEY_NAME => Some(OWNED_TOKENS_DICTIONARY_KEY.to_string()),
             ARG_TOKEN_OWNER => Key::Account(*DEFAULT_ACCOUNT_ADDR),
             ARG_TOKEN_META_DATA => TEST_PRETTY_721_META_DATA.to_string(),
         },
@@ -1080,7 +1075,7 @@ fn should_not_mint_with_invalid_nft721_metadata() {
         MINT_SESSION_WASM,
         runtime_args! {
             ARG_NFT_CONTRACT_HASH => nft_contract_key,
-            ARG_KEY_NAME => Some(OWNED_TOKENS_DICTIONARY_KEY.to_string()),
+
             ARG_TOKEN_OWNER => Key::Account(*DEFAULT_ACCOUNT_ADDR),
             ARG_TOKEN_META_DATA => MALFORMED_META_DATA,
         },
@@ -1119,7 +1114,7 @@ fn should_mint_with_compactified_metadata() {
         MINT_SESSION_WASM,
         runtime_args! {
             ARG_NFT_CONTRACT_HASH => nft_contract_key,
-            ARG_KEY_NAME => Some(OWNED_TOKENS_DICTIONARY_KEY.to_string()),
+
             ARG_TOKEN_OWNER => Key::Account(*DEFAULT_ACCOUNT_ADDR),
             ARG_TOKEN_META_DATA => TEST_COMPACT_META_DATA,
         },
@@ -1157,7 +1152,6 @@ fn should_mint_with_valid_cep99_metadata() {
         MINT_SESSION_WASM,
         runtime_args! {
             ARG_NFT_CONTRACT_HASH => nft_contract_key,
-            ARG_KEY_NAME => Some(OWNED_TOKENS_DICTIONARY_KEY.to_string()),
             ARG_TOKEN_OWNER => Key::Account(*DEFAULT_ACCOUNT_ADDR),
             ARG_TOKEN_META_DATA => TEST_PRETTY_CEP78_METADATA,
         },
@@ -1202,7 +1196,7 @@ fn should_mint_with_custom_metadata_validation() {
         MINT_SESSION_WASM,
         runtime_args! {
             ARG_NFT_CONTRACT_HASH => nft_contract_key,
-            ARG_KEY_NAME => Some(OWNED_TOKENS_DICTIONARY_KEY.to_string()),
+
             ARG_TOKEN_OWNER => Key::Account(*DEFAULT_ACCOUNT_ADDR),
             ARG_TOKEN_META_DATA => custom_metadata ,
         },
@@ -1243,7 +1237,7 @@ fn should_mint_with_raw_metadata() {
         MINT_SESSION_WASM,
         runtime_args! {
             ARG_NFT_CONTRACT_HASH => nft_contract_key,
-            ARG_KEY_NAME => Some(OWNED_TOKENS_DICTIONARY_KEY.to_string()),
+
             ARG_TOKEN_OWNER => Key::Account(*DEFAULT_ACCOUNT_ADDR),
             ARG_TOKEN_META_DATA => "raw_string".to_string() ,
         },
