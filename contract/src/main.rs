@@ -877,14 +877,14 @@ pub extern "C" fn transfer() {
         None => runtime::revert(NFTCoreError::InvalidTokenIdentifier),
     };
 
-    let from_token_owner_key = get_named_arg_with_user_errors::<Key>(
+    let source_key = get_named_arg_with_user_errors::<Key>(
         ARG_SOURCE_KEY,
         NFTCoreError::MissingAccountHash,
         NFTCoreError::InvalidAccountHash,
     )
     .unwrap_or_revert();
 
-    if from_token_owner_key != token_owner_key {
+    if source_key != token_owner_key {
         runtime::revert(NFTCoreError::InvalidAccount);
     }
 
@@ -912,7 +912,7 @@ pub extern "C" fn transfer() {
     .unwrap_or_revert();
 
     let target_owner_item_key = get_owned_tokens_dictionary_item_key(target_owner_key);
-    let from_owner_item_key = get_owned_tokens_dictionary_item_key(from_token_owner_key);
+    let source_owner_item_key = get_owned_tokens_dictionary_item_key(source_key);
 
     // Updated token_owners dictionary. Revert if token_owner not found.
     match get_dictionary_value_from_key::<Key>(
@@ -920,7 +920,7 @@ pub extern "C" fn transfer() {
         &token_identifier.get_dictionary_item_key(),
     ) {
         Some(token_actual_owner) => {
-            if token_actual_owner != from_token_owner_key {
+            if token_actual_owner != source_key {
                 runtime::revert(NFTCoreError::InvalidTokenOwner)
             }
             upsert_dictionary_value_from_key(
@@ -933,7 +933,7 @@ pub extern "C" fn transfer() {
     }
 
     // Update to_account owned_tokens. Revert if owned_tokens list is not found
-    match get_token_identifiers_from_dictionary(&identifier_mode, &from_owner_item_key) {
+    match get_token_identifiers_from_dictionary(&identifier_mode, &source_owner_item_key) {
         Some(mut owned_tokens) => {
             // Check that token_id is in owned tokens list. If so remove token_id from list
             // If not revert.
@@ -942,7 +942,7 @@ pub extern "C" fn transfer() {
             } else {
                 runtime::revert(NFTCoreError::InvalidTokenOwner)
             }
-            upsert_token_identifiers(&identifier_mode, &from_owner_item_key, owned_tokens)
+            upsert_token_identifiers(&identifier_mode, &source_owner_item_key, owned_tokens)
                 .unwrap_or_revert();
         }
         None => runtime::revert(NFTCoreError::InvalidTokenIdentifier),
@@ -950,7 +950,7 @@ pub extern "C" fn transfer() {
 
     // Update the from_account balance
     let updated_from_account_balance =
-        match get_dictionary_value_from_key::<u64>(TOKEN_COUNTS, &from_owner_item_key) {
+        match get_dictionary_value_from_key::<u64>(TOKEN_COUNTS, &source_owner_item_key) {
             Some(balance) => {
                 if balance > 0u64 {
                     balance - 1u64
@@ -966,7 +966,7 @@ pub extern "C" fn transfer() {
         };
     upsert_dictionary_value_from_key(
         TOKEN_COUNTS,
-        &from_owner_item_key,
+        &source_owner_item_key,
         updated_from_account_balance,
     );
 
@@ -1018,7 +1018,7 @@ pub extern "C" fn transfer() {
             NFTCoreError::MissingOwnedTokens,
             NFTCoreError::InvalidOwnedTokens,
         ),
-        target_owner_item_key.as_bytes(),
+        source_owner_item_key.as_bytes(),
     );
 
     let receipt_name = get_stored_value_with_user_errors::<String>(
@@ -1566,7 +1566,7 @@ pub extern "C" fn call() {
     // This value cannot be changed after installation
     let holder_mode: u8 =
         get_optional_named_arg_with_user_errors(ARG_HOLDER_MODE, NFTCoreError::InvalidHolderMode)
-            .unwrap_or_revert_with(NFTCoreError::InvalidHolderMode);
+            .unwrap_or(2u8);
 
     // Represents whether a given contract whitelist can be modified
     // for a given NFT contract instance. If not provided as an argument
