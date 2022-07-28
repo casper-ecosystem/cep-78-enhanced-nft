@@ -32,7 +32,7 @@ of the NFT can change over the lifetime of the contract. There are three modes:
 
 In all the three mentioned modes, the owner entity is currently restricted to `Accounts` on the Casper network. 
 
-**Note**: In the `Transferrable` mode, it is possible to transfer the NFT to an `Account` that does not exist.
+**Note**: In the `Transferable` mode, it is possible to transfer the NFT to an `Account` that does not exist.
 
 This `Ownership` mode is a required installation parameter and cannot be changed once the contract has been installed.
 The mode is passed in as `u8` value to the `"ownership_mode"` runtime argument. 
