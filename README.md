@@ -48,7 +48,7 @@ The ownership mode of a contract can be determined by querying the `ownership_mo
 #### NFTKind 
 
 The `NFTKind` modality specifies the commodity that NFTs minted by a particular contract will represent. Currently, the `NFTKind` modality does not alter or govern the behavior of the contract itself
-and only exists to specify the correlation between on-chain data and off-chain items. There are three different variatations of the `NFTKind` mode.
+and only exists to specify the correlation between on-chain data and off-chain items. There are three different variations of the `NFTKind` mode.
 
 1. `Physical`: The NFT represents a real-world physical item e.g a house.
 2. `Digital`: The NFT represents a digital item, e.g a unique JPEG or a digital art.
