@@ -5,7 +5,7 @@ Contract code that handles the `Mint`, `Transfer` and `Burn` entry points.
 ## Compiling contract code
 
 The contract code can be compiled to Wasm by running the `make build-contract` command provided in the Makefile at the top level.
-The Wasm will be found in the `client/mint_session/target/wasm32-unknown-unknown/release` as `minting_contract.wasm`.
+The Wasm will be found in the `client/minting_contract/target/wasm32-unknown-unknown/release` as `minting_contract.wasm`.
 
 ## Usage
 

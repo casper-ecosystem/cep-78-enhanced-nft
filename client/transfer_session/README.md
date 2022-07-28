@@ -5,7 +5,7 @@ Utility session code for interacting with the `transfer` entry point present on 
 ## Compiling session code
 
 The session code can be compiled to Wasm by running the `make build-contract` command provided in the Makefile at the top level.
-The Wasm will be found in the `client/mint_session/target/wasm32-unknown-unknown/release` as `transfer_call.wasm`.
+The Wasm will be found in the `client/transfer_session/target/wasm32-unknown-unknown/release` as `transfer_call.wasm`.
 
 ## Usage
 
