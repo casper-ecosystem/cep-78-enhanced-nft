@@ -32,7 +32,7 @@ of the NFT can change over the lifetime of the contract. There are three modes:
 
 In all the three mentioned modes, the owner entity is currently restricted to `Accounts` on the Casper network. 
 
-**Note**: In the `Transferrable` mode, it is possible to transfer the NFT to an `Account` that does not exist.
+**Note**: In the `Transferable` mode, it is possible to transfer the NFT to an `Account` that does not exist.
 
 This `Ownership` mode is a required installation parameter and cannot be changed once the contract has been installed.
 The mode is passed in as `u8` value to the `"ownership_mode"` runtime argument. 
@@ -48,7 +48,7 @@ The ownership mode of a contract can be determined by querying the `ownership_mo
 #### NFTKind 
 
 The `NFTKind` modality specifies the commodity that NFTs minted by a particular contract will represent. Currently, the `NFTKind` modality does not alter or govern the behavior of the contract itself
-and only exists to specify the correlation between on-chain data and off-chain items. There are three different variatations of the `NFTKind` mode.
+and only exists to specify the correlation between on-chain data and off-chain items. There are three different variations of the `NFTKind` mode.
 
 1. `Physical`: The NFT represents a real-world physical item e.g a house.
 2. `Digital`: The NFT represents a digital item, e.g a unique JPEG or a digital art.
