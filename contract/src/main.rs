@@ -580,7 +580,7 @@ pub extern "C" fn mint() {
     runtime::ret(receipt)
 }
 
-// Marks token as burnt. This blocks and future call to transfer token.
+// Marks token as burnt. This blocks any future call to transfer token.
 #[no_mangle]
 pub extern "C" fn burn() {
     let identifier_mode: NFTIdentifierMode = get_stored_value_with_user_errors::<u8>(
