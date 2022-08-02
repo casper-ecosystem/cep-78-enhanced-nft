@@ -8,14 +8,15 @@ use casper_types::{
 
 use crate::utility::{
     constants::{
-        ACCOUNT_USER_1, ARG_APPROVE_ALL, ARG_NFT_CONTRACT_HASH, ARG_OPERATOR, ARG_TOKEN_ID,
-        ARG_TOKEN_META_DATA, ARG_TOKEN_OWNER, BALANCES, BURNT_TOKENS, CONTRACT_NAME,
+        ACCOUNT_USER_1, ARG_APPROVE_ALL, ARG_NFT_CONTRACT_HASH, ARG_OPERATOR, ARG_TOKEN_HASH,
+        ARG_TOKEN_ID, ARG_TOKEN_META_DATA, ARG_TOKEN_OWNER, BALANCES, BURNT_TOKENS, CONTRACT_NAME,
         ENTRY_POINT_BURN, ENTRY_POINT_MINT, ENTRY_POINT_SET_APPROVE_FOR_ALL, MINTING_CONTRACT_WASM,
         MINT_SESSION_WASM, NFT_CONTRACT_WASM, OWNED_TOKENS, TEST_PRETTY_721_META_DATA,
         TOKEN_COUNTS,
     },
     installer_request_builder::{
-        BurnMode, InstallerRequestBuilder, MintingMode, NFTHolderMode, OwnershipMode, WhitelistMode,
+        BurnMode, InstallerRequestBuilder, MetadataMutability, MintingMode, NFTHolderMode,
+        NFTIdentifierMode, OwnershipMode, WhitelistMode,
     },
     support::{
         self, get_dictionary_value_from_key, get_minting_contract_hash, get_nft_contract_hash,
@@ -595,4 +596,50 @@ fn should_check_for_burnt_tokens_during_approve_all() {
 
     let error = builder.get_error().expect("burn must have failed");
     support::assert_expected_error(error, 42, "PreviouslyBurntToken(42) must have been raised");
+}
+
+#[test]
+fn should_burn_token_in_hash_identifier_mode() {
+    let mut builder = InMemoryWasmTestBuilder::default();
+    builder.run_genesis(&DEFAULT_RUN_GENESIS_REQUEST).commit();
+
+    let install_request = InstallerRequestBuilder::new(*DEFAULT_ACCOUNT_ADDR, NFT_CONTRACT_WASM)
+        .with_total_token_supply(100u64)
+        .with_identifier_mode(NFTIdentifierMode::Hash)
+        .with_ownership_mode(OwnershipMode::Transferable)
+        .with_metadata_mutability(MetadataMutability::Immutable)
+        .build();
+
+    builder.exec(install_request).expect_success().commit();
+
+    let nft_contract_hash = get_nft_contract_hash(&builder);
+    let nft_contract_key: Key = nft_contract_hash.into();
+
+    let mint_session_call = ExecuteRequestBuilder::standard(
+        *DEFAULT_ACCOUNT_ADDR,
+        MINT_SESSION_WASM,
+        runtime_args! {
+            ARG_NFT_CONTRACT_HASH => nft_contract_key,
+            ARG_TOKEN_OWNER => Key::Account(*DEFAULT_ACCOUNT_ADDR),
+            ARG_TOKEN_META_DATA => TEST_PRETTY_721_META_DATA ,
+        },
+    )
+    .build();
+
+    builder.exec(mint_session_call).expect_success().commit();
+
+    let token_hash: String =
+        base16::encode_lower(&support::create_blake2b_hash(&TEST_PRETTY_721_META_DATA));
+
+    let burn_request = ExecuteRequestBuilder::contract_call_by_hash(
+        *DEFAULT_ACCOUNT_ADDR,
+        nft_contract_hash,
+        ENTRY_POINT_BURN,
+        runtime_args! {
+            ARG_TOKEN_HASH => token_hash,
+        },
+    )
+    .build();
+
+    builder.exec(burn_request).expect_success().commit();
 }

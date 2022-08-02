@@ -700,12 +700,11 @@ pub extern "C" fn burn() {
 pub extern "C" fn approve() {
     // If we are in minter or assigned mode it makes no sense to approve an operator. Hence we
     // revert.
-    let _ownership_mode = match utils::get_ownership_mode().unwrap_or_revert() {
-        OwnershipMode::Minter | OwnershipMode::Assigned => {
-            runtime::revert(NFTCoreError::InvalidOwnershipMode)
-        }
-        OwnershipMode::Transferable => OwnershipMode::Transferable,
-    };
+    if let OwnershipMode::Minter | OwnershipMode::Assigned =
+        utils::get_ownership_mode().unwrap_or_revert()
+    {
+        runtime::revert(NFTCoreError::InvalidOwnershipMode)
+    }
 
     let caller: Key = utils::get_verified_caller().unwrap_or_revert();
 
@@ -785,12 +784,11 @@ pub extern "C" fn approve() {
 pub extern "C" fn set_approval_for_all() {
     // If we are in minter or assigned mode it makes no sense to approve an operator. Hence we
     // revert.
-    let _ownership_mode = match utils::get_ownership_mode().unwrap_or_revert() {
-        OwnershipMode::Minter | OwnershipMode::Assigned => {
-            runtime::revert(NFTCoreError::InvalidOwnershipMode)
-        }
-        OwnershipMode::Transferable => OwnershipMode::Transferable,
-    };
+    if let OwnershipMode::Minter | OwnershipMode::Assigned =
+        utils::get_ownership_mode().unwrap_or_revert()
+    {
+        runtime::revert(NFTCoreError::InvalidOwnershipMode)
+    }
     // If approve_all is true we approve operator for all caller_owned tokens.
     // If false we set operator to None for all caller_owned_tokens
     let approve_all = utils::get_named_arg_with_user_errors::<bool>(
@@ -883,12 +881,11 @@ pub extern "C" fn set_approval_for_all() {
 pub extern "C" fn transfer() {
     // If we are in minter or assigned mode we are not allowed to transfer ownership of token, hence
     // we revert.
-    let _ownership_mode = match utils::get_ownership_mode().unwrap_or_revert() {
-        OwnershipMode::Minter | OwnershipMode::Assigned => {
-            runtime::revert(NFTCoreError::InvalidOwnershipMode)
-        }
-        OwnershipMode::Transferable => OwnershipMode::Transferable,
-    };
+    if let OwnershipMode::Minter | OwnershipMode::Assigned =
+        utils::get_ownership_mode().unwrap_or_revert()
+    {
+        runtime::revert(NFTCoreError::InvalidOwnershipMode)
+    }
 
     let holder_mode = utils::get_holder_mode().unwrap_or_revert();
 
@@ -1404,7 +1401,7 @@ fn install_nft_contract() -> (ContractHash, ContractVersion) {
 
         // This entrypoint transfers ownership of token from one account to another.
         // It looks up the owner of the supplied token_id arg. Revert if token is already burnt,
-        // token_id is unvalid, or if caller is not owner and not approved operator.
+        // token_id is invalid, or if caller is not owner and not approved operator.
         // If token id is invalid it reverts with error InvalidTokenID.
         let transfer = EntryPoint::new(
             ENTRY_POINT_TRANSFER,
@@ -1439,6 +1436,7 @@ fn install_nft_contract() -> (ContractHash, ContractVersion) {
             vec![
                 Parameter::new(ARG_TOKEN_OWNER, CLType::Key),
                 Parameter::new(ARG_APPROVE_ALL, CLType::Bool),
+                Parameter::new(ARG_OPERATOR, CLType::Key),
             ],
             CLType::Unit,
             EntryPointAccess::Public,
