@@ -41,9 +41,9 @@ use crate::{
         ARG_COLLECTION_NAME, ARG_COLLECTION_SYMBOL, ARG_CONTRACT_WHITELIST, ARG_HOLDER_MODE,
         ARG_IDENTIFIER_MODE, ARG_JSON_SCHEMA, ARG_METADATA_MUTABILITY, ARG_MINTING_MODE,
         ARG_NFT_KIND, ARG_NFT_METADATA_KIND, ARG_OPERATOR, ARG_OWNERSHIP_MODE, ARG_RECEIPT_NAME,
-        ARG_SOURCE_KEY, ARG_TARGET_KEY, ARG_TOKEN_HASH, ARG_TOKEN_ID, ARG_TOKEN_META_DATA,
-        ARG_TOKEN_OWNER, ARG_TOTAL_TOKEN_SUPPLY, ARG_WHITELIST_MODE, BURNT_TOKENS, BURN_MODE,
-        COLLECTION_NAME, COLLECTION_SYMBOL, CONTRACT_NAME, CONTRACT_VERSION, CONTRACT_WHITELIST,
+        ARG_SOURCE_KEY, ARG_TARGET_KEY, ARG_TOKEN_META_DATA, ARG_TOKEN_OWNER,
+        ARG_TOTAL_TOKEN_SUPPLY, ARG_WHITELIST_MODE, BURNT_TOKENS, BURN_MODE, COLLECTION_NAME,
+        COLLECTION_SYMBOL, CONTRACT_NAME, CONTRACT_VERSION, CONTRACT_WHITELIST,
         ENTRY_POINT_APPROVE, ENTRY_POINT_BALANCE_OF, ENTRY_POINT_BURN, ENTRY_POINT_GET_APPROVED,
         ENTRY_POINT_INIT, ENTRY_POINT_METADATA, ENTRY_POINT_MINT, ENTRY_POINT_OWNER_OF,
         ENTRY_POINT_SET_APPROVE_FOR_ALL, ENTRY_POINT_SET_TOKEN_METADATA, ENTRY_POINT_SET_VARIABLES,
@@ -658,13 +658,8 @@ pub extern "C" fn burn() {
     // It makes sense to keep this token as owned by the caller. It just happens that the caller
     // owns a burnt token. That's all. Similarly, we should probably also not change the
     // owned_tokens dictionary.
-    if utils::get_dictionary_value_from_key::<()>(
-        BURNT_TOKENS,
-        &token_identifier.get_dictionary_item_key(),
-    )
-    .is_some()
-    {
-        runtime::revert(NFTCoreError::PreviouslyBurntToken);
+    if utils::is_token_burnt(&token_identifier) {
+        runtime::revert(NFTCoreError::PreviouslyBurntToken)
     }
 
     // Mark the token as burnt by adding the token_id to the burnt tokens dictionary.
@@ -748,10 +743,8 @@ pub extern "C" fn approve() {
     }
 
     // We assume a burnt token cannot be approved
-    if utils::get_dictionary_value_from_key::<()>(BURNT_TOKENS, &token_identifier_dictionary_key)
-        .is_some()
-    {
-        runtime::revert(NFTCoreError::PreviouslyBurntToken);
+    if utils::is_token_burnt(&token_identifier) {
+        runtime::revert(NFTCoreError::PreviouslyBurntToken)
     }
 
     let operator = utils::get_named_arg_with_user_errors::<Key>(
@@ -850,13 +843,8 @@ pub extern "C" fn set_approval_for_all() {
         // Depending on approve_all we either approve all or disapprove all.
         for token_id in owned_tokens {
             // We assume a burnt token cannot be approved
-            if utils::get_dictionary_value_from_key::<()>(
-                BURNT_TOKENS,
-                &token_id.get_dictionary_item_key(),
-            )
-            .is_some()
-            {
-                runtime::revert(NFTCoreError::PreviouslyBurntToken);
+            if utils::is_token_burnt(&token_id) {
+                runtime::revert(NFTCoreError::PreviouslyBurntToken)
             }
             if approve_all {
                 storage::dictionary_put(
@@ -900,13 +888,8 @@ pub extern "C" fn transfer() {
     let token_identifier = utils::get_token_identifier_from_runtime_args(&identifier_mode);
 
     // We assume we cannot transfer burnt tokens
-    if utils::get_dictionary_value_from_key::<()>(
-        BURNT_TOKENS,
-        &token_identifier.get_dictionary_item_key(),
-    )
-    .is_some()
-    {
-        runtime::revert(NFTCoreError::PreviouslyBurntToken);
+    if utils::is_token_burnt(&token_identifier) {
+        runtime::revert(NFTCoreError::PreviouslyBurntToken)
     }
 
     let token_owner_key = match utils::get_dictionary_value_from_key::<Key>(
@@ -1209,13 +1192,8 @@ pub extern "C" fn get_approved() {
     }
 
     // Revert if already burnt
-    if utils::get_dictionary_value_from_key::<()>(
-        BURNT_TOKENS,
-        &token_identifier.get_dictionary_item_key(),
-    )
-    .is_some()
-    {
-        runtime::revert(NFTCoreError::PreviouslyBurntToken);
+    if utils::is_token_burnt(&token_identifier) {
+        runtime::revert(NFTCoreError::PreviouslyBurntToken)
     }
 
     let maybe_approved = match utils::get_dictionary_value_from_key::<Option<Key>>(
@@ -1390,10 +1368,7 @@ fn install_nft_contract() -> (ContractHash, ContractVersion) {
         // error PreviouslyBurntTOken. If not the token is then registered as burnt.
         let burn = EntryPoint::new(
             ENTRY_POINT_BURN,
-            vec![
-                Parameter::new(ARG_TOKEN_ID, CLType::U64),
-                Parameter::new(ARG_TOKEN_HASH, CLType::String),
-            ],
+            vec![],
             CLType::Unit,
             EntryPointAccess::Public,
             EntryPointType::Contract,
@@ -1406,8 +1381,6 @@ fn install_nft_contract() -> (ContractHash, ContractVersion) {
         let transfer = EntryPoint::new(
             ENTRY_POINT_TRANSFER,
             vec![
-                Parameter::new(ARG_TOKEN_ID, CLType::U64),
-                Parameter::new(ARG_TOKEN_HASH, CLType::String),
                 Parameter::new(ARG_SOURCE_KEY, CLType::Key),
                 Parameter::new(ARG_TARGET_KEY, CLType::Key),
             ],
@@ -1421,11 +1394,7 @@ fn install_nft_contract() -> (ContractHash, ContractVersion) {
         // been burnt, or if caller tries to approve themselves as an operator.
         let approve = EntryPoint::new(
             ENTRY_POINT_APPROVE,
-            vec![
-                Parameter::new(ARG_TOKEN_ID, CLType::U64),
-                Parameter::new(ARG_TOKEN_HASH, CLType::String),
-                Parameter::new(ARG_OPERATOR, CLType::Key),
-            ],
+            vec![Parameter::new(ARG_OPERATOR, CLType::Key)],
             CLType::Unit,
             EntryPointAccess::Public,
             EntryPointType::Contract,
@@ -1447,10 +1416,7 @@ fn install_nft_contract() -> (ContractHash, ContractVersion) {
         // is invalid. A burnt token still has an associated owner.
         let owner_of = EntryPoint::new(
             ENTRY_POINT_OWNER_OF,
-            vec![
-                Parameter::new(ARG_TOKEN_ID, CLType::U64),
-                Parameter::new(ARG_TOKEN_HASH, CLType::String),
-            ],
+            vec![],
             CLType::Key,
             EntryPointAccess::Public,
             EntryPointType::Contract,
@@ -1460,10 +1426,7 @@ fn install_nft_contract() -> (ContractHash, ContractVersion) {
         // Reverts if token has been burnt.
         let get_approved = EntryPoint::new(
             ENTRY_POINT_GET_APPROVED,
-            vec![
-                Parameter::new(ARG_TOKEN_ID, CLType::U64),
-                Parameter::new(ARG_TOKEN_HASH, CLType::String),
-            ],
+            vec![],
             CLType::Option(Box::new(CLType::Key)),
             EntryPointAccess::Public,
             EntryPointType::Contract,
@@ -1481,10 +1444,7 @@ fn install_nft_contract() -> (ContractHash, ContractVersion) {
         // This entrypoint returns the metadata associated with the provided token_id
         let metadata = EntryPoint::new(
             ENTRY_POINT_METADATA,
-            vec![
-                Parameter::new(ARG_TOKEN_ID, CLType::U64),
-                Parameter::new(ARG_TOKEN_HASH, CLType::String),
-            ],
+            vec![],
             CLType::String,
             EntryPointAccess::Public,
             EntryPointType::Contract,
@@ -1493,11 +1453,7 @@ fn install_nft_contract() -> (ContractHash, ContractVersion) {
         // This entrypoint updates the metadata if valid.
         let set_token_metadata = EntryPoint::new(
             ENTRY_POINT_SET_TOKEN_METADATA,
-            vec![
-                Parameter::new(ARG_TOKEN_ID, CLType::U64),
-                Parameter::new(ARG_TOKEN_HASH, CLType::String),
-                Parameter::new(ARG_TOKEN_META_DATA, CLType::String),
-            ],
+            vec![Parameter::new(ARG_TOKEN_META_DATA, CLType::String)],
             CLType::Unit,
             EntryPointAccess::Public,
             EntryPointType::Contract,

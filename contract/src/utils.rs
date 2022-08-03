@@ -23,7 +23,7 @@ use crate::{
     constants::{ARG_TOKEN_HASH, ARG_TOKEN_ID, HOLDER_MODE, OWNED_TOKENS, OWNERSHIP_MODE},
     error::NFTCoreError,
     modalities::{NFTHolderMode, NFTIdentifierMode, OwnershipMode, TokenIdentifier},
-    BurnMode, BURN_MODE,
+    BurnMode, BURNT_TOKENS, BURN_MODE,
 };
 
 pub(crate) fn upsert_dictionary_value_from_key<T: CLTyped + FromBytes + ToBytes>(
@@ -381,4 +381,9 @@ pub(crate) fn get_burn_mode() -> BurnMode {
     .try_into()
     .unwrap_or_revert();
     burn_mode
+}
+
+pub(crate) fn is_token_burnt(token_identifier: &TokenIdentifier) -> bool {
+    get_dictionary_value_from_key::<()>(BURNT_TOKENS, &token_identifier.get_dictionary_item_key())
+        .is_some()
 }
