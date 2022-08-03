@@ -383,7 +383,7 @@ pub(crate) fn get_burn_mode() -> BurnMode {
     burn_mode
 }
 
-pub(crate) fn is_token_burnt(token_identifier: &TokenIdentifier) -> bool {
+pub(crate) fn is_token_burned(token_identifier: &TokenIdentifier) -> bool {
     get_dictionary_value_from_key::<()>(BURNT_TOKENS, &token_identifier.get_dictionary_item_key())
         .is_some()
 }

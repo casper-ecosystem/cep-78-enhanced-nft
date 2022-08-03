@@ -658,7 +658,7 @@ pub extern "C" fn burn() {
     // It makes sense to keep this token as owned by the caller. It just happens that the caller
     // owns a burnt token. That's all. Similarly, we should probably also not change the
     // owned_tokens dictionary.
-    if utils::is_token_burnt(&token_identifier) {
+    if utils::is_token_burned(&token_identifier) {
         runtime::revert(NFTCoreError::PreviouslyBurntToken)
     }
 
@@ -743,7 +743,7 @@ pub extern "C" fn approve() {
     }
 
     // We assume a burnt token cannot be approved
-    if utils::is_token_burnt(&token_identifier) {
+    if utils::is_token_burned(&token_identifier) {
         runtime::revert(NFTCoreError::PreviouslyBurntToken)
     }
 
@@ -843,7 +843,7 @@ pub extern "C" fn set_approval_for_all() {
         // Depending on approve_all we either approve all or disapprove all.
         for token_id in owned_tokens {
             // We assume a burnt token cannot be approved
-            if utils::is_token_burnt(&token_id) {
+            if utils::is_token_burned(&token_id) {
                 runtime::revert(NFTCoreError::PreviouslyBurntToken)
             }
             if approve_all {
@@ -888,7 +888,7 @@ pub extern "C" fn transfer() {
     let token_identifier = utils::get_token_identifier_from_runtime_args(&identifier_mode);
 
     // We assume we cannot transfer burnt tokens
-    if utils::is_token_burnt(&token_identifier) {
+    if utils::is_token_burned(&token_identifier) {
         runtime::revert(NFTCoreError::PreviouslyBurntToken)
     }
 
@@ -1192,7 +1192,7 @@ pub extern "C" fn get_approved() {
     }
 
     // Revert if already burnt
-    if utils::is_token_burnt(&token_identifier) {
+    if utils::is_token_burned(&token_identifier) {
         runtime::revert(NFTCoreError::PreviouslyBurntToken)
     }
 
