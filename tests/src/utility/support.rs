@@ -146,17 +146,12 @@ pub(crate) fn call_entry_point_with_ret<T: CLTyped + FromBytes>(
     runtime_args
         .insert(ARG_NFT_CONTRACT_HASH, nft_contract_key)
         .unwrap();
-
     runtime_args
         .insert(ARG_KEY_NAME, key_name.to_string())
         .unwrap();
-
-    println!("Calling:  {:?}", wasm_file_name);
     let session_call =
         ExecuteRequestBuilder::standard(account_hash, wasm_file_name, runtime_args).build();
     builder.exec(session_call).expect_success().commit();
-
-    println!("Querying: {}", key_name);
     query_stored_value::<T>(builder, account_hash.into(), [key_name.to_string()].into())
 }
 

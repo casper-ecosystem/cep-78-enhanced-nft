@@ -1,16 +1,10 @@
 use alloc::{
     borrow::ToOwned,
-    collections::BTreeMap,
     string::{String, ToString},
     vec,
     vec::Vec,
 };
-use core::{
-    convert::{TryFrom, TryInto},
-    mem::MaybeUninit,
-};
-
-use serde::{Deserialize, Serialize};
+use core::{convert::TryInto, mem::MaybeUninit};
 
 use casper_contract::{
     contract_api::{self, runtime, storage},
@@ -20,15 +14,16 @@ use casper_contract::{
 use casper_types::{
     account::AccountHash,
     api_error,
-    bytesrepr::{self, Error, FromBytes, ToBytes},
+    bytesrepr::{self, FromBytes, ToBytes},
     system::CallStackElement,
-    ApiError, CLType, CLTyped, ContractHash, Key, URef,
+    ApiError, CLTyped, ContractHash, Key, URef,
 };
 
 use crate::{
-    constants::OWNERSHIP_MODE, error::NFTCoreError, ARG_JSON_SCHEMA, ARG_TOKEN_HASH, ARG_TOKEN_ID,
-    HOLDER_MODE, METADATA_CEP78, METADATA_CUSTOM_VALIDATED, METADATA_NFT721, METADATA_RAW,
-    OWNED_TOKENS,
+    constants::{ARG_TOKEN_HASH, ARG_TOKEN_ID, HOLDER_MODE, OWNED_TOKENS, OWNERSHIP_MODE},
+    error::NFTCoreError,
+    modalities::{NFTHolderMode, NFTIdentifierMode, OwnershipMode, TokenIdentifier},
+    BurnMode, BURNT_TOKENS, BURN_MODE,
 };
 
 pub(crate) fn upsert_dictionary_value_from_key<T: CLTyped + FromBytes + ToBytes>(
@@ -45,174 +40,6 @@ pub(crate) fn upsert_dictionary_value_from_key<T: CLTyped + FromBytes + ToBytes>
     match storage::dictionary_get::<T>(seed_uref, key) {
         Ok(None | Some(_)) => storage::dictionary_put(seed_uref, key, value),
         Err(error) => runtime::revert(error),
-    }
-}
-
-#[repr(u8)]
-#[derive(PartialEq)]
-pub enum WhitelistMode {
-    Unlocked = 0,
-    Locked = 1,
-}
-
-impl TryFrom<u8> for WhitelistMode {
-    type Error = NFTCoreError;
-
-    fn try_from(value: u8) -> Result<Self, Self::Error> {
-        match value {
-            0 => Ok(WhitelistMode::Unlocked),
-            1 => Ok(WhitelistMode::Locked),
-            _ => Err(NFTCoreError::InvalidWhitelistMode),
-        }
-    }
-}
-
-#[repr(u8)]
-#[derive(PartialEq, Clone, Copy)]
-pub enum NFTHolderMode {
-    Accounts = 0,
-    Contracts = 1,
-    Mixed = 2,
-}
-
-impl TryFrom<u8> for NFTHolderMode {
-    type Error = NFTCoreError;
-
-    fn try_from(value: u8) -> Result<Self, Self::Error> {
-        match value {
-            0 => Ok(NFTHolderMode::Accounts),
-            1 => Ok(NFTHolderMode::Contracts),
-            2 => Ok(NFTHolderMode::Mixed),
-            _ => Err(NFTCoreError::InvalidHolderMode),
-        }
-    }
-}
-
-#[repr(u8)]
-pub enum MintingMode {
-    /// The ability to mint NFTs is restricted to the installing account only.
-    Installer = 0,
-    /// The ability to mint NFTs is not restricted.
-    Public = 1,
-}
-
-impl TryFrom<u8> for MintingMode {
-    type Error = NFTCoreError;
-
-    fn try_from(value: u8) -> Result<Self, Self::Error> {
-        match value {
-            0 => Ok(MintingMode::Installer),
-            1 => Ok(MintingMode::Public),
-            _ => Err(NFTCoreError::InvalidMintingMode),
-        }
-    }
-}
-
-#[repr(u8)]
-pub enum NFTKind {
-    /// The NFT represents a real-world physical
-    /// like a house.
-    Physical = 0,
-    /// The NFT represents a digital asset like a unique
-    /// JPEG or digital art.
-    Digital = 1,
-    /// The NFT is the virtual representation
-    /// of a physical notion, e.g a patent
-    /// or copyright.
-    Virtual = 2,
-}
-
-impl TryFrom<u8> for NFTKind {
-    type Error = NFTCoreError;
-
-    fn try_from(value: u8) -> Result<Self, Self::Error> {
-        match value {
-            0 => Ok(NFTKind::Physical),
-            1 => Ok(NFTKind::Digital),
-            2 => Ok(NFTKind::Virtual),
-            _ => Err(NFTCoreError::InvalidOwnershipMode),
-        }
-    }
-}
-
-#[repr(u8)]
-pub enum NFTMetadataKind {
-    CEP78 = 0,
-    NFT721 = 1,
-    Raw = 2,
-    CustomValidated = 3,
-}
-
-impl TryFrom<u8> for NFTMetadataKind {
-    type Error = NFTCoreError;
-
-    fn try_from(value: u8) -> Result<Self, Self::Error> {
-        match value {
-            0 => Ok(NFTMetadataKind::CEP78),
-            1 => Ok(NFTMetadataKind::NFT721),
-            2 => Ok(NFTMetadataKind::Raw),
-            3 => Ok(NFTMetadataKind::CustomValidated),
-            _ => Err(NFTCoreError::InvalidNFTMetadataKind),
-        }
-    }
-}
-
-#[repr(u8)]
-pub enum OwnershipMode {
-    /// The minter owns it and can never transfer it.
-    Minter = 0,
-    /// The minter assigns it to an address and can never be transferred.
-    Assigned = 1,
-    /// The NFT can be transferred even to an recipient that does not exist.
-    Transferable = 2,
-}
-
-impl TryFrom<u8> for OwnershipMode {
-    type Error = NFTCoreError;
-
-    fn try_from(value: u8) -> Result<Self, Self::Error> {
-        match value {
-            0 => Ok(OwnershipMode::Minter),
-            1 => Ok(OwnershipMode::Assigned),
-            2 => Ok(OwnershipMode::Transferable),
-            _ => Err(NFTCoreError::InvalidOwnershipMode),
-        }
-    }
-}
-
-#[repr(u8)]
-pub enum NFTIdentifierMode {
-    Ordinal = 0,
-    Hash = 1,
-}
-
-impl TryFrom<u8> for NFTIdentifierMode {
-    type Error = NFTCoreError;
-
-    fn try_from(value: u8) -> Result<Self, Self::Error> {
-        match value {
-            0 => Ok(NFTIdentifierMode::Ordinal),
-            1 => Ok(NFTIdentifierMode::Hash),
-            _ => Err(NFTCoreError::InvalidIdentifierMode),
-        }
-    }
-}
-
-#[repr(u8)]
-pub enum MetadataMutability {
-    Immutable = 0,
-    Mutable = 1,
-}
-
-impl TryFrom<u8> for MetadataMutability {
-    type Error = NFTCoreError;
-
-    fn try_from(value: u8) -> Result<Self, Self::Error> {
-        match value {
-            0 => Ok(MetadataMutability::Immutable),
-            1 => Ok(MetadataMutability::Mutable),
-            _ => Err(NFTCoreError::InvalidMetadataMutability),
-        }
     }
 }
 
@@ -463,43 +290,6 @@ pub(crate) fn get_verified_caller() -> Result<Key, NFTCoreError> {
     }
 }
 
-#[derive(PartialEq, Clone)]
-pub(crate) enum TokenIdentifier {
-    Index(u64),
-    Hash(String),
-}
-
-impl TokenIdentifier {
-    pub(crate) fn new_index(index: u64) -> Self {
-        TokenIdentifier::Index(index)
-    }
-
-    pub(crate) fn new_hash(hash: String) -> Self {
-        TokenIdentifier::Hash(hash)
-    }
-
-    pub(crate) fn get_index(&self) -> Option<u64> {
-        if let Self::Index(index) = self {
-            return Some(*index);
-        }
-        None
-    }
-
-    pub(crate) fn get_hash(self) -> Option<String> {
-        if let Self::Hash(hash) = self {
-            return Some(hash);
-        }
-        None
-    }
-
-    pub(crate) fn get_dictionary_item_key(&self) -> String {
-        match self {
-            TokenIdentifier::Index(token_index) => token_index.to_string(),
-            TokenIdentifier::Hash(hash) => hash.clone(),
-        }
-    }
-}
-
 pub(crate) fn get_token_identifier_from_runtime_args(
     identifier_mode: &NFTIdentifierMode,
 ) -> TokenIdentifier {
@@ -582,253 +372,18 @@ pub(crate) fn upsert_token_identifiers(
     }
 }
 
-// Metadata mutability is different from schema mutability.
-#[derive(Serialize, Deserialize, Clone)]
-pub(crate) struct MetadataSchemaProperty {
-    name: String,
-    description: String,
-    required: bool,
+pub(crate) fn get_burn_mode() -> BurnMode {
+    let burn_mode: BurnMode = get_stored_value_with_user_errors::<u8>(
+        BURN_MODE,
+        NFTCoreError::MissingBurnMode,
+        NFTCoreError::InvalidBurnMode,
+    )
+    .try_into()
+    .unwrap_or_revert();
+    burn_mode
 }
 
-impl ToBytes for MetadataSchemaProperty {
-    fn to_bytes(&self) -> Result<Vec<u8>, Error> {
-        let mut result = bytesrepr::allocate_buffer(self)?;
-        result.extend(self.name.to_bytes()?);
-        result.extend(self.description.to_bytes()?);
-        result.extend(self.required.to_bytes()?);
-        Ok(result)
-    }
-
-    fn serialized_length(&self) -> usize {
-        self.name.serialized_length()
-            + self.description.serialized_length()
-            + self.required.serialized_length()
-    }
-}
-
-impl FromBytes for MetadataSchemaProperty {
-    fn from_bytes(bytes: &[u8]) -> Result<(Self, &[u8]), Error> {
-        let (name, remainder) = String::from_bytes(bytes)?;
-        let (description, remainder) = String::from_bytes(remainder)?;
-        let (required, remainder) = bool::from_bytes(remainder)?;
-        let metadata_schema_property = MetadataSchemaProperty {
-            name,
-            description,
-            required,
-        };
-        Ok((metadata_schema_property, remainder))
-    }
-}
-
-impl CLTyped for MetadataSchemaProperty {
-    fn cl_type() -> CLType {
-        CLType::Any
-    }
-}
-
-#[derive(Serialize, Deserialize, Clone)]
-pub(crate) struct CustomMetadataSchema {
-    properties: BTreeMap<String, MetadataSchemaProperty>,
-}
-
-pub(crate) fn get_metadata_schema(kind: &NFTMetadataKind) -> CustomMetadataSchema {
-    match kind {
-        NFTMetadataKind::Raw => CustomMetadataSchema {
-            properties: BTreeMap::new(),
-        },
-        NFTMetadataKind::NFT721 => {
-            let mut properties = BTreeMap::new();
-            properties.insert(
-                "name".to_string(),
-                MetadataSchemaProperty {
-                    name: "name".to_string(),
-                    description: "The name of the NFT".to_string(),
-                    required: true,
-                },
-            );
-            properties.insert(
-                "symbol".to_string(),
-                MetadataSchemaProperty {
-                    name: "symbol".to_string(),
-                    description: "The symbol of the NFT collection".to_string(),
-                    required: true,
-                },
-            );
-            properties.insert(
-                "token_uri".to_string(),
-                MetadataSchemaProperty {
-                    name: "token_uri".to_string(),
-                    description: "The URI pointing to an off chain resource".to_string(),
-                    required: true,
-                },
-            );
-            CustomMetadataSchema { properties }
-        }
-        NFTMetadataKind::CEP78 => {
-            let mut properties = BTreeMap::new();
-            properties.insert(
-                "name".to_string(),
-                MetadataSchemaProperty {
-                    name: "name".to_string(),
-                    description: "The name of the NFT".to_string(),
-                    required: true,
-                },
-            );
-            properties.insert(
-                "token_uri".to_string(),
-                MetadataSchemaProperty {
-                    name: "token_uri".to_string(),
-                    description: "The URI pointing to an off chain resource".to_string(),
-                    required: true,
-                },
-            );
-            properties.insert(
-                "checksum".to_string(),
-                MetadataSchemaProperty {
-                    name: "checksum".to_string(),
-                    description: "A SHA256 hash of the content at the token_uri".to_string(),
-                    required: true,
-                },
-            );
-            CustomMetadataSchema { properties }
-        }
-        NFTMetadataKind::CustomValidated => {
-            let custom_schema_json = get_stored_value_with_user_errors::<String>(
-                ARG_JSON_SCHEMA,
-                NFTCoreError::MissingJsonSchema,
-                NFTCoreError::InvalidJsonSchema,
-            );
-
-            casper_serde_json_wasm::from_str::<CustomMetadataSchema>(&custom_schema_json)
-                .map_err(|_| NFTCoreError::InvalidJsonSchema)
-                .unwrap_or_revert()
-        }
-    }
-}
-
-impl ToBytes for CustomMetadataSchema {
-    fn to_bytes(&self) -> Result<Vec<u8>, Error> {
-        let mut result = bytesrepr::allocate_buffer(self)?;
-        result.extend(self.properties.to_bytes()?);
-        Ok(result)
-    }
-
-    fn serialized_length(&self) -> usize {
-        self.properties.serialized_length()
-    }
-}
-
-impl FromBytes for CustomMetadataSchema {
-    fn from_bytes(bytes: &[u8]) -> Result<(Self, &[u8]), Error> {
-        let (properties, remainder) =
-            BTreeMap::<String, MetadataSchemaProperty>::from_bytes(bytes)?;
-        let metadata_schema = CustomMetadataSchema { properties };
-        Ok((metadata_schema, remainder))
-    }
-}
-
-impl CLTyped for CustomMetadataSchema {
-    fn cl_type() -> CLType {
-        CLType::Any
-    }
-}
-
-// Using a structure for the purposes of serialization formatting.
-#[derive(Serialize, Deserialize)]
-pub(crate) struct MetadataNFT721 {
-    name: String,
-    symbol: String,
-    token_uri: String,
-}
-
-#[derive(Serialize, Deserialize)]
-pub(crate) struct MetadataCEP78 {
-    name: String,
-    token_uri: String,
-    checksum: String,
-}
-
-// Using a structure for the purposes of serialization formatting.
-#[derive(Serialize, Deserialize)]
-pub(crate) struct CustomMetadata {
-    attributes: BTreeMap<String, String>,
-}
-
-pub(crate) fn validate_metadata(
-    metadata_kind: &NFTMetadataKind,
-    token_metadata: String,
-) -> Result<String, NFTCoreError> {
-    let token_schema = get_metadata_schema(metadata_kind);
-    match metadata_kind {
-        NFTMetadataKind::CEP78 => {
-            let metadata = casper_serde_json_wasm::from_str::<MetadataCEP78>(&token_metadata)
-                .map_err(|_| NFTCoreError::FailedToParseCep99Metadata)?;
-
-            if let Some(name_property) = token_schema.properties.get("name") {
-                if name_property.required && metadata.name.is_empty() {
-                    runtime::revert(NFTCoreError::InvalidCEP99Metadata)
-                }
-            }
-            if let Some(token_uri_property) = token_schema.properties.get("token_uri") {
-                if token_uri_property.required && metadata.token_uri.is_empty() {
-                    runtime::revert(NFTCoreError::InvalidCEP99Metadata)
-                }
-            }
-            if let Some(checksum_property) = token_schema.properties.get("checksum") {
-                if checksum_property.required && metadata.checksum.is_empty() {
-                    runtime::revert(NFTCoreError::InvalidCEP99Metadata)
-                }
-            }
-            casper_serde_json_wasm::to_string_pretty(&metadata)
-                .map_err(|_| NFTCoreError::FailedToJsonifyCEP99Metadata)
-        }
-        NFTMetadataKind::NFT721 => {
-            let metadata = casper_serde_json_wasm::from_str::<MetadataNFT721>(&token_metadata)
-                .map_err(|_| NFTCoreError::FailedToParse721Metadata)?;
-
-            if let Some(name_property) = token_schema.properties.get("name") {
-                if name_property.required && metadata.name.is_empty() {
-                    runtime::revert(NFTCoreError::InvalidNFT721Metadata)
-                }
-            }
-            if let Some(token_uri_property) = token_schema.properties.get("token_uri") {
-                if token_uri_property.required && metadata.token_uri.is_empty() {
-                    runtime::revert(NFTCoreError::InvalidNFT721Metadata)
-                }
-            }
-            if let Some(symbol_property) = token_schema.properties.get("symbol") {
-                if symbol_property.required && metadata.symbol.is_empty() {
-                    runtime::revert(NFTCoreError::InvalidNFT721Metadata)
-                }
-            }
-            casper_serde_json_wasm::to_string_pretty(&metadata)
-                .map_err(|_| NFTCoreError::FailedToJsonifyNFT721Metadata)
-        }
-        NFTMetadataKind::Raw => Ok(token_metadata),
-        NFTMetadataKind::CustomValidated => {
-            let custom_metadata =
-                casper_serde_json_wasm::from_str::<BTreeMap<String, String>>(&token_metadata)
-                    .map(|attributes| CustomMetadata { attributes })
-                    .map_err(|_| NFTCoreError::FailedToParseCustomMetadata)?;
-
-            for (property_name, property_type) in token_schema.properties.iter() {
-                if property_type.required && custom_metadata.attributes.get(property_name).is_none()
-                {
-                    runtime::revert(NFTCoreError::InvalidCustomMetadata)
-                }
-            }
-            casper_serde_json_wasm::to_string_pretty(&custom_metadata.attributes)
-                .map_err(|_| NFTCoreError::FailedToJsonifyCustomMetadata)
-        }
-    }
-}
-
-pub(crate) fn get_metadata_dictionary_name(metadata_kind: &NFTMetadataKind) -> String {
-    let name = match metadata_kind {
-        NFTMetadataKind::CEP78 => METADATA_CEP78,
-        NFTMetadataKind::NFT721 => METADATA_NFT721,
-        NFTMetadataKind::Raw => METADATA_RAW,
-        NFTMetadataKind::CustomValidated => METADATA_CUSTOM_VALIDATED,
-    };
-    name.to_string()
+pub(crate) fn is_token_burned(token_identifier: &TokenIdentifier) -> bool {
+    get_dictionary_value_from_key::<()>(BURNT_TOKENS, &token_identifier.get_dictionary_item_key())
+        .is_some()
 }
