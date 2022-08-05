@@ -30,13 +30,13 @@ Below is an example of a `casper-client` command that provides all required sess
 
     The type of commodity represented by these NFTs. In this instance, the 1 represents a digital collection.
 
-6) `--session-arg "nft_metadata_kind:u8='2'"`
+6) `--session-arg "nft_metadata_kind:u8='0'"`
 
-    The type of metadata used by this contract. In this instance, the 2 represents raw metadata.
+    The type of metadata used by this contract. In this instance, the 0 represents CEP-78 standard for metadata.
 
-7) `--session-arg "json_schema:string='{"properties": .... }'"`
+7) `--session-args-json '[{"name":"token_meta_data","type":"String","value":"{\"name\": \"John Doe\",\"token_uri\": \"https:\/\/www.barfoo.com\",\"checksum\": \"940bffb3f2bba35f84313aa26da09ece3ad47045c6a1292c2bbd2df4ab1a55fb\"}"},{"name":"token_owner", "type":"Key","value":"account-hash-e9ff87766a1d2bab2565bfd5799054946200b51b20c3ca7e54a9269e00fe7cfb"},{"name":"nft_contract_hash","type":"Key","value":"hash-206339c3deb8e6146974125bb271eb510795be6f250c21b1bd4b698956669f95"}]'`
 
-    Currently, the Casper client does not provide JSON support. As such, we suggest using the raw metadata option until this feature is available.
+    Metadata information passed through, in this instance conforming to the CEP-78 standard as shown in the 'NFTMetadataKing' argument above.
 
 8) `--session-arg "identifier_mode:u8='0'"`
 
@@ -60,8 +60,8 @@ casper-client --put-deploy -n http://localhost:11101/rpc --chain-name "casper-ne
 --session-arg "total_token_supply:u64='100'" 
 --session-arg "ownership_mode:u8='2'" 
 --session-arg "nft_kind:u8='1'" 
---session-arg "nft_metadata_kind:u8='3'" 
---session-arg "json_schema:string='{"properties": .... }'" 
+--session-arg "nft_metadata_kind:u8='0'" 
+--session-args-json '[{"name":"token_meta_data","type":"String","value":"{\"name\": \"John Doe\",\"token_uri\": \"https:\/\/www.barfoo.com\",\"checksum\": \"940bffb3f2bba35f84313aa26da09ece3ad47045c6a1292c2bbd2df4ab1a55fb\"}"},{"name":"token_owner", "type":"Key","value":"account-hash-e9ff87766a1d2bab2565bfd5799054946200b51b20c3ca7e54a9269e00fe7cfb"},{"name":"nft_contract_hash","type":"Key","value":"hash-206339c3deb8e6146974125bb271eb510795be6f250c21b1bd4b698956669f95"}]' 
 --session-arg "identifier_mode:u8='0'" 
 --session-arg "metadata_mutability:u8='0'"
 
