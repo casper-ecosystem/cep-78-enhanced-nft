@@ -36,7 +36,7 @@ Below is an example of a `casper-client` command that provides all required sess
 
 7) `--session-args-json '[{"name":"token_meta_data","type":"String","value":"{\"name\": \"John Doe\",\"token_uri\": \"https:\/\/www.barfoo.com\",\"checksum\": \"940bffb3f2bba35f84313aa26da09ece3ad47045c6a1292c2bbd2df4ab1a55fb\"}"},{"name":"token_owner", "type":"Key","value":"account-hash-e9ff87766a1d2bab2565bfd5799054946200b51b20c3ca7e54a9269e00fe7cfb"},{"name":"nft_contract_hash","type":"Key","value":"hash-206339c3deb8e6146974125bb271eb510795be6f250c21b1bd4b698956669f95"}]'`
 
-    Metadata information passed through, in this instance conforming to the CEP-78 standard as shown in the 'NFTMetadataKing' argument above.
+    Metadata information passed through, in this instance conforming to the CEP-78 standard as shown in the 'NFTMetadataKind' argument above.
 
 8) `--session-arg "identifier_mode:u8='0'"`
 
