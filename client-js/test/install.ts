@@ -48,7 +48,7 @@ const install = async () => {
       identifierMode: NFTIdentifierMode.Ordinal,
       metadataMutability: MetadataMutability.Immutable,
     },
-    "130000000000",
+    "200000000000",
     KEYS.publicKey,
     [KEYS]
   );
@@ -71,12 +71,12 @@ const install = async () => {
 
   const contractHash = await getAccountNamedKeyValue(
     accountInfo,
-    `${process.env.CONTRACT_NAME!}_contract`
+    `nft_contract`
   );
 
   const contractPackageHash = await getAccountNamedKeyValue(
     accountInfo,
-    `${process.env.CONTRACT_NAME!}_package_hash`
+    `nft_contract_package`
   );
 
   console.log(`... Contract Hash: ${contractHash}`);
