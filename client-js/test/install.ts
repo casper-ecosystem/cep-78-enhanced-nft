@@ -44,7 +44,7 @@ const install = async () => {
           firstName: { name: "first name", description: "", required: true },
         },
       },
-      nftMetadataKind: NFTMetadataKind.CEP78,
+      nftMetadataKind: NFTMetadataKind.CustomValidated,
       identifierMode: NFTIdentifierMode.Ordinal,
       metadataMutability: MetadataMutability.Immutable,
     },
