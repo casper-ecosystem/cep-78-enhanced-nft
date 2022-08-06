@@ -19,6 +19,21 @@ const { Contract, toCLMap, fromCLMap } = Contracts;
 
 import { CEP78InstallArgs } from "./types";
 
+export {
+  CEP78InstallArgs,
+  NFTOwnershipMode,
+  NFTKind,
+  NFTHolderMode,
+  NFTMetadataKind,
+  NFTIdentifierMode,
+  MetadataMutability,
+  MintingMode,
+  BurnMode,
+  WhitelistMode,
+  JSONSchemaEntry,
+  JSONSchemaObject,
+} from "./types";
+
 export class CEP78Client {
   casperClient: CasperClient;
   contractClient: Contracts.Contract;
@@ -49,29 +64,29 @@ export class CEP78Client {
 
     if (args.mintingMode) {
       const value = CLValueBuilder.u8(args.mintingMode);
-      runtimeArgs.insert('minting_mode', CLValueBuilder.option(Some(value)));
+      runtimeArgs.insert("minting_mode", CLValueBuilder.option(Some(value)));
     }
 
     if (args.allowMinting) {
       const value = CLValueBuilder.bool(args.allowMinting);
-      runtimeArgs.insert('allow_minting', CLValueBuilder.option(Some(value)));
+      runtimeArgs.insert("allow_minting", CLValueBuilder.option(Some(value)));
     }
 
     if (args.whitelistMode) {
       const value = CLValueBuilder.u8(args.whitelistMode);
-      runtimeArgs.insert('whitelist_mode', CLValueBuilder.option(Some(value)));
+      runtimeArgs.insert("whitelist_mode", CLValueBuilder.option(Some(value)));
     }
 
     if (args.holderMode) {
       const value = CLValueBuilder.u8(args.holderMode);
-      runtimeArgs.insert('holder_mode', CLValueBuilder.option(Some(value)));
+      runtimeArgs.insert("holder_mode", CLValueBuilder.option(Some(value)));
     }
 
     // TODO: Implement contractWhitelist support.
-    
+
     if (args.burnMode) {
       const value = CLValueBuilder.u8(args.burnMode);
-      runtimeArgs.insert('burn_mode', CLValueBuilder.option(Some(value)));
+      runtimeArgs.insert("burn_mode", CLValueBuilder.option(Some(value)));
     }
 
     return this.contractClient.install(

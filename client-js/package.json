@@ -5,7 +5,8 @@
   "main": "dist/index.js",
   "scripts": {
     "dev": "tsc --watch",
-    "build": "tsc"
+    "build": "tsc",
+    "test:install": "ts-node test/install.ts"
   },
   "keywords": [],
   "author": "Jan Hoffmann <jan@casperlabs.io>",

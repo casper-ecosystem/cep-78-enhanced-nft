@@ -54,7 +54,7 @@ export interface JSONSchemaEntry {
   required: boolean
 }
 
-interface JSONSchemaObject { 
+export interface JSONSchemaObject { 
   properties: Record<string, JSONSchemaEntry>
 }
 
