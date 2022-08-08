@@ -622,7 +622,7 @@ pub extern "C" fn mint() {
     runtime::ret(receipt)
 }
 
-// Marks token as burnt. This blocks and future call to transfer token.
+// Marks token as burnt. This blocks any future call to transfer token.
 #[no_mangle]
 pub extern "C" fn burn() {
     if let BurnMode::NonBurnable = utils::get_burn_mode() {
