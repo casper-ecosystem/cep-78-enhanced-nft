@@ -1384,7 +1384,7 @@ fn install_nft_contract() -> (ContractHash, ContractVersion) {
                 Parameter::new(ARG_SOURCE_KEY, CLType::Key),
                 Parameter::new(ARG_TARGET_KEY, CLType::Key),
             ],
-            CLType::Unit,
+            CLType::Tuple2([Box::new(CLType::String), Box::new(CLType::Key)]),
             EntryPointAccess::Public,
             EntryPointType::Contract,
         );
