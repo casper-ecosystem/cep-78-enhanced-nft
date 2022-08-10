@@ -875,8 +875,6 @@ pub extern "C" fn transfer() {
         runtime::revert(NFTCoreError::InvalidOwnershipMode)
     }
 
-    let holder_mode = utils::get_holder_mode().unwrap_or_revert();
-
     let identifier_mode: NFTIdentifierMode = utils::get_stored_value_with_user_errors::<u8>(
         IDENTIFIER_MODE,
         NFTCoreError::MissingIdentifierMode,
@@ -923,8 +921,8 @@ pub extern "C" fn transfer() {
     };
 
     // Revert if caller is not owner and not approved.
-    if caller != token_owner_key && !is_approved && NFTHolderMode::Accounts == holder_mode {
-        runtime::revert(NFTCoreError::InvalidAccount);
+    if caller != token_owner_key && !is_approved {
+        runtime::revert(NFTCoreError::InvalidTokenOwner);
     }
 
     let target_owner_key: Key = utils::get_named_arg_with_user_errors(
