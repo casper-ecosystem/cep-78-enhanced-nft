@@ -169,19 +169,19 @@ impl InstallerRequestBuilder {
             collection_name: CLValue::from_t("name".to_string()).expect("name is legit CLValue"),
             collection_symbol: CLValue::from_t("SYM").expect("collection_symbol is legit CLValue"),
             total_token_supply: CLValue::from_t(1u64).expect("total_token_supply is legit CLValue"),
-            allow_minting: CLValue::from_t(Some(true)).unwrap(),
-            minting_mode: CLValue::from_t(Some(MintingMode::Installer as u8)).unwrap(),
+            allow_minting: CLValue::from_t(true).unwrap(),
+            minting_mode: CLValue::from_t(MintingMode::Installer as u8).unwrap(),
             ownership_mode: CLValue::from_t(OwnershipMode::Minter as u8).unwrap(),
             nft_kind: CLValue::from_t(NFTKind::Physical as u8).unwrap(),
-            holder_mode: CLValue::from_t(Some(NFTHolderMode::Mixed as u8)).unwrap(),
-            whitelist_mode: CLValue::from_t(Some(WhitelistMode::Unlocked as u8)).unwrap(),
-            contract_whitelist: CLValue::from_t(Some(Vec::<ContractHash>::new())).unwrap(),
+            holder_mode: CLValue::from_t(NFTHolderMode::Mixed as u8).unwrap(),
+            whitelist_mode: CLValue::from_t(WhitelistMode::Unlocked as u8).unwrap(),
+            contract_whitelist: CLValue::from_t(Vec::<ContractHash>::new()).unwrap(),
             json_schema: CLValue::from_t("test".to_string())
                 .expect("test_metadata was created from a concrete value"),
             nft_metadata_kind: CLValue::from_t(NFTMetadataKind::NFT721 as u8).unwrap(),
             identifier_mode: CLValue::from_t(NFTIdentifierMode::Ordinal as u8).unwrap(),
             metadata_mutability: CLValue::from_t(MetadataMutability::Mutable as u8).unwrap(),
-            burn_mode: CLValue::from_t(Some(BurnMode::Burnable as u8)).unwrap(),
+            burn_mode: CLValue::from_t(BurnMode::Burnable as u8).unwrap(),
         }
     }
 
@@ -229,13 +229,13 @@ impl InstallerRequestBuilder {
     }
 
     // Why Option here? The None case should be taken care of when running default
-    pub(crate) fn with_allowing_minting(mut self, allow_minting: Option<bool>) -> Self {
+    pub(crate) fn with_allowing_minting(mut self, allow_minting: bool) -> Self {
         self.allow_minting =
             CLValue::from_t(allow_minting).expect("allow minting is legit CLValue");
         self
     }
 
-    pub(crate) fn with_minting_mode(mut self, minting_mode: Option<u8>) -> Self {
+    pub(crate) fn with_minting_mode(mut self, minting_mode: u8) -> Self {
         self.minting_mode = CLValue::from_t(minting_mode).expect("public minting is legit CLValue");
         self
     }
@@ -246,17 +246,17 @@ impl InstallerRequestBuilder {
     }
 
     pub(crate) fn with_holder_mode(mut self, holder_mode: NFTHolderMode) -> Self {
-        self.holder_mode = CLValue::from_t(Some(holder_mode as u8)).unwrap();
+        self.holder_mode = CLValue::from_t(holder_mode as u8).unwrap();
         self
     }
 
     pub(crate) fn with_whitelist_mode(mut self, whitelist_mode: WhitelistMode) -> Self {
-        self.whitelist_mode = CLValue::from_t(Some(whitelist_mode as u8)).unwrap();
+        self.whitelist_mode = CLValue::from_t(whitelist_mode as u8).unwrap();
         self
     }
 
     pub(crate) fn with_contract_whitelist(mut self, contract_whitelist: Vec<ContractHash>) -> Self {
-        self.contract_whitelist = CLValue::from_t(Some(contract_whitelist)).unwrap();
+        self.contract_whitelist = CLValue::from_t(contract_whitelist).unwrap();
         self
     }
 
@@ -284,7 +284,7 @@ impl InstallerRequestBuilder {
     }
 
     pub(crate) fn with_burn_mode(mut self, burn_mode: BurnMode) -> Self {
-        self.burn_mode = CLValue::from_t(Some(burn_mode as u8)).unwrap();
+        self.burn_mode = CLValue::from_t(burn_mode as u8).unwrap();
         self
     }
 
