@@ -42,7 +42,7 @@ struct Metadata {
 
 fn setup_nft_contract(
     total_token_supply: Option<u64>,
-    allowing_minting: Option<bool>,
+    allowing_minting: bool,
 ) -> WasmTestBuilder<InMemoryGlobalState> {
     let mut builder = InMemoryWasmTestBuilder::default();
     builder.run_genesis(&DEFAULT_RUN_GENESIS_REQUEST).commit();
@@ -66,7 +66,7 @@ fn setup_nft_contract(
 
 #[test]
 fn should_disallow_minting_when_allow_minting_is_set_to_false() {
-    let mut builder = setup_nft_contract(Some(2u64), Some(false));
+    let mut builder = setup_nft_contract(Some(2u64), false);
 
     let mint_request = ExecuteRequestBuilder::contract_call_by_name(
         *DEFAULT_ACCOUNT_ADDR,
@@ -226,7 +226,7 @@ fn mint_should_return_dictionary_key_to_callers_owned_tokens() {
     let install_request = InstallerRequestBuilder::new(*DEFAULT_ACCOUNT_ADDR, NFT_CONTRACT_WASM)
         .with_collection_name(NFT_COLLECTION_NAME.to_string())
         .with_total_token_supply(100u64)
-        .with_allowing_minting(Some(true))
+        .with_allowing_minting(true)
         .build();
 
     builder.exec(install_request).expect_success().commit();
@@ -530,7 +530,7 @@ fn should_allow_public_minting_with_flag_set_to_true() {
 
     let install_request = InstallerRequestBuilder::new(*DEFAULT_ACCOUNT_ADDR, NFT_CONTRACT_WASM)
         .with_total_token_supply(100u64)
-        .with_minting_mode(Some(MintingMode::Public as u8))
+        .with_minting_mode(MintingMode::Public as u8)
         .build();
     builder.exec(install_request).expect_success().commit();
 
@@ -605,7 +605,7 @@ fn should_disallow_public_minting_with_flag_set_to_false() {
 
     let install_request = InstallerRequestBuilder::new(*DEFAULT_ACCOUNT_ADDR, NFT_CONTRACT_WASM)
         .with_total_token_supply(100u64)
-        .with_minting_mode(Some(MintingMode::Installer as u8))
+        .with_minting_mode(MintingMode::Installer as u8)
         .build();
     builder.exec(install_request).expect_success().commit();
 
@@ -666,7 +666,7 @@ fn should_allow_minting_for_different_public_key_with_minting_mode_set_to_public
 
     let install_request = InstallerRequestBuilder::new(*DEFAULT_ACCOUNT_ADDR, NFT_CONTRACT_WASM)
         .with_total_token_supply(100u64)
-        .with_minting_mode(Some(MintingMode::Public as u8))
+        .with_minting_mode(MintingMode::Public as u8)
         .build();
     builder.exec(install_request).expect_success().commit();
 
@@ -852,7 +852,7 @@ fn should_allow_whitelisted_contract_to_mint() {
         .with_holder_mode(NFTHolderMode::Contracts)
         .with_whitelist_mode(WhitelistMode::Locked)
         .with_ownership_mode(OwnershipMode::Minter)
-        .with_minting_mode(Some(MintingMode::Installer as u8))
+        .with_minting_mode(MintingMode::Installer as u8)
         .with_contract_whitelist(contract_whitelist.clone())
         .build();
 
@@ -926,7 +926,7 @@ fn should_disallow_unlisted_contract_from_minting() {
         .with_holder_mode(NFTHolderMode::Contracts)
         .with_whitelist_mode(WhitelistMode::Locked)
         .with_ownership_mode(OwnershipMode::Minter)
-        .with_minting_mode(Some(MintingMode::Installer as u8))
+        .with_minting_mode(MintingMode::Installer as u8)
         .with_contract_whitelist(contract_whitelist)
         .build();
 
@@ -982,7 +982,7 @@ fn should_be_able_to_update_whitelist_for_minting() {
         .with_holder_mode(NFTHolderMode::Contracts)
         .with_whitelist_mode(WhitelistMode::Unlocked)
         .with_ownership_mode(OwnershipMode::Minter)
-        .with_minting_mode(Some(MintingMode::Installer as u8))
+        .with_minting_mode(MintingMode::Installer as u8)
         .with_contract_whitelist(vec![])
         .build();
 
@@ -1026,7 +1026,7 @@ fn should_be_able_to_update_whitelist_for_minting() {
         nft_contract_hash,
         ENTRY_POINT_SET_VARIABLES,
         runtime_args! {
-            ARG_CONTRACT_WHITELIST => Some(vec![minting_contract_hash])
+            ARG_CONTRACT_WHITELIST => vec![minting_contract_hash]
         },
     )
     .build();
