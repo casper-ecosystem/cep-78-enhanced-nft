@@ -110,12 +110,15 @@ pub(crate) fn get_named_arg_size(name: &str) -> Option<usize> {
     }
 }
 
+// The optional here is literal and does not co-relate to an Option enum type.
+// If the argument has been provided it is accepted, and is then turned into a Some.
+// If the argument is not provided at all, then it is considered as None.
 pub(crate) fn get_optional_named_arg_with_user_errors<T: FromBytes>(
     name: &str,
     invalid: NFTCoreError,
 ) -> Option<T> {
-    match get_named_arg_with_user_errors(name, NFTCoreError::Phantom, invalid) {
-        Ok(val) => val,
+    match get_named_arg_with_user_errors::<T>(name, NFTCoreError::Phantom, invalid) {
+        Ok(val) => Some(val),
         Err(_) => None,
     }
 }
