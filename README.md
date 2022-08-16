@@ -19,7 +19,7 @@
 
 2) [Usage](#usage)
 
-3) [Installing and Interacting with the Contract using the Casper Client](#installing-and-interacting-with-the-contract-using-the-casper-client)
+3) [Installing and Interacting with the Contract using the Rust Casper Client](#installing-and-interacting-with-the-contract-using-the-rust-casper-client)
 
 4) [Test Suite and Specification](#test-suite-and-specification)
 
