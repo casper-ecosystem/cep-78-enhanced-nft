@@ -23,9 +23,7 @@
 
 4) [Test Suite and Specification](#test-suite-and-specification)
 
-## Features and Usage
-
-### Modalities
+## Modalities
 
 The enhanced NFT implementation supports various 'modalities' which dictate the behavior of a specific instance of a 
 contract. Modalities represent the common expectations around contract usage and behavior.
@@ -303,7 +301,7 @@ folder within the project folder.
 | `"owner_of"`     | `client/owner_of_session`     |
 
 
-### Installing and Interacting with the Contract using the Casper Client
+### Installing and Interacting with the Contract using the Rust Casper Client
 
 This contract code installs an instance of the CEP-78 enhanced NFT standard as per session arguments provided at the time of installation.
 
