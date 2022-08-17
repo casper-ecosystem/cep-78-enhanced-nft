@@ -22,16 +22,19 @@ env:
 
 jobs:
   build:
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-22.04
     steps:
-    - uses: actions/checkout@2541b1294d2704b0964813337f33b291d3f8596b #v3.0.2
-    - uses: actions-rs/toolchain@88dc2356392166efad76775c878094f4e83ff746 #latest commit
-      with:
-        profile: minimal
-        components: rustfmt, clippy
+      - uses: actions/checkout@2541b1294d2704b0964813337f33b291d3f8596b #v3.0.2
+      - uses: Swatinem/rust-cache@cb2cf0cc7c5198d3364b9630e2c3d457f160790c #v1.4.0
 
-    - run: sudo apt update && sudo apt install -y build-essential
-    - uses: Swatinem/rust-cache@cb2cf0cc7c5198d3364b9630e2c3d457f160790c #v1.4.0
-    - run: make prepare
-    - run: make check-lint
-    - run: make test
+      - name: Install dependencies
+        run: sudo apt update && sudo apt install -y build-essential wabt
+
+      - name: Setup wasm32-unknown-unknown
+        run: make prepare
+
+      - name: Run clippy and fmt
+        run: make check-lint
+
+      - name: Run tests
+        run: make test
