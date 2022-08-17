@@ -45,7 +45,7 @@ In all the three mentioned modes, the owner entity is currently restricted to `A
 This `Ownership` mode is a required installation parameter and cannot be changed once the contract has been installed.
 The mode is passed in as `u8` value to the `"ownership_mode"` runtime argument. 
 
-| Mode         | u8  |
+| Ownership    | u8  |
 |--------------|-----|
 | Minter       | 0   |
 | Assigned     | 1   |
