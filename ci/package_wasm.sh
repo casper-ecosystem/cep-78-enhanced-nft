@@ -36,7 +36,7 @@ if [ -d "$TEMP_DIR" ]; then
     echo "creating $TEMP_DIR/$TARBALL"
     echo ""
     # create the tarball
-    tar -czf "$TARBALL" "*.wasm" --remove-files
+    tar -czf "$TARBALL" *.wasm --remove-files
     # Move back
     popd > /dev/null
 fi
