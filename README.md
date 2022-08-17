@@ -255,7 +255,9 @@ The `MetadataMutability` option of `Mutable` cannot be used in conjunction with 
 #### Installing the contract.
 
 The `main.rs` file within the contract provides the installer for the NFT contract. Users can compile the contract to Wasm using the `make build-contract` with the provided Makefile.
+
 If you wish to build the Wasm yourself, you must first install `wasm-strip`.
+
 The `call` method will install the contract with the necessary entrypoints and call `init()` entry point to allow the contract to self initialize and setup the necessary state to allow for operation,
 The following are the required runtime arguments that must be passed to the installer session code to correctly install the NFT contract.
 
