@@ -298,6 +298,7 @@ folder within the project folder.
 | `"balance_of"`   | `client/balance_of_session`   |
 | `"get_approved`  | `client/get_approved_session` |
 | `"owner_of"`     | `client/owner_of_session`     |
+| `"transfer"`     | `client/transfer_session`     |
 
 
 ### Installing and Interacting with the Contract using the Rust Casper Client
