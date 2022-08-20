@@ -23,6 +23,7 @@ pub(crate) const ARG_MINTING_MODE: &str = "minting_mode";
 pub(crate) const ARG_HOLDER_MODE: &str = "holder_mode";
 pub(crate) const ARG_WHITELIST_MODE: &str = "whitelist_mode";
 pub(crate) const ARG_CONTRACT_WHITELIST: &str = "contract_whitelist";
+pub(crate) const ARG_ACCOUNT_WHITELIST: &str = "account_whitelist";
 pub(crate) const NUMBER_OF_MINTED_TOKENS: &str = "number_of_minted_tokens";
 pub(crate) const ARG_TOKEN_META_DATA: &str = "token_meta_data";
 pub(crate) const METADATA_CUSTOM_VALIDATED: &str = "metadata_custom_validated";

@@ -16,11 +16,11 @@ use casper_types::{
     api_error,
     bytesrepr::{self, FromBytes, ToBytes},
     system::CallStackElement,
-    ApiError, CLTyped, ContractHash, Key, URef,
+    ApiError, CLTyped, ContractHash, Key, URef, Tagged, KeyTag,
 };
 
 use crate::{
-    constants::{ARG_TOKEN_HASH, ARG_TOKEN_ID, HOLDER_MODE, OWNED_TOKENS, OWNERSHIP_MODE},
+    constants::{ARG_TOKEN_HASH, ARG_TOKEN_ID, HOLDER_MODE, OWNED_TOKENS, OWNERSHIP_MODE, CONTRACT_WHITELIST, INSTALLER, ACCOUNT_WHITELIST},
     error::NFTCoreError,
     modalities::{NFTHolderMode, NFTIdentifierMode, OwnershipMode, TokenIdentifier},
     BurnMode, BURNT_TOKENS, BURN_MODE,
@@ -389,4 +389,59 @@ pub(crate) fn get_burn_mode() -> BurnMode {
 pub(crate) fn is_token_burned(token_identifier: &TokenIdentifier) -> bool {
     get_dictionary_value_from_key::<()>(BURNT_TOKENS, &token_identifier.get_dictionary_item_key())
         .is_some()
+}
+
+pub(crate) fn require_valid_accounts_or_contracts() {
+    let caller = get_verified_caller().unwrap_or_revert();
+    match caller.tag() {
+        KeyTag::Hash => {
+            require_valid_contracts();
+        }
+        KeyTag::Account => {
+            require_valid_accounts();
+        }
+        _ => runtime::revert(NFTCoreError::InvalidKey),
+    }
+}
+
+pub(crate) fn require_valid_contracts() {
+    let caller = get_verified_caller().unwrap_or_revert();
+    let calling_contract = caller
+        .into_hash()
+        .map(ContractHash::new)
+        .unwrap_or_revert_with(NFTCoreError::InvalidKey);
+    let contract_whitelist =
+        get_stored_value_with_user_errors::<Vec<ContractHash>>(
+            CONTRACT_WHITELIST,
+            NFTCoreError::MissingContractWhiteList,
+            NFTCoreError::InvalidContractWhitelist,
+        );
+    // Revert if the calling contract is not in the whitelist.
+    if !contract_whitelist.contains(&calling_contract) {
+        runtime::revert(NFTCoreError::UnlistedContractHash)
+    }
+}
+
+pub(crate) fn require_valid_accounts() {
+    let installer = get_account_hash(
+        INSTALLER,
+        NFTCoreError::MissingInstaller,
+        NFTCoreError::InvalidInstaller,
+    );
+
+    let caller_account = runtime::get_caller();
+
+    // Only the installing account or admins can change the mutable variables.
+    if installer != caller_account {
+
+        // Not the installer, let's check whitelist
+        let account_whitelist = get_stored_value_with_user_errors::<Vec<AccountHash>>(
+            ACCOUNT_WHITELIST,
+            NFTCoreError::MissingAccountWhiteList,
+            NFTCoreError::InvalidAccountWhiteList,
+        );
+        if !account_whitelist.contains(&caller_account) {
+            runtime::revert(NFTCoreError::InvalidMinter)
+        }
+    }
 }
