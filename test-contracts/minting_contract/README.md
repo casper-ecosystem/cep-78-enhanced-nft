@@ -2,6 +2,9 @@
 
 Contract code that handles the `Mint`, `Transfer` and `Burn` entry points. 
 
+Please note, this contract is meant for testing purposes only and is not meant to be used for production 
+purposes.
+
 ## Compiling contract code
 
 The contract code can be compiled to Wasm by running the `make build-contract` command provided in the Makefile at the top level.
