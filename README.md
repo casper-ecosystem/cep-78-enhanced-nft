@@ -21,6 +21,8 @@
 
 4) [Test Suite and Specification](#test-suite-and-specification)
 
+5) [Error Codes](#error-codes)
+
 ## Modalities
 
 The enhanced NFT implementation supports various 'modalities' that dictate the behavior of a specific contract instance. Modalities represent the common expectations around contract usage and behavior.
@@ -305,6 +307,8 @@ folder within the project folder.
 
 This contract code installs an instance of the CEP-78 enhanced NFT standard as per session arguments provided at the time of installation.
 
+This contract requires a minimum Rust version of `1.63.0`.
+
 #### Installing the Contract
 
 Installing the enhanced NFT contract to global state requires the use of a [Deploy](https://docs.casperlabs.io/dapp-dev-guide/building-dapps/sending-deploys/). In this case, the session code can be compiled to Wasm by running the `make build-contract` command provided in the Makefile at the top level. The Wasm will be found in the `contract/target/wasm32-unknown-unknown/release` directory as `contract.wasm`.
@@ -489,3 +493,113 @@ ensures that as new modalities are added, and current modalities are extended, n
 The test suite also asserts the correct working behavior of the utility session code provided in the client folder. The tests can be run 
 by using the provided `Makefile` and running the `make test` command.
 
+## Error Codes
+
+|Code   |Error                              |
+|-------|-----------------------------------|
+|   1   | InvalidAccount                    |
+|   2   | MissingInstaller                  |
+|   3   | InvalidInstaller                  |
+|   4   | UnexpectedKeyVariant              |
+|   5   | MissingTokenOwner                 |
+|   6   | InvalidTokenOwner                 |
+|   7   | FailedToGetArgBytes               |
+|   8   | FailedToCreateDictionary          |
+|   9   | MissingStorageUref                |
+|  10   | InvalidStorageUref                |
+|  11   | MissingOwnerUref                  |
+|  12   | InvalidOwnersUref                 |
+|  13   | FailedToAccessStorageDictionary   |
+|  14   | FailedToAccessOwnershipDictionary |
+|  15   | DuplicateMinted                   |
+|  16   | FailedToConvertCLValue            |
+|  17   | MissingCollectionName             |
+|  18   | InvalidCollectionName             |
+|  19   | FailedToSerializeMetaData         |
+|  20   | MissingAccount                    |
+|  21   | MissingMintingStatus              |
+|  22   | InvalidMintingStatus              |
+|  23   | MissingCollectionSymbol           |
+|  24   | InvalidCollectionSymbol           |
+|  25   | MissingTotalTokenSupply           |
+|  26   | InvalidTotalTokenSupply           |
+|  27   | MissingTokenID                    |
+|  28   | InvalidTokenIdentifier            |
+|  29   | MissingTokenOwners                |
+|  30   | MissingAccountHash                |
+|  31   | InvalidAccountHash                |
+|  32   | TokenSupplyDepleted               |
+|  33   | MissingOwnedTokensDictionary      |
+|  34   | TokenAlreadyBelongsToMinterFatal  |
+|  35   | FatalTokenIdDuplication           |
+|  36   | InvalidMinter                     |
+|  37   | MissingMintingMode                |
+|  38   | InvalidMintingMode                |
+|  39   | MissingInstallerKey               |
+|  40   | FailedToConvertToAccountHash      |
+|  41   | InvalidBurner                     |
+|  42   | PreviouslyBurntToken              |
+|  43   | MissingAllowMinting               |
+|  44   | InvalidAllowMinting               |
+|  45   | MissingNumberOfMintedTokens       |
+|  46   | InvalidNumberOfMintedTokens       |
+|  47   | MissingTokenMetaData              |
+|  48   | InvalidTokenMetaData              |
+|  49   | MissingApprovedAccountHash        |
+|  50   | InvalidApprovedAccountHash        |
+|  51   | MissingApprovedTokensDictionary   |
+|  52   | TokenAlreadyApproved              |
+|  53   | MissingApproveAll                 |
+|  54   | InvalidApproveAll                 |
+|  55   | MissingOperator                   |
+|  56   | InvalidOperator                   |
+|  57   | Phantom                           |
+|  58   | ContractAlreadyInitialized        |
+|  59   | MintingIsPaused                   |
+|  60   | FailureToParseAccountHash         |
+|  61   | VacantValueInDictionary           |
+|  62   | MissingOwnershipMode              |
+|  63   | InvalidOwnershipMode              |
+|  64   | InvalidTokenMinter                |
+|  65   | MissingOwnedTokens                |
+|  66   | InvalidAccountKeyInDictionary     |
+|  67   | MissingJsonSchema                 |
+|  68   | InvalidJsonSchema                 |
+|  69   | InvalidKey                        |
+|  70   | InvalidOwnedTokens                |
+|  71   | MissingTokenURI                   |
+|  72   | InvalidTokenURI                   |
+|  73   | MissingNftKind                    |
+|  74   | InvalidNftKind                    |
+|  75   | MissingHolderMode                 |
+|  76   | InvalidHolderMode                 |
+|  77   | MissingWhitelistMode              |
+|  78   | InvalidWhitelistMode              |
+|  79   | MissingContractWhiteList          |
+|  80   | InvalidContractWhitelist          |
+|  81   | UnlistedContractHash              |
+|  82   | InvalidContract                   |
+|  83   | EmptyContractWhitelist            |
+|  84   | MissingReceiptName                |
+|  85   | InvalidReceiptName                |
+|  86   | InvalidJsonMetadata               |
+|  87   | InvalidJsonFormat                 |
+|  88   | FailedToParseCep99Metadata        |
+|  89   | FailedToParse721Metadata          |
+|  90   | FailedToParseCustomMetadata       |
+|  91   | InvalidCEP99Metadata              |
+|  92   | FailedToJsonifyCEP99Metadata      |
+|  93   | InvalidNFT721Metadata             |
+|  94   | FailedToJsonifyNFT721Metadata     |
+|  95   | InvalidCustomMetadata             |
+|  96   | MissingNFTMetadataKind            |
+|  97   | InvalidNFTMetadataKind            |
+|  98   | MissingIdentifierMode             |
+|  99   | InvalidIdentifierMode             |
+|  100  | FailedToParseTokenId              |
+|  101  | MissingMetadataMutability         |
+|  102  | InvalidMetadataMutability         |
+|  103  | FailedToJsonifyCustomMetadata     |
+|  104  | ForbiddenMetadataUpdate           |
+|  105  | MissingBurnMode                   |
+|  106  | InvalidBurnMode                   |
