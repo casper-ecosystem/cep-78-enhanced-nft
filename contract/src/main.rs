@@ -1300,6 +1300,8 @@ fn install_nft_contract() -> (ContractHash, ContractVersion) {
                 Parameter::new(ARG_RECEIPT_NAME, CLType::String),
                 Parameter::new(ARG_IDENTIFIER_MODE, CLType::U8),
                 Parameter::new(ARG_BURN_MODE, CLType::U8),
+                Parameter::new(ARG_NFT_METADATA_KIND, CLType::U8),
+                Parameter::new(ARG_METADATA_MUTABILITY, CLType::U8),
             ],
             CLType::Unit,
             EntryPointAccess::Public,
