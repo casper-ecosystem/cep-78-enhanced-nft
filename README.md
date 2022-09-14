@@ -584,11 +584,11 @@ by using the provided `Makefile` and running the `make test` command.
 |  85   | InvalidReceiptName                |
 |  86   | InvalidJsonMetadata               |
 |  87   | InvalidJsonFormat                 |
-|  88   | FailedToParseCep99Metadata        |
+|  88   | FailedToParseCep78Metadata        |
 |  89   | FailedToParse721Metadata          |
 |  90   | FailedToParseCustomMetadata       |
-|  91   | InvalidCEP99Metadata              |
-|  92   | FailedToJsonifyCEP99Metadata      |
+|  91   | InvalidCEP78Metadata              |
+|  92   | FailedToJsonifyCEP78Metadata      |
 |  93   | InvalidNFT721Metadata             |
 |  94   | FailedToJsonifyNFT721Metadata     |
 |  95   | InvalidCustomMetadata             |
