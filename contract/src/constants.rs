@@ -27,7 +27,6 @@ pub const OPERATOR: &str = "operator";
 pub const NUMBER_OF_MINTED_TOKENS: &str = "number_of_minted_tokens";
 pub const INSTALLER: &str = "installer";
 pub const JSON_SCHEMA: &str = "json_schema";
-pub const METADATA_SCHEMA: &str = "metadata_schema";
 pub const CONTRACT_NAME: &str = "nft_contract";
 pub const HASH_KEY_NAME: &str = "nft_contract_package";
 pub const ACCESS_KEY_NAME: &str = "nft_contract_package_access";
