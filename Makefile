@@ -21,7 +21,7 @@ build-contract:
 	wasm-strip client/transfer_session/target/wasm32-unknown-unknown/release/transfer_call.wasm
 	wasm-strip test-contracts/minting_contract/target/wasm32-unknown-unknown/release/minting_contract.wasm
 
-test: build-contract
+setup-test: build-contract
 	mkdir -p tests/wasm
 	cp contract/target/wasm32-unknown-unknown/release/contract.wasm tests/wasm
 	cp client/mint_session/target/wasm32-unknown-unknown/release/mint_call.wasm tests/wasm
@@ -30,6 +30,9 @@ test: build-contract
 	cp client/get_approved_session/target/wasm32-unknown-unknown/release/get_approved_call.wasm tests/wasm
 	cp client/transfer_session/target/wasm32-unknown-unknown/release/transfer_call.wasm tests/wasm
 	cp test-contracts/minting_contract/target/wasm32-unknown-unknown/release/minting_contract.wasm tests/wasm
+
+
+test: setup-test
 	cd tests && cargo test
 
 clippy:

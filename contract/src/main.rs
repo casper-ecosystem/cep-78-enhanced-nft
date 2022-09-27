@@ -8,6 +8,7 @@ mod constants;
 mod error;
 mod metadata;
 mod modalities;
+mod page;
 mod utils;
 
 extern crate alloc;
@@ -19,7 +20,7 @@ use alloc::{
     vec,
     vec::Vec,
 };
-use core::convert::TryInto;
+use core::{convert::TryInto, mem};
 
 use casper_types::{
     contracts::NamedKeys, runtime_args, CLType, CLValue, ContractHash, ContractPackageHash,
@@ -50,8 +51,8 @@ use crate::{
         ENTRY_POINT_TRANSFER, HASH_KEY_NAME, HOLDER_MODE, IDENTIFIER_MODE, INSTALLER, JSON_SCHEMA,
         METADATA_CEP78, METADATA_CUSTOM_VALIDATED, METADATA_MUTABILITY, METADATA_NFT721,
         METADATA_RAW, MINTING_MODE, NFT_KIND, NFT_METADATA_KIND, NUMBER_OF_MINTED_TOKENS, OPERATOR,
-        OWNED_TOKENS, OWNERSHIP_MODE, RECEIPT_NAME, TOKEN_COUNTS, TOKEN_ISSUERS, TOKEN_OWNERS,
-        TOTAL_TOKEN_SUPPLY, WHITELIST_MODE,
+        OWNERSHIP_MODE, RECEIPT_NAME, REVERSE_TOKEN_TRACKER, TOKEN_COUNTS, TOKEN_ISSUERS,
+        TOKEN_OWNERS, TOKEN_TRACKER, TOTAL_TOKEN_SUPPLY, WHITELIST_MODE,
     },
     error::NFTCoreError,
     metadata::CustomMetadataSchema,
@@ -60,6 +61,11 @@ use crate::{
         NFTMetadataKind, OwnershipMode, TokenIdentifier, WhitelistMode,
     },
 };
+use crate::utils::get_uref;
+
+const PAGE_SIZE: u64 = 10;
+const NOT_OWNED: bool = false;
+const OWNED: bool = true;
 
 #[no_mangle]
 pub extern "C" fn init() {
@@ -284,8 +290,6 @@ pub extern "C" fn init() {
         .unwrap_or_revert_with(NFTCoreError::FailedToCreateDictionary);
     storage::new_dictionary(TOKEN_ISSUERS)
         .unwrap_or_revert_with(NFTCoreError::FailedToCreateDictionary);
-    storage::new_dictionary(OWNED_TOKENS)
-        .unwrap_or_revert_with(NFTCoreError::FailedToCreateDictionary);
     storage::new_dictionary(OPERATOR).unwrap_or_revert_with(NFTCoreError::FailedToCreateDictionary);
     storage::new_dictionary(BURNT_TOKENS)
         .unwrap_or_revert_with(NFTCoreError::FailedToCreateDictionary);
@@ -298,6 +302,10 @@ pub extern "C" fn init() {
     storage::new_dictionary(METADATA_NFT721)
         .unwrap_or_revert_with(NFTCoreError::FailedToCreateDictionary);
     storage::new_dictionary(METADATA_RAW)
+        .unwrap_or_revert_with(NFTCoreError::FailedToCreateDictionary);
+    storage::new_dictionary(TOKEN_TRACKER)
+        .unwrap_or_revert_with(NFTCoreError::FailedToCreateDictionary);
+    storage::new_dictionary(REVERSE_TOKEN_TRACKER)
         .unwrap_or_revert_with(NFTCoreError::FailedToCreateDictionary);
 }
 
@@ -497,104 +505,44 @@ pub extern "C" fn mint() {
         metadata,
     );
 
-    let owned_tokens_item_key = utils::get_owned_tokens_dictionary_item_key(token_owner_key);
-
-    let owned_tokens_actual_key = Key::dictionary(
-        utils::get_uref(
-            OWNED_TOKENS,
-            NFTCoreError::MissingOwnedTokens,
-            NFTCoreError::InvalidOwnedTokens,
-        ),
-        owned_tokens_item_key.as_bytes(),
-    );
-
-    // Update owned tokens dictionary
-    let maybe_owned_tokens: Option<Vec<TokenIdentifier>> = {
-        match identifier_mode {
-            NFTIdentifierMode::Ordinal => utils::get_dictionary_value_from_key::<Vec<u64>>(
-                OWNED_TOKENS,
-                &owned_tokens_item_key,
-            )
-            .map(|token_indices| {
-                token_indices
-                    .into_iter()
-                    .map(TokenIdentifier::new_index)
-                    .collect()
-            }),
-            NFTIdentifierMode::Hash => utils::get_dictionary_value_from_key::<Vec<String>>(
-                OWNED_TOKENS,
-                &owned_tokens_item_key,
-            )
-            .map(|token_hashes| {
-                token_hashes
-                    .into_iter()
-                    .map(TokenIdentifier::new_hash)
-                    .collect()
-            }),
-        }
+    let owners_dictionary_seed_uref = match runtime::get_key(&token_owner_key.to_formatted_string())
+    {
+        Some(owners_seed_uref) => owners_seed_uref.into_uref().unwrap_or_revert(),
+        None => storage::new_dictionary(&token_owner_key.to_formatted_string()).unwrap_or_revert(),
     };
 
-    // Update the value in the owned_tokens dictionary.
-    match maybe_owned_tokens {
-        Some(mut owned_tokens) => {
-            // Check that we are not minting a duplicate token.
-            if owned_tokens.contains(&token_identifier) {
-                runtime::revert(NFTCoreError::FatalTokenIdDuplication);
-            }
+    if utils::is_token_issued(&next_index.to_string()) {
+        runtime::revert(NFTCoreError::InvalidPreMintedToken)
+    }
 
-            owned_tokens.push(token_identifier.clone());
-            match identifier_mode {
-                NFTIdentifierMode::Ordinal => {
-                    let token_indices: Vec<u64> = owned_tokens
-                        .into_iter()
-                        .map(|identifier| identifier.get_index().unwrap_or_revert())
-                        .collect();
-                    utils::upsert_dictionary_value_from_key(
-                        OWNED_TOKENS,
-                        &owned_tokens_item_key,
-                        token_indices,
-                    )
-                }
-                NFTIdentifierMode::Hash => {
-                    let token_hashes: Vec<String> = owned_tokens
-                        .into_iter()
-                        .map(|identifier| identifier.get_hash().unwrap_or_revert())
-                        .collect();
-                    utils::upsert_dictionary_value_from_key(
-                        OWNED_TOKENS,
-                        &owned_tokens_item_key,
-                        token_hashes,
-                    )
-                }
-            }
+    let page_number = (next_index / PAGE_SIZE).to_string();
+    let page_index = {
+        let page_index = next_index % PAGE_SIZE;
+        if page_index >= PAGE_SIZE {
+            runtime::revert(NFTCoreError::InvalidPageIndex)
         }
-        None => {
-            match identifier_mode {
-                NFTIdentifierMode::Ordinal => utils::upsert_dictionary_value_from_key(
-                    OWNED_TOKENS,
-                    &owned_tokens_item_key,
-                    vec![token_identifier.get_index().unwrap_or_revert()],
-                ),
-                NFTIdentifierMode::Hash => utils::upsert_dictionary_value_from_key(
-                    OWNED_TOKENS,
-                    &owned_tokens_item_key,
-                    vec![token_identifier.clone().get_hash().unwrap_or_revert()],
-                ),
-            };
-        }
+        page_index as usize
     };
 
-    //Increment the count of owned tokens.
-    let updated_token_count =
-        match utils::get_dictionary_value_from_key::<u64>(TOKEN_COUNTS, &owned_tokens_item_key) {
-            Some(balance) => balance + 1u64,
-            None => 1u64,
+    let mut page =
+        match storage::dictionary_get::<Vec<bool>>(owners_dictionary_seed_uref, &page_number)
+            .unwrap_or_revert()
+        {
+            Some(page) => page,
+            None => vec![false; PAGE_SIZE as usize],
         };
-    utils::upsert_dictionary_value_from_key(
-        TOKEN_COUNTS,
-        &owned_tokens_item_key,
-        updated_token_count,
-    );
+
+    if page[page_index] {
+        runtime::revert(NFTCoreError::InvalidPreMintedToken)
+    }
+
+    let _ = mem::replace(&mut page[page_index], true);
+
+    storage::dictionary_put(owners_dictionary_seed_uref, &page_number, page);
+
+    utils::update_forward_and_reverse_token_tracker(next_index, &token_identifier);
+
+    let dictionary_key = page::get_token_page_dictionary_key(next_index, &token_owner_key);
 
     // Increment number_of_minted_tokens by one
     next_index += 1u64;
@@ -613,9 +561,11 @@ pub extern "C" fn mint() {
 
     let token_identifier_string = token_identifier.get_dictionary_item_key();
 
+
+
     let receipt = CLValue::from_t((
         receipt_name,
-        owned_tokens_actual_key,
+        dictionary_key,
         token_identifier_string,
     ))
     .unwrap_or_revert_with(NFTCoreError::FailedToConvertToCLValue);
@@ -800,67 +750,37 @@ pub extern "C" fn set_approval_for_all() {
 
     let caller: Key = utils::get_verified_caller().unwrap_or_revert();
 
-    let caller_dictionary_item_key = utils::get_owned_tokens_dictionary_item_key(caller);
-
     let approved_uref = utils::get_uref(
         OPERATOR,
         NFTCoreError::MissingStorageUref,
         NFTCoreError::InvalidStorageUref,
     );
 
-    let identifier_mode: NFTIdentifierMode = utils::get_stored_value_with_user_errors::<u8>(
-        IDENTIFIER_MODE,
-        NFTCoreError::MissingIdentifierMode,
-        NFTCoreError::InvalidIdentifierMode,
-    )
-    .try_into()
-    .unwrap_or_revert();
+    // Get all the token index (which is different from the token_id) for a given owner
+    // do the forward lookup to get the token identifier and then mark them
+    // as approved accordingly
 
-    let maybe_owned_tokens: Option<Vec<TokenIdentifier>> = match identifier_mode {
-        NFTIdentifierMode::Ordinal => utils::get_dictionary_value_from_key::<Vec<u64>>(
-            OWNED_TOKENS,
-            &caller_dictionary_item_key,
-        )
-        .map(|token_hashes| {
-            token_hashes
-                .into_iter()
-                .map(TokenIdentifier::new_index)
-                .collect()
-        }),
-        NFTIdentifierMode::Hash => utils::get_dictionary_value_from_key::<Vec<String>>(
-            OWNED_TOKENS,
-            &caller_dictionary_item_key,
-        )
-        .map(|token_hashes| {
-            token_hashes
-                .into_iter()
-                .map(TokenIdentifier::new_hash)
-                .collect()
-        }),
-    };
+    let owned_tokens = page::get_all_owned_token_identifiers(&caller);
 
-    if let Some(owned_tokens) = maybe_owned_tokens {
-        // Depending on approve_all we either approve all or disapprove all.
-        for token_id in owned_tokens {
-            // We assume a burnt token cannot be approved
-            if utils::is_token_burned(&token_id) {
-                runtime::revert(NFTCoreError::PreviouslyBurntToken)
-            }
-            if approve_all {
-                storage::dictionary_put(
-                    approved_uref,
-                    &token_id.get_dictionary_item_key(),
-                    Some(operator),
-                );
-            } else {
-                storage::dictionary_put(
-                    approved_uref,
-                    &token_id.get_dictionary_item_key(),
-                    Option::<Key>::None,
-                );
-            }
+    for token_id in owned_tokens {
+        // We assume a burnt token cannot be approved
+        if utils::is_token_burned(&token_id) {
+            runtime::revert(NFTCoreError::PreviouslyBurntToken)
         }
-    };
+        if approve_all {
+            storage::dictionary_put(
+                approved_uref,
+                &token_id.get_dictionary_item_key(),
+                Some(operator),
+            );
+        } else {
+            storage::dictionary_put(
+                approved_uref,
+                &token_id.get_dictionary_item_key(),
+                Option::<Key>::None,
+            );
+        }
+    }
 }
 
 // Transfers token from token_owner to specified account. Transfer will go through if caller is
@@ -953,21 +873,13 @@ pub extern "C" fn transfer() {
         None => runtime::revert(NFTCoreError::InvalidTokenIdentifier),
     }
 
-    // Update to_account owned_tokens. Revert if owned_tokens list is not found
-    match utils::get_token_identifiers_from_dictionary(&identifier_mode, &source_owner_item_key) {
-        Some(mut owned_tokens) => {
-            // Check that token_id is in owned tokens list. If so remove token_id from list
-            // If not revert.
-            if let Some(id) = owned_tokens.iter().position(|id| *id == token_identifier) {
-                owned_tokens.remove(id);
-            } else {
-                runtime::revert(NFTCoreError::InvalidTokenOwner)
-            }
-            utils::upsert_token_identifiers(&identifier_mode, &source_owner_item_key, owned_tokens)
-                .unwrap_or_revert();
-        }
-        None => runtime::revert(NFTCoreError::InvalidTokenIdentifier),
-    }
+    let token_index = page::get_token_tracking_index(&token_identifier)
+        .unwrap_or_revert_with(NFTCoreError::InvalidTokenIdentifier);
+
+    // Manage the page for the current owner marking the bit as false.
+    page::manage_token_owner_page(token_index, &source_key, NOT_OWNED);
+    // Manage the page for the new owner marking the bit as true.
+    page::manage_token_owner_page(token_index, &target_owner_key, OWNED);
 
     // Update the from_account balance
     let updated_from_account_balance =
@@ -990,24 +902,6 @@ pub extern "C" fn transfer() {
         &source_owner_item_key,
         updated_from_account_balance,
     );
-
-    // Update to_account owned_tokens
-    match utils::get_token_identifiers_from_dictionary(&identifier_mode, &target_owner_item_key) {
-        Some(mut owned_tokens) => {
-            if owned_tokens.iter().any(|id| *id == token_identifier) {
-                runtime::revert(NFTCoreError::FatalTokenIdDuplication)
-            } else {
-                owned_tokens.push(token_identifier.clone());
-            }
-            utils::upsert_token_identifiers(&identifier_mode, &target_owner_item_key, owned_tokens)
-                .unwrap_or_revert();
-        }
-        None => {
-            let owned_tokens = vec![token_identifier.clone()];
-            utils::upsert_token_identifiers(&identifier_mode, &target_owner_item_key, owned_tokens)
-                .unwrap_or_revert();
-        }
-    }
 
     // Update the to_account balance
     let updated_to_account_balance =
@@ -1033,23 +927,17 @@ pub extern "C" fn transfer() {
         Option::<Key>::None,
     );
 
-    let owned_tokens_actual_key = Key::dictionary(
-        utils::get_uref(
-            OWNED_TOKENS,
-            NFTCoreError::MissingOwnedTokens,
-            NFTCoreError::InvalidOwnedTokens,
-        ),
-        source_owner_item_key.as_bytes(),
-    );
-
     let receipt_name = utils::get_stored_value_with_user_errors::<String>(
         RECEIPT_NAME,
         NFTCoreError::MissingReceiptName,
         NFTCoreError::InvalidReceiptName,
     );
 
-    let receipt = CLValue::from_t((receipt_name, owned_tokens_actual_key))
-        .unwrap_or_revert_with(NFTCoreError::FailedToConvertToCLValue);
+    let receipt = CLValue::from_t((
+        receipt_name,
+        page::get_token_page_dictionary_key(token_index, &source_key),
+    ))
+    .unwrap_or_revert_with(NFTCoreError::FailedToConvertToCLValue);
     runtime::ret(receipt)
 }
 

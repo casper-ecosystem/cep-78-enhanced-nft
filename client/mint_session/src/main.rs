@@ -9,7 +9,7 @@ extern crate alloc;
 use alloc::string::String;
 
 use casper_contract::contract_api::{runtime};
-use casper_types::{runtime_args, ContractHash, Key, RuntimeArgs};
+use casper_types::{runtime_args, ContractHash, Key, RuntimeArgs, URef};
 
 const ENTRY_POINT_MINT: &str = "mint";
 

@@ -11,6 +11,7 @@ use casper_contract::{
     ext_ffi,
     unwrap_or_revert::UnwrapOrRevert,
 };
+
 use casper_types::{
     account::AccountHash,
     api_error,
@@ -20,10 +21,10 @@ use casper_types::{
 };
 
 use crate::{
-    constants::{ARG_TOKEN_HASH, ARG_TOKEN_ID, HOLDER_MODE, OWNED_TOKENS, OWNERSHIP_MODE},
+    constants::{ARG_TOKEN_HASH, ARG_TOKEN_ID, HOLDER_MODE, OWNERSHIP_MODE, REVERSE_TOKEN_TRACKER},
     error::NFTCoreError,
     modalities::{NFTHolderMode, NFTIdentifierMode, OwnershipMode, TokenIdentifier},
-    BurnMode, BURNT_TOKENS, BURN_MODE,
+    BurnMode, BURNT_TOKENS, BURN_MODE, TOKEN_TRACKER,
 };
 
 pub(crate) fn upsert_dictionary_value_from_key<T: CLTyped + FromBytes + ToBytes>(
@@ -314,67 +315,6 @@ pub(crate) fn get_token_identifier_from_runtime_args(
     }
 }
 
-pub(crate) fn get_token_identifiers_from_dictionary(
-    identifier_mode: &NFTIdentifierMode,
-    owners_item_key: &str,
-) -> Option<Vec<TokenIdentifier>> {
-    match identifier_mode {
-        NFTIdentifierMode::Ordinal => {
-            get_dictionary_value_from_key::<Vec<u64>>(OWNED_TOKENS, owners_item_key).map(
-                |token_indices| {
-                    token_indices
-                        .into_iter()
-                        .map(TokenIdentifier::new_index)
-                        .collect()
-                },
-            )
-        }
-        NFTIdentifierMode::Hash => {
-            get_dictionary_value_from_key::<Vec<String>>(OWNED_TOKENS, owners_item_key).map(
-                |token_hashes| {
-                    token_hashes
-                        .into_iter()
-                        .map(TokenIdentifier::new_hash)
-                        .collect()
-                },
-            )
-        }
-    }
-}
-
-pub(crate) fn upsert_token_identifiers(
-    identifier_mode: &NFTIdentifierMode,
-    owners_item_key: &str,
-    token_identifiers: Vec<TokenIdentifier>,
-) -> Result<(), NFTCoreError> {
-    match identifier_mode {
-        NFTIdentifierMode::Ordinal => {
-            let token_indices: Vec<u64> = token_identifiers
-                .into_iter()
-                .map(|token_identifier| {
-                    token_identifier
-                        .get_index()
-                        .unwrap_or_revert_with(NFTCoreError::InvalidIdentifierMode)
-                })
-                .collect();
-            upsert_dictionary_value_from_key(OWNED_TOKENS, owners_item_key, token_indices);
-            Ok(())
-        }
-        NFTIdentifierMode::Hash => {
-            let token_hashes: Vec<String> = token_identifiers
-                .into_iter()
-                .map(|token_identifier| {
-                    token_identifier
-                        .get_hash()
-                        .unwrap_or_revert_with(NFTCoreError::InvalidIdentifierMode)
-                })
-                .collect();
-            upsert_dictionary_value_from_key(OWNED_TOKENS, owners_item_key, token_hashes);
-            Ok(())
-        }
-    }
-}
-
 pub(crate) fn get_burn_mode() -> BurnMode {
     let burn_mode: BurnMode = get_stored_value_with_user_errors::<u8>(
         BURN_MODE,
@@ -390,3 +330,45 @@ pub(crate) fn is_token_burned(token_identifier: &TokenIdentifier) -> bool {
     get_dictionary_value_from_key::<()>(BURNT_TOKENS, &token_identifier.get_dictionary_item_key())
         .is_some()
 }
+
+pub(crate) fn is_token_issued(current_token_index: &str) -> bool {
+    let token_tracker_uref = get_uref(
+        TOKEN_TRACKER,
+        NFTCoreError::MissingStorageUref,
+        NFTCoreError::InvalidStorageUref,
+    );
+    storage::dictionary_get::<String>(token_tracker_uref, current_token_index)
+        .unwrap_or_revert()
+        .is_some()
+}
+
+pub(crate) fn update_forward_and_reverse_token_tracker(
+    current_token_index: u64,
+    token_identifier: &TokenIdentifier,
+) {
+    // Update forward lookup
+    let token_tracker_uref = get_uref(
+        TOKEN_TRACKER,
+        NFTCoreError::MissingStorageUref,
+        NFTCoreError::InvalidStorageUref,
+    );
+    storage::dictionary_put(
+        token_tracker_uref,
+        &current_token_index.to_string(),
+        token_identifier.get_dictionary_item_key(),
+    );
+
+    // Update reverse lookup
+    let reverse_lookup_uref = get_uref(
+        REVERSE_TOKEN_TRACKER,
+        NFTCoreError::MissingStorageUref,
+        NFTCoreError::InvalidStorageUref,
+    );
+    storage::dictionary_put(
+        reverse_lookup_uref,
+        &token_identifier.get_dictionary_item_key(),
+        current_token_index,
+    );
+}
+
+

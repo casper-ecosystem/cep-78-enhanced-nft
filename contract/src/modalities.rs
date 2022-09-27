@@ -194,7 +194,7 @@ impl TokenIdentifier {
         None
     }
 
-    pub(crate) fn get_hash(self) -> Option<String> {
+    pub(crate) fn _get_hash(self) -> Option<String> {
         if let Self::Hash(hash) = self {
             return Some(hash);
         }
