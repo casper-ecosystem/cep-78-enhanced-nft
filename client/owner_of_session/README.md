@@ -3,6 +3,8 @@
 Utility session code for calling the `owner_of` entrypoint on the enhanced NFT contract. It returns the `Key` of the owner 
 for a given NFT.
 
+Please be aware that users may query dictionary items directly, off-chain, without incurring network fees by using the [`casper-client`](https://crates.io/crates/casper-client) command [`casper-client get-dictionary-item`](https://docs.rs/casper-client/1.5.0/casper_client/fn.get_dictionary_item.html). Sending a deploy to interact with the `owner_of` entry point will incur transaction costs.
+
 ## Compiling session code
 
 The session code can be compiled to Wasm by running the `make build-contract` command provided in the Makefile at the top level.
