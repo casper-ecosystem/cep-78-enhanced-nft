@@ -20,12 +20,7 @@ use casper_types::{
     ApiError, CLTyped, ContractHash, Key, URef,
 };
 
-use crate::{
-    constants::{ARG_TOKEN_HASH, ARG_TOKEN_ID, HOLDER_MODE, OWNERSHIP_MODE, REVERSE_TOKEN_TRACKER},
-    error::NFTCoreError,
-    modalities::{NFTHolderMode, NFTIdentifierMode, OwnershipMode, TokenIdentifier},
-    BurnMode, BURNT_TOKENS, BURN_MODE, TOKEN_TRACKER,
-};
+use crate::{constants::{ARG_TOKEN_HASH, ARG_TOKEN_ID, HOLDER_MODE, OWNERSHIP_MODE, REVERSE_TOKEN_TRACKER}, error::NFTCoreError, modalities::{NFTHolderMode, NFTIdentifierMode, OwnershipMode, TokenIdentifier}, BurnMode, BURNT_TOKENS, BURN_MODE, TOKEN_TRACKER};
 
 pub(crate) fn upsert_dictionary_value_from_key<T: CLTyped + FromBytes + ToBytes>(
     dictionary_name: &str,
@@ -370,5 +365,3 @@ pub(crate) fn update_forward_and_reverse_token_tracker(
         current_token_index,
     );
 }
-
-

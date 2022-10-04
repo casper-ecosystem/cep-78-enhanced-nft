@@ -43,10 +43,11 @@ pub(crate) const ARG_OWNERSHIP_MODE: &str = "ownership_mode";
 pub(crate) const ARG_NFT_KIND: &str = "nft_kind";
 pub(crate) const TOKEN_COUNTS: &str = "balances";
 pub(crate) const TOKEN_OWNERS: &str = "token_owners";
-pub(crate) const OWNED_TOKENS: &str = "owned_tokens";
 pub(crate) const BURNT_TOKENS: &str = "burnt_tokens";
 pub(crate) const OPERATOR: &str = "operator";
 pub(crate) const BALANCES: &str = "balances";
+pub(crate) const TOKEN_TRACKER: &str = "token_tracker";
+pub(crate) const REVERSE_TOKEN_TRACKER: &str = "reverse_token_tracker";
 pub(crate) const RECEIPT_NAME: &str = "receipt_name";
 pub(crate) const ARG_OPERATOR: &str = "operator";
 pub(crate) const ARG_TARGET_KEY: &str = "target_key";
@@ -85,3 +86,4 @@ pub(crate) const MALFORMED_META_DATA: &str = r#"{
   "symbol": abc,
   "token_uri": "https://www.barfoo.com"
 }"#;
+pub(crate) const PAGE_SIZE: u64 = 10;

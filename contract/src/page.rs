@@ -116,11 +116,17 @@ pub(crate) fn manage_token_owner_page(
     // If the new_ownership_state is false, it means a previously owned
     // token is being transferred out and/or burnt. This implies the
     // page for the token must previously exist
-    let token_owner_seed_uref = utils::get_uref(
-        &token_owner.to_formatted_string(),
-        NFTCoreError::MissingStorageUref,
-        NFTCoreError::InvalidStorageUref,
-    );
+    let token_owner_seed_uref = match runtime::get_key(&token_owner.to_formatted_string()) {
+        Some(key) => key.into_uref().unwrap_or_revert(),
+        None => {
+            if !new_ownership_state {
+                runtime::revert(NFTCoreError::MissingStorageUref)
+            }
+            storage::new_dictionary(&token_owner.to_formatted_string())
+                .unwrap_or_revert()
+        }
+    };
+
     let mut token_owner_page = storage::dictionary_get(token_owner_seed_uref, &page_number)
         .unwrap_or_revert()
         .unwrap_or_else(|| {

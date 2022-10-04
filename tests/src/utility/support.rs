@@ -1,10 +1,10 @@
-use crate::utility::constants::{ARG_KEY_NAME, ARG_NFT_CONTRACT_HASH, MINTING_CONTRACT_NAME};
+use crate::utility::constants::{ARG_KEY_NAME, ARG_NFT_CONTRACT_HASH, MINTING_CONTRACT_NAME, PAGE_SIZE, TOKEN_TRACKER};
 use blake2::{
     digest::{Update, VariableOutput},
     VarBlake2b,
 };
 
-use super::{constants::CONTRACT_NAME, installer_request_builder::InstallerRequestBuilder};
+use super::{constants::{CONTRACT_NAME, NUMBER_OF_MINTED_TOKENS}, installer_request_builder::InstallerRequestBuilder};
 use casper_engine_test_support::{
     ExecuteRequestBuilder, InMemoryWasmTestBuilder, WasmTestBuilder, DEFAULT_ACCOUNT_ADDR,
     DEFAULT_RUN_GENESIS_REQUEST,
@@ -13,10 +13,7 @@ use casper_execution_engine::{
     core::{engine_state::Error as EngineStateError, execution},
     storage::global_state::in_memory::InMemoryGlobalState,
 };
-use casper_types::{
-    account::AccountHash, bytesrepr::FromBytes, ApiError, CLTyped, ContractHash, Key, PublicKey,
-    RuntimeArgs, SecretKey, URef, BLAKE2B_DIGEST_LENGTH,
-};
+use casper_types::{account::AccountHash, bytesrepr::FromBytes, ApiError, CLTyped, ContractHash, Key, PublicKey, RuntimeArgs, SecretKey, URef, BLAKE2B_DIGEST_LENGTH, CLValue};
 
 pub(crate) fn get_nft_contract_hash(
     builder: &WasmTestBuilder<InMemoryGlobalState>,
@@ -165,4 +162,69 @@ pub(crate) fn create_blake2b_hash<T: AsRef<[u8]>>(data: T) -> [u8; BLAKE2B_DIGES
         result.copy_from_slice(slice);
     });
     result
+}
+
+
+fn get_token_id_strings(builder: &WasmTestBuilder<InMemoryGlobalState>, nft_contract_key: Key, token_owner: &Key) -> Vec<String> {
+    let number_of_minted_tokens = builder.query(None, nft_contract_key, &[NUMBER_OF_MINTED_TOKENS.to_string()])
+        .expect("must have number of minted tokens")
+        .as_cl_value()
+        .map(|cl_value| CLValue::into_t::<u64>(cl_value.clone()))
+        .unwrap()
+        .expect("must get u64");
+
+    let nft_contract_named_keys = builder.query(None, nft_contract_key, &vec![])
+        .expect("must get contract as stored_value")
+        .as_contract()
+        .unwrap()
+        .named_keys()
+        .clone();
+
+    let forward_lookup_uref = nft_contract_named_keys
+        .get(TOKEN_TRACKER)
+        .expect("must have uref as key")
+        .into_uref()
+        .unwrap();
+
+    let token_owner_seed_uref = nft_contract_named_keys
+        .get(&token_owner.to_formatted_string())
+        .expect("must have uref as key")
+        .into_uref()
+        .unwrap();
+
+    let mut owned_tokens = vec![];
+
+    for i in 0..number_of_minted_tokens {
+        let page_number = (i / PAGE_SIZE).to_string();
+        let page_index = (i % PAGE_SIZE) as usize;
+        let page = builder.query_dictionary_item(None, token_owner_seed_uref, &page_number)
+            .expect("must get page as stored value")
+            .as_cl_value()
+            .map(|page_as_cl_value| CLValue::into_t::<Vec<bool>>(page_as_cl_value.clone()))
+            .unwrap()
+            .expect("must get page from cl_value");
+        if page[page_index] {
+            let token_id_as_string = builder.query_dictionary_item(None, forward_lookup_uref, &i.to_string())
+                .unwrap()
+                .as_cl_value()
+                .map(|token_string| CLValue::into_t::<String>(token_string.clone()))
+                .unwrap()
+                .expect("must get token id as string");
+            owned_tokens.push(token_id_as_string)
+
+        }
+    }
+    owned_tokens
+}
+
+pub(crate) fn get_token_id(builder: &WasmTestBuilder<InMemoryGlobalState>, nft_contract_key: Key, token_owner: &Key) -> Vec<u64> {
+    let token_id_as_strings = get_token_id_strings(builder, nft_contract_key, token_owner);
+    token_id_as_strings
+        .into_iter()
+        .map(|id_string| id_string.parse::<u64>().unwrap())
+        .collect()
+}
+
+pub(crate) fn get_token_hashes(builder: &WasmTestBuilder<InMemoryGlobalState>, nft_contract_key: Key, token_owner: &Key) -> Vec<String> {
+    get_token_id_strings(builder, nft_contract_key, token_owner)
 }

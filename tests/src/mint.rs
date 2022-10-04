@@ -18,7 +18,7 @@ use crate::utility::{
         ENTRY_POINT_SET_APPROVE_FOR_ALL, ENTRY_POINT_SET_VARIABLES, MALFORMED_META_DATA,
         METADATA_CEP78, METADATA_CUSTOM_VALIDATED, METADATA_NFT721, METADATA_RAW,
         MINTING_CONTRACT_WASM, MINT_SESSION_WASM, NFT_CONTRACT_WASM, NUMBER_OF_MINTED_TOKENS,
-        OPERATOR, OWNED_TOKENS, RECEIPT_NAME, TEST_COMPACT_META_DATA, TEST_PRETTY_721_META_DATA,
+        OPERATOR, RECEIPT_NAME, TEST_COMPACT_META_DATA, TEST_PRETTY_721_META_DATA,
         TEST_PRETTY_CEP78_METADATA, TOKEN_ISSUERS, TOKEN_OWNERS,
     },
     installer_request_builder::{
@@ -310,7 +310,6 @@ fn mint_should_increment_number_of_minted_tokens_by_one_and_add_public_key_to_to
         MINT_SESSION_WASM,
         runtime_args! {
             ARG_NFT_CONTRACT_HASH => nft_contract_key,
-
             ARG_TOKEN_OWNER => Key::Account(*DEFAULT_ACCOUNT_ADDR),
             ARG_TOKEN_META_DATA => TEST_PRETTY_721_META_DATA.to_string(),
         },
@@ -358,12 +357,7 @@ fn mint_should_increment_number_of_minted_tokens_by_one_and_add_public_key_to_to
 
     assert_eq!(DEFAULT_ACCOUNT_ADDR.clone(), minter_account_hash);
 
-    let actual_token_ids = support::get_dictionary_value_from_key::<Vec<u64>>(
-        &builder,
-        nft_contract_key,
-        OWNED_TOKENS,
-        &DEFAULT_ACCOUNT_ADDR.clone().to_string(),
-    );
+    let actual_token_ids = support::get_token_id(&builder, *nft_contract_key, &Key::Account(*DEFAULT_ACCOUNT_ADDR));
 
     assert_eq!(vec![0u64], actual_token_ids);
 
@@ -1290,12 +1284,7 @@ fn should_mint_with_hash_identifier_mode() {
     let token_id_hash: String =
         base16::encode_lower(&support::create_blake2b_hash(&TEST_PRETTY_721_META_DATA));
 
-    let actual_token_ids = get_dictionary_value_from_key::<Vec<String>>(
-        &builder,
-        &nft_contract_key,
-        OWNED_TOKENS,
-        &DEFAULT_ACCOUNT_ADDR.clone().to_string(),
-    );
+    let actual_token_ids = support::get_token_hashes(&builder, nft_contract_key, &Key::Account(*DEFAULT_ACCOUNT_ADDR));
 
     assert_eq!(vec![token_id_hash], actual_token_ids);
 }

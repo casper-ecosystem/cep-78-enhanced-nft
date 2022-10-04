@@ -61,7 +61,6 @@ use crate::{
         NFTMetadataKind, OwnershipMode, TokenIdentifier, WhitelistMode,
     },
 };
-use crate::utils::get_uref;
 
 const PAGE_SIZE: u64 = 10;
 const NOT_OWNED: bool = false;
@@ -284,6 +283,8 @@ pub extern "C" fn init() {
     // This is an internal variable that the installing account cannot change
     // but is incremented by the contract itself.
     runtime::put_key(NUMBER_OF_MINTED_TOKENS, storage::new_uref(0u64).into());
+    // Padding for gas costs
+    runtime::put_key("padding", storage::new_uref(vec![1u8; 33]).into());
 
     // Create the data dictionaries to store essential values, topically.
     storage::new_dictionary(TOKEN_OWNERS)
@@ -524,12 +525,22 @@ pub extern "C" fn mint() {
         page_index as usize
     };
 
+    let padding_uref = runtime::get_key("padding")
+        .unwrap_or_revert_with(NFTCoreError::MissingStorageUref)
+        .into_uref()
+        .unwrap_or_revert_with(NFTCoreError::InvalidKey);
+
     let mut page =
         match storage::dictionary_get::<Vec<bool>>(owners_dictionary_seed_uref, &page_number)
             .unwrap_or_revert()
         {
-            Some(page) => page,
-            None => vec![false; PAGE_SIZE as usize],
+            Some(page) => {
+                storage::write(padding_uref, vec![1u8;80]);
+                page
+            } ,
+            None => {
+                vec![false; PAGE_SIZE as usize]
+            }
         };
 
     if page[page_index] {
@@ -539,6 +550,21 @@ pub extern "C" fn mint() {
     let _ = mem::replace(&mut page[page_index], true);
 
     storage::dictionary_put(owners_dictionary_seed_uref, &page_number, page);
+
+    let owned_tokens_item_key = utils::get_owned_tokens_dictionary_item_key(token_owner_key);
+
+    //Increment the count of owned tokens.
+    let updated_token_count =
+        match utils::get_dictionary_value_from_key::<u64>(TOKEN_COUNTS, &owned_tokens_item_key) {
+            Some(balance) => balance + 1u64,
+            None => 1u64,
+        };
+
+    utils::upsert_dictionary_value_from_key(
+        TOKEN_COUNTS,
+        &owned_tokens_item_key,
+        updated_token_count,
+    );
 
     utils::update_forward_and_reverse_token_tracker(next_index, &token_identifier);
 
