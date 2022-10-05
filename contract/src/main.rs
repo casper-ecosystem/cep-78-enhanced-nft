@@ -687,6 +687,20 @@ pub extern "C" fn burn() {
             }
         };
 
+    match utils::get_token_identifiers_from_dictionary(&identifier_mode, &owned_tokens_item_key) {
+        Some(mut owned_tokens) => {
+            // Check that token_id is in owned tokens list. If so remove token_id from list
+            // If not revert.
+            if let Some(id) = owned_tokens.iter().position(|id| *id == token_identifier) {
+                owned_tokens.remove(id);
+            } else {
+                runtime::revert(NFTCoreError::InvalidTokenOwner)
+            }
+            utils::upsert_token_identifiers(&identifier_mode, &owned_tokens_item_key, owned_tokens)
+                .unwrap_or_revert();
+        }
+        None => runtime::revert(NFTCoreError::InvalidTokenIdentifier),
+    }
     utils::upsert_dictionary_value_from_key(TOKEN_COUNTS, &owned_tokens_item_key, updated_balance);
 }
 
