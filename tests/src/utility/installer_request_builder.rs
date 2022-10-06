@@ -205,7 +205,11 @@ impl InstallerRequestBuilder {
             contract_whitelist: CLValue::from_t(Vec::<ContractHash>::new()).unwrap(),
             json_schema: CLValue::from_t("test".to_string())
                 .expect("test_metadata was created from a concrete value"),
-            nft_metadata_kind: CLValue::from_t(NFTMetadataKind::NFT721 as u8).unwrap(),
+            nft_metadata_kind: CLValue::from_t({
+                let mut metadata_kinds = BTreeMap::new();
+                metadata_kinds.insert(NFTMetadataKind::NFT721 as u8, 0u8);
+                metadata_kinds
+            }).unwrap(),
             identifier_mode: CLValue::from_t(NFTIdentifierMode::Ordinal as u8).unwrap(),
             metadata_mutability: CLValue::from_t(MetadataMutability::Mutable as u8).unwrap(),
             burn_mode: CLValue::from_t(BurnMode::Burnable as u8).unwrap(),
@@ -294,8 +298,8 @@ impl InstallerRequestBuilder {
         self
     }
 
-    pub(crate) fn with_nft_metadata_kind(mut self, nft_metadata_kind: NFTMetadataKind) -> Self {
-        self.nft_metadata_kind = CLValue::from_t(nft_metadata_kind as u8).unwrap();
+    pub(crate) fn with_nft_metadata_kind(mut self, nft_metadata_kind: BTreeMap<u8, u8>) -> Self {
+        self.nft_metadata_kind = CLValue::from_t(nft_metadata_kind).unwrap();
         self
     }
 
