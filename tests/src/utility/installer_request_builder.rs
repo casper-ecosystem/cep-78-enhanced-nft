@@ -209,7 +209,8 @@ impl InstallerRequestBuilder {
                 let mut metadata_kinds = BTreeMap::new();
                 metadata_kinds.insert(NFTMetadataKind::NFT721 as u8, 0u8);
                 metadata_kinds
-            }).unwrap(),
+            })
+            .unwrap(),
             identifier_mode: CLValue::from_t(NFTIdentifierMode::Ordinal as u8).unwrap(),
             metadata_mutability: CLValue::from_t(MetadataMutability::Mutable as u8).unwrap(),
             burn_mode: CLValue::from_t(BurnMode::Burnable as u8).unwrap(),

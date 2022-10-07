@@ -108,8 +108,10 @@ fn entry_points_with_ret_should_return_correct_value() {
     let nft_contract_key: Key = get_nft_contract_hash(&builder).into();
 
     let mut metadatas: BTreeMap<u8, String> = BTreeMap::new();
-    metadatas.insert(NFTMetadataKind::NFT721 as u8, TEST_PRETTY_721_META_DATA.to_string());
-
+    metadatas.insert(
+        NFTMetadataKind::NFT721 as u8,
+        TEST_PRETTY_721_META_DATA.to_string(),
+    );
 
     let mint_session_call = ExecuteRequestBuilder::standard(
         *DEFAULT_ACCOUNT_ADDR,
@@ -216,8 +218,11 @@ fn should_mint() {
     let nft_contract_key: Key = get_nft_contract_hash(&builder).into();
 
     let mut metadatas: BTreeMap<u8, String> = BTreeMap::new();
-    metadatas.insert(NFTMetadataKind::CEP78 as u8, TEST_PRETTY_CEP78_METADATA.to_string());
-    
+    metadatas.insert(
+        NFTMetadataKind::CEP78 as u8,
+        TEST_PRETTY_CEP78_METADATA.to_string(),
+    );
+
     let mint_session_call = ExecuteRequestBuilder::standard(
         *DEFAULT_ACCOUNT_ADDR,
         MINT_SESSION_WASM,
@@ -309,7 +314,10 @@ fn mint_should_increment_number_of_minted_tokens_by_one_and_add_public_key_to_to
     let nft_contract_key: Key = get_nft_contract_hash(&builder).into();
 
     let mut metadatas: BTreeMap<u8, String> = BTreeMap::new();
-    metadatas.insert(NFTMetadataKind::NFT721 as u8, TEST_PRETTY_721_META_DATA.to_string());
+    metadatas.insert(
+        NFTMetadataKind::NFT721 as u8,
+        TEST_PRETTY_721_META_DATA.to_string(),
+    );
 
     let mint_session_call = ExecuteRequestBuilder::standard(
         *DEFAULT_ACCOUNT_ADDR,
@@ -407,7 +415,10 @@ fn should_set_meta_data() {
     let nft_contract_key: Key = get_nft_contract_hash(&builder).into();
 
     let mut metadatas: BTreeMap<u8, String> = BTreeMap::new();
-    metadatas.insert(NFTMetadataKind::NFT721 as u8, TEST_PRETTY_721_META_DATA.to_string());
+    metadatas.insert(
+        NFTMetadataKind::NFT721 as u8,
+        TEST_PRETTY_721_META_DATA.to_string(),
+    );
 
     let mint_session_call = ExecuteRequestBuilder::standard(
         *DEFAULT_ACCOUNT_ADDR,
@@ -456,10 +467,11 @@ fn should_set_issuer() {
 
     let nft_contract_key: Key = get_nft_contract_hash(&builder).into();
 
-
     let mut metadatas: BTreeMap<u8, String> = BTreeMap::new();
-    metadatas.insert(NFTMetadataKind::NFT721 as u8, TEST_PRETTY_721_META_DATA.to_string());
-
+    metadatas.insert(
+        NFTMetadataKind::NFT721 as u8,
+        TEST_PRETTY_721_META_DATA.to_string(),
+    );
 
     let mint_session_call = ExecuteRequestBuilder::standard(
         *DEFAULT_ACCOUNT_ADDR,
@@ -511,8 +523,10 @@ fn should_track_token_balance_by_owner() {
     let nft_contract_key: Key = get_nft_contract_hash(&builder).into();
 
     let mut metadatas: BTreeMap<u8, String> = BTreeMap::new();
-    metadatas.insert(NFTMetadataKind::NFT721 as u8, TEST_PRETTY_721_META_DATA.to_string());
-
+    metadatas.insert(
+        NFTMetadataKind::NFT721 as u8,
+        TEST_PRETTY_721_META_DATA.to_string(),
+    );
 
     let mint_session_call = ExecuteRequestBuilder::standard(
         *DEFAULT_ACCOUNT_ADDR,
@@ -597,8 +611,10 @@ fn should_allow_public_minting_with_flag_set_to_true() {
     let nft_contract_key: Key = get_nft_contract_hash(&builder).into();
 
     let mut metadatas: BTreeMap<u8, String> = BTreeMap::new();
-    metadatas.insert(NFTMetadataKind::NFT721 as u8, TEST_PRETTY_721_META_DATA.to_string());
-
+    metadatas.insert(
+        NFTMetadataKind::NFT721 as u8,
+        TEST_PRETTY_721_META_DATA.to_string(),
+    );
 
     let mint_session_call = ExecuteRequestBuilder::standard(
         account_1_public_key.to_account_hash(),
@@ -674,10 +690,11 @@ fn should_disallow_public_minting_with_flag_set_to_false() {
         "public minting should be set to false"
     );
 
-
     let mut metadatas: BTreeMap<u8, String> = BTreeMap::new();
-    metadatas.insert(NFTMetadataKind::NFT721 as u8, TEST_PRETTY_721_META_DATA.to_string());
-
+    metadatas.insert(
+        NFTMetadataKind::NFT721 as u8,
+        TEST_PRETTY_721_META_DATA.to_string(),
+    );
 
     let mint_session_call = ExecuteRequestBuilder::standard(
         account_1_public_key.to_account_hash(),
@@ -754,10 +771,11 @@ fn should_allow_minting_for_different_public_key_with_minting_mode_set_to_public
 
     let nft_contract_key: Key = get_nft_contract_hash(&builder).into();
 
-
     let mut metadatas: BTreeMap<u8, String> = BTreeMap::new();
-    metadatas.insert(NFTMetadataKind::NFT721 as u8, TEST_PRETTY_721_META_DATA.to_string());
-
+    metadatas.insert(
+        NFTMetadataKind::NFT721 as u8,
+        TEST_PRETTY_721_META_DATA.to_string(),
+    );
 
     let mint_session_call = ExecuteRequestBuilder::standard(
         account_1_public_key.to_account_hash(),
@@ -786,8 +804,10 @@ fn should_set_approval_for_all() {
     builder.exec(install_request).expect_success().commit();
 
     let mut metadatas: BTreeMap<u8, String> = BTreeMap::new();
-    metadatas.insert(NFTMetadataKind::NFT721 as u8, TEST_PRETTY_721_META_DATA.to_string());
-
+    metadatas.insert(
+        NFTMetadataKind::NFT721 as u8,
+        TEST_PRETTY_721_META_DATA.to_string(),
+    );
 
     let nft_contract_hash = get_nft_contract_hash(&builder);
     let nft_contract_key: Key = nft_contract_hash.into();
@@ -917,8 +937,10 @@ fn should_allow_whitelisted_contract_to_mint() {
     assert_eq!(actual_contract_whitelist, contract_whitelist);
 
     let mut metadatas: BTreeMap<u8, String> = BTreeMap::new();
-    metadatas.insert(NFTMetadataKind::NFT721 as u8, TEST_PRETTY_721_META_DATA.to_string());
-
+    metadatas.insert(
+        NFTMetadataKind::NFT721 as u8,
+        TEST_PRETTY_721_META_DATA.to_string(),
+    );
 
     let mint_runtime_args = runtime_args! {
         ARG_NFT_CONTRACT_HASH => nft_contract_key,
@@ -934,11 +956,11 @@ fn should_allow_whitelisted_contract_to_mint() {
         mint_runtime_args,
     )
     .build();
-    
+
     builder
-    .exec(mint_via_contract_call)
-    .expect_success()
-    .commit();
+        .exec(mint_via_contract_call)
+        .expect_success()
+        .commit();
 
     let token_id = 0u64.to_string();
 
@@ -989,8 +1011,10 @@ fn should_disallow_unlisted_contract_from_minting() {
     let nft_contract_key: Key = get_nft_contract_hash(&builder).into();
 
     let mut metadatas: BTreeMap<u8, String> = BTreeMap::new();
-    metadatas.insert(NFTMetadataKind::NFT721 as u8, TEST_PRETTY_721_META_DATA.to_string());
-
+    metadatas.insert(
+        NFTMetadataKind::NFT721 as u8,
+        TEST_PRETTY_721_META_DATA.to_string(),
+    );
 
     let mint_runtime_args = runtime_args! {
         ARG_NFT_CONTRACT_HASH => nft_contract_key,
@@ -1057,10 +1081,11 @@ fn should_be_able_to_update_whitelist_for_minting() {
         vec![ARG_CONTRACT_WHITELIST.to_string()],
     );
 
-
     let mut metadatas: BTreeMap<u8, String> = BTreeMap::new();
-    metadatas.insert(NFTMetadataKind::NFT721 as u8, TEST_PRETTY_721_META_DATA.to_string());
-
+    metadatas.insert(
+        NFTMetadataKind::NFT721 as u8,
+        TEST_PRETTY_721_META_DATA.to_string(),
+    );
 
     assert!(current_contract_whitelist.is_empty());
     let mint_runtime_args = runtime_args! {
@@ -1141,8 +1166,10 @@ fn should_not_mint_with_invalid_nft721_metadata() {
     let nft_contract_key: Key = get_nft_contract_hash(&builder).into();
 
     let mut metadatas: BTreeMap<u8, String> = BTreeMap::new();
-    metadatas.insert(NFTMetadataKind::NFT721 as u8, MALFORMED_META_DATA.to_string());
-
+    metadatas.insert(
+        NFTMetadataKind::NFT721 as u8,
+        MALFORMED_META_DATA.to_string(),
+    );
 
     let mint_session_call = ExecuteRequestBuilder::standard(
         *DEFAULT_ACCOUNT_ADDR,
@@ -1186,8 +1213,10 @@ fn should_mint_with_compactified_metadata() {
     let nft_contract_key: Key = get_nft_contract_hash(&builder).into();
 
     let mut metadatas: BTreeMap<u8, String> = BTreeMap::new();
-    metadatas.insert(NFTMetadataKind::NFT721 as u8, TEST_COMPACT_META_DATA.to_string());
-
+    metadatas.insert(
+        NFTMetadataKind::NFT721 as u8,
+        TEST_COMPACT_META_DATA.to_string(),
+    );
 
     let mint_session_call = ExecuteRequestBuilder::standard(
         *DEFAULT_ACCOUNT_ADDR,
@@ -1233,8 +1262,10 @@ fn should_mint_with_valid_cep99_metadata() {
     let nft_contract_key: Key = get_nft_contract_hash(&builder).into();
 
     let mut metadatas: BTreeMap<u8, String> = BTreeMap::new();
-    metadatas.insert(NFTMetadataKind::CEP78 as u8, TEST_PRETTY_CEP78_METADATA.to_string());
-
+    metadatas.insert(
+        NFTMetadataKind::CEP78 as u8,
+        TEST_PRETTY_CEP78_METADATA.to_string(),
+    );
 
     let mint_session_call = ExecuteRequestBuilder::standard(
         *DEFAULT_ACCOUNT_ADDR,
@@ -1283,7 +1314,10 @@ fn should_mint_with_custom_metadata_validation() {
     let nft_contract_key: Key = get_nft_contract_hash(&builder).into();
 
     let mut custom_metadata = BTreeMap::new();
-    custom_metadata.insert(NFTMetadataKind::CustomValidated as u8,serde_json::to_string(&*TEST_CUSTOM_METADATA).expect("must convert to json metadata"));
+    custom_metadata.insert(
+        NFTMetadataKind::CustomValidated as u8,
+        serde_json::to_string(&*TEST_CUSTOM_METADATA).expect("must convert to json metadata"),
+    );
 
     let mint_session_call = ExecuteRequestBuilder::standard(
         *DEFAULT_ACCOUNT_ADDR,
@@ -1375,8 +1409,10 @@ fn should_mint_with_hash_identifier_mode() {
     let nft_contract_key: Key = get_nft_contract_hash(&builder).into();
 
     let mut metadatas: BTreeMap<u8, String> = BTreeMap::new();
-    metadatas.insert(NFTMetadataKind::NFT721 as u8, TEST_PRETTY_721_META_DATA.to_string());
-
+    metadatas.insert(
+        NFTMetadataKind::NFT721 as u8,
+        TEST_PRETTY_721_META_DATA.to_string(),
+    );
 
     let mint_session_call = ExecuteRequestBuilder::standard(
         *DEFAULT_ACCOUNT_ADDR,
@@ -1422,8 +1458,10 @@ fn should_fail_to_mint_when_immediate_caller_is_account_in_contract_mode() {
     let nft_contract_key: Key = get_nft_contract_hash(&builder).into();
 
     let mut metadatas: BTreeMap<u8, String> = BTreeMap::new();
-    metadatas.insert(NFTMetadataKind::NFT721 as u8, TEST_COMPACT_META_DATA.to_string());
-
+    metadatas.insert(
+        NFTMetadataKind::NFT721 as u8,
+        TEST_COMPACT_META_DATA.to_string(),
+    );
 
     let mint_session_call = ExecuteRequestBuilder::standard(
         *DEFAULT_ACCOUNT_ADDR,
@@ -1462,7 +1500,10 @@ fn should_approve_in_hash_identifier_mode() {
     let nft_contract_key: Key = nft_contract_hash.into();
 
     let mut metadatas: BTreeMap<u8, String> = BTreeMap::new();
-    metadatas.insert(NFTMetadataKind::NFT721 as u8, TEST_PRETTY_721_META_DATA.to_string());
+    metadatas.insert(
+        NFTMetadataKind::NFT721 as u8,
+        TEST_PRETTY_721_META_DATA.to_string(),
+    );
 
     let mint_session_call = ExecuteRequestBuilder::standard(
         *DEFAULT_ACCOUNT_ADDR,

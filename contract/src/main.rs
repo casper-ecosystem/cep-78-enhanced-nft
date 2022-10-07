@@ -15,10 +15,11 @@ extern crate alloc;
 
 use alloc::{
     boxed::Box,
+    collections::BTreeMap,
     format,
     string::{String, ToString},
     vec,
-    vec::Vec, collections::BTreeMap,
+    vec::Vec,
 };
 
 use constants::{ARG_EVENTS_MODE, EVENTS, EVENTS_MODE, EVENT_ID_TRACKER};
@@ -217,9 +218,11 @@ pub extern "C" fn init() {
     )
     .unwrap_or_revert();
 
-    // Attempt to parse the provided schema if the CustomValidated metadata kind is required of optional 
-    // and fail installation if the schema cannot be parsed.
-    if let Some(required_or_optional) = nft_metadata_kind.get(&(NFTMetadataKind::CustomValidated as u8)){
+    // Attempt to parse the provided schema if the CustomValidated metadata kind is required of
+    // optional and fail installation if the schema cannot be parsed.
+    if let Some(required_or_optional) =
+        nft_metadata_kind.get(&(NFTMetadataKind::CustomValidated as u8))
+    {
         if required_or_optional <= &1u8 {
             casper_serde_json_wasm::from_str::<CustomMetadataSchema>(&json_schema)
                 .map_err(|_| NFTCoreError::InvalidJsonSchema)
@@ -552,7 +555,7 @@ pub extern "C" fn mint() {
         NFTIdentifierMode::Hash => {
             TokenIdentifier::Hash(base16::encode_lower(&runtime::blake2b({
                 let mut fake_feline = String::new();
-                for (kind, meta) in &token_metadatas{
+                for (kind, meta) in &token_metadatas {
                     fake_feline.push_str(&kind.to_string());
                     fake_feline.push_str(meta);
                 }
@@ -561,23 +564,23 @@ pub extern "C" fn mint() {
         }
     };
 
-    for (metadata_kind, required) in metadata_kinds{
+    for (metadata_kind, required) in metadata_kinds {
         let typed_metadata_kind = metadata_kind.try_into().unwrap_or_revert();
         let maybe_token_meta_to_validate = token_metadatas.get(&metadata_kind);
-        match maybe_token_meta_to_validate{
+        match maybe_token_meta_to_validate {
             Some(token_meta_to_validate) => {
-                let token_metadata =
-                    metadata::validate_metadata(
-                        &typed_metadata_kind,
-                        token_meta_to_validate.clone()
-                ).unwrap_or_revert();
-            
+                let token_metadata = metadata::validate_metadata(
+                    &typed_metadata_kind,
+                    token_meta_to_validate.clone(),
+                )
+                .unwrap_or_revert();
+
                 utils::upsert_dictionary_value_from_key(
                     &metadata::get_metadata_dictionary_name(&typed_metadata_kind),
                     &token_identifier.get_dictionary_item_key(),
                     token_metadata,
                 );
-            },
+            }
             None => {
                 if required == 0 {
                     runtime::revert(NFTCoreError::MissingTokenMetaData)
@@ -1208,39 +1211,47 @@ pub extern "C" fn metadata() {
         }
     }
 
-    let metadata_kind_list: BTreeMap<u8,u8> = utils::get_stored_value_with_user_errors(
+    let metadata_kind_list: BTreeMap<u8, u8> = utils::get_stored_value_with_user_errors(
         NFT_METADATA_KIND,
         NFTCoreError::MissingNFTMetadataKind,
         NFTCoreError::InvalidNFTMetadataKind,
     );
 
     let mut metadata_return_vec = vec![];
-    for (&metadata_kind, required) in metadata_kind_list.iter(){
+    for (&metadata_kind, required) in metadata_kind_list.iter() {
         match required {
             0 => {
-                let metadata_typed_kind: NFTMetadataKind = metadata_kind.try_into().unwrap_or_revert();
-                metadata_return_vec.push(utils::get_dictionary_value_from_key::<String>(
-                    &metadata::get_metadata_dictionary_name(&metadata_typed_kind),
-                    &token_identifier.get_dictionary_item_key(),
-                ).unwrap_or_revert_with(NFTCoreError::InvalidTokenIdentifier));
-            },
+                let metadata_typed_kind: NFTMetadataKind =
+                    metadata_kind.try_into().unwrap_or_revert();
+                metadata_return_vec.push(
+                    utils::get_dictionary_value_from_key::<String>(
+                        &metadata::get_metadata_dictionary_name(&metadata_typed_kind),
+                        &token_identifier.get_dictionary_item_key(),
+                    )
+                    .unwrap_or_revert_with(NFTCoreError::InvalidTokenIdentifier),
+                );
+            }
             1 => {
-                let metadata_typed_kind: NFTMetadataKind = metadata_kind.try_into().unwrap_or_revert();
+                let metadata_typed_kind: NFTMetadataKind =
+                    metadata_kind.try_into().unwrap_or_revert();
                 if let Some(token_metadata) = utils::get_dictionary_value_from_key::<String>(
                     &metadata::get_metadata_dictionary_name(&metadata_typed_kind),
                     &token_identifier.get_dictionary_item_key(),
-                ){
+                ) {
                     metadata_return_vec.push(token_metadata);
                 }
-            },
+            }
             _ => {
-                // 0 is required, 1 is optional, anything else is the user not reading the documentation
-                // and will be handled non-existent
+                // 0 is required, 1 is optional, anything else is the user not reading the
+                // documentation and will be handled non-existent
             }
         }
     }
 
-    runtime::ret(CLValue::from_t(metadata_return_vec).unwrap_or_revert_with(NFTCoreError::FailedToConvertToCLValue));
+    runtime::ret(
+        CLValue::from_t(metadata_return_vec)
+            .unwrap_or_revert_with(NFTCoreError::FailedToConvertToCLValue),
+    );
 }
 
 // Returns approved account_hash from token_id, throws error if token id is not valid
@@ -1333,30 +1344,30 @@ pub extern "C" fn set_token_metadata() {
         NFTCoreError::InvalidNFTMetadataKind,
     );
 
-    let updated_token_metadata: BTreeMap<u8,String> = utils::get_named_arg_with_user_errors(
+    let updated_token_metadata: BTreeMap<u8, String> = utils::get_named_arg_with_user_errors(
         ARG_TOKEN_META_DATA,
         NFTCoreError::MissingTokenMetaData,
         NFTCoreError::InvalidTokenMetaData,
     )
     .unwrap_or_revert();
 
-    for (metadata_kind, required) in metadata_kinds{
+    for (metadata_kind, required) in metadata_kinds {
         let typed_metadata_kind = metadata_kind.try_into().unwrap_or_revert();
         let maybe_token_meta_to_validate = updated_token_metadata.get(&metadata_kind);
-        match maybe_token_meta_to_validate{
+        match maybe_token_meta_to_validate {
             Some(token_meta_to_validate) => {
-                let updated_metadata =
-                    metadata::validate_metadata(
-                        &typed_metadata_kind,
-                        token_meta_to_validate.clone()
-                ).unwrap_or_revert();
-            
+                let updated_metadata = metadata::validate_metadata(
+                    &typed_metadata_kind,
+                    token_meta_to_validate.clone(),
+                )
+                .unwrap_or_revert();
+
                 utils::upsert_dictionary_value_from_key(
                     &metadata::get_metadata_dictionary_name(&typed_metadata_kind),
                     &token_identifier.get_dictionary_item_key(),
                     updated_metadata,
                 );
-            },
+            }
             None => {
                 if required == 0 {
                     runtime::revert(NFTCoreError::MissingTokenMetaData)
