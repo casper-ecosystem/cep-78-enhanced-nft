@@ -583,7 +583,7 @@ pub extern "C" fn mint() {
             }
             None => {
                 if required == 0 {
-                    runtime::revert(NFTCoreError::MissingTokenMetaData)
+                    runtime::revert(NFTCoreError::MissingRequiredTokenMetaData)
                 }
             }
         }
@@ -1370,7 +1370,7 @@ pub extern "C" fn set_token_metadata() {
             }
             None => {
                 if required == 0 {
-                    runtime::revert(NFTCoreError::MissingTokenMetaData)
+                    runtime::revert(NFTCoreError::MissingRequiredTokenMetaData)
                 }
             }
         }

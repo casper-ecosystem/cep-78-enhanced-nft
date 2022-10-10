@@ -1709,6 +1709,203 @@ fn should_prevent_mint_to_unregistered_owner() {
 }
 
 #[test]
+fn should_mint_with_two_required_metadata_kind() {
+    let mut builder = InMemoryWasmTestBuilder::default();
+    builder.run_genesis(&DEFAULT_RUN_GENESIS_REQUEST).commit();
+
+    let mut metadata_kinds = BTreeMap::new();
+    metadata_kinds.insert(NFTMetadataKind::CEP78 as u8, 0u8);
+    metadata_kinds.insert(NFTMetadataKind::NFT721 as u8, 0u8);
+
+    let install_request_builder =
+        InstallerRequestBuilder::new(*DEFAULT_ACCOUNT_ADDR, NFT_CONTRACT_WASM)
+            .with_nft_metadata_kind(metadata_kinds)
+            .with_total_token_supply(2u64);
+    builder
+        .exec(install_request_builder.build())
+        .expect_success()
+        .commit();
+
+    let nft_contract_key: Key = get_nft_contract_hash(&builder).into();
+
+    let mut metadatas: BTreeMap<u8, String> = BTreeMap::new();
+    metadatas.insert(
+        NFTMetadataKind::CEP78 as u8,
+        TEST_PRETTY_CEP78_METADATA.to_string(),
+    );
+    metadatas.insert(
+        NFTMetadataKind::NFT721 as u8,
+        TEST_PRETTY_721_META_DATA.to_string(),
+    );
+    let mint_session_call = ExecuteRequestBuilder::standard(
+        *DEFAULT_ACCOUNT_ADDR,
+        MINT_SESSION_WASM,
+        runtime_args! {
+            ARG_NFT_CONTRACT_HASH => nft_contract_key,
+            ARG_TOKEN_OWNER => Key::Account(*DEFAULT_ACCOUNT_ADDR),
+            ARG_TOKEN_META_DATA => "",
+            ARG_COLLECTION_NAME => NFT_TEST_COLLECTION.to_string()
+        },
+    )
+    .build();
+
+    builder.exec(mint_session_call).expect_success().commit();
+
+    let meta_78 = support::get_dictionary_value_from_key::<String>(
+        &builder,
+        &nft_contract_key,
+        METADATA_CEP78,
+        &0u64.to_string(),
+    );
+
+    let meta_721 = support::get_dictionary_value_from_key::<String>(
+        &builder,
+        &nft_contract_key,
+        METADATA_NFT721,
+        &0u64.to_string(),
+    );
+
+    assert_eq!(meta_78, TEST_PRETTY_CEP78_METADATA);
+    assert_eq!(meta_721, TEST_PRETTY_721_META_DATA);
+    }
+
+    #[test]
+    fn should_mint_with_one_required_one_optional_metadata_kind_without_optional() {
+    let mut builder = InMemoryWasmTestBuilder::default();
+    builder.run_genesis(&DEFAULT_RUN_GENESIS_REQUEST).commit();
+
+    let mut metadata_kinds = BTreeMap::new();
+    metadata_kinds.insert(NFTMetadataKind::CEP78 as u8, 0u8);
+    metadata_kinds.insert(NFTMetadataKind::NFT721 as u8, 1u8);
+
+    let install_request_builder =
+        InstallerRequestBuilder::new(*DEFAULT_ACCOUNT_ADDR, NFT_CONTRACT_WASM)
+            .with_nft_metadata_kind(metadata_kinds)
+            .with_total_token_supply(2u64);
+    builder
+        .exec(install_request_builder.build())
+        .expect_success()
+        .commit();
+
+    let nft_contract_key: Key = get_nft_contract_hash(&builder).into();
+
+    let mut metadatas: BTreeMap<u8, String> = BTreeMap::new();
+    metadatas.insert(
+        NFTMetadataKind::CEP78 as u8,
+        TEST_PRETTY_CEP78_METADATA.to_string(),
+    );
+    metadatas.insert(
+        NFTMetadataKind::NFT721 as u8,
+        TEST_PRETTY_721_META_DATA.to_string(),
+    );
+
+    let mint_session_call = ExecuteRequestBuilder::standard(
+        *DEFAULT_ACCOUNT_ADDR,
+        MINT_SESSION_WASM,
+        runtime_args! {
+        ARG_NFT_CONTRACT_HASH => nft_contract_key,
+
+        ARG_TOKEN_OWNER => Key::Account(*DEFAULT_ACCOUNT_ADDR),
+        ARG_TOKEN_META_DATA => metadatas,
+
+        },
+    )
+    .build();
+    builder.exec(mint_session_call).expect_success().commit();
+
+    let meta_78 = support::get_dictionary_value_from_key::<String>(
+        &builder,
+        &nft_contract_key,
+        METADATA_CEP78,
+        &0u64.to_string(),
+    );
+
+    let meta_721 = support::get_dictionary_value_from_key::<String>(
+        &builder,
+        &nft_contract_key,
+        METADATA_NFT721,
+        &0u64.to_string(),
+    );
+
+    assert_eq!(meta_78, TEST_PRETTY_CEP78_METADATA);
+    assert_eq!(meta_721, TEST_PRETTY_721_META_DATA);
+
+    let mut metadatas: BTreeMap<u8, String> = BTreeMap::new();
+    metadatas.insert(
+        NFTMetadataKind::CEP78 as u8,
+        TEST_PRETTY_CEP78_METADATA.to_string(),
+    );
+
+    let mint_session_call = ExecuteRequestBuilder::standard(
+        *DEFAULT_ACCOUNT_ADDR,
+        MINT_SESSION_WASM,
+        runtime_args! {
+            ARG_NFT_CONTRACT_HASH => nft_contract_key,
+
+            ARG_TOKEN_OWNER => Key::Account(*DEFAULT_ACCOUNT_ADDR),
+            ARG_TOKEN_META_DATA => metadatas,
+        },
+    )
+    .build();
+
+    builder.exec(mint_session_call).expect_success().commit();
+
+    let meta_78 = support::get_dictionary_value_from_key::<String>(
+        &builder,
+        &nft_contract_key,
+        METADATA_CEP78,
+        &1u64.to_string(),
+    );
+
+    assert_eq!(meta_78, TEST_PRETTY_CEP78_METADATA);
+    }
+
+    #[test]
+    fn should_not_mint_with_missing_required_metadata() {
+    let mut builder = InMemoryWasmTestBuilder::default();
+    builder.run_genesis(&DEFAULT_RUN_GENESIS_REQUEST).commit();
+
+    let mut metadata_kinds = BTreeMap::new();
+    metadata_kinds.insert(NFTMetadataKind::CEP78 as u8, 0u8);
+    metadata_kinds.insert(NFTMetadataKind::NFT721 as u8, 1u8);
+
+    let install_request_builder =
+        InstallerRequestBuilder::new(*DEFAULT_ACCOUNT_ADDR, NFT_CONTRACT_WASM)
+            .with_total_token_supply(2u64)
+            .with_nft_metadata_kind(metadata_kinds);
+    builder
+        .exec(install_request_builder.build())
+        .expect_success()
+        .commit();
+
+    let nft_contract_key: Key = get_nft_contract_hash(&builder).into();
+
+    let mut metadatas: BTreeMap<u8, String> = BTreeMap::new();
+    metadatas.insert(
+        NFTMetadataKind::NFT721 as u8,
+        TEST_PRETTY_721_META_DATA.to_string(),
+    );
+
+    let mint_session_call = ExecuteRequestBuilder::standard(
+        *DEFAULT_ACCOUNT_ADDR,
+        MINT_SESSION_WASM,
+        runtime_args! {
+            ARG_NFT_CONTRACT_HASH => nft_contract_key,
+
+            ARG_TOKEN_OWNER => Key::Account(*DEFAULT_ACCOUNT_ADDR),
+            ARG_TOKEN_META_DATA => metadatas,
+    }).build();
+
+    builder.exec(mint_session_call).expect_failure();
+    let error = builder.get_error().expect("mint request must have failed");
+    assert_expected_error(
+        error,
+        107,
+        "MissingRequiredTokenMetaData error (107) must have been raised due to a required metadata kind missing",
+    )
+}
+
+#[test]
 fn should_mint_with_transfer_only_reporting() {
     let mut builder = InMemoryWasmTestBuilder::default();
     builder.run_genesis(&DEFAULT_RUN_GENESIS_REQUEST).commit();
