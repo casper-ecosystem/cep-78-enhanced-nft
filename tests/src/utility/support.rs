@@ -3,6 +3,9 @@ use blake2::{
     digest::{Update, VariableOutput},
     VarBlake2b,
 };
+use serde::{Serialize, Deserialize};
+use rand::prelude::*;
+use sha256::digest;
 
 use super::{constants::{CONTRACT_NAME, NUMBER_OF_MINTED_TOKENS}, installer_request_builder::InstallerRequestBuilder};
 use casper_engine_test_support::{
@@ -14,6 +17,29 @@ use casper_execution_engine::{
     storage::global_state::in_memory::InMemoryGlobalState,
 };
 use casper_types::{account::AccountHash, bytesrepr::FromBytes, ApiError, CLTyped, ContractHash, Key, PublicKey, RuntimeArgs, SecretKey, URef, BLAKE2B_DIGEST_LENGTH, CLValue};
+
+
+#[derive(Serialize, Deserialize)]
+pub(crate) struct CEP78Metadata {
+    name: String,
+    token_uri: String,
+    checksum: String,
+}
+
+impl CEP78Metadata {
+    pub(crate) fn new(name: String, token_uri: String, checksum: String) -> Self {
+        Self {
+            name,
+            token_uri,
+            checksum
+        }
+    }
+
+    pub(crate) fn with_random_checksum(name: String, token_uri: String) -> Self {
+        let checksum: String = digest(random::<u64>().to_string());
+        Self::new(name, token_uri, checksum)
+    }
+}
 
 pub(crate) fn get_nft_contract_hash(
     builder: &WasmTestBuilder<InMemoryGlobalState>,
@@ -228,3 +254,5 @@ pub(crate) fn get_token_id(builder: &WasmTestBuilder<InMemoryGlobalState>, nft_c
 pub(crate) fn get_token_hashes(builder: &WasmTestBuilder<InMemoryGlobalState>, nft_contract_key: Key, token_owner: &Key) -> Vec<String> {
     get_token_id_strings(builder, nft_contract_key, token_owner)
 }
+
+

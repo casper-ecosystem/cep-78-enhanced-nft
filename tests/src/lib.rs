@@ -25,7 +25,10 @@ mod metadata;
 
 #[cfg(test)]
 mod costs;
+#[cfg(test)]
+mod upgrade;
 
 // A collection of helper methods and constants.
 #[cfg(test)]
 mod utility;
+

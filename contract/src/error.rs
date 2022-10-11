@@ -114,6 +114,9 @@ pub enum NFTCoreError {
     InvalidPageNumber = 109,
     InvalidTokenTransfer = 110,
     FailedToParseString = 111,
+    MissingPackageHashForUpgrade = 112,
+    MissingTokenHashTracker = 113,
+    InvalidTokenHashTracker = 114,
 }
 
 impl From<NFTCoreError> for ApiError {

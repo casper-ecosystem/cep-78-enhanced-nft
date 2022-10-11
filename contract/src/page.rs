@@ -5,7 +5,10 @@ use alloc::{
 };
 use core::convert::TryInto;
 
-use crate::{utils, NFTCoreError, NFTIdentifierMode, TokenIdentifier, IDENTIFIER_MODE, NUMBER_OF_MINTED_TOKENS, TOKEN_TRACKER, REVERSE_TOKEN_TRACKER};
+use crate::{
+    utils, NFTCoreError, NFTIdentifierMode, TokenIdentifier, IDENTIFIER_MODE,
+    NUMBER_OF_MINTED_TOKENS, REVERSE_TOKEN_TRACKER, TOKEN_TRACKER,
+};
 use casper_contract::{
     contract_api::{runtime, storage},
     unwrap_or_revert::UnwrapOrRevert,
@@ -84,7 +87,7 @@ pub(crate) fn get_token_tracking_index(token_identifier: &TokenIdentifier) -> Op
         reverse_lookup_uref,
         &token_identifier.get_dictionary_item_key(),
     )
-        .unwrap_or_revert()
+    .unwrap_or_revert()
 }
 
 pub(crate) fn _get_token_owner_page(token_index: u64, token_owner: &Key) -> Option<Vec<bool>> {
@@ -100,7 +103,7 @@ pub(crate) fn _get_token_owner_page(token_index: u64, token_owner: &Key) -> Opti
 
 pub(crate) fn get_token_page_index(token_index: u64) -> usize {
     let page_index = token_index % PAGE_SIZE;
-    if token_index >= PAGE_SIZE as u64{
+    if token_index >= PAGE_SIZE as u64 {
         runtime::revert(NFTCoreError::InvalidPageIndex)
     }
     page_index as usize
@@ -122,8 +125,7 @@ pub(crate) fn manage_token_owner_page(
             if !new_ownership_state {
                 runtime::revert(NFTCoreError::MissingStorageUref)
             }
-            storage::new_dictionary(&token_owner.to_formatted_string())
-                .unwrap_or_revert()
+            storage::new_dictionary(&token_owner.to_formatted_string()).unwrap_or_revert()
         }
     };
 
