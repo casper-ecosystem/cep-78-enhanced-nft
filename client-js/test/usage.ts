@@ -16,6 +16,8 @@ import {
   printHeader,
 } from "./common";
 
+import { DeployUtil } from "casper-js-sdk";
+
 const { NODE_URL, NETWORK_NAME, CONTRACT_NAME } = process.env;
 
 const run = async () => {
@@ -69,10 +71,10 @@ const run = async () => {
   const mintDeploy = await cc.mint(
     KEYS.publicKey,
     { firstName: "Jan" },
-    "13000000000",
+    "500000000000",
     KEYS.publicKey,
     [KEYS],
-    getBinary("../client/mint_session/target/wasm32-unknown-unknown/release"),
+    getBinary("../client/mint_session/target/wasm32-unknown-unknown/release/mint_call.wasm"),
   );
 
   const mintDeployHash = await mintDeploy.send(

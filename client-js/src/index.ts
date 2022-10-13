@@ -220,14 +220,14 @@ export class CEP78Client {
 
     const runtimeArgs = RuntimeArgs.fromMap({
       token_owner: CLValueBuilder.key(owner),
-      token_meta_data: CLValueBuilder.string(JSON.stringify(meta))
+      token_meta_data: CLValueBuilder.string(JSON.stringify(meta)),
     });
 
-    let preparedDeploy; 
+    let preparedDeploy;
 
     if (!wasm) {
       preparedDeploy = this.contractClient.callEntrypoint(
-        'mint',
+        "mint",
         runtimeArgs,
         deploySender,
         this.networkName,
@@ -235,6 +235,13 @@ export class CEP78Client {
         keys
       );
     } else {
+      const contractHashBytes = CLValueBuilder.byteArray(
+        Buffer.from(this.contractClient?.contractHash?.slice(5)!, "hex")
+      );
+      runtimeArgs.insert(
+        "nft_contract_hash",
+        CLValueBuilder.key(contractHashBytes)
+      );
       preparedDeploy = this.contractClient.install(
         wasm,
         runtimeArgs,
@@ -255,13 +262,12 @@ export class CEP78Client {
     keys?: Keys.AsymmetricKey[],
     wasm?: Uint8Array
   ) {
-
     const runtimeArgs = RuntimeArgs.fromMap({
       token_id: CLValueBuilder.u64(tokenId),
     });
 
     return this.contractClient.callEntrypoint(
-      'burn',
+      "burn",
       runtimeArgs,
       deploySender,
       this.networkName,
