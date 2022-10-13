@@ -36,6 +36,7 @@ use casper_contract::{
     },
     unwrap_or_revert::UnwrapOrRevert,
 };
+use casper_contract::contract_api::runtime::ret;
 
 use crate::{
     constants::{
@@ -63,6 +64,8 @@ use crate::{
         NFTMetadataKind, OwnershipMode, TokenIdentifier, WhitelistMode,
     },
 };
+use crate::constants::OWNED_TOKENS;
+use crate::utils::should_breakup_owned_tokens_dictionary;
 
 const PAGE_SIZE: u64 = 10;
 const NOT_OWNED: bool = false;
@@ -492,19 +495,7 @@ pub extern "C" fn mint() {
         }
     };
 
-    let token_owners_seed_uref = utils::get_uref(
-        TOKEN_OWNERS,
-        NFTCoreError::MissingStorageUref,
-        NFTCoreError::InvalidStorageUref,
-    );
-
-    if storage::dictionary_get::<Key>(
-        token_owners_seed_uref,
-        &token_identifier.get_dictionary_item_key(),
-    )
-    .unwrap_or_revert()
-    .is_some()
-    {
+    if utils::get_dictionary_value_from_key::<Key>(TOKEN_OWNERS, &token_identifier.get_dictionary_item_key()).is_some() {
         runtime::revert(NFTCoreError::FatalTokenIdDuplication)
     }
 
@@ -536,7 +527,12 @@ pub extern "C" fn mint() {
                         .unwrap_or_revert()
                 }
                 NFTIdentifierMode::Hash => {
-                    upgrade::break_up_individual_owned_token_hashes(&token_owner_key)
+                    if should_breakup_owned_tokens_dictionary(&token_owner_key) {
+                        upgrade::break_up_individual_owned_token_hashes(&token_owner_key)
+                    } else {
+                        storage::new_dictionary(&token_owner_key.to_formatted_string())
+                            .unwrap_or_revert()
+                    }
                 }
             }
         }
@@ -573,7 +569,7 @@ pub extern "C" fn mint() {
 
     storage::dictionary_put(owners_dictionary_seed_uref, &page_number, page);
 
-    let owned_tokens_item_key = utils::get_owned_tokens_dictionary_item_key(token_owner_key);
+    let owned_tokens_item_key = utils::get_owned_tokens_dictionary_item_key(&token_owner_key);
 
     //Increment the count of owned tokens.
     let updated_token_count =
@@ -661,7 +657,7 @@ pub extern "C" fn burn() {
         (),
     );
 
-    let owned_tokens_item_key = utils::get_owned_tokens_dictionary_item_key(token_owner);
+    let owned_tokens_item_key = utils::get_owned_tokens_dictionary_item_key(&token_owner);
 
     let updated_balance =
         match utils::get_dictionary_value_from_key::<u64>(TOKEN_COUNTS, &owned_tokens_item_key) {
@@ -894,8 +890,8 @@ pub extern "C" fn transfer() {
     )
     .unwrap_or_revert();
 
-    let target_owner_item_key = utils::get_owned_tokens_dictionary_item_key(target_owner_key);
-    let source_owner_item_key = utils::get_owned_tokens_dictionary_item_key(source_key);
+    let target_owner_item_key = utils::get_owned_tokens_dictionary_item_key(&target_owner_key);
+    let source_owner_item_key = utils::get_owned_tokens_dictionary_item_key(&source_key);
 
     // Updated token_owners dictionary. Revert if token_owner not found.
     match utils::get_dictionary_value_from_key::<Key>(
@@ -921,10 +917,10 @@ pub extern "C" fn transfer() {
     if let NFTIdentifierMode::Hash = identifier_mode {
         // Breakup the owned tokens dictionary for both source
         // and target.
-        if runtime::get_key(&source_key.to_formatted_string()).is_none() {
+        if should_breakup_owned_tokens_dictionary(&source_key) {
             upgrade::break_up_individual_owned_token_hashes(&source_key);
         }
-        if runtime::get_key(&target_owner_key.to_formatted_string()).is_none() {
+        if should_breakup_owned_tokens_dictionary(&target_owner_key) {
             upgrade::break_up_individual_owned_token_hashes(&target_owner_key);
         }
     }
@@ -1005,7 +1001,7 @@ pub extern "C" fn balance_of() {
     )
     .unwrap_or_revert();
 
-    let owner_key_item_string = utils::get_owned_tokens_dictionary_item_key(owner_key);
+    let owner_key_item_string = utils::get_owned_tokens_dictionary_item_key(&owner_key);
 
     let balance = utils::get_dictionary_value_from_key::<u64>(TOKEN_COUNTS, &owner_key_item_string)
         .unwrap_or(0u64);

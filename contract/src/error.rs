@@ -117,6 +117,10 @@ pub enum NFTCoreError {
     MissingPackageHashForUpgrade = 112,
     MissingTokenHashTracker = 113,
     InvalidTokenHashTracker = 114,
+    MissingForwardTracker = 115,
+    InvalidForwardTracker = 116,
+    MissingReverseTracker = 117,
+    InvalidReverseTracker = 118,
 }
 
 impl From<NFTCoreError> for ApiError {

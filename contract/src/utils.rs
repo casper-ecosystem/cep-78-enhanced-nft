@@ -20,12 +20,7 @@ use casper_types::{
     ApiError, CLTyped, ContractHash, Key, URef,
 };
 
-use crate::{
-    constants::{ARG_TOKEN_HASH, ARG_TOKEN_ID, HOLDER_MODE, OWNERSHIP_MODE, REVERSE_TOKEN_TRACKER},
-    error::NFTCoreError,
-    modalities::{NFTHolderMode, NFTIdentifierMode, OwnershipMode, TokenIdentifier},
-    BurnMode, BURNT_TOKENS, BURN_MODE, TOKEN_TRACKER,
-};
+use crate::{constants::{ARG_TOKEN_HASH, ARG_TOKEN_ID, HOLDER_MODE, OWNERSHIP_MODE, REVERSE_TOKEN_TRACKER}, error::NFTCoreError, modalities::{NFTHolderMode, NFTIdentifierMode, OwnershipMode, TokenIdentifier}, BurnMode, BURNT_TOKENS, BURN_MODE, TOKEN_TRACKER, OWNED_TOKENS};
 
 pub(crate) fn upsert_dictionary_value_from_key<T: CLTyped + FromBytes + ToBytes>(
     dictionary_name: &str,
@@ -62,10 +57,10 @@ pub(crate) fn get_holder_mode() -> Result<NFTHolderMode, NFTCoreError> {
     .try_into()
 }
 
-pub(crate) fn get_owned_tokens_dictionary_item_key(token_owner_key: Key) -> String {
+pub(crate) fn get_owned_tokens_dictionary_item_key(token_owner_key: &Key) -> String {
     match token_owner_key {
         Key::Account(token_owner_account_hash) => token_owner_account_hash.to_string(),
-        Key::Hash(token_owner_hash_addr) => ContractHash::new(token_owner_hash_addr).to_string(),
+        Key::Hash(token_owner_hash_addr) => ContractHash::new(*token_owner_hash_addr).to_string(),
         _ => runtime::revert(NFTCoreError::InvalidKey),
     }
 }
@@ -369,4 +364,21 @@ pub(crate) fn update_forward_and_reverse_token_tracker(
         &token_identifier.get_dictionary_item_key(),
         current_token_index,
     );
+}
+
+pub(crate) fn should_breakup_owned_tokens_dictionary(token_owner: &Key) -> bool {
+    let page_seed_exists = runtime::get_key(&token_owner.to_formatted_string()).is_some();
+    if page_seed_exists {
+        return  false;
+    }
+
+    if runtime::get_key(OWNED_TOKENS).is_none() {
+        return false;
+    }
+
+    let owned_tokens_entry_exists = get_dictionary_value_from_key::<Vec<String>>(
+        OWNED_TOKENS,
+        &get_owned_tokens_dictionary_item_key(token_owner)
+    ).is_some();
+    !page_seed_exists && owned_tokens_entry_exists
 }

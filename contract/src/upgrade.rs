@@ -47,7 +47,7 @@ pub(crate) fn break_up_owned_tokens() {
 
             let owned_tokens = utils::get_dictionary_value_from_key::<Vec<u64>>(
                 OWNED_TOKENS,
-                &utils::get_owned_tokens_dictionary_item_key(token_owner),
+                &utils::get_owned_tokens_dictionary_item_key(&token_owner),
             )
             .unwrap_or_revert_with(NFTCoreError::MissingTokenID);
 
@@ -107,23 +107,23 @@ pub(crate) fn break_up_individual_owned_token_hashes(token_owner: &Key) -> URef 
 
     let forward_tracker = utils::get_uref(
         TOKEN_TRACKER,
-        NFTCoreError::MissingStorageUref,
-        NFTCoreError::InvalidStorageUref,
+        NFTCoreError::MissingForwardTracker,
+        NFTCoreError::InvalidForwardTracker,
     );
 
     let reverse_tracker = utils::get_uref(
         REVERSE_TOKEN_TRACKER,
-        NFTCoreError::MissingStorageUref,
-        NFTCoreError::InvalidStorageUref,
+        NFTCoreError::MissingReverseTracker,
+        NFTCoreError::InvalidReverseTracker,
     );
 
-    let token_owner_dictionary_item_key = utils::get_owned_tokens_dictionary_item_key(token_owner.clone());
+    let token_owner_dictionary_item_key = utils::get_owned_tokens_dictionary_item_key(token_owner);
 
     let owned_tokens: Vec<TokenIdentifier> =
         utils::get_dictionary_value_from_key::<Vec<String>>(OWNED_TOKENS, &token_owner_dictionary_item_key)
             .unwrap_or_revert_with(NFTCoreError::MissingOwnedTokens)
             .into_iter()
-            .map(|token_hash| TokenIdentifier::new_hash(token_hash))
+            .map(TokenIdentifier::new_hash)
             .collect();
 
     let token_owner_seed_uref =

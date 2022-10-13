@@ -8,7 +8,8 @@ use crate::utility::{
     constants::{
         ARG_NFT_CONTRACT_HASH, ARG_TOKEN_META_DATA, ARG_TOKEN_OWNER, MINT_SESSION_WASM,
         NFT_CONTRACT_WASM, NFT_TEST_COLLECTION, NFT_TEST_SYMBOL, TRANSFER_SESSION_WASM,
-        ARG_IS_HASH_IDENTIFIER_MODE, ARG_SOURCE_KEY, ARG_TARGET_KEY, ARG_TOKEN_ID, ACCESS_KEY_NAME, CONTRACT_1_0_0_WASM, OWNED_TOKENS, PAGE_SIZE
+        ARG_IS_HASH_IDENTIFIER_MODE, ARG_SOURCE_KEY, ARG_TARGET_KEY, ARG_TOKEN_ID, ACCESS_KEY_NAME, CONTRACT_1_0_0_WASM, OWNED_TOKENS, PAGE_SIZE,
+        ACCOUNT_USER_1, ACCOUNT_USER_2, ARG_TOKEN_HASH
     },
     installer_request_builder,
     installer_request_builder::{
@@ -142,7 +143,7 @@ fn should_safely_upgrade_in_hash_identifier_mode() {
         .with_collection_name(NFT_TEST_COLLECTION.to_string())
         .with_collection_symbol(NFT_TEST_SYMBOL.to_string())
         .with_total_token_supply(100u64)
-        .with_ownership_mode(OwnershipMode::Minter)
+        .with_ownership_mode(OwnershipMode::Transferable)
         .with_identifier_mode(NFTIdentifierMode::Hash)
         .with_nft_metadata_kind(NFTMetadataKind::CEP78)
         .with_metadata_mutability(MetadataMutability::Immutable)
@@ -271,23 +272,55 @@ fn should_safely_upgrade_in_hash_identifier_mode() {
         .expect_success()
         .commit();
 
-    // // The dictionary should have been created as part of breaking the list of owned tokens.
-    // assert!(contracts_named_keys.get(&default_token_key.to_formatted_string()).is_some());
-    //
-    // let actual_page = support::get_dictionary_value_from_key::<Vec<bool>>(
-    //     &builder,
-    //     &nft_contract_key,
-    //     &Key::Account(*DEFAULT_ACCOUNT_ADDR).to_formatted_string(),
-    //     "0"
-    // );
-    //
-    // let expected_page = {
-    //     let mut page = vec![false; 10];
-    //     for index in 0..4 {
-    //         let _ = std::mem::replace(&mut page[index], true);
-    //     }
-    //     page
-    // };
-    // assert_eq!(actual_page, expected_page)
+    let contracts_named_keys = builder.query(None, nft_contract_key, &[])
+        .unwrap()
+        .as_contract()
+        .expect("must have contract")
+        .named_keys()
+        .clone();
+
+    // The dictionary should have been created as part of breaking the list of owned tokens.
+    assert!(contracts_named_keys.get(&default_token_key.to_formatted_string()).is_some());
+
+    let actual_page = support::get_dictionary_value_from_key::<Vec<bool>>(
+        &builder,
+        &nft_contract_key,
+        &Key::Account(*DEFAULT_ACCOUNT_ADDR).to_formatted_string(),
+        "0"
+    );
+
+    let expected_page = {
+        let mut page = vec![false; 10];
+        for index in 0..4 {
+            let _ = std::mem::replace(&mut page[index], true);
+        }
+        page
+    };
+    assert_eq!(actual_page, expected_page);
+
+    let transfer_request =  ExecuteRequestBuilder::standard(
+        *DEFAULT_ACCOUNT_ADDR,
+        TRANSFER_SESSION_WASM,
+        runtime_args! {
+            ARG_NFT_CONTRACT_HASH => nft_contract_key,
+            ARG_TARGET_KEY => Key::Account(AccountHash::new(ACCOUNT_USER_1)),
+            ARG_SOURCE_KEY => Key::Account(*DEFAULT_ACCOUNT_ADDR),
+            ARG_IS_HASH_IDENTIFIER_MODE => true,
+            ARG_TOKEN_HASH => expected_metadata[0].clone()
+        }
+    ).build();
+
+    builder.exec(transfer_request)
+        .expect_success()
+        .commit();
+
+    let actual_page = support::get_dictionary_value_from_key::<Vec<bool>>(
+        &builder,
+        &nft_contract_key,
+        &Key::Account(AccountHash::new(ACCOUNT_USER_1)).to_formatted_string(),
+        "0"
+    );
+
+    assert!(actual_page[0])
 }
 
