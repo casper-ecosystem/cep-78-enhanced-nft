@@ -302,7 +302,6 @@ folder within the project folder.
 | `"owner_of"`     | `client/owner_of_session`     |
 | `"transfer"`     | `client/transfer_session`     |
 
-
 ### Installing and Interacting with the Contract using the Rust Casper Client
 
 This contract code installs an instance of the CEP-78 enhanced NFT standard as per session arguments provided at the time of installation.
