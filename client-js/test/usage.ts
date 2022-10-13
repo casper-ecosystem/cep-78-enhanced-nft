@@ -9,6 +9,7 @@ import {
 
 import {
   KEYS,
+  getBinary,
   getDeploy,
   getAccountInfo,
   getAccountNamedKeyValue,
@@ -70,7 +71,8 @@ const run = async () => {
     { firstName: "Jan" },
     "13000000000",
     KEYS.publicKey,
-    [KEYS]
+    [KEYS],
+    getBinary("../client/mint_session/target/wasm32-unknown-unknown/release"),
   );
 
   const mintDeployHash = await mintDeploy.send(
@@ -85,7 +87,7 @@ const run = async () => {
   console.log("Deploy Succedeed");
 
   /* Mint */
-  printHeader("Mint");
+  printHeader("Burn");
 
   const burnDeploy = await cc.burn(
     "0",

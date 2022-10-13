@@ -223,14 +223,29 @@ export class CEP78Client {
       token_meta_data: CLValueBuilder.string(JSON.stringify(meta))
     });
 
-    return this.contractClient.callEntrypoint(
-      'mint',
-      runtimeArgs,
-      deploySender,
-      this.networkName,
-      paymentAmount,
-      keys
-    );
+    let preparedDeploy; 
+
+    if (!wasm) {
+      preparedDeploy = this.contractClient.callEntrypoint(
+        'mint',
+        runtimeArgs,
+        deploySender,
+        this.networkName,
+        paymentAmount,
+        keys
+      );
+    } else {
+      preparedDeploy = this.contractClient.install(
+        wasm,
+        runtimeArgs,
+        paymentAmount,
+        deploySender,
+        this.networkName,
+        keys
+      );
+    }
+
+    return preparedDeploy;
   }
 
   public async burn(
