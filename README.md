@@ -80,7 +80,6 @@ The `NFTHolderMode` dictates which entities on a Casper network can own and mint
 If the `NFTHolderMode` is set to `Contracts` a `ContractHash` whitelist must be provided. This whitelist dictates which
 `Contracts` are allowed to mint NFTs in the restricted `Installer` minting mode.
 
-
 | NFTHolderMode | u8  |
 |---------------|-----|
 | Accounts      | 0   |
@@ -90,7 +89,6 @@ If the `NFTHolderMode` is set to `Contracts` a `ContractHash` whitelist must be 
 This modality is an optional installation parameter and will default to the `Mixed` mode if not provided. However, this
 mode cannot be changed once the contract has been installed.
 The mode is passed in as a `u8` value to `nft_holder_mode` runtime argument.
-
 
 #### WhitelistMode
 
@@ -108,7 +106,6 @@ cannot be changed once the contract has been installed. The mode is passed in as
 | Unlocked      | 0   |
 | Locked        | 1   |
 
-
 #### Minting
 
 The minting mode governs the behavior of contract when minting new tokens. The minting modality provides two options:
@@ -123,7 +120,6 @@ mode cannot be changed once the contract has been installed. The mode is set by 
 |-------------|-----|
 | Installer   | 0   |
 | Public      | 1   |
-
 
 #### NFTMetadataKind
 
