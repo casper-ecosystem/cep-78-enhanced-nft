@@ -86,28 +86,26 @@ const run = async () => {
 
   console.log("Deploy Succedeed");
 
-  /* Mint */
-  printHeader("Burn");
+  // /* Burn */
+  // printHeader("Burn");
 
-  const burnDeploy = await cc.burn(
-    "0",
-    "13000000000",
-    KEYS.publicKey,
-    [KEYS]
-  );
+  // const burnDeploy = await cc.burn(
+  //   "0",
+  //   "13000000000",
+  //   KEYS.publicKey,
+  //   [KEYS]
+  // );
 
-  const burnDeployHash = await burnDeploy.send(
-    NODE_URL!
-  );
+  // const burnDeployHash = await burnDeploy.send(
+  //   NODE_URL!
+  // );
 
-  console.log("...... Deploy hash: ", burnDeployHash);
-  console.log("...... Waiting for the deploy...");
+  // console.log("...... Deploy hash: ", burnDeployHash);
+  // console.log("...... Waiting for the deploy...");
 
-  await getDeploy(NODE_URL!, burnDeployHash);
+  // await getDeploy(NODE_URL!, burnDeployHash);
 
-  console.log("Deploy Succedeed");
-
-
+  // console.log("Deploy Succedeed");
 };
 
 run();
