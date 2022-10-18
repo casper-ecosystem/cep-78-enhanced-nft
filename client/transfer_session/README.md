@@ -15,7 +15,8 @@ The `transfer_call` session code takes in the following required runtime argumen
 * `token_id`: The `id` of the NFT, passed in as a `u64`.
 * `target_key`: The `Key` of the account receiving the NFT. 
 * `source_key`: The `Key` of the account sending the NFT.
+* `is_hash_identifier_mode`: A boolean argument that should be set to `true` if using the `Hash` NFT Identifier Mode and `false` if using the `Ordinal` mode.
 
-If the contract in question uses the `Hash` NFT Identifier Mode, as indicated by a `True` within the `is_hash_identifier_mode` argument, the following runtime argument is required.
+If the contract in question uses the `Hash` NFT Identifier Mode, the following runtime argument is required.
 
 * `token_hash`: The base16 encoded representation of the `blake2b` hash of the token's metadata.

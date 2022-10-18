@@ -16,7 +16,8 @@ The `get_approved` session code takes in the following required runtime argument
 * `nft_contract_hash`: The hash of a given Enhanced NFT contract passed in as a `Key`.
 * `token_id`: The `id` of the NFT, passed in as a `u64`.
 * `key_name`: The name for the entry within the `NamedKeys` under which `Option<Key>` value is stored, passed in as a `String`.
+* `is_hash_identifier_mode`: A boolean argument that should be set to `true` if using the `Hash` NFT Identifier Mode and `false` if using the `Ordinal` mode.
 
-If the contract in question uses the `Hash` NFT Identifier Mode, as indicated by a `True` within the `is_hash_identifier_mode` argument, the following runtime argument is required.
+If the contract in question uses the `Hash` NFT Identifier Mode, the following runtime argument is required.
 
 * `token_hash`: The base16 encoded representation of the `blake2b` hash of the token's metadata.
