@@ -70,7 +70,7 @@ const run = async () => {
 
   const mintDeploy = await cc.mint(
     KEYS.publicKey,
-    { firstName: "Jan" },
+    { type: "vehicle", make: "Audi", model: "S3", fuelType: "petrol", engineCapacity: "2000", vin: "4Y1SL65848Z411439", registerationDate: "2019-10-01" },
     "500000000000",
     KEYS.publicKey,
     [KEYS],

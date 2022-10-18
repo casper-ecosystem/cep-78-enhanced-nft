@@ -35,20 +35,27 @@ const install = async () => {
     getBinary("../contract/target/wasm32-unknown-unknown/release/contract.wasm"),
     {
       collectionName: "my-collection",
-      collectionSymbol: "CEP",
-      totalTokenSupply: "1000",
+      collectionSymbol: "AMAG-ASSETS",
+      totalTokenSupply: "10000",
       ownershipMode: NFTOwnershipMode.Minter,
       nftKind: NFTKind.Physical,
       jsonSchema: {
         properties: {
-          firstName: { name: "first name", description: "", required: true },
+          type: { name: "type", description: "", required: true },
+          make: { name: "make", description: "", required: true },
+          model: { name: "model", description: "", required: true },
+          fuelType: { name: "fuelType", description: "", required: false },
+          engineCapacity: { name: "engineCapacity", description: "", required: false },
+          vin: { name: "vin", description: "", required: true },
+          registerationDate: { name: "registerationDate", description: "", required: true },
+          typeCertificate: { name: "typeCertificate", description: "", required: false },
         },
       },
       nftMetadataKind: NFTMetadataKind.CustomValidated,
       identifierMode: NFTIdentifierMode.Ordinal,
       metadataMutability: MetadataMutability.Immutable,
     },
-    "200000000000",
+    "165000000000",
     KEYS.publicKey,
     [KEYS]
   );
