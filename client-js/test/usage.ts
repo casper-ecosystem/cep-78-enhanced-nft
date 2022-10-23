@@ -59,6 +59,9 @@ const run = async () => {
   const identifierModeSetting = await cc.getIdentifierModeConfig();
   console.log(identifierModeSetting);
 
+  const whitelistModeSetting = await cc.getWhitelistModeConfig();
+  console.log(whitelistModeSetting);
+
   const JSONSetting = await cc.getJSONSchemaConfig();
 
 

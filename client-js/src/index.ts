@@ -26,6 +26,7 @@ import {
   BurnArgs,
   TransferArgs,
   BurnMode,
+  WhitelistMode,
   NFTHolderMode,
   NFTIdentifierMode,
   MetadataMutability,
@@ -182,6 +183,14 @@ export class CEP78Client {
 
   public async getAllowMintingConfig() {
     return this.contractClient.queryContractData(["allow_minting"]);
+  }
+
+  public async getWhitelistModeConfig() {
+    const internalValue = await this.contractClient.queryContractData([
+      "whitelist_mode",
+    ]);
+    const u8res = (internalValue as CLU8).toString();
+    return WhitelistMode[parseInt(u8res, 10)];
   }
 
   public async getBurnModeConfig() {
