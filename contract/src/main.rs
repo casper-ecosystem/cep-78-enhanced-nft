@@ -49,9 +49,9 @@ use crate::{
         ENTRY_POINT_SET_APPROVE_FOR_ALL, ENTRY_POINT_SET_TOKEN_METADATA, ENTRY_POINT_SET_VARIABLES,
         ENTRY_POINT_TRANSFER, HASH_KEY_NAME, HOLDER_MODE, IDENTIFIER_MODE, INSTALLER, JSON_SCHEMA,
         METADATA_CEP78, METADATA_CUSTOM_VALIDATED, METADATA_MUTABILITY, METADATA_NFT721,
-        METADATA_RAW, METADATA_SCHEMA, MINTING_MODE, NFT_KIND, NFT_METADATA_KIND,
-        NUMBER_OF_MINTED_TOKENS, OPERATOR, OWNED_TOKENS, OWNERSHIP_MODE, RECEIPT_NAME,
-        TOKEN_COUNTS, TOKEN_ISSUERS, TOKEN_OWNERS, TOTAL_TOKEN_SUPPLY, WHITELIST_MODE,
+        METADATA_RAW, MINTING_MODE, NFT_KIND, NFT_METADATA_KIND, NUMBER_OF_MINTED_TOKENS, OPERATOR,
+        OWNED_TOKENS, OWNERSHIP_MODE, RECEIPT_NAME, TOKEN_COUNTS, TOKEN_ISSUERS, TOKEN_OWNERS,
+        TOTAL_TOKEN_SUPPLY, WHITELIST_MODE,
     },
     error::NFTCoreError,
     metadata::CustomMetadataSchema,
@@ -622,7 +622,7 @@ pub extern "C" fn mint() {
     runtime::ret(receipt)
 }
 
-// Marks token as burnt. This blocks and future call to transfer token.
+// Marks token as burnt. This blocks any future call to transfer token.
 #[no_mangle]
 pub extern "C" fn burn() {
     if let BurnMode::NonBurnable = utils::get_burn_mode() {
@@ -875,8 +875,6 @@ pub extern "C" fn transfer() {
         runtime::revert(NFTCoreError::InvalidOwnershipMode)
     }
 
-    let holder_mode = utils::get_holder_mode().unwrap_or_revert();
-
     let identifier_mode: NFTIdentifierMode = utils::get_stored_value_with_user_errors::<u8>(
         IDENTIFIER_MODE,
         NFTCoreError::MissingIdentifierMode,
@@ -923,8 +921,8 @@ pub extern "C" fn transfer() {
     };
 
     // Revert if caller is not owner and not approved.
-    if caller != token_owner_key && !is_approved && NFTHolderMode::Accounts == holder_mode {
-        runtime::revert(NFTCoreError::InvalidAccount);
+    if caller != token_owner_key && !is_approved {
+        runtime::revert(NFTCoreError::InvalidTokenOwner);
     }
 
     let target_owner_key: Key = utils::get_named_arg_with_user_errors(
@@ -1143,7 +1141,7 @@ pub extern "C" fn metadata() {
     }
 
     let metadata_kind: NFTMetadataKind = utils::get_stored_value_with_user_errors::<u8>(
-        METADATA_SCHEMA,
+        NFT_METADATA_KIND,
         NFTCoreError::MissingNFTMetadataKind,
         NFTCoreError::InvalidNFTMetadataKind,
     )
@@ -1384,7 +1382,7 @@ fn install_nft_contract() -> (ContractHash, ContractVersion) {
                 Parameter::new(ARG_SOURCE_KEY, CLType::Key),
                 Parameter::new(ARG_TARGET_KEY, CLType::Key),
             ],
-            CLType::Unit,
+            CLType::Tuple2([Box::new(CLType::String), Box::new(CLType::Key)]),
             EntryPointAccess::Public,
             EntryPointType::Contract,
         );

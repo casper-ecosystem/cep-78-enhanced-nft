@@ -13,6 +13,7 @@ pub(crate) const ENTRY_POINT_MINT: &str = "mint";
 pub(crate) const ENTRY_POINT_BURN: &str = "burn";
 pub(crate) const ENTRY_POINT_TRANSFER: &str = "transfer";
 pub(crate) const ENTRY_POINT_APPROVE: &str = "approve";
+pub(crate) const ENTRY_POINT_METADATA: &str = "metadata";
 pub(crate) const ENTRY_POINT_SET_APPROVE_FOR_ALL: &str = "set_approval_for_all";
 pub(crate) const ENTRY_POINT_SET_TOKEN_METADATA: &str = "set_token_metadata";
 pub(crate) const ARG_COLLECTION_NAME: &str = "collection_name";

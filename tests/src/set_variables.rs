@@ -24,7 +24,7 @@ fn only_installer_should_be_able_to_toggle_allow_minting() {
         .with_collection_name(NFT_TEST_COLLECTION.to_string())
         .with_collection_symbol(NFT_TEST_SYMBOL.to_string())
         .with_total_token_supply(1u64)
-        .with_allowing_minting(Some(false))
+        .with_allowing_minting(false)
         .build();
 
     builder.exec(install_request).expect_success().commit();
