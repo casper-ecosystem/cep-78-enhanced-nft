@@ -9,6 +9,7 @@ import {
   RuntimeArgs,
   Keys,
   decodeBase64,
+  DeployUtil
 } from "casper-js-sdk";
 
 import {
@@ -18,6 +19,7 @@ import {
   NFTMetadataKind,
   NFTIdentifierMode,
   MetadataMutability,
+  MintingMode
 } from "../src/index";
 
 import {
@@ -32,7 +34,9 @@ const install = async () => {
   const cc = new CEP78Client(process.env.NODE_URL!, process.env.NETWORK_NAME!);
 
   const installDeploy = await cc.install(
-    getBinary("../contract/target/wasm32-unknown-unknown/release/contract.wasm"),
+    getBinary(
+      "../contract/target/wasm32-unknown-unknown/release/contract.wasm"
+    ),
     {
       collectionName: "my-collection",
       collectionSymbol: "AMAG-ASSETS",
@@ -45,20 +49,35 @@ const install = async () => {
           make: { name: "make", description: "", required: true },
           model: { name: "model", description: "", required: true },
           fuelType: { name: "fuelType", description: "", required: false },
-          engineCapacity: { name: "engineCapacity", description: "", required: false },
+          engineCapacity: {
+            name: "engineCapacity",
+            description: "",
+            required: false,
+          },
           vin: { name: "vin", description: "", required: true },
-          registerationDate: { name: "registerationDate", description: "", required: true },
-          typeCertificate: { name: "typeCertificate", description: "", required: false },
+          registerationDate: {
+            name: "registerationDate",
+            description: "",
+            required: true,
+          },
+          typeCertificate: {
+            name: "typeCertificate",
+            description: "",
+            required: false,
+          },
         },
       },
       nftMetadataKind: NFTMetadataKind.CustomValidated,
       identifierMode: NFTIdentifierMode.Ordinal,
       metadataMutability: MetadataMutability.Immutable,
+      mintingMode: MintingMode.Installer
     },
     "165000000000",
     KEYS.publicKey,
     [KEYS]
   );
+
+  // console.log(JSON.stringify(DeployUtil.deployToJson(installDeploy), null, 2));
 
   const hash = await installDeploy.send(process.env.NODE_URL!);
 
@@ -68,10 +87,7 @@ const install = async () => {
 
   console.log(`... Contract installed successfully.`);
 
-  let accountInfo = await getAccountInfo(
-    process.env.NODE_URL!,
-    KEYS.publicKey
-  );
+  let accountInfo = await getAccountInfo(process.env.NODE_URL!, KEYS.publicKey);
 
   console.log(`... Account Info: `);
   console.log(JSON.stringify(accountInfo, null, 2));

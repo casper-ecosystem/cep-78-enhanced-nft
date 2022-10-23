@@ -12,6 +12,7 @@ import {
   CLValueParsers,
   CLTypeTag,
   CLU8,
+  DeployUtil,
 } from "casper-js-sdk";
 import { concat } from "@ethersproject/bytes";
 import { Some } from "ts-results";
@@ -44,6 +45,14 @@ export {
   JSONSchemaObject,
 } from "./types";
 
+const convertHashStrToHashBuff = (hashStr: string) => {
+  let hashHex = hashStr;
+  if (hashStr.startsWith("hash-")) {
+    hashHex = hashStr.slice(5);
+  }
+  return Buffer.from(hashHex, "hex");
+};
+
 export class CEP78Client {
   casperClient: CasperClient;
   contractClient: Contracts.Contract;
@@ -72,29 +81,38 @@ export class CEP78Client {
       metadata_mutability: CLValueBuilder.u8(args.metadataMutability),
     });
 
-    if (args.mintingMode) {
-      const value = CLValueBuilder.u8(args.mintingMode);
-      runtimeArgs.insert("minting_mode", CLValueBuilder.option(Some(value)));
+    if (args.mintingMode !== undefined) {
+      runtimeArgs.insert("minting_mode", CLValueBuilder.u8(args.mintingMode));
     }
 
-    if (args.allowMinting) {
-      const value = CLValueBuilder.bool(args.allowMinting);
-      runtimeArgs.insert("allow_minting", CLValueBuilder.option(Some(value)));
+    if (args.allowMinting !== undefined) {
+      runtimeArgs.insert(
+        "allow_minting",
+        CLValueBuilder.bool(args.allowMinting)
+      );
     }
 
-    if (args.whitelistMode) {
-      const value = CLValueBuilder.u8(args.whitelistMode);
-      runtimeArgs.insert("whitelist_mode", CLValueBuilder.option(Some(value)));
+    if (args.whitelistMode !== undefined) {
+      runtimeArgs.insert(
+        "whitelist_mode",
+        CLValueBuilder.u8(args.whitelistMode)
+      );
     }
 
-    if (args.holderMode) {
-      const value = CLValueBuilder.u8(args.holderMode);
-      runtimeArgs.insert("holder_mode", CLValueBuilder.option(Some(value)));
+    if (args.holderMode !== undefined) {
+      runtimeArgs.insert("holder_mode", CLValueBuilder.u8(args.holderMode));
     }
 
-    // TODO: Implement contractWhitelist support.
+    if (args.contractWhitelist !== undefined) {
+      const list = args.contractWhitelist.map((hashStr) =>
+        CLValueBuilder.key(
+          CLValueBuilder.byteArray(convertHashStrToHashBuff(hashStr))
+        )
+      );
+      runtimeArgs.insert("holder_mode", CLValueBuilder.list(list));
+    }
 
-    if (args.burnMode) {
+    if (args.burnMode !== undefined) {
       const value = CLValueBuilder.u8(args.burnMode);
       runtimeArgs.insert("burn_mode", CLValueBuilder.option(Some(value)));
     }
@@ -223,7 +241,7 @@ export class CEP78Client {
       token_meta_data: CLValueBuilder.string(JSON.stringify(meta)),
     });
 
-    let preparedDeploy;
+    let preparedDeploy: DeployUtil.Deploy;
 
     if (!wasm) {
       preparedDeploy = this.contractClient.callEntrypoint(
@@ -235,12 +253,16 @@ export class CEP78Client {
         keys
       );
     } else {
-      const contractHashBytes = CLValueBuilder.byteArray(
-        Buffer.from(this.contractClient?.contractHash?.slice(5)!, "hex")
-      );
+      if (!this.contractClient?.contractHash) {
+        throw Error("Missing contractHash");
+      }
       runtimeArgs.insert(
         "nft_contract_hash",
-        CLValueBuilder.key(contractHashBytes)
+        CLValueBuilder.key(
+          CLValueBuilder.byteArray(
+            convertHashStrToHashBuff(this.contractClient?.contractHash)
+          )
+        )
       );
       preparedDeploy = this.contractClient.install(
         wasm,

@@ -21,10 +21,7 @@ import { DeployUtil } from "casper-js-sdk";
 const { NODE_URL, NETWORK_NAME, CONTRACT_NAME } = process.env;
 
 const run = async () => {
-  const cc = new CEP78Client(
-    process.env.NODE_URL!,
-    process.env.NETWORK_NAME!
-  );
+  const cc = new CEP78Client(process.env.NODE_URL!, process.env.NETWORK_NAME!);
 
   let accountInfo = await getAccountInfo(NODE_URL!, KEYS.publicKey);
 
@@ -64,22 +61,29 @@ const run = async () => {
 
   const JSONSetting = await cc.getJSONSchemaConfig();
 
-
   /* Mint */
   printHeader("Mint");
 
   const mintDeploy = await cc.mint(
     KEYS.publicKey,
-    { type: "vehicle", make: "Audi", model: "S3", fuelType: "petrol", engineCapacity: "2000", vin: "4Y1SL65848Z411439", registerationDate: "2019-10-01" },
+    {
+      type: "vehicle",
+      make: "Audi",
+      model: "S3",
+      fuelType: "petrol",
+      engineCapacity: "2000",
+      vin: "4Y1SL65848Z411439",
+      registerationDate: "2019-10-01",
+    },
     "500000000000",
     KEYS.publicKey,
     [KEYS],
-    getBinary("../client/mint_session/target/wasm32-unknown-unknown/release/mint_call.wasm"),
+    getBinary(
+      "../client/mint_session/target/wasm32-unknown-unknown/release/mint_call.wasm"
+    )
   );
 
-  const mintDeployHash = await mintDeploy.send(
-    NODE_URL!
-  );
+  const mintDeployHash = await mintDeploy.send(NODE_URL!);
 
   console.log("...... Deploy hash: ", mintDeployHash);
   console.log("...... Waiting for the deploy...");
@@ -111,4 +115,3 @@ const run = async () => {
 };
 
 run();
-

@@ -1,0 +1,145 @@
+{
+  "id": 8088811672114800146,
+  "jsonrpc": "2.0",
+  "result": {
+    "api_version": "1.0.0",
+    "block_header": null,
+    "merkle_proof": "[6510 hex chars]",
+    "stored_value": {
+      "Contract": {
+        "contract_package_hash": "contract-package-wasmb42b851c9ad9e08be6b9a5cfdb3478f66323d67c281b3e72ad9090d7984767d9",
+        "contract_wasm_hash": "contract-wasm-7b5068986208ccb317b8a11cf2c7c25e738c25c5896dd394b9559585c56fdbb2",
+        "entry_points": [
+          {
+            "access": "Public",
+            "args": [
+              {
+                "cl_type": "Key",
+                "name": "operator"
+              }
+            ],
+            "entry_point_type": "Contract",
+            "name": "approve",
+            "ret": "Unit"
+          },
+          {
+            "access": "Public",
+            "args": [
+              {
+                "cl_type": "Key",
+                "name": "token_owner"
+              }
+            ],
+            "entry_point_type": "Contract",
+            "name": "balance_of",
+            "ret": "U64"
+          },
+          {
+            "access": "Public",
+            "args": [],
+            "entry_point_type": "Contract",
+            "name": "burn",
+            "ret": "Unit"
+          },
+          {
+            "access": "Public",
+            "args": [],
+            "entry_point_type": "Contract",
+            "name": "get_approved",
+            "ret": {
+              "Option": "Key"
+            }
+          },
+          {
+            "access": "Public",
+            "args": [],
+            "entry_point_type": "Contract",
+            "name": "metadata",
+            "ret": "String"
+          },
+          {
+            "access": "Public",
+            "args": [],
+            "entry_point_type": "Contract",
+            "name": "owner_of",
+            "ret": "Key"
+          },
+          {
+            "access": "Public",
+            "args": [
+              {
+                "cl_type": "Key",
+                "name": "token_owner"
+              },
+              {
+                "cl_type": "Bool",
+                "name": "approve_all"
+              },
+              {
+                "cl_type": "Key",
+                "name": "operator"
+              }
+            ],
+            "entry_point_type": "Contract",
+            "name": "set_approval_for_all",
+            "ret": "Unit"
+          },
+          {
+            "access": "Public",
+            "args": [
+              {
+                "cl_type": "String",
+                "name": "token_meta_data"
+              }
+            ],
+            "entry_point_type": "Contract",
+            "name": "set_token_metadata",
+            "ret": "Unit"
+          },
+          {
+            "access": "Public",
+            "args": [
+              {
+                "cl_type": "Bool",
+                "name": "allow_minting"
+              },
+              {
+                "cl_type": {
+                  "List": {
+                    "ByteArray": 32
+                  }
+                },
+                "name": "contract_whitelist"
+              }
+            ],
+            "entry_point_type": "Contract",
+            "name": "set_variables",
+            "ret": "Unit"
+          },
+          {
+            "access": "Public",
+            "args": [
+              {
+                "cl_type": "Key",
+                "name": "source_key"
+              },
+              {
+                "cl_type": "Key",
+                "name": "target_key"
+              }
+            ],
+            "entry_point_type": "Contract",
+            "name": "transfer",
+            "ret": {
+              "Tuple2": [
+                "String",
+                "Key"
+              ]
+            }
+          }
+        ],
+        "protocol_version": "1.0.0"
+      }
+    }
+  }
+}
