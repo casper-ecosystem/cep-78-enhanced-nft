@@ -341,6 +341,17 @@ export class CEP78Client {
     return preparedDeploy;
   }
 
+  public async getOwnerOf(tokenId: string) {
+    const result = await this.contractClient
+      .queryContractDictionary('token_owners', tokenId);
 
+    return `account-hash-${result.toJSON()}`;
+  }
 
+  public async getBalanceOf(account: CLPublicKey) {
+    const result = await this.contractClient
+      .queryContractDictionary('balances', account.toAccountHashStr().slice(13));
+
+    return result.toJSON();
+  }
 }
