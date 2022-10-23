@@ -22,6 +22,7 @@ const { Contract, toCLMap, fromCLMap } = Contracts;
 
 import {
   InstallArgs,
+  ConfigurableVariables,
   MintArgs,
   BurnArgs,
   TransferArgs,
@@ -60,6 +61,13 @@ const convertHashStrToHashBuff = (hashStr: string) => {
   }
   return Buffer.from(hashHex, "hex");
 };
+
+const buildKeyHashList = (list: string[]) =>
+  list.map((hashStr) =>
+    CLValueBuilder.key(
+      CLValueBuilder.byteArray(convertHashStrToHashBuff(hashStr))
+    )
+  );
 
 // TODO: In future, when we want to support also
 // browser version - we will need to polyfill this
@@ -123,12 +131,8 @@ export class CEP78Client {
     }
 
     if (args.contractWhitelist !== undefined) {
-      const list = args.contractWhitelist.map((hashStr) =>
-        CLValueBuilder.key(
-          CLValueBuilder.byteArray(convertHashStrToHashBuff(hashStr))
-        )
-      );
-      runtimeArgs.insert("holder_mode", CLValueBuilder.list(list));
+      const list = buildKeyHashList(args.contractWhitelist);
+      runtimeArgs.insert("contract_whitelist", CLValueBuilder.list(list));
     }
 
     if (args.burnMode !== undefined) {
@@ -254,6 +258,28 @@ export class CEP78Client {
       "json_schema",
     ]);
     return internalValue.toString();
+  }
+
+  public setVariables(
+    args: ConfigurableVariables,
+    paymentAmount: string,
+    deploySender: CLPublicKey,
+    keys?: Keys.AsymmetricKey[],
+    wasm?: Uint8Array
+  ) {
+    const runtimeArgs = RuntimeArgs.fromMap({});
+
+    if (args.allowMinting !== undefined) {
+      runtimeArgs.insert(
+        "allow_minting",
+        CLValueBuilder.bool(args.allowMinting)
+      );
+    }
+
+    if (args.contractWhitelist !== undefined) {
+      const list = buildKeyHashList(args.contractWhitelist);
+      runtimeArgs.insert("contract_whitelist", CLValueBuilder.list(list));
+    }
   }
 
   public async mint(

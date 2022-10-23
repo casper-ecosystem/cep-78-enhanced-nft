@@ -60,7 +60,12 @@ export interface JSONSchemaObject {
   properties: Record<string, JSONSchemaEntry>;
 }
 
-export interface InstallArgs {
+export type ConfigurableVariables = {
+  allowMinting?: boolean;
+  contractWhitelist?: string[];
+}
+
+export type InstallArgs = {
   collectionName: string;
   collectionSymbol: string;
   totalTokenSupply: string;
@@ -70,14 +75,11 @@ export interface InstallArgs {
   nftMetadataKind: NFTMetadataKind;
   identifierMode: NFTIdentifierMode;
   metadataMutability: MetadataMutability;
-
   mintingMode?: MintingMode;
-  allowMinting?: boolean;
   whitelistMode?: WhitelistMode;
   holderMode?: NFTHolderMode;
-  contractWhitelist?: string[];
   burnMode?: BurnMode;
-}
+} & ConfigurableVariables;
 
 export interface MintArgs {
   owner: CLKeyParameters;
