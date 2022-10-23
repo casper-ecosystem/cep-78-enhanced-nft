@@ -48,19 +48,19 @@ const run = async () => {
   console.log(`\n=====================================\n`);
 
   const allowMintingSetting = await cc.getAllowMintingConfig();
-  console.log(allowMintingSetting);
+  console.log(`AllowMintingSetting: ${allowMintingSetting}`);
 
   const burnModeSetting = await cc.getBurnModeConfig();
-  console.log(burnModeSetting);
+  console.log(`BurnModeSetting: ${burnModeSetting}`);
 
   const holderModeSetting = await cc.getHolderModeConfig();
-  console.log(holderModeSetting);
+  console.log(`HolderModeSetting: ${holderModeSetting}`);
 
   const identifierModeSetting = await cc.getIdentifierModeConfig();
-  console.log(identifierModeSetting);
+  console.log(`IdentifierModeSetting: ${identifierModeSetting}`);
 
   const whitelistModeSetting = await cc.getWhitelistModeConfig();
-  console.log(whitelistModeSetting);
+  console.log(`WhitelistMode: ${whitelistModeSetting}`);
 
   const JSONSetting = await cc.getJSONSchemaConfig();
 
