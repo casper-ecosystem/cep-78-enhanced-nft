@@ -34,9 +34,6 @@ const install = async () => {
   const cc = new CEP78Client(process.env.NODE_URL!, process.env.NETWORK_NAME!);
 
   const installDeploy = await cc.install(
-    getBinary(
-      "../contract/target/wasm32-unknown-unknown/release/contract.wasm"
-    ),
     {
       collectionName: "my-collection",
       collectionSymbol: "AMAG-ASSETS",

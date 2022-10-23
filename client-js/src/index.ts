@@ -16,6 +16,7 @@ import {
 } from "casper-js-sdk";
 import { concat } from "@ethersproject/bytes";
 import { Some } from "ts-results";
+import * as fs from "fs";
 
 const { Contract, toCLMap, fromCLMap } = Contracts;
 
@@ -53,9 +54,17 @@ const convertHashStrToHashBuff = (hashStr: string) => {
   return Buffer.from(hashHex, "hex");
 };
 
+// TODO: In future, when we want to support also
+// browser version - we will need to polyfill this
+// and move to some separate module.
+export const getBinary = (pathToBinary: string) => {
+  return new Uint8Array(fs.readFileSync(pathToBinary, null).buffer);
+};
+
 export class CEP78Client {
   casperClient: CasperClient;
   contractClient: Contracts.Contract;
+  contractHashKey: CLKey;
 
   constructor(public nodeAddress: string, public networkName: string) {
     this.casperClient = new CasperClient(nodeAddress);
@@ -63,12 +72,15 @@ export class CEP78Client {
   }
 
   public install(
-    wasm: Uint8Array,
     args: CEP78InstallArgs,
     paymentAmount: string,
     deploySender: CLPublicKey,
-    keys?: Keys.AsymmetricKey[]
+    keys?: Keys.AsymmetricKey[],
+    wasm?: Uint8Array
   ) {
+    const wasmToInstall =
+      wasm || getBinary(`${__dirname}/../wasm/contract.wasm`);
+
     const runtimeArgs = RuntimeArgs.fromMap({
       collection_name: CLValueBuilder.string(args.collectionName),
       collection_symbol: CLValueBuilder.string(args.collectionSymbol),
@@ -118,7 +130,7 @@ export class CEP78Client {
     }
 
     return this.contractClient.install(
-      wasm,
+      wasmToInstall,
       runtimeArgs,
       paymentAmount,
       deploySender,
@@ -133,6 +145,9 @@ export class CEP78Client {
     bootstrap?: boolean
   ) {
     this.contractClient.setContractHash(contractHash, contractPackageHash);
+    this.contractHashKey = CLValueBuilder.key(
+      CLValueBuilder.byteArray(convertHashStrToHashBuff(contractHash))
+    );
 
     if (bootstrap) {
       // TODO: Set all possible config options inside the client and validate every client call.
@@ -235,44 +250,22 @@ export class CEP78Client {
     wasm?: Uint8Array
   ) {
     // TODO: Add metadata validation
+    const wasmToCall = wasm || getBinary(`${__dirname}/../wasm/contract.wasm`);
 
     const runtimeArgs = RuntimeArgs.fromMap({
       token_owner: CLValueBuilder.key(owner),
       token_meta_data: CLValueBuilder.string(JSON.stringify(meta)),
+      nft_contracy_hash: this.contractHashKey,
     });
 
-    let preparedDeploy: DeployUtil.Deploy;
-
-    if (!wasm) {
-      preparedDeploy = this.contractClient.callEntrypoint(
-        "mint",
-        runtimeArgs,
-        deploySender,
-        this.networkName,
-        paymentAmount,
-        keys
-      );
-    } else {
-      if (!this.contractClient?.contractHash) {
-        throw Error("Missing contractHash");
-      }
-      runtimeArgs.insert(
-        "nft_contract_hash",
-        CLValueBuilder.key(
-          CLValueBuilder.byteArray(
-            convertHashStrToHashBuff(this.contractClient?.contractHash)
-          )
-        )
-      );
-      preparedDeploy = this.contractClient.install(
-        wasm,
-        runtimeArgs,
-        paymentAmount,
-        deploySender,
-        this.networkName,
-        keys
-      );
-    }
+    const preparedDeploy = this.contractClient.install(
+      wasmToCall,
+      runtimeArgs,
+      paymentAmount,
+      deploySender,
+      this.networkName,
+      keys
+    );
 
     return preparedDeploy;
   }
@@ -281,14 +274,13 @@ export class CEP78Client {
     tokenId: string,
     paymentAmount: string,
     deploySender: CLPublicKey,
-    keys?: Keys.AsymmetricKey[],
-    wasm?: Uint8Array
+    keys?: Keys.AsymmetricKey[]
   ) {
     const runtimeArgs = RuntimeArgs.fromMap({
       token_id: CLValueBuilder.u64(tokenId),
     });
 
-    return this.contractClient.callEntrypoint(
+    const preparedDeploy = this.contractClient.callEntrypoint(
       "burn",
       runtimeArgs,
       deploySender,
@@ -296,5 +288,7 @@ export class CEP78Client {
       paymentAmount,
       keys
     );
+
+    return preparedDeploy;
   }
 }

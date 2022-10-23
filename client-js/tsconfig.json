@@ -25,7 +25,8 @@
     ]
   },
   "include": [
-	  "./src/**/*"
+	  "./src/**/*",
+    "./src/wasm/**/*"
   ],
   "exclude": ["./test/**/*", "*/*.test.ts"]
 }
