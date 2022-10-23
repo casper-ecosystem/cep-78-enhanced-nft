@@ -62,40 +62,40 @@ const run = async () => {
   const JSONSetting = await cc.getJSONSchemaConfig();
 
   /* Mint */
-  // printHeader("Mint");
+  printHeader("Mint");
 
-  // const mintDeploy = await cc.mint(
-  //   {
-  //     owner: KEYS.publicKey,
-  //     meta: {
-  //       type: "vehicle",
-  //       make: "Audi",
-  //       model: "S3",
-  //       fuelType: "petrol",
-  //       engineCapacity: "2000",
-  //       vin: "4Y1SL65848Z411439",
-  //       registerationDate: "2019-10-01",
-  //     },
-  //   },
-  //   "500000000000",
-  //   KEYS.publicKey,
-  //   [KEYS]
-  // );
+  const mintDeploy = await cc.mint(
+    {
+      owner: KEYS.publicKey,
+      meta: {
+        type: "vehicle",
+        make: "Audi",
+        model: "S3",
+        fuelType: "petrol",
+        engineCapacity: "2000",
+        vin: "4Y1SL65848Z411439",
+        registerationDate: "2019-10-01",
+      },
+    },
+    "500000000000",
+    KEYS.publicKey,
+    [KEYS]
+  );
 
-  // const mintDeployHash = await mintDeploy.send(NODE_URL!);
+  const mintDeployHash = await mintDeploy.send(NODE_URL!);
 
-  // console.log("...... Deploy hash: ", mintDeployHash);
-  // console.log("...... Waiting for the deploy...");
+  console.log("...... Deploy hash: ", mintDeployHash);
+  console.log("...... Waiting for the deploy...");
 
-  // await getDeploy(NODE_URL!, mintDeployHash);
+  await getDeploy(NODE_URL!, mintDeployHash);
 
-  // console.log("Deploy Succedeed");
+  console.log("Deploy Succedeed");
 
   /* Burn */
   printHeader("Burn");
 
   const burnDeploy = await cc.burn(
-    { tokenId: "3" },
+    { tokenId: "0" },
     "13000000000",
     KEYS.publicKey,
     [KEYS]

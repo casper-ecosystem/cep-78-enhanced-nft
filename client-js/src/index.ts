@@ -284,7 +284,7 @@ export class CEP78Client {
     const runtimeArgs = RuntimeArgs.fromMap({});
 
     if (args.tokenId !== undefined) {
-      runtimeArgs.insert("token_id", CLValueBuilder.u8(args.tokenId));
+      runtimeArgs.insert("token_id", CLValueBuilder.u64(args.tokenId));
     }
 
     if (args.tokenHash !== undefined) {
