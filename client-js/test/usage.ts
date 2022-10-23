@@ -98,6 +98,8 @@ const run = async () => {
   const ownerBalance = await cc.getBalanceOf(KEYS.publicKey);
   console.log(`> Owner balance ${ownerBalance}`);
 
+  const metadataOfOne = await cc.getMetadataOf("0");
+  console.log(`> Token 0 metadata`, metadataOfOne);
   // /* Burn */
   // printHeader("Burn");
 

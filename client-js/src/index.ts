@@ -280,7 +280,6 @@ export class CEP78Client {
     deploySender: CLPublicKey,
     keys?: Keys.AsymmetricKey[]
   ) {
-
     const runtimeArgs = RuntimeArgs.fromMap({});
 
     if (args.tokenId !== undefined) {
@@ -310,13 +309,14 @@ export class CEP78Client {
     keys?: Keys.AsymmetricKey[],
     wasm?: Uint8Array
   ) {
-    const wasmToCall = wasm || getBinary(`${__dirname}/../wasm/transfer_call.wasm`);
+    const wasmToCall =
+      wasm || getBinary(`${__dirname}/../wasm/transfer_call.wasm`);
 
     const runtimeArgs = RuntimeArgs.fromMap({
       nft_contract_hash: this.contractHashKey,
       target_key: CLValueBuilder.key(args.target),
       source_key: CLValueBuilder.key(args.source),
-      is_hash_identifier_mode: CLValueBuilder.bool(args.isHashIdentifierMode)
+      is_hash_identifier_mode: CLValueBuilder.bool(args.isHashIdentifierMode),
     });
 
     if (args.tokenId) {
@@ -342,15 +342,41 @@ export class CEP78Client {
   }
 
   public async getOwnerOf(tokenId: string) {
-    const result = await this.contractClient
-      .queryContractDictionary('token_owners', tokenId);
+    const result = await this.contractClient.queryContractDictionary(
+      "token_owners",
+      tokenId
+    );
 
     return `account-hash-${result.toJSON()}`;
   }
 
+  public async getMetadataOf(tokenId: string, metadataType?: NFTMetadataKind) {
+    const metadataToCheck: NFTMetadataKind =
+      metadataType ||
+      NFTMetadataKind[
+        (await this.getMetadataKindConfig()) as keyof typeof NFTMetadataKind
+      ];
+
+    const mapMetadata = {
+      [NFTMetadataKind.CEP78]: "metadata_cep78",
+      [NFTMetadataKind.NFT721]: "metadata_nft721",
+      [NFTMetadataKind.Raw]: "metadata_raw",
+      [NFTMetadataKind.CustomValidated]: "metadata_custom_validated",
+    };
+
+    const result = await this.contractClient.queryContractDictionary(
+      mapMetadata[metadataToCheck],
+      tokenId
+    );
+
+    return result.toJSON();
+  }
+
   public async getBalanceOf(account: CLPublicKey) {
-    const result = await this.contractClient
-      .queryContractDictionary('balances', account.toAccountHashStr().slice(13));
+    const result = await this.contractClient.queryContractDictionary(
+      "balances",
+      account.toAccountHashStr().slice(13)
+    );
 
     return result.toJSON();
   }
