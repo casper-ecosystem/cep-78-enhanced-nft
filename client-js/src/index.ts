@@ -21,7 +21,10 @@ import * as fs from "fs";
 const { Contract, toCLMap, fromCLMap } = Contracts;
 
 import {
-  CEP78InstallArgs,
+  InstallArgs,
+  MintArgs,
+  BurnArgs,
+  TransferArgs,
   BurnMode,
   NFTHolderMode,
   NFTIdentifierMode,
@@ -32,7 +35,10 @@ import {
 } from "./types";
 
 export {
-  CEP78InstallArgs,
+  InstallArgs,
+  MintArgs,
+  BurnArgs,
+  TransferArgs,
   NFTOwnershipMode,
   NFTKind,
   NFTHolderMode,
@@ -72,7 +78,7 @@ export class CEP78Client {
   }
 
   public install(
-    args: CEP78InstallArgs,
+    args: InstallArgs,
     paymentAmount: string,
     deploySender: CLPublicKey,
     keys?: Keys.AsymmetricKey[],
@@ -242,20 +248,18 @@ export class CEP78Client {
   }
 
   public async mint(
-    owner: CLKeyParameters,
-    meta: Record<string, string>,
+    args: MintArgs,
     paymentAmount: string,
     deploySender: CLPublicKey,
     keys?: Keys.AsymmetricKey[],
     wasm?: Uint8Array
   ) {
-    // TODO: Add metadata validation
-    const wasmToCall = wasm || getBinary(`${__dirname}/../wasm/contract.wasm`);
+    const wasmToCall = wasm || getBinary(`${__dirname}/../wasm/mint_call.wasm`);
 
     const runtimeArgs = RuntimeArgs.fromMap({
-      token_owner: CLValueBuilder.key(owner),
-      token_meta_data: CLValueBuilder.string(JSON.stringify(meta)),
-      nft_contracy_hash: this.contractHashKey,
+      nft_contract_hash: this.contractHashKey,
+      token_owner: CLValueBuilder.key(args.owner),
+      token_meta_data: CLValueBuilder.string(JSON.stringify(args.meta)),
     });
 
     const preparedDeploy = this.contractClient.install(
@@ -271,14 +275,21 @@ export class CEP78Client {
   }
 
   public async burn(
-    tokenId: string,
+    args: BurnArgs,
     paymentAmount: string,
     deploySender: CLPublicKey,
     keys?: Keys.AsymmetricKey[]
   ) {
-    const runtimeArgs = RuntimeArgs.fromMap({
-      token_id: CLValueBuilder.u64(tokenId),
-    });
+
+    const runtimeArgs = RuntimeArgs.fromMap({});
+
+    if (args.tokenId !== undefined) {
+      runtimeArgs.insert("token_id", CLValueBuilder.u8(args.tokenId));
+    }
+
+    if (args.tokenHash !== undefined) {
+      runtimeArgs.insert("token_hash", CLValueBuilder.string(args.tokenHash));
+    }
 
     const preparedDeploy = this.contractClient.callEntrypoint(
       "burn",
@@ -291,4 +302,45 @@ export class CEP78Client {
 
     return preparedDeploy;
   }
+
+  public async transfer(
+    args: TransferArgs,
+    paymentAmount: string,
+    deploySender: CLPublicKey,
+    keys?: Keys.AsymmetricKey[],
+    wasm?: Uint8Array
+  ) {
+    const wasmToCall = wasm || getBinary(`${__dirname}/../wasm/transfer_call.wasm`);
+
+    const runtimeArgs = RuntimeArgs.fromMap({
+      nft_contract_hash: this.contractHashKey,
+      target_key: CLValueBuilder.key(args.target),
+      source_key: CLValueBuilder.key(args.source),
+      is_hash_identifier_mode: CLValueBuilder.bool(args.isHashIdentifierMode)
+    });
+
+    if (args.tokenId) {
+      runtimeArgs.insert("is_hash_identifier_mode", CLValueBuilder.bool(false));
+      runtimeArgs.insert("token_id", CLValueBuilder.u8(args.tokenId));
+    }
+
+    if (args.tokenHash) {
+      runtimeArgs.insert("is_hash_identifier_mode", CLValueBuilder.bool(true));
+      runtimeArgs.insert("token_id", CLValueBuilder.u8(args.tokenHash));
+    }
+
+    const preparedDeploy = this.contractClient.install(
+      wasmToCall,
+      runtimeArgs,
+      paymentAmount,
+      deploySender,
+      this.networkName,
+      keys
+    );
+
+    return preparedDeploy;
+  }
+
+
+
 }
