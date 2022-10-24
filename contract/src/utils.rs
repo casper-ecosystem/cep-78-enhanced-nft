@@ -27,7 +27,7 @@ use crate::{
     },
     error::NFTCoreError,
     modalities::{
-        NFTHolderMode, NFTIdentifierMode, OwnerReverseLookupMode, OwnershipMode, TokenIdentifier,
+        NFTHolderMode, NFTIdentifierMode, OwnerReverseLookupMode, OwnershipMode, TokenIdentifier, NFTMetadataKind, MetadataRequirement, Requirement,
     },
     utils, BurnMode, BURNT_TOKENS, BURN_MODE, HASH_BY_INDEX, IDENTIFIER_MODE, INDEX_BY_HASH,
     NUMBER_OF_MINTED_TOKENS, OWNED_TOKENS, PAGE_TABLE, TOKEN_OWNERS, UNMATCHED_HASH_COUNT,
@@ -838,4 +838,26 @@ pub fn update_page_entry_and_page_record(
 
     storage::dictionary_put(page_uref, new_item_key, target_page);
     (page_table_entry, page_uref)
+}
+
+pub(crate) fn create_metadata_requirements(
+    base: NFTMetadataKind,
+    req: Vec<u8>,
+    opt: Vec<u8>,
+) -> MetadataRequirement {
+    let mut metadata_requirements = MetadataRequirement::new();
+    for optional in opt {
+        metadata_requirements.insert(
+            optional.try_into().unwrap_or_revert(),
+            Requirement::Optional,
+        );
+    }
+    for required in req {
+        metadata_requirements.insert(
+            required.try_into().unwrap_or_revert(),
+            Requirement::Required,
+        );
+    }
+    metadata_requirements.insert(base, Requirement::Required);
+    metadata_requirements
 }

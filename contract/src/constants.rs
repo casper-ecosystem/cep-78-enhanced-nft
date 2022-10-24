@@ -28,6 +28,8 @@ pub const ARG_NAMED_KEY_CONVENTION: &str = "named_key_convention";
 pub const ARG_ACCESS_KEY_NAME_1_0_0: &str = "access_key_name";
 pub const ARG_HASH_KEY_NAME_1_0_0: &str = "hash_key_name";
 pub const ARG_EVENTS_MODE: &str = "events_mode";
+pub const ARG_ADDITIONAL_REQUIRED_METADATA: &str = "additional_required_metadata";
+pub const ARG_OPTIONAL_METADATA: &str = "optional_metadata";
 
 pub const OPERATOR: &str = "operator";
 pub const NUMBER_OF_MINTED_TOKENS: &str = "number_of_minted_tokens";

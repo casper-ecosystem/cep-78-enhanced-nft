@@ -1,4 +1,12 @@
-use alloc::string::{String, ToString};
+use alloc::{
+    collections::BTreeMap,
+    string::{String, ToString},
+    vec,
+};
+use casper_types::{
+    bytesrepr::{FromBytes, ToBytes, U8_SERIALIZED_LENGTH},
+    CLType, CLTyped,
+};
 
 use core::convert::TryFrom;
 
@@ -91,7 +99,59 @@ impl TryFrom<u8> for NFTKind {
     }
 }
 
+pub type MetadataRequirement = BTreeMap<NFTMetadataKind, Requirement>;
+
 #[repr(u8)]
+#[derive(PartialEq, Eq, PartialOrd, Ord, Clone, Copy)]
+pub enum Requirement {
+    Required = 0,
+    Optional = 1,
+    Unneeded = 2,
+}
+
+impl TryFrom<u8> for Requirement {
+    type Error = NFTCoreError;
+
+    fn try_from(value: u8) -> Result<Self, Self::Error> {
+        match value {
+            0 => Ok(Requirement::Required),
+            1 => Ok(Requirement::Optional),
+            2 => Ok(Requirement::Unneeded),
+            _ => Err(NFTCoreError::InvalidNFTMetadataKind),
+        }
+    }
+}
+
+impl CLTyped for Requirement {
+    fn cl_type() -> casper_types::CLType {
+        CLType::U8
+    }
+}
+
+impl FromBytes for Requirement {
+    fn from_bytes(bytes: &[u8]) -> Result<(Self, &[u8]), casper_types::bytesrepr::Error> {
+        match bytes.split_first() {
+            None => Err(casper_types::bytesrepr::Error::EarlyEndOfStream),
+            Some((byte, rem)) => match Requirement::try_from(*byte) {
+                Ok(kind) => Ok((kind, rem)),
+                Err(_) => Err(casper_types::bytesrepr::Error::EarlyEndOfStream),
+            },
+        }
+    }
+}
+
+impl ToBytes for Requirement {
+    fn to_bytes(&self) -> Result<alloc::vec::Vec<u8>, casper_types::bytesrepr::Error> {
+        Ok(vec![*self as u8])
+    }
+
+    fn serialized_length(&self) -> usize {
+        U8_SERIALIZED_LENGTH
+    }
+}
+
+#[repr(u8)]
+#[derive(PartialEq, Eq, PartialOrd, Ord, Clone, Copy)]
 pub enum NFTMetadataKind {
     CEP78 = 0,
     NFT721 = 1,
@@ -110,6 +170,34 @@ impl TryFrom<u8> for NFTMetadataKind {
             3 => Ok(NFTMetadataKind::CustomValidated),
             _ => Err(NFTCoreError::InvalidNFTMetadataKind),
         }
+    }
+}
+
+impl CLTyped for NFTMetadataKind {
+    fn cl_type() -> casper_types::CLType {
+        CLType::U8
+    }
+}
+
+impl FromBytes for NFTMetadataKind {
+    fn from_bytes(bytes: &[u8]) -> Result<(Self, &[u8]), casper_types::bytesrepr::Error> {
+        match bytes.split_first() {
+            None => Err(casper_types::bytesrepr::Error::EarlyEndOfStream),
+            Some((byte, rem)) => match NFTMetadataKind::try_from(*byte) {
+                Ok(kind) => Ok((kind, rem)),
+                Err(_) => Err(casper_types::bytesrepr::Error::EarlyEndOfStream),
+            },
+        }
+    }
+}
+
+impl ToBytes for NFTMetadataKind {
+    fn to_bytes(&self) -> Result<alloc::vec::Vec<u8>, casper_types::bytesrepr::Error> {
+        Ok(vec![*self as u8])
+    }
+
+    fn serialized_length(&self) -> usize {
+        U8_SERIALIZED_LENGTH
     }
 }
 

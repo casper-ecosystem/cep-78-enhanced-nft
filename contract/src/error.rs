@@ -146,6 +146,8 @@ pub enum NFTCoreError {
     MissingEventsMode = 141,
     InvalidEventsMode = 142,
     OwnerReverseLookupModeNotTransferable = 143,
+    InvalidAdditionalRequiredMetadata = 144,
+    InvalidOptionalMetadata = 145,
 }
 
 impl From<NFTCoreError> for ApiError {
