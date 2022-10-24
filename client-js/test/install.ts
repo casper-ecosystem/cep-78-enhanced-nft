@@ -38,7 +38,7 @@ const install = async () => {
       collectionName: "my-collection",
       collectionSymbol: "AMAG-ASSETS",
       totalTokenSupply: "10000",
-      ownershipMode: NFTOwnershipMode.Minter,
+      ownershipMode: NFTOwnershipMode.Transferable,
       nftKind: NFTKind.Physical,
       jsonSchema: {
         properties: {
