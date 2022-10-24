@@ -23,7 +23,7 @@ const { NODE_URL, NETWORK_NAME, CONTRACT_NAME } = process.env;
 const run = async () => {
   const cc = new CEP78Client(process.env.NODE_URL!, process.env.NETWORK_NAME!);
 
-  const printTokenDetails = (id: string, pk: CLPublicKey) => {
+  const printTokenDetails = async (id: string, pk: CLPublicKey) => {
     const ownerOfToken = await cc.getOwnerOf(id);
     console.log(`> Owner of token ${id} is ${ownerOfToken}`);
 

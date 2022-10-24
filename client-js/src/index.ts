@@ -355,12 +355,12 @@ export class CEP78Client {
 
     if (args.tokenId) {
       runtimeArgs.insert("is_hash_identifier_mode", CLValueBuilder.bool(false));
-      runtimeArgs.insert("token_id", CLValueBuilder.u8(args.tokenId));
+      runtimeArgs.insert("token_id", CLValueBuilder.u64(args.tokenId));
     }
 
     if (args.tokenHash) {
       runtimeArgs.insert("is_hash_identifier_mode", CLValueBuilder.bool(true));
-      runtimeArgs.insert("token_id", CLValueBuilder.u8(args.tokenHash));
+      runtimeArgs.insert("token_id", CLValueBuilder.u64(args.tokenHash));
     }
 
     const preparedDeploy = this.contractClient.install(
