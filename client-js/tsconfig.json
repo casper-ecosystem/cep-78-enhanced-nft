@@ -1,32 +1,24 @@
 {
   "compilerOptions": {
-    "outDir": "./dist/",
-    "alwaysStrict": true,
-    "declaration": false,
-    "emitDecoratorMetadata": true,
-    "experimentalDecorators": true,
-    "sourceMap": true,
-    "noImplicitAny": true,
-    "strictNullChecks": true,
+    "outDir": "./dist",
+    "baseUrl": ".",
+    "allowSyntheticDefaultImports": true,
+    "noImplicitAny": false,
     "noImplicitReturns": true,
     "noImplicitThis": true,
-    "noUnusedParameters": false,
-    "noUnusedLocals": false,
-    "noFallthroughCasesInSwitch": true,
-    "esModuleInterop": true,
-    "resolveJsonModule": true,
-    "module": "commonjs",
+    "noImplicitUseStrict": true,
+    "removeComments": true,
+    "declaration": true,
     "target": "es5",
-    "lib": [ "es2015", "dom" ],
-    "skipLibCheck": true,
-    "typeRoots": [
-      "./src/@types",
-      "./node_modules/@types"
-    ]
+    "lib": ["es2015", "dom"],
+    "module": "commonjs",
+    "sourceMap": true,
+    "resolveJsonModule": true,
+    "typeRoots": ["node_modules/@types"],
+    "esModuleInterop": true,
+    "moduleResolution": "node",
+    "skipLibCheck": true
   },
-  "include": [
-	  "./src/**/*",
-    "./src/wasm/**/*"
-  ],
-  "exclude": ["./test/**/*", "*/*.test.ts"]
+  "exclude": ["node_modules", "**/*.spec..ts"],
+  "include": ["src/**/*"]
 }
