@@ -351,7 +351,6 @@ export class CEP78Client {
       nft_contract_hash: this.contractHashKey,
       target_key: CLValueBuilder.key(args.target),
       source_key: CLValueBuilder.key(args.source),
-      is_hash_identifier_mode: CLValueBuilder.bool(args.isHashIdentifierMode),
     });
 
     if (args.tokenId) {

@@ -96,5 +96,4 @@ export type BurnArgs = TokenArgs;
 export type TransferArgs = {
   target: CLKeyParameters;
   source: CLKeyParameters;
-  isHashIdentifierMode: boolean;
 } & TokenArgs;
