@@ -12,7 +12,6 @@ import {
   CLValueParsers,
   CLTypeTag,
   CLU8,
-  DeployUtil,
 } from "casper-js-sdk";
 import { concat } from "@ethersproject/bytes";
 import { Some } from "ts-results";
@@ -374,6 +373,13 @@ export class CEP78Client {
 
     return preparedDeploy;
   }
+
+  // public async setTokenMetadata(
+  //   args: TokenMetadataArgs,
+  //   paymentAmount: string,
+  //   deploySender: CLPublicKey,
+  //   keys?: Keys.AsymmetricKey[]
+  // ) {}
 
   public async getOwnerOf(tokenId: string) {
     const result = await this.contractClient.queryContractDictionary(

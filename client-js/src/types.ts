@@ -63,7 +63,7 @@ export interface JSONSchemaObject {
 export type ConfigurableVariables = {
   allowMinting?: boolean;
   contractWhitelist?: string[];
-}
+};
 
 export type InstallArgs = {
   collectionName: string;

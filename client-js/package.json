@@ -7,7 +7,9 @@
     "dev": "tsc --watch",
     "build": "tsc",
     "test:install": "ts-node test/install.ts",
-    "test:usage": "ts-node test/usage.ts"
+    "test:usage": "ts-node test/usage.ts",
+    "lint": "eslint src/",
+    "lint:fix": "eslint src/ --fix"
   },
   "keywords": [],
   "author": "Jan Hoffmann <jan@casperlabs.io>",
@@ -16,8 +18,11 @@
     "dotenv": "^16.0.1",
     "prettier": "^2.7.1",
     "ts-node": "^10.9.1",
-    "tslint": "^6.1.3",
-    "tslint-config-prettier": "^1.18.0",
+    "@typescript-eslint/eslint-plugin": "^5.40.0",
+    "@typescript-eslint/parser": "^5.40.0",
+    "eslint": "^8.25.0",
+    "eslint-config-prettier": "^8.5.0",
+    "eslint-plugin-prettier": "^4.2.1",
     "typescript": "^4.7.4"
   },
   "dependencies": {
