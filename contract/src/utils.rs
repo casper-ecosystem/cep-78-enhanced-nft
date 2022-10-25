@@ -1,9 +1,4 @@
-use alloc::{
-    borrow::ToOwned,
-    string::{String, ToString},
-    vec,
-    vec::Vec,
-};
+use alloc::{borrow::ToOwned, format, string::{String, ToString}, vec, vec::Vec};
 use core::{convert::TryInto, mem::MaybeUninit};
 
 use casper_contract::{
@@ -19,12 +14,10 @@ use casper_types::{
     ApiError, CLTyped, ContractHash, Key, URef,
 };
 
-use crate::{
-    constants::{ARG_TOKEN_HASH, ARG_TOKEN_ID, HOLDER_MODE, OWNED_TOKENS, OWNERSHIP_MODE},
-    error::NFTCoreError,
-    modalities::{NFTHolderMode, NFTIdentifierMode, OwnershipMode, TokenIdentifier},
-    BurnMode, BURNT_TOKENS, BURN_MODE,
-};
+use crate::{constants::{ARG_TOKEN_HASH, ARG_TOKEN_ID, HOLDER_MODE, OWNERSHIP_MODE}, error::NFTCoreError, modalities::{NFTHolderMode, NFTIdentifierMode, OwnershipMode, TokenIdentifier}, BurnMode, BURNT_TOKENS, BURN_MODE, FORWARD_TRACKER, REVERSE_TRACKER, IDENTIFIER_MODE};
+use crate::constants::{MAX_PAGE_NUMBER, PAGE_DICTIONARY_PREFIX};
+
+pub const PAGE_SIZE: u64 = 10;
 
 pub(crate) fn upsert_dictionary_value_from_key<T: CLTyped + FromBytes + ToBytes>(
     dictionary_name: &str,
@@ -314,66 +307,66 @@ pub(crate) fn get_token_identifier_from_runtime_args(
     }
 }
 
-pub(crate) fn get_token_identifiers_from_dictionary(
-    identifier_mode: &NFTIdentifierMode,
-    owners_item_key: &str,
-) -> Option<Vec<TokenIdentifier>> {
-    match identifier_mode {
-        NFTIdentifierMode::Ordinal => {
-            get_dictionary_value_from_key::<Vec<u64>>(OWNED_TOKENS, owners_item_key).map(
-                |token_indices| {
-                    token_indices
-                        .into_iter()
-                        .map(TokenIdentifier::new_index)
-                        .collect()
-                },
-            )
-        }
-        NFTIdentifierMode::Hash => {
-            get_dictionary_value_from_key::<Vec<String>>(OWNED_TOKENS, owners_item_key).map(
-                |token_hashes| {
-                    token_hashes
-                        .into_iter()
-                        .map(TokenIdentifier::new_hash)
-                        .collect()
-                },
-            )
-        }
-    }
-}
-
-pub(crate) fn upsert_token_identifiers(
-    identifier_mode: &NFTIdentifierMode,
-    owners_item_key: &str,
-    token_identifiers: Vec<TokenIdentifier>,
-) -> Result<(), NFTCoreError> {
-    match identifier_mode {
-        NFTIdentifierMode::Ordinal => {
-            let token_indices: Vec<u64> = token_identifiers
-                .into_iter()
-                .map(|token_identifier| {
-                    token_identifier
-                        .get_index()
-                        .unwrap_or_revert_with(NFTCoreError::InvalidIdentifierMode)
-                })
-                .collect();
-            upsert_dictionary_value_from_key(OWNED_TOKENS, owners_item_key, token_indices);
-            Ok(())
-        }
-        NFTIdentifierMode::Hash => {
-            let token_hashes: Vec<String> = token_identifiers
-                .into_iter()
-                .map(|token_identifier| {
-                    token_identifier
-                        .get_hash()
-                        .unwrap_or_revert_with(NFTCoreError::InvalidIdentifierMode)
-                })
-                .collect();
-            upsert_dictionary_value_from_key(OWNED_TOKENS, owners_item_key, token_hashes);
-            Ok(())
-        }
-    }
-}
+// pub(crate) fn get_token_identifiers_from_dictionary(
+//     identifier_mode: &NFTIdentifierMode,
+//     owners_item_key: &str,
+// ) -> Option<Vec<TokenIdentifier>> {
+//     match identifier_mode {
+//         NFTIdentifierMode::Ordinal => {
+//             get_dictionary_value_from_key::<Vec<u64>>(OWNED_TOKENS, owners_item_key).map(
+//                 |token_indices| {
+//                     token_indices
+//                         .into_iter()
+//                         .map(TokenIdentifier::new_index)
+//                         .collect()
+//                 },
+//             )
+//         }
+//         NFTIdentifierMode::Hash => {
+//             get_dictionary_value_from_key::<Vec<String>>(OWNED_TOKENS, owners_item_key).map(
+//                 |token_hashes| {
+//                     token_hashes
+//                         .into_iter()
+//                         .map(TokenIdentifier::new_hash)
+//                         .collect()
+//                 },
+//             )
+//         }
+//     }
+// }
+//
+// pub(crate) fn upsert_token_identifiers(
+//     identifier_mode: &NFTIdentifierMode,
+//     owners_item_key: &str,
+//     token_identifiers: Vec<TokenIdentifier>,
+// ) -> Result<(), NFTCoreError> {
+//     match identifier_mode {
+//         NFTIdentifierMode::Ordinal => {
+//             let token_indices: Vec<u64> = token_identifiers
+//                 .into_iter()
+//                 .map(|token_identifier| {
+//                     token_identifier
+//                         .get_index()
+//                         .unwrap_or_revert_with(NFTCoreError::InvalidIdentifierMode)
+//                 })
+//                 .collect();
+//             upsert_dictionary_value_from_key(OWNED_TOKENS, owners_item_key, token_indices);
+//             Ok(())
+//         }
+//         NFTIdentifierMode::Hash => {
+//             let token_hashes: Vec<String> = token_identifiers
+//                 .into_iter()
+//                 .map(|token_identifier| {
+//                     token_identifier
+//                         .get_hash()
+//                         .unwrap_or_revert_with(NFTCoreError::InvalidIdentifierMode)
+//                 })
+//                 .collect();
+//             upsert_dictionary_value_from_key(OWNED_TOKENS, owners_item_key, token_hashes);
+//             Ok(())
+//         }
+//     }
+// }
 
 pub(crate) fn get_burn_mode() -> BurnMode {
     let burn_mode: BurnMode = get_stored_value_with_user_errors::<u8>(
@@ -389,4 +382,76 @@ pub(crate) fn get_burn_mode() -> BurnMode {
 pub(crate) fn is_token_burned(token_identifier: &TokenIdentifier) -> bool {
     get_dictionary_value_from_key::<()>(BURNT_TOKENS, &token_identifier.get_dictionary_item_key())
         .is_some()
+}
+
+pub(crate) fn setup_page_dictionaries(total_token_supply: u64) {
+    let max_number_of_pages = total_token_supply / PAGE_SIZE;
+    for page_number in 0..max_number_of_pages {
+        let dictionary_name = format!("{}-{}", PAGE_DICTIONARY_PREFIX , page_number);
+        storage::new_dictionary(&dictionary_name).unwrap_or_revert_with(NFTCoreError::FailedToCreateDictionary);
+    }
+    runtime::put_key(MAX_PAGE_NUMBER, storage::new_uref(max_number_of_pages + 1).into());
+}
+
+pub(crate) fn update_forward_and_reverse_token_trackers(current_number_of_minted_tokens: u64, token_identifier: TokenIdentifier) {
+    let identifier_mode: NFTIdentifierMode = get_stored_value_with_user_errors::<u8>(
+        IDENTIFIER_MODE,
+        NFTCoreError::MissingIdentifierMode,
+        NFTCoreError::InvalidIdentifierMode
+    ).try_into()
+        .unwrap_or_revert();
+    let forward_uref = get_uref(
+        FORWARD_TRACKER,
+        NFTCoreError::MissingForwardTracker,
+        NFTCoreError::InvalidForwardTracker,
+    );
+    let reverse_uref = get_uref(
+        REVERSE_TRACKER,
+        NFTCoreError::MissingReverseTracker,
+        NFTCoreError::InvalidReverseTracker,
+    );
+    if storage::dictionary_get::<u64>(reverse_uref, &token_identifier.get_dictionary_item_key())
+        .unwrap_or_revert().is_some() {
+        runtime::revert(NFTCoreError::InvalidTokenIdentifier)
+    }
+    match identifier_mode {
+        NFTIdentifierMode::Ordinal => {
+            if storage::dictionary_get::<u64>(forward_uref, &current_number_of_minted_tokens.to_string())
+                .unwrap_or_revert().is_some() {
+                runtime::revert(NFTCoreError::InvalidTokenIdentifier)
+            }
+
+            storage::dictionary_put(forward_uref, &current_number_of_minted_tokens.to_string(), token_identifier.get_index().unwrap_or_revert())
+        }
+        NFTIdentifierMode::Hash => {
+            if storage::dictionary_get::<String>(forward_uref, &current_number_of_minted_tokens.to_string())
+                .unwrap_or_revert().is_some() {
+                runtime::revert(NFTCoreError::InvalidTokenIdentifier)
+            }
+            storage::dictionary_put(forward_uref, &current_number_of_minted_tokens.to_string(), token_identifier.clone().get_hash().unwrap_or_revert())
+        }
+    }
+    storage::dictionary_put(reverse_uref, &token_identifier.get_dictionary_item_key(), current_number_of_minted_tokens);
+}
+
+pub(crate) fn make_page_dictionary_item_key(token_owner_key: &Key, current_page_number: u64) -> String {
+    let mut preimage = Vec::new();
+    preimage.append(&mut token_owner_key.clone().to_bytes().unwrap_or_revert());
+    preimage.append(&mut current_page_number.to_bytes().unwrap_or_revert());
+
+    let key_bytes = runtime::blake2b(&preimage);
+    base16::encode_lower(&key_bytes)
+}
+
+pub(crate) fn get_token_number(token_identifier: &TokenIdentifier) -> u64 {
+    let reverse_tracker = get_uref(
+        REVERSE_TRACKER,
+        NFTCoreError::MissingReverseTracker,
+        NFTCoreError::InvalidReverseTracker
+    );
+    storage::dictionary_get::<u64>(
+        reverse_tracker,
+        &token_identifier.get_dictionary_item_key(),
+    ).unwrap_or_revert()
+        .unwrap_or_revert_with(NFTCoreError::InvalidTokenIdentifier)
 }

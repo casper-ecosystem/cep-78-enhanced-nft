@@ -86,7 +86,7 @@ impl TryFrom<u8> for NFTKind {
             0 => Ok(NFTKind::Physical),
             1 => Ok(NFTKind::Digital),
             2 => Ok(NFTKind::Virtual),
-            _ => Err(NFTCoreError::InvalidOwnershipMode),
+            _ => Err(NFTCoreError::InvalidNftKind),
         }
     }
 }

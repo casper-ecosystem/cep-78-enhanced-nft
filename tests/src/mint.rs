@@ -1390,3 +1390,22 @@ fn should_approve_in_hash_identifier_mode() {
 
     assert_eq!(maybe_approved_operator, Some(operator))
 }
+
+fn get_owned_tokens_dictionary_item_key(token_owner_key: Key) -> String {
+    match token_owner_key {
+        Key::Account(token_owner_account_hash) => token_owner_account_hash.to_string(),
+        Key::Hash(token_owner_hash_addr) => ContractHash::new(token_owner_hash_addr).to_string(),
+        _ => panic!("unintended usage"),
+    }
+}
+
+#[test]
+fn test_dictionary_item_length_limits() {
+    let default_account_key = Key::Account(*DEFAULT_ACCOUNT_ADDR);
+    let item_key = get_owned_tokens_dictionary_item_key(default_account_key);
+    let potential_item_key = format!("{}_{}", item_key, 0);
+    println!("{}", item_key.len());
+    if potential_item_key.len() > 64 {
+        panic!("test failed")
+    }
+}
