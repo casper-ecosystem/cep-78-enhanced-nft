@@ -22,7 +22,7 @@ pub const ARG_NFT_METADATA_KIND: &str = "nft_metadata_kind";
 pub const ARG_IDENTIFIER_MODE: &str = "identifier_mode";
 pub const ARG_METADATA_MUTABILITY: &str = "metadata_mutability";
 pub const ARG_BURN_MODE: &str = "burn_mode";
-
+pub const ARG_NFT_PACKAGE_HASH: &str = "nft_package_hash";
 pub const OPERATOR: &str = "operator";
 pub const NUMBER_OF_MINTED_TOKENS: &str = "number_of_minted_tokens";
 pub const INSTALLER: &str = "installer";
@@ -60,6 +60,8 @@ pub const FORWARD_TRACKER: &str = "forward_tracker";
 pub const REVERSE_TRACKER: &str = "reverse_tracker";
 pub const PAGE_DICTIONARY_PREFIX: &str = "page";
 pub const MAX_PAGE_NUMBER: &str = "max_page_number";
+pub const TOKEN_COUNT_AT_UPGRADE: &str = "token_count_at_upgrade";
+pub const BACKFILLED_TOKEN_TRACKER: &str = "backfilled_token_tracker";
 pub const ENTRY_POINT_INIT: &str = "init";
 pub const ENTRY_POINT_SET_VARIABLES: &str = "set_variables";
 pub const ENTRY_POINT_MINT: &str = "mint";

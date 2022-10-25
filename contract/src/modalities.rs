@@ -137,6 +137,7 @@ impl TryFrom<u8> for OwnershipMode {
 }
 
 #[repr(u8)]
+#[derive(PartialEq)]
 pub enum NFTIdentifierMode {
     Ordinal = 0,
     Hash = 1,

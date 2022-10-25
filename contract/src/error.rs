@@ -118,6 +118,11 @@ pub enum NFTCoreError {
     MissingMaximumNumberOfPages = 113,
     InvalidMaximumNumberOfPages = 114,
     InvalidPageNumber = 115,
+    InvalidPageIndex = 116,
+    MissingBackFillTracker = 117,
+    InvalidBackFillTracker = 118,
+    MissingUpgradeCount = 119,
+    InvalidUpgradeCount = 120,
 }
 
 impl From<NFTCoreError> for ApiError {

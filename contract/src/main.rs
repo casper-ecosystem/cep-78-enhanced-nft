@@ -51,7 +51,7 @@ use crate::{
         METADATA_CEP78, METADATA_CUSTOM_VALIDATED, METADATA_MUTABILITY, METADATA_NFT721,
         METADATA_RAW, MINTING_MODE, NFT_KIND, NFT_METADATA_KIND, NUMBER_OF_MINTED_TOKENS, OPERATOR,
         OWNED_TOKENS, OWNERSHIP_MODE, RECEIPT_NAME, TOKEN_COUNTS, TOKEN_ISSUERS, TOKEN_OWNERS,
-        TOTAL_TOKEN_SUPPLY, WHITELIST_MODE,
+        TOTAL_TOKEN_SUPPLY, WHITELIST_MODE, BACKFILLED_TOKEN_TRACKER
     },
     error::NFTCoreError,
     metadata::CustomMetadataSchema,
@@ -60,8 +60,8 @@ use crate::{
         NFTMetadataKind, OwnershipMode, TokenIdentifier, WhitelistMode,
     },
 };
-use crate::constants::{ALL_TOKEN_OWNERS, FORWARD_TRACKER, MAX_PAGE_NUMBER, PAGE_DICTIONARY_PREFIX, REVERSE_TRACKER};
-use crate::utils::PAGE_SIZE;
+use crate::constants::{ALL_TOKEN_OWNERS, ARG_NFT_PACKAGE_HASH, FORWARD_TRACKER, MAX_PAGE_NUMBER, PAGE_DICTIONARY_PREFIX, REVERSE_TRACKER, TOKEN_COUNT_AT_UPGRADE};
+use crate::utils::{get_uref, PAGE_SIZE};
 
 #[no_mangle]
 pub extern "C" fn init() {
@@ -482,6 +482,12 @@ pub extern "C" fn mint() {
     .try_into()
     .unwrap_or_revert();
 
+    if (NFTIdentifierMode::Hash == identifier_mode) && utils::should_break_up_owned_token_hashes(token_owner_key) {
+
+            utils::break_up_owned_token_hashes(token_owner_key)
+
+    }
+
     // This is the token ID.
     let token_identifier: TokenIdentifier = match identifier_mode {
         NFTIdentifierMode::Ordinal => TokenIdentifier::Index(current_number_of_minted_tokens),
@@ -505,6 +511,8 @@ pub extern "C" fn mint() {
         &token_identifier.get_dictionary_item_key(),
         metadata,
     );
+
+
 
     let owned_tokens_item_key = utils::get_owned_tokens_dictionary_item_key(token_owner_key);
 
@@ -788,7 +796,6 @@ pub extern "C" fn set_approval_for_all() {
 
     let caller: Key = utils::get_verified_caller().unwrap_or_revert();
 
-    let caller_dictionary_item_key = utils::get_owned_tokens_dictionary_item_key(caller);
 
     let approved_uref = utils::get_uref(
         OPERATOR,
@@ -796,59 +803,29 @@ pub extern "C" fn set_approval_for_all() {
         NFTCoreError::InvalidStorageUref,
     );
 
-    let identifier_mode: NFTIdentifierMode = utils::get_stored_value_with_user_errors::<u8>(
-        IDENTIFIER_MODE,
-        NFTCoreError::MissingIdentifierMode,
-        NFTCoreError::InvalidIdentifierMode,
-    )
-    .try_into()
-    .unwrap_or_revert();
 
-    let maybe_owned_tokens: Option<Vec<TokenIdentifier>> = match identifier_mode {
-        NFTIdentifierMode::Ordinal => utils::get_dictionary_value_from_key::<Vec<u64>>(
-            OWNED_TOKENS,
-            &caller_dictionary_item_key,
-        )
-        .map(|token_hashes| {
-            token_hashes
-                .into_iter()
-                .map(TokenIdentifier::new_index)
-                .collect()
-        }),
-        NFTIdentifierMode::Hash => utils::get_dictionary_value_from_key::<Vec<String>>(
-            OWNED_TOKENS,
-            &caller_dictionary_item_key,
-        )
-        .map(|token_hashes| {
-            token_hashes
-                .into_iter()
-                .map(TokenIdentifier::new_hash)
-                .collect()
-        }),
-    };
+    let owned_tokens = utils::get_all_owned_token_identifiers(caller);
 
-    if let Some(owned_tokens) = maybe_owned_tokens {
-        // Depending on approve_all we either approve all or disapprove all.
-        for token_id in owned_tokens {
-            // We assume a burnt token cannot be approved
-            if utils::is_token_burned(&token_id) {
-                runtime::revert(NFTCoreError::PreviouslyBurntToken)
-            }
-            if approve_all {
-                storage::dictionary_put(
-                    approved_uref,
-                    &token_id.get_dictionary_item_key(),
-                    Some(operator),
-                );
-            } else {
-                storage::dictionary_put(
-                    approved_uref,
-                    &token_id.get_dictionary_item_key(),
-                    Option::<Key>::None,
-                );
-            }
+    // Depending on approve_all we either approve all or disapprove all.
+    for token_id in owned_tokens {
+        // We assume a burnt token cannot be approved
+        if utils::is_token_burned(&token_id) {
+            runtime::revert(NFTCoreError::PreviouslyBurntToken)
         }
-    };
+        if approve_all {
+            storage::dictionary_put(
+                approved_uref,
+                &token_id.get_dictionary_item_key(),
+                Some(operator),
+            );
+        } else {
+            storage::dictionary_put(
+                approved_uref,
+                &token_id.get_dictionary_item_key(),
+                Option::<Key>::None,
+            );
+        }
+    }
 }
 
 // Transfers token from token_owner to specified account. Transfer will go through if caller is
@@ -897,6 +874,12 @@ pub extern "C" fn transfer() {
     //     runtime::revert(NFTCoreError::InvalidAccount);
     // }
 
+    if NFTIdentifierMode::Hash == identifier_mode && utils::should_break_up_owned_token_hashes(source_key) {
+        utils::break_up_owned_token_hashes(source_key)
+    }
+
+
+
     let caller = utils::get_verified_caller().unwrap_or_revert();
 
     // Check if caller is approved to execute transfer
@@ -919,6 +902,10 @@ pub extern "C" fn transfer() {
         NFTCoreError::InvalidAccountHash,
     )
     .unwrap_or_revert();
+
+    if NFTIdentifierMode::Hash == identifier_mode && utils::should_break_up_owned_token_hashes(target_owner_key) {
+        utils::break_up_owned_token_hashes(target_owner_key)
+    }
 
     let target_owner_item_key = utils::get_owned_tokens_dictionary_item_key(target_owner_key);
     let source_owner_item_key = utils::get_owned_tokens_dictionary_item_key(source_key);
@@ -1057,12 +1044,8 @@ pub extern "C" fn transfer() {
     );
 
     let owned_tokens_actual_key = Key::dictionary(
-        utils::get_uref(
-            OWNED_TOKENS,
-            NFTCoreError::MissingOwnedTokens,
-            NFTCoreError::InvalidOwnedTokens,
-        ),
-        source_owner_item_key.as_bytes(),
+        single_page_uref,
+        utils::make_page_dictionary_item_key(&source_key, page_number).as_bytes(),
     );
 
     let receipt_name = utils::get_stored_value_with_user_errors::<String>(
@@ -1071,7 +1054,9 @@ pub extern "C" fn transfer() {
         NFTCoreError::InvalidReceiptName,
     );
 
-    let receipt = CLValue::from_t((receipt_name, owned_tokens_actual_key))
+    let receipt_string = format!("{}-m-{}-p-{}", receipt_name, PAGE_SIZE, page_number);
+
+    let receipt = CLValue::from_t((receipt_string, owned_tokens_actual_key))
         .unwrap_or_revert_with(NFTCoreError::FailedToConvertToCLValue);
     runtime::ret(receipt)
 }
@@ -1293,6 +1278,66 @@ pub extern "C" fn set_token_metadata() {
         updated_metadata,
     );
 }
+
+#[no_mangle]
+pub extern "C" fn upgrade() {
+    let total_token_supply = utils::get_stored_value_with_user_errors::<u64>(
+        TOTAL_TOKEN_SUPPLY,
+        NFTCoreError::MissingTotalTokenSupply,
+        NFTCoreError::InvalidTotalTokenSupply
+    );
+
+    storage::new_dictionary(FORWARD_TRACKER)
+        .unwrap_or_revert_with(NFTCoreError::FailedToCreateDictionary);
+    storage::new_dictionary(REVERSE_TRACKER)
+        .unwrap_or_revert_with(NFTCoreError::FailedToCreateDictionary);
+    storage::new_dictionary(ALL_TOKEN_OWNERS)
+        .unwrap_or_revert_with(NFTCoreError::FailedToCreateDictionary);
+    utils::setup_page_dictionaries(total_token_supply);
+
+    let identifier: NFTIdentifierMode = utils::get_stored_value_with_user_errors::<u8>(
+        IDENTIFIER_MODE,
+        NFTCoreError::MissingIdentifierMode,
+        NFTCoreError::InvalidIdentifierMode
+    ).try_into()
+        .unwrap_or_revert();
+
+    let collection_name = utils::get_stored_value_with_user_errors::<String>(
+        COLLECTION_NAME,
+        NFTCoreError::MissingCollectionName,
+        NFTCoreError::InvalidCollectionName
+    );
+
+    let new_contract_package_hash_representation = runtime::get_named_arg::<ContractPackageHash>(
+        ARG_NFT_PACKAGE_HASH
+    );
+
+    let receipt_uref = get_uref(
+        RECEIPT_NAME,
+        NFTCoreError::MissingReceiptName,
+        NFTCoreError::InvalidReceiptName,
+    );
+
+    let new_receipt_string_representation = format!("nft-{}-{}", collection_name, new_contract_package_hash_representation.to_formatted_string());
+    storage::write(receipt_uref, new_receipt_string_representation);
+
+    match identifier {
+        NFTIdentifierMode::Ordinal => {
+            utils::break_up_owned_tokens_in_ordinal_mode()
+        }
+        NFTIdentifierMode::Hash => {
+            let current_number_of_minted_tokens = utils::get_stored_value_with_user_errors::<u64>(
+                NUMBER_OF_MINTED_TOKENS,
+                NFTCoreError::MissingNumberOfMintedTokens,
+                NFTCoreError::InvalidNumberOfMintedTokens
+            );
+            runtime::put_key(TOKEN_COUNT_AT_UPGRADE, storage::new_uref(current_number_of_minted_tokens).into());
+            runtime::put_key(BACKFILLED_TOKEN_TRACKER, storage::new_uref(0u64).into())
+        }
+    }
+}
+
+
 
 fn install_nft_contract() -> (ContractHash, ContractVersion) {
     let entry_points = {
