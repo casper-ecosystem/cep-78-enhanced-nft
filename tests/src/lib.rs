@@ -22,7 +22,12 @@ mod transfer;
 // around updating metadata.
 #[cfg(test)]
 mod metadata;
+#[cfg(test)]
+mod upgrade;
+#[cfg(test)]
+mod costs;
 
 // A collection of helper methods and constants.
 #[cfg(test)]
 mod utility;
+

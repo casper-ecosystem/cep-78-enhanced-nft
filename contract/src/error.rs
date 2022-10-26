@@ -123,6 +123,9 @@ pub enum NFTCoreError {
     InvalidBackFillTracker = 118,
     MissingUpgradeCount = 119,
     InvalidUpgradeCount = 120,
+    MissingPackageHashForUpgrade = 121,
+    MissingPageUref = 122,
+    InvalidPageUref = 123,
 }
 
 impl From<NFTCoreError> for ApiError {

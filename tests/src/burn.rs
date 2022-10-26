@@ -11,7 +11,7 @@ use crate::utility::{
         ACCOUNT_USER_1, ARG_APPROVE_ALL, ARG_NFT_CONTRACT_HASH, ARG_OPERATOR, ARG_TOKEN_HASH,
         ARG_TOKEN_ID, ARG_TOKEN_META_DATA, ARG_TOKEN_OWNER, BALANCES, BURNT_TOKENS, CONTRACT_NAME,
         ENTRY_POINT_BURN, ENTRY_POINT_MINT, ENTRY_POINT_SET_APPROVE_FOR_ALL, MINTING_CONTRACT_WASM,
-        MINT_SESSION_WASM, NFT_CONTRACT_WASM, OWNED_TOKENS, TEST_PRETTY_721_META_DATA,
+        MINT_SESSION_WASM, NFT_CONTRACT_WASM, TEST_PRETTY_721_META_DATA,
         TOKEN_COUNTS,
     },
     installer_request_builder::{
@@ -61,15 +61,15 @@ fn should_burn_minted_token() {
 
     builder.exec(mint_session_call).expect_success().commit();
 
-    let actual_owned_tokens = support::get_dictionary_value_from_key::<Vec<u64>>(
-        &builder,
-        nft_contract_key,
-        OWNED_TOKENS,
-        &DEFAULT_ACCOUNT_ADDR.clone().to_string(),
+
+    let token_page = support::get_token_page_by_id(
+        &builder, nft_contract_key,
+        &Key::Account(*DEFAULT_ACCOUNT_ADDR),
+    token_id,
     );
 
-    let expected_owned_tokens = vec![token_id];
-    assert_eq!(expected_owned_tokens, actual_owned_tokens);
+    assert!(token_page[0]);
+
     let actual_balance_before_burn = support::get_dictionary_value_from_key::<u64>(
         &builder,
         nft_contract_key,
@@ -148,15 +148,12 @@ fn should_not_burn_previously_burnt_token() {
 
     builder.exec(mint_session_call).expect_success().commit();
 
-    let actual_owned_tokens = support::get_dictionary_value_from_key::<Vec<u64>>(
-        &builder,
-        nft_contract_key,
-        OWNED_TOKENS,
-        &DEFAULT_ACCOUNT_ADDR.clone().to_string(),
-    );
+    let token_page = support::get_token_page_by_id(&builder, nft_contract_key,
+        &Key::Account(*DEFAULT_ACCOUNT_ADDR),
+        0u64,
+        );
 
-    let expected_owned_tokens = vec![0u64];
-    assert_eq!(expected_owned_tokens, actual_owned_tokens);
+    assert!(token_page[0]);
 
     let burn_request = ExecuteRequestBuilder::contract_call_by_name(
         *DEFAULT_ACCOUNT_ADDR,
@@ -282,14 +279,13 @@ fn should_return_expected_error_burning_of_others_users_token() {
 
     builder.exec(mint_session_call).expect_success().commit();
 
-    let actual_owned_tokens = support::get_dictionary_value_from_key::<Vec<u64>>(
-        &builder,
-        nft_contract_key,
-        OWNED_TOKENS,
-        &DEFAULT_ACCOUNT_ADDR.clone().to_string(),
-    );
+    let token_page = support::get_token_page_by_id(&builder, nft_contract_key,
+        &Key::Account(*DEFAULT_ACCOUNT_ADDR),
+        0u64,
+        );
 
-    assert_eq!(vec![0u64], actual_owned_tokens);
+    assert!(token_page[0]);
+
 
     let incorrect_burn_request = ExecuteRequestBuilder::contract_call_by_hash(
         account_user_1.to_account_hash(),
@@ -365,14 +361,14 @@ fn should_return_expected_error_when_burning_not_owned_token() {
 
     builder.exec(mint_session_call).expect_success().commit();
 
-    let actual_owned_tokens = support::get_dictionary_value_from_key::<Vec<u64>>(
-        &builder,
-        nft_contract_key,
-        OWNED_TOKENS,
-        &DEFAULT_ACCOUNT_ADDR.clone().to_string(),
-    );
+    let token_page = support::get_token_page_by_id(
+        &builder, nft_contract_key,
+        &Key::Account(*DEFAULT_ACCOUNT_ADDR),
+        0u64,
+        );
 
-    assert_eq!(vec![0u64], actual_owned_tokens);
+    assert!(token_page[0]);
+
 
     let incorrect_burn_request = ExecuteRequestBuilder::contract_call_by_hash(
         account_user_1.to_account_hash(),
