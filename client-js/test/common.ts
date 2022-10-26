@@ -2,7 +2,6 @@ import { config } from "dotenv";
 import {
   Keys,
   CLPublicKey,
-  decodeBase64,
   CasperClient,
   CasperServiceByJsonRPC
 } from "casper-js-sdk";
@@ -11,11 +10,16 @@ import * as fs from "fs";
 
 config();
 
-const { MASTER_KEY_PAIR_PATH } = process.env;
+const { MASTER_KEY_PAIR_PATH, USER1_KEY_PAIR_PATH } = process.env;
 
-export const KEYS = Keys.Ed25519.parseKeyFiles(
+export const FAUCET_KEYS = Keys.Ed25519.parseKeyFiles(
   `${MASTER_KEY_PAIR_PATH}/public_key.pem`,
   `${MASTER_KEY_PAIR_PATH}/secret_key.pem`
+);
+
+export const USER1_KEYS = Keys.Ed25519.parseKeyFiles(
+  `${USER1_KEY_PAIR_PATH}/public_key.pem`,
+  `${USER1_KEY_PAIR_PATH}/secret_key.pem`
 );
 
 export const getBinary = (pathToBinary: string) => {

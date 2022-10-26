@@ -1,15 +1,10 @@
 import {
   CEP78Client,
-  NFTOwnershipMode,
-  NFTKind,
-  NFTMetadataKind,
-  NFTIdentifierMode,
-  MetadataMutability,
 } from "../src/index";
 
 import {
-  KEYS,
-  getBinary,
+  FAUCET_KEYS,
+  USER1_KEYS,
   getDeploy,
   getAccountInfo,
   getAccountNamedKeyValue,
@@ -18,7 +13,7 @@ import {
 
 import { DeployUtil, CLPublicKey } from "casper-js-sdk";
 
-const { NODE_URL, NETWORK_NAME, CONTRACT_NAME } = process.env;
+const { NODE_URL } = process.env;
 
 const run = async () => {
   const cc = new CEP78Client(process.env.NODE_URL!, process.env.NETWORK_NAME!);
@@ -34,7 +29,7 @@ const run = async () => {
     console.log(`> Token ${id} metadata`, metadataOfZero);
   };
 
-  let accountInfo = await getAccountInfo(NODE_URL!, KEYS.publicKey);
+  const accountInfo = await getAccountInfo(NODE_URL!, FAUCET_KEYS.publicKey);
 
   console.log(`\n=====================================\n`);
 
@@ -80,7 +75,7 @@ const run = async () => {
 
   const mintDeploy = await cc.mint(
     {
-      owner: KEYS.publicKey,
+      owner: FAUCET_KEYS.publicKey,
       meta: {
         type: "vehicle",
         make: "Audi",
@@ -92,8 +87,8 @@ const run = async () => {
       },
     },
     "1000000000",
-    KEYS.publicKey,
-    [KEYS]
+    FAUCET_KEYS.publicKey,
+    [FAUCET_KEYS]
   );
 
   const mintDeployHash = await mintDeploy.send(NODE_URL!);
@@ -107,57 +102,53 @@ const run = async () => {
 
   /* Token details */
 
-  printTokenDetails("0", KEYS.publicKey);
+  printTokenDetails("0", FAUCET_KEYS.publicKey);
 
-  // /* Transfer */
-  // printHeader("Transfer");
+  /* Transfer */
+  printHeader("Transfer");
 
-  // const targetPK = CLPublicKey.fromHex(
-  //   "011ee777efd4d3aaccef971393809c3d8e6facb9af4fd89daa707dad6c79b8477d"
-  // );
+  const transferDeploy = await cc.transfer(
+    {
+      tokenId: "0",
+      source: FAUCET_KEYS.publicKey,
+      target: USER1_KEYS.publicKey
+    },
+    "13000000000",
+    FAUCET_KEYS.publicKey,
+    [FAUCET_KEYS]
+  );
 
-  // const transferDeploy = await cc.transfer(
-  //   {
-  //     tokenId: "0",
-  //     source: KEYS.publicKey,
-  //     target: targetPK
-  //   },
-  //   "13000000000",
-  //   KEYS.publicKey,
-  //   [KEYS]
-  // );
+  const transferDeployHash = await transferDeploy.send(NODE_URL!);
 
-  // const transferDeployHash = await transferDeploy.send(NODE_URL!);
+  console.log("...... Deploy hash: ", transferDeployHash);
+  console.log("...... Waiting for the deploy...");
 
-  // console.log("...... Deploy hash: ", transferDeployHash);
-  // console.log("...... Waiting for the deploy...");
+  await getDeploy(NODE_URL!, transferDeployHash);
 
-  // await getDeploy(NODE_URL!, transferDeployHash);
+  console.log("Deploy Succedeed");
 
-  // console.log("Deploy Succedeed");
+  /* Token details */
 
-  // /* Token details */
+  printTokenDetails("0", USER1_KEYS.publicKey);
 
-  // printTokenDetails("0", targetPK);
+  /* Burn */
+  printHeader("Burn");
 
-  // /* Burn */
-  // printHeader("Burn");
+  const burnDeploy = await cc.burn(
+    { tokenId: "0" },
+    "13000000000",
+    USER1_KEYS.publicKey,
+    [USER1_KEYS]
+  );
 
-  // const burnDeploy = await cc.burn(
-  //   { tokenId: "0" },
-  //   "13000000000",
-  //   KEYS.publicKey,
-  //   [KEYS]
-  // );
+  const burnDeployHash = await burnDeploy.send(NODE_URL!);
 
-  // const burnDeployHash = await burnDeploy.send(NODE_URL!);
+  console.log("...... Deploy hash: ", burnDeployHash);
+  console.log("...... Waiting for the deploy...");
 
-  // console.log("...... Deploy hash: ", burnDeployHash);
-  // console.log("...... Waiting for the deploy...");
+  await getDeploy(NODE_URL!, burnDeployHash);
 
-  // await getDeploy(NODE_URL!, burnDeployHash);
-
-  // console.log("Deploy Succedeed");
+  console.log("Deploy Succedeed");
 };
 
 run();

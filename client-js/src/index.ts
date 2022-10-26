@@ -264,7 +264,6 @@ export class CEP78Client {
     paymentAmount: string,
     deploySender: CLPublicKey,
     keys?: Keys.AsymmetricKey[],
-    wasm?: Uint8Array
   ) {
     const runtimeArgs = RuntimeArgs.fromMap({});
 
@@ -279,6 +278,7 @@ export class CEP78Client {
       const list = buildKeyHashList(args.contractWhitelist);
       runtimeArgs.insert("contract_whitelist", CLValueBuilder.list(list));
     }
+
   }
 
   public async mint(

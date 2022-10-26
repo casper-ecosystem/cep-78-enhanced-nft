@@ -9,7 +9,7 @@ import {
   RuntimeArgs,
   Keys,
   decodeBase64,
-  DeployUtil
+  DeployUtil,
 } from "casper-js-sdk";
 
 import {
@@ -19,12 +19,11 @@ import {
   NFTMetadataKind,
   NFTIdentifierMode,
   MetadataMutability,
-  MintingMode
+  MintingMode,
 } from "../src/index";
 
 import {
-  KEYS,
-  getBinary,
+  FAUCET_KEYS,
   getDeploy,
   getAccountInfo,
   getAccountNamedKeyValue,
@@ -67,14 +66,12 @@ const install = async () => {
       nftMetadataKind: NFTMetadataKind.CustomValidated,
       identifierMode: NFTIdentifierMode.Ordinal,
       metadataMutability: MetadataMutability.Immutable,
-      mintingMode: MintingMode.Installer
+      mintingMode: MintingMode.Installer,
     },
     "165000000000",
-    KEYS.publicKey,
-    [KEYS]
+    FAUCET_KEYS.publicKey,
+    [FAUCET_KEYS]
   );
-
-  // console.log(JSON.stringify(DeployUtil.deployToJson(installDeploy), null, 2));
 
   const hash = await installDeploy.send(process.env.NODE_URL!);
 
@@ -84,7 +81,10 @@ const install = async () => {
 
   console.log(`... Contract installed successfully.`);
 
-  let accountInfo = await getAccountInfo(process.env.NODE_URL!, KEYS.publicKey);
+  const accountInfo = await getAccountInfo(
+    process.env.NODE_URL!,
+    FAUCET_KEYS.publicKey
+  );
 
   console.log(`... Account Info: `);
   console.log(JSON.stringify(accountInfo, null, 2));
