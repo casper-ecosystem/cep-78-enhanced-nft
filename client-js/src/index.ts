@@ -279,6 +279,16 @@ export class CEP78Client {
       runtimeArgs.insert("contract_whitelist", CLValueBuilder.list(list));
     }
 
+    const preparedDeploy = this.contractClient.callEntrypoint(
+      "set_variables",
+      runtimeArgs,
+      deploySender,
+      this.networkName,
+      paymentAmount,
+      keys
+    );
+
+    return preparedDeploy;
   }
 
   public async mint(
