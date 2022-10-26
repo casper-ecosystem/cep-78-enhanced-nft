@@ -47,6 +47,8 @@ export {
   JSONSchemaObject,
 } from "./types";
 
+export { getMintedId } from "./utils";
+
 const convertHashStrToHashBuff = (hashStr: string) => {
   let hashHex = hashStr;
   if (hashStr.startsWith("hash-")) {
@@ -263,7 +265,7 @@ export class CEP78Client {
     args: ConfigurableVariables,
     paymentAmount: string,
     deploySender: CLPublicKey,
-    keys?: Keys.AsymmetricKey[],
+    keys?: Keys.AsymmetricKey[]
   ) {
     const runtimeArgs = RuntimeArgs.fromMap({});
 
