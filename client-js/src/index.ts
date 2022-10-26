@@ -187,7 +187,7 @@ export class CEP78Client {
       "whitelist_mode",
     ]);
     const u8res = (internalValue as CLU8).toString();
-    return WhitelistMode[parseInt(u8res, 10)];
+    return WhitelistMode[parseInt(u8res, 10)] as keyof typeof WhitelistMode;
   }
 
   public async getBurnModeConfig() {
@@ -195,7 +195,7 @@ export class CEP78Client {
       "burn_mode",
     ]);
     const u8res = (internalValue as CLU8).toString();
-    return BurnMode[parseInt(u8res, 10)];
+    return BurnMode[parseInt(u8res, 10)] as keyof typeof BurnMode;
   }
 
   public async getHolderModeConfig() {
@@ -203,7 +203,7 @@ export class CEP78Client {
       "holder_mode",
     ]);
     const u8res = (internalValue as CLU8).toString();
-    return NFTHolderMode[parseInt(u8res, 10)];
+    return NFTHolderMode[parseInt(u8res, 10)] as keyof typeof NFTHolderMode;
   }
 
   public async getIdentifierModeConfig() {
@@ -211,7 +211,9 @@ export class CEP78Client {
       "identifier_mode",
     ]);
     const u8res = (internalValue as CLU8).toString();
-    return NFTIdentifierMode[parseInt(u8res, 10)];
+    return NFTIdentifierMode[
+      parseInt(u8res, 10)
+    ] as keyof typeof NFTIdentifierMode;
   }
 
   public async getMetadataMutabilityConfig() {
@@ -219,7 +221,9 @@ export class CEP78Client {
       "metadata_mutability",
     ]);
     const u8res = (internalValue as CLU8).toString();
-    return MetadataMutability[parseInt(u8res, 10)];
+    return MetadataMutability[
+      parseInt(u8res, 10)
+    ] as keyof typeof MetadataMutability;
   }
 
   public async getNFTKindConfig() {
@@ -227,7 +231,7 @@ export class CEP78Client {
       "nft_kind",
     ]);
     const u8res = (internalValue as CLU8).toString();
-    return NFTKind[parseInt(u8res, 10)];
+    return NFTKind[parseInt(u8res, 10)] as keyof typeof NFTKind;
   }
 
   public async getMetadataKindConfig() {
@@ -235,7 +239,7 @@ export class CEP78Client {
       "nft_metadata_kind",
     ]);
     const u8res = (internalValue as CLU8).toString();
-    return NFTMetadataKind[parseInt(u8res, 10)];
+    return NFTMetadataKind[parseInt(u8res, 10)] as keyof typeof NFTMetadataKind;
   }
 
   public async getOwnershipModeConfig() {
@@ -243,7 +247,9 @@ export class CEP78Client {
       "ownership_mode",
     ]);
     const u8res = (internalValue as CLU8).toString();
-    return NFTOwnershipMode[parseInt(u8res, 10)];
+    return NFTOwnershipMode[
+      parseInt(u8res, 10)
+    ] as keyof typeof NFTOwnershipMode;
   }
 
   public async getJSONSchemaConfig() {
@@ -386,10 +392,7 @@ export class CEP78Client {
 
   public async getMetadataOf(tokenId: string, metadataType?: NFTMetadataKind) {
     const metadataToCheck: NFTMetadataKind =
-      metadataType ||
-      NFTMetadataKind[
-        (await this.getMetadataKindConfig()) as keyof typeof NFTMetadataKind
-      ];
+      metadataType || NFTMetadataKind[await this.getMetadataKindConfig()];
 
     const mapMetadata = {
       [NFTMetadataKind.CEP78]: "metadata_cep78",
