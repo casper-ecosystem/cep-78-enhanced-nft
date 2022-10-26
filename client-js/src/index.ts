@@ -1,23 +1,17 @@
 import {
-  CLValue,
   CLPublicKey,
   CLKey,
-  CLMap,
   RuntimeArgs,
   CasperClient,
   Contracts,
   Keys,
-  CLKeyParameters,
   CLValueBuilder,
-  CLValueParsers,
-  CLTypeTag,
   CLU8,
 } from "casper-js-sdk";
-import { concat } from "@ethersproject/bytes";
 import { Some } from "ts-results";
 import * as fs from "fs";
 
-const { Contract, toCLMap, fromCLMap } = Contracts;
+const { Contract } = Contracts;
 
 import {
   InstallArgs,
