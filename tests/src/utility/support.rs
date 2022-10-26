@@ -234,3 +234,11 @@ pub(crate) fn get_token_page_by_hash(builder: &WasmTestBuilder<InMemoryGlobalSta
     let token_number: u64 = get_dictionary_value_from_key(builder, nft_contract_key, REVERSE_TRACKER, &token_hash);
     get_token_page_by_id(builder, nft_contract_key, token_owner_key, token_number)
 }
+
+pub(crate) fn get_owned_tokens_dictionary_item_key(token_owner_key: Key) -> String {
+    match token_owner_key {
+        Key::Account(token_owner_account_hash) => token_owner_account_hash.to_string(),
+        Key::Hash(token_owner_hash_addr) => ContractHash::new(token_owner_hash_addr).to_string(),
+        _ => panic!("Invalid key variant"),
+    }
+}

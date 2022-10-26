@@ -17,7 +17,7 @@ use casper_types::{ContractPackageHash, Key, runtime_args, RuntimeArgs};
 const ENTRY_POINT_UPDATE_RECEIPTS: &str = "update_receipts";
 
 const ARG_COLLECTION_NAME: &str = "collection_name";
-const ARG_NFT_PACKAGE_HASH: &str = "package_hash";
+const ARG_NFT_PACKAGE_HASH: &str = "nft_package_hash";
 
 #[no_mangle]
 pub extern "C" fn call() {

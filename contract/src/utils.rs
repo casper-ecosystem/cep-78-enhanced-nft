@@ -560,6 +560,7 @@ pub(crate) fn break_up_owned_tokens_in_ordinal_mode() {
                 let single_page_item_key =
                     make_page_dictionary_item_key(&token_owner_key, page_number);
                 let _ = core::mem::replace(&mut page_record[page_number as usize], true);
+                storage::dictionary_put(all_owners_seed_uref, &token_owner_item_key, page_record);
                 let mut single_page = match storage::dictionary_get::<Vec<bool>>(single_page_uref, &single_page_item_key).unwrap_or_revert() {
                     None => vec![false; PAGE_SIZE as usize],
                     Some(single_page) => single_page

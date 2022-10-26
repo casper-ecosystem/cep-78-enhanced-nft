@@ -9,7 +9,7 @@ use crate::utility::{
         ARG_NFT_CONTRACT_HASH, ARG_TOKEN_META_DATA, ARG_TOKEN_OWNER, MINT_SESSION_WASM,
         NFT_CONTRACT_WASM, NFT_TEST_COLLECTION, NFT_TEST_SYMBOL, TRANSFER_SESSION_WASM,
         ARG_IS_HASH_IDENTIFIER_MODE, ARG_SOURCE_KEY, ARG_TARGET_KEY, ARG_TOKEN_ID, ACCESS_KEY_NAME, CONTRACT_1_0_0_WASM, PAGE_SIZE,
-        ACCOUNT_USER_1, ACCOUNT_USER_2, ARG_TOKEN_HASH, MAX_PAGE_NUMBER, ARG_NFT_PACKAGE_HASH, TOKEN_COUNT_AT_UPGRADE, BACKFILLED_TOKEN_TRACKER
+        ACCOUNT_USER_1, ACCOUNT_USER_2, ARG_TOKEN_HASH, MAX_PAGE_NUMBER, ARG_NFT_PACKAGE_HASH, TOKEN_COUNT_AT_UPGRADE, BACKFILLED_TOKEN_TRACKER, MIGRATE_WASM
     },
     installer_request_builder,
     installer_request_builder::{
@@ -17,6 +17,7 @@ use crate::utility::{
     },
     support,
 };
+use crate::utility::constants::{ALL_TOKEN_OWNERS, HASH_KEY_NAME, RECEIPT_NAME};
 
 const OWNED_TOKENS: &str = "owned_tokens";
 
@@ -308,5 +309,125 @@ fn should_safely_upgrade_in_hash_identifier_mode() {
     );
 
     assert!(actual_page[0])
+}
+
+#[test]
+fn should_update_receipts_post_upgrade() {
+    let mut builder = InMemoryWasmTestBuilder::default();
+    builder.run_genesis(&DEFAULT_RUN_GENESIS_REQUEST).commit();
+
+    let install_request = InstallerRequestBuilder::new(*DEFAULT_ACCOUNT_ADDR, CONTRACT_1_0_0_WASM)
+        .with_collection_name(NFT_TEST_COLLECTION.to_string())
+        .with_collection_symbol(NFT_TEST_SYMBOL.to_string())
+        .with_total_token_supply(100u64)
+        .with_ownership_mode(OwnershipMode::Minter)
+        .with_identifier_mode(NFTIdentifierMode::Ordinal)
+        .with_nft_metadata_kind(NFTMetadataKind::Raw)
+        .build();
+
+    builder.exec(install_request)
+        .expect_success()
+        .commit();
+
+    let nft_contract_hash_1_0_0 = support::get_nft_contract_hash(&builder);
+    let nft_contract_key_1_0_0: Key = nft_contract_hash_1_0_0.into();
+
+    for _ in 0..20 {
+        let mint_request = ExecuteRequestBuilder::standard(
+            *DEFAULT_ACCOUNT_ADDR,
+            MINT_SESSION_WASM,
+            runtime_args! {
+            ARG_NFT_CONTRACT_HASH => nft_contract_key_1_0_0,
+            ARG_TOKEN_OWNER => Key::Account(*DEFAULT_ACCOUNT_ADDR),
+            ARG_TOKEN_META_DATA => "",
+        },
+        )
+            .build();
+
+        builder
+            .exec(mint_request)
+            .expect_success()
+            .commit();
+    }
+
+    let original_receipt = builder
+        .query(None, nft_contract_key_1_0_0, &[RECEIPT_NAME.to_string()])
+        .expect("must have receipt")
+        .as_cl_value()
+        .map(|receipt_cl_value| CLValue::into_t::<String>(receipt_cl_value.clone()))
+        .unwrap()
+        .expect("must convert to string");
+
+    let owned_tokens_key = *builder
+        .query(None, Key::Account(*DEFAULT_ACCOUNT_ADDR), &vec![])
+        .unwrap()
+        .as_account()
+        .expect("must have default account")
+        .named_keys()
+        .get(&original_receipt)
+        .unwrap();
+
+    let expected_token_representation = vec![0u64,1u64,2u64];
+
+    let actual_token_representation = builder.query(None, owned_tokens_key, &vec![])
+        .unwrap()
+        .as_cl_value()
+        .map(|receipt_cl_value| CLValue::into_t::<Vec<u64>>(receipt_cl_value.clone()))
+        .unwrap()
+        .expect("must convert to string");
+
+    // assert_eq!(expected_token_representation, actual_token_representation);
+
+    let nft_contract_package_hash = support::get_nft_contract_package_hash(&builder);
+
+    let upgrade_request = ExecuteRequestBuilder::standard(
+        *DEFAULT_ACCOUNT_ADDR,
+        NFT_CONTRACT_WASM,
+        runtime_args! {
+            ARG_NFT_PACKAGE_HASH => nft_contract_package_hash
+        }
+    ).build();
+
+    builder.exec(upgrade_request).expect_success().commit();
+
+    let nft_contract_hash = support::get_nft_contract_hash(&builder);
+    let nft_contract_key: Key = nft_contract_hash.into();
+
+    let actual_page_record = support::get_dictionary_value_from_key::<Vec<bool>>(
+        &builder,
+        &nft_contract_key,
+        ALL_TOKEN_OWNERS,
+        &support::get_owned_tokens_dictionary_item_key(Key::Account(*DEFAULT_ACCOUNT_ADDR)),
+    );
+
+    let default_account = builder
+        .query(None, Key::Account(*DEFAULT_ACCOUNT_ADDR), &vec![])
+        .unwrap()
+        .as_account()
+        .unwrap()
+        .clone();
+
+    let nft_package_key: Key = nft_contract_package_hash.into();
+
+    let migrate_request = ExecuteRequestBuilder::standard(
+        *DEFAULT_ACCOUNT_ADDR,
+        MIGRATE_WASM,
+        runtime_args! {
+            ARG_NFT_PACKAGE_HASH => nft_package_key
+        }
+    ).build();
+
+    builder.exec(migrate_request)
+        .expect_success()
+        .commit();
+
+    let default_account = builder
+        .query(None, Key::Account(*DEFAULT_ACCOUNT_ADDR), &vec![])
+        .unwrap()
+        .as_account()
+        .unwrap()
+        .clone();
+
+    println!("{:#?}", default_account);
 }
 
