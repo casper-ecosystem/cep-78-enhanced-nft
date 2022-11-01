@@ -349,39 +349,6 @@ pub(crate) fn get_token_identifiers_from_dictionary(
         }
     }
 }
-//
-// pub(crate) fn upsert_token_identifiers(
-//     identifier_mode: &NFTIdentifierMode,
-//     owners_item_key: &str,
-//     token_identifiers: Vec<TokenIdentifier>,
-// ) -> Result<(), NFTCoreError> {
-//     match identifier_mode {
-//         NFTIdentifierMode::Ordinal => {
-//             let token_indices: Vec<u64> = token_identifiers
-//                 .into_iter()
-//                 .map(|token_identifier| {
-//                     token_identifier
-//                         .get_index()
-//                         .unwrap_or_revert_with(NFTCoreError::InvalidIdentifierMode)
-//                 })
-//                 .collect();
-//             upsert_dictionary_value_from_key(OWNED_TOKENS, owners_item_key, token_indices);
-//             Ok(())
-//         }
-//         NFTIdentifierMode::Hash => {
-//             let token_hashes: Vec<String> = token_identifiers
-//                 .into_iter()
-//                 .map(|token_identifier| {
-//                     token_identifier
-//                         .get_hash()
-//                         .unwrap_or_revert_with(NFTCoreError::InvalidIdentifierMode)
-//                 })
-//                 .collect();
-//             upsert_dictionary_value_from_key(OWNED_TOKENS, owners_item_key, token_hashes);
-//             Ok(())
-//         }
-//     }
-// }
 
 pub(crate) fn get_burn_mode() -> BurnMode {
     let burn_mode: BurnMode = get_stored_value_with_user_errors::<u8>(

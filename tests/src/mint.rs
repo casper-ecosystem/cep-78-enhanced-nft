@@ -31,6 +31,7 @@ use crate::utility::{
         get_token_page_by_hash, query_stored_value,
     },
 };
+use crate::utility::constants::{BALANCE_OF_SESSION_WASM, GET_APPROVED_WASM, OWNER_OF_SESSION_WASM};
 
 #[derive(Serialize, Deserialize, Debug)]
 struct Metadata {
@@ -114,75 +115,74 @@ fn entry_points_with_ret_should_return_correct_value() {
 
     builder.exec(mint_session_call).expect_success().commit();
 
-    // let nft_contract_hash = get_nft_contract_hash(&builder);
-    // let account_hash = *DEFAULT_ACCOUNT_ADDR;
-    //
-    // let actual_balance: u64 = call_entry_point_with_ret(
-    //     &mut builder,
-    //     account_hash,
-    //     nft_contract_key,
-    //     runtime_args! {
-    //         ARG_TOKEN_OWNER => Key::Account(*DEFAULT_ACCOUNT_ADDR),
-    //     },
-    //     BALANCE_OF_SESSION_WASM,
-    //     "balance_of",
-    // );
-    //
-    // let expected_balance = 1u64;
-    // assert_eq!(
-    //     actual_balance, expected_balance,
-    //     "actual and expected balances should be equal"
-    // );
-    //
-    // let actual_owner: Key = call_entry_point_with_ret(
-    //     &mut builder,
-    //     account_hash,
-    //     nft_contract_key,
-    //     runtime_args! {
-    //         ARG_IS_HASH_IDENTIFIER_MODE => false,
-    //         ARG_TOKEN_ID => 0u64,
-    //     },
-    //     "owner_of_call.wasm",
-    //     "owner_of",
-    // );
-    //
-    // let expected_owner = Key::Account(*DEFAULT_ACCOUNT_ADDR);
-    // assert_eq!(
-    //     actual_owner, expected_owner,
-    //     "actual and expected owner should be equal"
-    // );
-    //
-    // let (_, operator_public_key) = support::create_dummy_key_pair(ACCOUNT_USER_1);
-    // let approve_request = ExecuteRequestBuilder::contract_call_by_hash(
-    //     *DEFAULT_ACCOUNT_ADDR,
-    //     nft_contract_hash,
-    //     ENTRY_POINT_APPROVE,
-    //     runtime_args! {
-    //         ARG_TOKEN_ID => 0u64,
-    //         ARG_OPERATOR => Key::Account(operator_public_key.to_account_hash())
-    //     },
-    // )
-    // .build();
-    // builder.exec(approve_request).expect_success().commit();
-    //
-    // let actual_operator: Option<Key> = call_entry_point_with_ret(
-    //     &mut builder,
-    //     account_hash,
-    //     nft_contract_key,
-    //     runtime_args! {
-    //         ARG_IS_HASH_IDENTIFIER_MODE => false,
-    //         ARG_TOKEN_ID => 0u64,
-    //     },
-    //     "get_approved_call.wasm",
-    //     "get_approved",
-    // );
-    //
-    // let expected_operator = Key::Account(operator_public_key.to_account_hash());
-    // assert_eq!(
-    //     actual_operator,
-    //     Some(expected_operator),
-    //     "actual and expected operator should be equal"
-    // );
+    let nft_contract_hash = get_nft_contract_hash(&builder);
+    let account_hash = *DEFAULT_ACCOUNT_ADDR;
+
+    let actual_balance: u64 = call_entry_point_with_ret(
+        &mut builder,
+        account_hash,
+        nft_contract_key,
+        runtime_args! {
+            ARG_TOKEN_OWNER => Key::Account(*DEFAULT_ACCOUNT_ADDR),
+        },
+        BALANCE_OF_SESSION_WASM,
+        "balance_of",
+    );
+
+    let expected_balance = 1u64;
+    assert_eq!(
+        actual_balance, expected_balance,
+        "actual and expected balances should be equal"
+    );
+
+    let actual_owner: Key = call_entry_point_with_ret(
+        &mut builder,
+        account_hash,
+        nft_contract_key,
+        runtime_args! {
+            ARG_IS_HASH_IDENTIFIER_MODE => false,
+            ARG_TOKEN_ID => 0u64,
+        },
+        OWNER_OF_SESSION_WASM,
+        "owner_of",
+    );
+
+    let expected_owner = Key::Account(*DEFAULT_ACCOUNT_ADDR);
+    assert_eq!(
+        actual_owner, expected_owner,
+        "actual and expected owner should be equal"
+    );
+
+    let approve_request = ExecuteRequestBuilder::contract_call_by_hash(
+        *DEFAULT_ACCOUNT_ADDR,
+        nft_contract_hash,
+        ENTRY_POINT_APPROVE,
+        runtime_args! {
+            ARG_TOKEN_ID => 0u64,
+            ARG_OPERATOR => Key::Account(AccountHash::new(ACCOUNT_USER_1))
+        },
+    )
+    .build();
+    builder.exec(approve_request).expect_success().commit();
+
+    let actual_operator: Option<Key> = call_entry_point_with_ret(
+        &mut builder,
+        account_hash,
+        nft_contract_key,
+        runtime_args! {
+            ARG_IS_HASH_IDENTIFIER_MODE => false,
+            ARG_TOKEN_ID => 0u64,
+        },
+        GET_APPROVED_WASM,
+        "get_approved",
+    );
+
+    let expected_operator = Key::Account(AccountHash::new(ACCOUNT_USER_1));
+    assert_eq!(
+        actual_operator,
+        Some(expected_operator),
+        "actual and expected operator should be equal"
+    );
 }
 
 #[test]
