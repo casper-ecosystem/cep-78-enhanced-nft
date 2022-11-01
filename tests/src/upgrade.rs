@@ -382,8 +382,9 @@ fn should_update_receipts_post_upgrade() {
 
     let expected_page = vec![true; PAGE_SIZE as usize];
 
-    let actual_page_0 = support::get_stored_value_from_global_state::<Vec<bool>>(&builder, receipt_page_0, vec![])
-        .expect("must get actual page");
+    let actual_page_0 =
+        support::get_stored_value_from_global_state::<Vec<bool>>(&builder, receipt_page_0, vec![])
+            .expect("must get actual page");
 
     assert_eq!(expected_page, actual_page_0);
 
@@ -392,8 +393,9 @@ fn should_update_receipts_post_upgrade() {
         .get(&format!("{}-m-{}-p-{}", nft_receipt, PAGE_SIZE, 1))
         .expect("must have page 0 receipt");
 
-    let actual_page_1 = support::get_stored_value_from_global_state::<Vec<bool>>(&builder, receipt_page_1, vec![])
-        .expect("must get actual page");
+    let actual_page_1 =
+        support::get_stored_value_from_global_state::<Vec<bool>>(&builder, receipt_page_1, vec![])
+            .expect("must get actual page");
 
     assert_eq!(expected_page, actual_page_1);
 }

@@ -1577,6 +1577,11 @@ fn generate_entry_points() -> EntryPoints {
         EntryPointType::Contract,
     );
 
+    // This entrypoint will upgrade the contract from the 1_0 version to the
+    // 1_1 version. The contract will insert any addition dictionaries and
+    // sentinel values that were absent in the previous version of the contract.
+    // It will also perform the necessary data transformations of historical
+    // data if needed
     let upgrade = EntryPoint::new(
         ENTRY_POINT_UPGRADE,
         vec![Parameter::new(ARG_NFT_PACKAGE_HASH, CLType::Any)],
@@ -1585,6 +1590,10 @@ fn generate_entry_points() -> EntryPoints {
         EntryPointType::Contract,
     );
 
+    // This entrypoint will allow NFT owners to update their receipts from
+    // the previous owned_tokens list model to the current pagination model
+    // scheme. Calling the entrypoint will return a list of receipt names
+    // alongside the dictionary addressed to the relevant pages.
     let update_receipts = EntryPoint::new(
         ENTRY_POINT_UPDATE,
         vec![],
