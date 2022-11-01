@@ -865,9 +865,9 @@ pub extern "C" fn transfer() {
     )
     .unwrap_or_revert();
 
-    // if source_key != token_owner_key {
-    //     runtime::revert(NFTCoreError::InvalidAccount);
-    // }
+    if source_key != token_owner_key {
+        runtime::revert(NFTCoreError::InvalidAccount);
+    }
 
     if NFTIdentifierMode::Hash == identifier_mode
         && utils::should_break_up_owned_token_hashes(source_key)
