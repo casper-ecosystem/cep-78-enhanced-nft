@@ -2,22 +2,22 @@ use casper_engine_test_support::{
     ExecuteRequestBuilder, InMemoryWasmTestBuilder, DEFAULT_ACCOUNT_ADDR,
     DEFAULT_RUN_GENESIS_REQUEST,
 };
-use casper_types::{account::AccountHash, runtime_args, system::mint, ContractHash, Key, PublicKey, RuntimeArgs, SecretKey, U512, CLValue, ContractPackageHash};
+use casper_types::{account::AccountHash, runtime_args, CLValue, Key, RuntimeArgs};
 
 use crate::utility::{
     constants::{
-        ARG_NFT_CONTRACT_HASH, ARG_TOKEN_META_DATA, ARG_TOKEN_OWNER, MINT_SESSION_WASM,
-        NFT_CONTRACT_WASM, NFT_TEST_COLLECTION, NFT_TEST_SYMBOL, TRANSFER_SESSION_WASM,
-        ARG_IS_HASH_IDENTIFIER_MODE, ARG_SOURCE_KEY, ARG_TARGET_KEY, ARG_TOKEN_ID, ACCESS_KEY_NAME, CONTRACT_1_0_0_WASM, PAGE_SIZE,
-        ACCOUNT_USER_1, ACCOUNT_USER_2, ARG_TOKEN_HASH, MAX_PAGE_NUMBER, ARG_NFT_PACKAGE_HASH, TOKEN_COUNT_AT_UPGRADE, BACKFILLED_TOKEN_TRACKER, MIGRATE_WASM
+        ACCESS_KEY_NAME, ACCOUNT_USER_1, ARG_IS_HASH_IDENTIFIER_MODE, ARG_NFT_CONTRACT_HASH,
+        ARG_NFT_PACKAGE_HASH, ARG_SOURCE_KEY, ARG_TARGET_KEY, ARG_TOKEN_HASH, ARG_TOKEN_META_DATA,
+        ARG_TOKEN_OWNER, BACKFILLED_TOKEN_TRACKER, CONTRACT_1_0_0_WASM, MAX_PAGE_NUMBER,
+        MIGRATE_WASM, MINT_SESSION_WASM, NFT_CONTRACT_WASM, NFT_TEST_COLLECTION, NFT_TEST_SYMBOL,
+        PAGE_SIZE, RECEIPT_NAME, TOKEN_COUNT_AT_UPGRADE, TRANSFER_SESSION_WASM,
     },
-    installer_request_builder,
     installer_request_builder::{
-        InstallerRequestBuilder, NFTIdentifierMode, NFTMetadataKind, OwnershipMode, MetadataMutability,
+        InstallerRequestBuilder, MetadataMutability, NFTIdentifierMode, NFTMetadataKind,
+        OwnershipMode,
     },
     support,
 };
-use crate::utility::constants::{ALL_TOKEN_OWNERS, HASH_KEY_NAME, RECEIPT_NAME};
 
 const OWNED_TOKENS: &str = "owned_tokens";
 
@@ -35,9 +35,7 @@ fn should_safely_upgrade_in_ordinal_identifier_mode() {
         .with_nft_metadata_kind(NFTMetadataKind::Raw)
         .build();
 
-    builder.exec(install_request)
-        .expect_success()
-        .commit();
+    builder.exec(install_request).expect_success().commit();
 
     let nft_contract_hash_1_0_0 = support::get_nft_contract_hash(&builder);
     let nft_contract_key_1_0_0: Key = nft_contract_hash_1_0_0.into();
@@ -47,30 +45,27 @@ fn should_safely_upgrade_in_ordinal_identifier_mode() {
             *DEFAULT_ACCOUNT_ADDR,
             MINT_SESSION_WASM,
             runtime_args! {
-            ARG_NFT_CONTRACT_HASH => nft_contract_key_1_0_0,
-            ARG_TOKEN_OWNER => Key::Account(*DEFAULT_ACCOUNT_ADDR),
-            ARG_TOKEN_META_DATA => "",
-        },
+                ARG_NFT_CONTRACT_HASH => nft_contract_key_1_0_0,
+                ARG_TOKEN_OWNER => Key::Account(*DEFAULT_ACCOUNT_ADDR),
+                ARG_TOKEN_META_DATA => "",
+            },
         )
-            .build();
+        .build();
 
-        builder
-            .exec(mint_request)
-            .expect_success()
-            .commit();
+        builder.exec(mint_request).expect_success().commit();
     }
 
     let previous_token_representation = support::get_dictionary_value_from_key::<Vec<u64>>(
         &builder,
         &nft_contract_key_1_0_0,
         OWNED_TOKENS,
-        &DEFAULT_ACCOUNT_ADDR.clone().to_string()
+        &DEFAULT_ACCOUNT_ADDR.clone().to_string(),
     );
 
-    assert_eq!(previous_token_representation, vec![0,1,2]);
+    assert_eq!(previous_token_representation, vec![0, 1, 2]);
 
     let maybe_access_named_key = builder
-        .query(None, Key::Account(*DEFAULT_ACCOUNT_ADDR), &vec![])
+        .query(None, Key::Account(*DEFAULT_ACCOUNT_ADDR), &[])
         .unwrap()
         .as_account()
         .unwrap()
@@ -87,25 +82,26 @@ fn should_safely_upgrade_in_ordinal_identifier_mode() {
         NFT_CONTRACT_WASM,
         runtime_args! {
             ARG_NFT_PACKAGE_HASH => package_hash
-        }
-    ).build();
+        },
+    )
+    .build();
 
     builder.exec(upgrade_request).expect_success().commit();
 
     let nft_contract_hash = support::get_nft_contract_hash(&builder);
     let nft_contract_key: Key = nft_contract_hash.into();
 
-    let actual_page_record_width = builder.query(None, nft_contract_key, &vec![MAX_PAGE_NUMBER.to_string()])
+    let actual_page_record_width = builder
+        .query(None, nft_contract_key, &[MAX_PAGE_NUMBER.to_string()])
         .expect("must have the stored value")
         .as_cl_value()
         .map(|page_cl_value| CLValue::into_t::<u64>(page_cl_value.clone()))
         .unwrap()
         .expect("must convert");
 
-    let expected_page_record_width =  100u64 / PAGE_SIZE;
+    let expected_page_record_width = 100u64 / PAGE_SIZE;
 
     assert_eq!(expected_page_record_width, actual_page_record_width);
-
 
     let actual_page = support::get_token_page_by_id(
         &builder,
@@ -116,8 +112,8 @@ fn should_safely_upgrade_in_ordinal_identifier_mode() {
 
     let expected_page = {
         let mut page = vec![false; 10];
-        for index in 0..3 {
-            let _ = std::mem::replace(&mut page[index], true);
+        for page_entry in page.iter_mut().take(3) {
+            *page_entry = true;
         }
         page
     };
@@ -132,13 +128,9 @@ fn should_safely_upgrade_in_ordinal_identifier_mode() {
             ARG_TOKEN_META_DATA => "",
         },
     )
-        .build();
+    .build();
 
-    builder
-        .exec(mint_request)
-        .expect_success()
-        .commit();
-
+    builder.exec(mint_request).expect_success().commit();
 }
 
 #[test]
@@ -156,9 +148,7 @@ fn should_safely_upgrade_in_hash_identifier_mode() {
         .with_metadata_mutability(MetadataMutability::Immutable)
         .build();
 
-    builder.exec(install_request)
-        .expect_success()
-        .commit();
+    builder.exec(install_request).expect_success().commit();
 
     let nft_contract_hash_1_0_0 = support::get_nft_contract_hash(&builder);
     let nft_contract_key_1_0_0: Key = nft_contract_hash_1_0_0.into();
@@ -171,8 +161,8 @@ fn should_safely_upgrade_in_hash_identifier_mode() {
             format!("https://www.foobar.com/{}", i),
         );
 
-        let json_token_metadata = serde_json::to_string_pretty(&token_metadata)
-            .expect("must convert to string");
+        let json_token_metadata =
+            serde_json::to_string_pretty(&token_metadata).expect("must convert to string");
 
         let token_hash = base16::encode_lower(&support::create_blake2b_hash(&json_token_metadata));
 
@@ -182,30 +172,27 @@ fn should_safely_upgrade_in_hash_identifier_mode() {
             *DEFAULT_ACCOUNT_ADDR,
             MINT_SESSION_WASM,
             runtime_args! {
-            ARG_NFT_CONTRACT_HASH => nft_contract_key_1_0_0,
-            ARG_TOKEN_OWNER => Key::Account(*DEFAULT_ACCOUNT_ADDR),
-            ARG_TOKEN_META_DATA => json_token_metadata,
-        },
+                ARG_NFT_CONTRACT_HASH => nft_contract_key_1_0_0,
+                ARG_TOKEN_OWNER => Key::Account(*DEFAULT_ACCOUNT_ADDR),
+                ARG_TOKEN_META_DATA => json_token_metadata,
+            },
         )
-            .build();
+        .build();
 
-        builder
-            .exec(mint_request)
-            .expect_success()
-            .commit();
+        builder.exec(mint_request).expect_success().commit();
     }
 
     let previous_token_representation = support::get_dictionary_value_from_key::<Vec<String>>(
         &builder,
         &nft_contract_key_1_0_0,
         OWNED_TOKENS,
-        &DEFAULT_ACCOUNT_ADDR.clone().to_string()
+        &DEFAULT_ACCOUNT_ADDR.clone().to_string(),
     );
 
     assert_eq!(previous_token_representation, expected_metadata);
 
     let maybe_access_named_key = builder
-        .query(None, Key::Account(*DEFAULT_ACCOUNT_ADDR), &vec![])
+        .query(None, Key::Account(*DEFAULT_ACCOUNT_ADDR), &[])
         .unwrap()
         .as_account()
         .unwrap()
@@ -220,29 +207,30 @@ fn should_safely_upgrade_in_hash_identifier_mode() {
         NFT_CONTRACT_WASM,
         runtime_args! {
             ARG_NFT_PACKAGE_HASH => support::get_nft_contract_package_hash(&builder),
-        }
-    ).build();
+        },
+    )
+    .build();
 
     builder.exec(upgrade_request).expect_success().commit();
 
     let nft_contract_hash = support::get_nft_contract_hash(&builder);
     let nft_contract_key: Key = nft_contract_hash.into();
 
-    let token_hash_tracker = builder.query(None, nft_contract_key, &vec![BACKFILLED_TOKEN_TRACKER.to_string()])
-        .unwrap()
-        .as_cl_value()
-        .map(|tracker_cl_value| CLValue::into_t::<u64>(tracker_cl_value.clone()))
-        .unwrap()
-        .expect("must get u64 value");
+    let token_hash_tracker = support::get_stored_value_from_global_state::<u64>(
+        &builder,
+        nft_contract_key,
+        vec![BACKFILLED_TOKEN_TRACKER.to_string()],
+    )
+    .expect("must get u64 value");
 
     assert_eq!(token_hash_tracker, 0);
 
-    let number_of_tokens_at_upgrade = builder.query(None, nft_contract_key, &vec![TOKEN_COUNT_AT_UPGRADE.to_string()])
-        .unwrap()
-        .as_cl_value()
-        .map(|tracker_cl_value| CLValue::into_t::<u64>(tracker_cl_value.clone()))
-        .unwrap()
-        .expect("must get u64 value");
+    let number_of_tokens_at_upgrade = support::get_stored_value_from_global_state::<u64>(
+        &builder,
+        nft_contract_key,
+        vec![TOKEN_COUNT_AT_UPGRADE.to_string()],
+    )
+    .expect("must get u64 value");
 
     assert_eq!(number_of_tokens_at_upgrade, 3);
 
@@ -251,8 +239,8 @@ fn should_safely_upgrade_in_hash_identifier_mode() {
         format!("https://www.foobar.com/{}", 90),
     );
 
-    let json_token_metadata = serde_json::to_string(&token_metadata)
-        .expect("must convert to string");
+    let json_token_metadata =
+        serde_json::to_string(&token_metadata).expect("must convert to string");
 
     let post_upgrade_mint_request = ExecuteRequestBuilder::standard(
         *DEFAULT_ACCOUNT_ADDR,
@@ -263,9 +251,10 @@ fn should_safely_upgrade_in_hash_identifier_mode() {
             ARG_TOKEN_META_DATA => json_token_metadata,
         },
     )
-        .build();
+    .build();
 
-    builder.exec(post_upgrade_mint_request)
+    builder
+        .exec(post_upgrade_mint_request)
         .expect_success()
         .commit();
 
@@ -273,19 +262,19 @@ fn should_safely_upgrade_in_hash_identifier_mode() {
         &builder,
         &nft_contract_key,
         &Key::Account(*DEFAULT_ACCOUNT_ADDR),
-        expected_metadata[0].clone()
+        expected_metadata[0].clone(),
     );
 
     let expected_page = {
         let mut page = vec![false; 10];
-        for index in 0..4 {
-            let _ = std::mem::replace(&mut page[index], true);
+        for page_ownership in page.iter_mut().take(4) {
+            *page_ownership = true;
         }
         page
     };
     assert_eq!(actual_page, expected_page);
 
-    let transfer_request =  ExecuteRequestBuilder::standard(
+    let transfer_request = ExecuteRequestBuilder::standard(
         *DEFAULT_ACCOUNT_ADDR,
         TRANSFER_SESSION_WASM,
         runtime_args! {
@@ -294,18 +283,17 @@ fn should_safely_upgrade_in_hash_identifier_mode() {
             ARG_SOURCE_KEY => Key::Account(*DEFAULT_ACCOUNT_ADDR),
             ARG_IS_HASH_IDENTIFIER_MODE => true,
             ARG_TOKEN_HASH => expected_metadata[0].clone()
-        }
-    ).build();
+        },
+    )
+    .build();
 
-    builder.exec(transfer_request)
-        .expect_success()
-        .commit();
+    builder.exec(transfer_request).expect_success().commit();
 
     let actual_page = support::get_token_page_by_hash(
         &builder,
         &nft_contract_key,
         &Key::Account(AccountHash::new(ACCOUNT_USER_1)),
-        expected_metadata[0].clone()
+        expected_metadata[0].clone(),
     );
 
     assert!(actual_page[0])
@@ -325,9 +313,7 @@ fn should_update_receipts_post_upgrade() {
         .with_nft_metadata_kind(NFTMetadataKind::Raw)
         .build();
 
-    builder.exec(install_request)
-        .expect_success()
-        .commit();
+    builder.exec(install_request).expect_success().commit();
 
     let nft_contract_hash_1_0_0 = support::get_nft_contract_hash(&builder);
     let nft_contract_key_1_0_0: Key = nft_contract_hash_1_0_0.into();
@@ -337,46 +323,15 @@ fn should_update_receipts_post_upgrade() {
             *DEFAULT_ACCOUNT_ADDR,
             MINT_SESSION_WASM,
             runtime_args! {
-            ARG_NFT_CONTRACT_HASH => nft_contract_key_1_0_0,
-            ARG_TOKEN_OWNER => Key::Account(*DEFAULT_ACCOUNT_ADDR),
-            ARG_TOKEN_META_DATA => "",
-        },
+                ARG_NFT_CONTRACT_HASH => nft_contract_key_1_0_0,
+                ARG_TOKEN_OWNER => Key::Account(*DEFAULT_ACCOUNT_ADDR),
+                ARG_TOKEN_META_DATA => "",
+            },
         )
-            .build();
+        .build();
 
-        builder
-            .exec(mint_request)
-            .expect_success()
-            .commit();
+        builder.exec(mint_request).expect_success().commit();
     }
-
-    let original_receipt = builder
-        .query(None, nft_contract_key_1_0_0, &[RECEIPT_NAME.to_string()])
-        .expect("must have receipt")
-        .as_cl_value()
-        .map(|receipt_cl_value| CLValue::into_t::<String>(receipt_cl_value.clone()))
-        .unwrap()
-        .expect("must convert to string");
-
-    let owned_tokens_key = *builder
-        .query(None, Key::Account(*DEFAULT_ACCOUNT_ADDR), &vec![])
-        .unwrap()
-        .as_account()
-        .expect("must have default account")
-        .named_keys()
-        .get(&original_receipt)
-        .unwrap();
-
-    let expected_token_representation = vec![0u64,1u64,2u64];
-
-    let actual_token_representation = builder.query(None, owned_tokens_key, &vec![])
-        .unwrap()
-        .as_cl_value()
-        .map(|receipt_cl_value| CLValue::into_t::<Vec<u64>>(receipt_cl_value.clone()))
-        .unwrap()
-        .expect("must convert to string");
-
-    // assert_eq!(expected_token_representation, actual_token_representation);
 
     let nft_contract_package_hash = support::get_nft_contract_package_hash(&builder);
 
@@ -385,27 +340,11 @@ fn should_update_receipts_post_upgrade() {
         NFT_CONTRACT_WASM,
         runtime_args! {
             ARG_NFT_PACKAGE_HASH => nft_contract_package_hash
-        }
-    ).build();
+        },
+    )
+    .build();
 
     builder.exec(upgrade_request).expect_success().commit();
-
-    let nft_contract_hash = support::get_nft_contract_hash(&builder);
-    let nft_contract_key: Key = nft_contract_hash.into();
-
-    let actual_page_record = support::get_dictionary_value_from_key::<Vec<bool>>(
-        &builder,
-        &nft_contract_key,
-        ALL_TOKEN_OWNERS,
-        &support::get_owned_tokens_dictionary_item_key(Key::Account(*DEFAULT_ACCOUNT_ADDR)),
-    );
-
-    let default_account = builder
-        .query(None, Key::Account(*DEFAULT_ACCOUNT_ADDR), &vec![])
-        .unwrap()
-        .as_account()
-        .unwrap()
-        .clone();
 
     let nft_package_key: Key = nft_contract_package_hash.into();
 
@@ -414,20 +353,47 @@ fn should_update_receipts_post_upgrade() {
         MIGRATE_WASM,
         runtime_args! {
             ARG_NFT_PACKAGE_HASH => nft_package_key
-        }
-    ).build();
+        },
+    )
+    .build();
 
-    builder.exec(migrate_request)
-        .expect_success()
-        .commit();
+    builder.exec(migrate_request).expect_success().commit();
+
+    let nft_contract_key: Key = support::get_nft_contract_hash(&builder).into();
+
+    let nft_receipt: String = support::get_stored_value_from_global_state(
+        &builder,
+        nft_contract_key,
+        vec![RECEIPT_NAME.to_string()],
+    )
+    .expect("must have receipt");
 
     let default_account = builder
-        .query(None, Key::Account(*DEFAULT_ACCOUNT_ADDR), &vec![])
+        .query(None, Key::Account(*DEFAULT_ACCOUNT_ADDR), &[])
         .unwrap()
         .as_account()
         .unwrap()
         .clone();
 
-    println!("{:#?}", default_account);
-}
+    let receipt_page_0 = *default_account
+        .named_keys()
+        .get(&format!("{}-m-{}-p-{}", nft_receipt, PAGE_SIZE, 0))
+        .expect("must have page 0 receipt");
 
+    let expected_page = vec![true; PAGE_SIZE as usize];
+
+    let actual_page_0 = support::get_stored_value_from_global_state::<Vec<bool>>(&builder, receipt_page_0, vec![])
+        .expect("must get actual page");
+
+    assert_eq!(expected_page, actual_page_0);
+
+    let receipt_page_1 = *default_account
+        .named_keys()
+        .get(&format!("{}-m-{}-p-{}", nft_receipt, PAGE_SIZE, 1))
+        .expect("must have page 0 receipt");
+
+    let actual_page_1 = support::get_stored_value_from_global_state::<Vec<bool>>(&builder, receipt_page_1, vec![])
+        .expect("must get actual page");
+
+    assert_eq!(expected_page, actual_page_1);
+}

@@ -1,6 +1,5 @@
 pub(crate) const NFT_CONTRACT_WASM: &str = "contract.wasm";
 pub(crate) const MINT_SESSION_WASM: &str = "mint_call.wasm";
-pub(crate) const BALANCE_OF_SESSION_WASM: &str = "balance_of_call.wasm";
 pub(crate) const MINTING_CONTRACT_WASM: &str = "minting_contract.wasm";
 pub(crate) const TRANSFER_SESSION_WASM: &str = "transfer_call.wasm";
 pub(crate) const MIGRATE_WASM: &str = "migrate.wasm";
@@ -95,4 +94,3 @@ pub(crate) const MAX_PAGE_NUMBER: &str = "max_page_number";
 pub(crate) const HASH_KEY_NAME: &str = "nft_contract_package";
 pub(crate) const ARG_NFT_PACKAGE_HASH: &str = "nft_package_hash";
 pub(crate) const REVERSE_TRACKER: &str = "reverse_tracker";
-pub(crate) const ALL_TOKEN_OWNERS: &str = "all_token_owners";

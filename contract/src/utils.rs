@@ -561,9 +561,14 @@ pub(crate) fn break_up_owned_tokens_in_ordinal_mode() {
                     make_page_dictionary_item_key(&token_owner_key, page_number);
                 let _ = core::mem::replace(&mut page_record[page_number as usize], true);
                 storage::dictionary_put(all_owners_seed_uref, &token_owner_item_key, page_record);
-                let mut single_page = match storage::dictionary_get::<Vec<bool>>(single_page_uref, &single_page_item_key).unwrap_or_revert() {
+                let mut single_page = match storage::dictionary_get::<Vec<bool>>(
+                    single_page_uref,
+                    &single_page_item_key,
+                )
+                .unwrap_or_revert()
+                {
                     None => vec![false; PAGE_SIZE as usize],
-                    Some(single_page) => single_page
+                    Some(single_page) => single_page,
                 };
                 let is_already_marked_as_owned =
                     core::mem::replace(&mut single_page[page_index as usize], true);
@@ -683,8 +688,10 @@ pub(crate) fn get_all_owned_token_identifiers(token_owner: Key) -> Vec<TokenIden
     let identifier_mode: NFTIdentifierMode = get_stored_value_with_user_errors::<u8>(
         IDENTIFIER_MODE,
         NFTCoreError::MissingIdentifierMode,
-        NFTCoreError::InvalidIdentifierMode
-    ).try_into().unwrap_or_revert();
+        NFTCoreError::InvalidIdentifierMode,
+    )
+    .try_into()
+    .unwrap_or_revert();
     for (page_number, is_page_allocated) in page_record.into_iter().enumerate() {
         if is_page_allocated {
             let single_page_uref = get_uref(
@@ -704,21 +711,18 @@ pub(crate) fn get_all_owned_token_identifiers(token_owner: Key) -> Vec<TokenIden
                 if is_token_owned {
                     let token_number = (page_number as u64 * PAGE_SIZE) + (page_index as u64);
                     let token_identifier = match identifier_mode {
-                        NFTIdentifierMode::Ordinal => {
-                             get_dictionary_value_from_key::<u64>(
-                                FORWARD_TRACKER,
-                                &token_number.to_string(),
-                            ).map(TokenIdentifier::new_index)
-                                .unwrap_or_revert()
-                        }
-                        NFTIdentifierMode::Hash => {
-                             get_dictionary_value_from_key::<String>(
-                                FORWARD_TRACKER,
-                                &token_number.to_string(),
-                            )
-                                .map(TokenIdentifier::new_hash)
-                                .unwrap_or_revert()
-                        }
+                        NFTIdentifierMode::Ordinal => get_dictionary_value_from_key::<u64>(
+                            FORWARD_TRACKER,
+                            &token_number.to_string(),
+                        )
+                        .map(TokenIdentifier::new_index)
+                        .unwrap_or_revert(),
+                        NFTIdentifierMode::Hash => get_dictionary_value_from_key::<String>(
+                            FORWARD_TRACKER,
+                            &token_number.to_string(),
+                        )
+                        .map(TokenIdentifier::new_hash)
+                        .unwrap_or_revert(),
                     };
                     token_identifiers.push(token_identifier)
                 }

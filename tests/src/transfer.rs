@@ -14,8 +14,7 @@ use crate::utility::{
         ARG_TARGET_KEY, ARG_TOKEN_HASH, ARG_TOKEN_ID, ARG_TOKEN_META_DATA, ARG_TOKEN_OWNER,
         BALANCES, CONTRACT_NAME, ENTRY_POINT_APPROVE, ENTRY_POINT_MINT, ENTRY_POINT_TRANSFER,
         MINTING_CONTRACT_WASM, MINT_SESSION_WASM, NFT_CONTRACT_WASM, NFT_TEST_COLLECTION,
-        NFT_TEST_SYMBOL, OPERATOR, TEST_PRETTY_721_META_DATA, TOKEN_OWNERS,
-        TRANSFER_SESSION_WASM,
+        NFT_TEST_SYMBOL, OPERATOR, TEST_PRETTY_721_META_DATA, TOKEN_OWNERS, TRANSFER_SESSION_WASM,
     },
     installer_request_builder::{
         InstallerRequestBuilder, MetadataMutability, MintingMode, NFTHolderMode, NFTIdentifierMode,
@@ -179,8 +178,6 @@ fn should_transfer_token_from_sender_to_receiver() {
 
     assert_eq!(actual_token_owner, token_receiver.to_account_hash()); // Change  token_receiver to token_owner for red test
 
-
-
     let token_receiver_page = support::get_token_page_by_id(
         &builder,
         &nft_contract_key,
@@ -189,7 +186,6 @@ fn should_transfer_token_from_sender_to_receiver() {
     );
 
     assert!(token_receiver_page[0]);
-
 
     let actual_sender_balance: u64 = support::get_dictionary_value_from_key(
         &builder,

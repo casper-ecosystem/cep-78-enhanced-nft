@@ -1,10 +1,13 @@
-use crate::utility::constants::{ARG_KEY_NAME, ARG_NFT_CONTRACT_HASH, HASH_KEY_NAME, MINTING_CONTRACT_NAME, PAGE_DICTIONARY_PREFIX, PAGE_SIZE, REVERSE_TRACKER};
+use crate::utility::constants::{
+    ARG_KEY_NAME, ARG_NFT_CONTRACT_HASH, HASH_KEY_NAME, MINTING_CONTRACT_NAME,
+    PAGE_DICTIONARY_PREFIX, PAGE_SIZE, REVERSE_TRACKER,
+};
 use blake2::{
     digest::{Update, VariableOutput},
     VarBlake2b,
 };
-use serde::{Serialize, Deserialize};
 use rand::prelude::*;
+use serde::{Deserialize, Serialize};
 use sha256::digest;
 
 use super::{constants::CONTRACT_NAME, installer_request_builder::InstallerRequestBuilder};
@@ -16,8 +19,12 @@ use casper_execution_engine::{
     core::{engine_state::Error as EngineStateError, execution},
     storage::global_state::in_memory::InMemoryGlobalState,
 };
-use casper_types::{account::AccountHash, bytesrepr::FromBytes, ApiError, CLTyped, ContractHash, Key, PublicKey, RuntimeArgs, SecretKey, URef, BLAKE2B_DIGEST_LENGTH, ContractPackageHash};
-use casper_types::bytesrepr::ToBytes;
+use casper_types::{
+    account::AccountHash,
+    bytesrepr::{FromBytes, ToBytes},
+    ApiError, CLTyped, CLValueError, ContractHash, ContractPackageHash, Key, PublicKey,
+    RuntimeArgs, SecretKey, URef, BLAKE2B_DIGEST_LENGTH,
+};
 
 pub(crate) fn get_nft_contract_hash(
     builder: &WasmTestBuilder<InMemoryGlobalState>,
@@ -194,7 +201,7 @@ impl CEP78Metadata {
         Self {
             name,
             token_uri,
-            checksum
+            checksum,
         }
     }
 
@@ -216,29 +223,44 @@ pub(crate) fn make_page_dictionary_item_key(
     base16::encode_lower(&key_bytes)
 }
 
-
-pub(crate) fn get_token_page_by_id(builder: &WasmTestBuilder<InMemoryGlobalState>, nft_contract_key: &Key, token_owner_key: &Key, token_id: u64,
-                                   ) -> Vec<bool> {
+pub(crate) fn get_token_page_by_id(
+    builder: &WasmTestBuilder<InMemoryGlobalState>,
+    nft_contract_key: &Key,
+    token_owner_key: &Key,
+    token_id: u64,
+) -> Vec<bool> {
     let page_number = token_id / PAGE_SIZE;
     let token_page_item_key = make_page_dictionary_item_key(token_owner_key, page_number);
     let token_page = get_dictionary_value_from_key(
         builder,
         nft_contract_key,
         &format!("{}-{}", PAGE_DICTIONARY_PREFIX, page_number),
-        &token_page_item_key
+        &token_page_item_key,
     );
     token_page
 }
 
-pub(crate) fn get_token_page_by_hash(builder: &WasmTestBuilder<InMemoryGlobalState>, nft_contract_key: &Key, token_owner_key: &Key, token_hash: String) -> Vec<bool> {
-    let token_number: u64 = get_dictionary_value_from_key(builder, nft_contract_key, REVERSE_TRACKER, &token_hash);
+pub(crate) fn get_token_page_by_hash(
+    builder: &WasmTestBuilder<InMemoryGlobalState>,
+    nft_contract_key: &Key,
+    token_owner_key: &Key,
+    token_hash: String,
+) -> Vec<bool> {
+    let token_number: u64 =
+        get_dictionary_value_from_key(builder, nft_contract_key, REVERSE_TRACKER, &token_hash);
     get_token_page_by_id(builder, nft_contract_key, token_owner_key, token_number)
 }
 
-pub(crate) fn get_owned_tokens_dictionary_item_key(token_owner_key: Key) -> String {
-    match token_owner_key {
-        Key::Account(token_owner_account_hash) => token_owner_account_hash.to_string(),
-        Key::Hash(token_owner_hash_addr) => ContractHash::new(token_owner_hash_addr).to_string(),
-        _ => panic!("Invalid key variant"),
-    }
+pub(crate) fn get_stored_value_from_global_state<T: CLTyped + FromBytes>(
+    builder: &InMemoryWasmTestBuilder,
+    query_key: Key,
+    path: Vec<String>,
+) -> Result<T, CLValueError> {
+    builder
+        .query(None, query_key, &path)
+        .unwrap()
+        .as_cl_value()
+        .unwrap()
+        .clone()
+        .into_t::<T>()
 }

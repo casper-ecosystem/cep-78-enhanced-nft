@@ -48,12 +48,12 @@ use crate::{
         ENTRY_POINT_BURN, ENTRY_POINT_GET_APPROVED, ENTRY_POINT_INIT, ENTRY_POINT_METADATA,
         ENTRY_POINT_MINT, ENTRY_POINT_OWNER_OF, ENTRY_POINT_SET_APPROVE_FOR_ALL,
         ENTRY_POINT_SET_TOKEN_METADATA, ENTRY_POINT_SET_VARIABLES, ENTRY_POINT_TRANSFER,
-        FORWARD_TRACKER, HASH_KEY_NAME, HOLDER_MODE, IDENTIFIER_MODE, INSTALLER, JSON_SCHEMA,
-        MAX_PAGE_NUMBER, METADATA_CEP78, METADATA_CUSTOM_VALIDATED, METADATA_MUTABILITY,
-        METADATA_NFT721, METADATA_RAW, MINTING_MODE, NFT_KIND, NFT_METADATA_KIND,
-        NUMBER_OF_MINTED_TOKENS, OPERATOR, OWNED_TOKENS, OWNERSHIP_MODE, PAGE_DICTIONARY_PREFIX,
-        RECEIPT_NAME, REVERSE_TRACKER, TOKEN_COUNTS, TOKEN_COUNT_AT_UPGRADE, TOKEN_ISSUERS,
-        TOKEN_OWNERS, TOTAL_TOKEN_SUPPLY, WHITELIST_MODE,
+        ENTRY_POINT_UPDATE, ENTRY_POINT_UPGRADE, FORWARD_TRACKER, HASH_KEY_NAME, HOLDER_MODE,
+        IDENTIFIER_MODE, INSTALLER, JSON_SCHEMA, MAX_PAGE_NUMBER, METADATA_CEP78,
+        METADATA_CUSTOM_VALIDATED, METADATA_MUTABILITY, METADATA_NFT721, METADATA_RAW,
+        MINTING_MODE, NFT_KIND, NFT_METADATA_KIND, NUMBER_OF_MINTED_TOKENS, OPERATOR, OWNED_TOKENS,
+        OWNERSHIP_MODE, PAGE_DICTIONARY_PREFIX, RECEIPT_NAME, REVERSE_TRACKER, TOKEN_COUNTS,
+        TOKEN_COUNT_AT_UPGRADE, TOKEN_ISSUERS, TOKEN_OWNERS, TOTAL_TOKEN_SUPPLY, WHITELIST_MODE,
     },
     error::NFTCoreError,
     metadata::CustomMetadataSchema,
@@ -63,7 +63,6 @@ use crate::{
     },
     utils::{get_uref, PAGE_SIZE},
 };
-use crate::constants::{ENTRY_POINT_UPDATE, ENTRY_POINT_UPGRADE};
 
 #[no_mangle]
 pub extern "C" fn init() {
@@ -1342,32 +1341,35 @@ pub extern "C" fn upgrade() {
     }
 }
 
-
 #[no_mangle]
 pub extern "C" fn update_receipts() {
-    let token_owner = utils::get_verified_caller()
-        .unwrap_or_revert();
+    let token_owner = utils::get_verified_caller().unwrap_or_revert();
 
     let identifier_mode: NFTIdentifierMode = utils::get_stored_value_with_user_errors::<u8>(
         IDENTIFIER_MODE,
         NFTCoreError::MissingIdentifierMode,
-        NFTCoreError::InvalidIdentifierMode
-    ).try_into().unwrap_or_revert();
+        NFTCoreError::InvalidIdentifierMode,
+    )
+    .try_into()
+    .unwrap_or_revert();
 
-    if identifier_mode == NFTIdentifierMode::Hash && utils::should_break_up_owned_token_hashes(token_owner) {
+    if identifier_mode == NFTIdentifierMode::Hash
+        && utils::should_break_up_owned_token_hashes(token_owner)
+    {
         utils::should_break_up_owned_token_hashes(token_owner);
     }
 
     let receipt = utils::get_stored_value_with_user_errors::<String>(
         RECEIPT_NAME,
         NFTCoreError::MissingReceiptName,
-        NFTCoreError::InvalidReceiptName
+        NFTCoreError::InvalidReceiptName,
     );
 
     let token_page_record = utils::get_dictionary_value_from_key::<Vec<bool>>(
         ALL_TOKEN_OWNERS,
-        &utils::get_owned_tokens_dictionary_item_key(token_owner)
-    ).unwrap_or_default();
+        &utils::get_owned_tokens_dictionary_item_key(token_owner),
+    )
+    .unwrap_or_default();
 
     let mut receipt_collection: Vec<(String, Key)> = vec![];
 
@@ -1376,10 +1378,12 @@ pub extern "C" fn update_receipts() {
             let single_page_uref = utils::get_uref(
                 &format!("{}-{}", PAGE_DICTIONARY_PREFIX, page_number),
                 NFTCoreError::MissingPageUref,
-                NFTCoreError::InvalidPageUref
+                NFTCoreError::InvalidPageUref,
             );
-            let single_page_item_key = utils::make_page_dictionary_item_key(&token_owner, page_number as u64);
-            let single_page_dictionary_address = Key::dictionary(single_page_uref, single_page_item_key.as_bytes());
+            let single_page_item_key =
+                utils::make_page_dictionary_item_key(&token_owner, page_number as u64);
+            let single_page_dictionary_address =
+                Key::dictionary(single_page_uref, single_page_item_key.as_bytes());
             let receipt_name = format!("{}-m-{}-p-{}", receipt, PAGE_SIZE, page_number);
             receipt_collection.push((receipt_name, single_page_dictionary_address))
         }
@@ -1387,7 +1391,6 @@ pub extern "C" fn update_receipts() {
 
     runtime::ret(CLValue::from_t(receipt_collection).unwrap_or_revert())
 }
-
 
 fn generate_entry_points() -> EntryPoints {
     let mut entry_points = EntryPoints::new();
@@ -1579,15 +1582,18 @@ fn generate_entry_points() -> EntryPoints {
         vec![Parameter::new(ARG_NFT_PACKAGE_HASH, CLType::Any)],
         CLType::Unit,
         EntryPointAccess::Public,
-        EntryPointType::Contract
+        EntryPointType::Contract,
     );
 
     let update_receipts = EntryPoint::new(
         ENTRY_POINT_UPDATE,
         vec![],
-        CLType::List(Box::new(CLType::Tuple2([Box::new(CLType::String), Box::new(CLType::Key)]))),
+        CLType::List(Box::new(CLType::Tuple2([
+            Box::new(CLType::String),
+            Box::new(CLType::Key),
+        ]))),
         EntryPointAccess::Public,
-        EntryPointType::Contract
+        EntryPointType::Contract,
     );
 
     entry_points.add_entry_point(init_contract);
@@ -1606,7 +1612,6 @@ fn generate_entry_points() -> EntryPoints {
     entry_points.add_entry_point(update_receipts);
     entry_points
 }
-
 
 fn install_nft_contract() -> (ContractHash, ContractVersion) {
     let entry_points = generate_entry_points();
@@ -1634,7 +1639,7 @@ fn gather_installation_runtime_args_and_install() {
         NFTCoreError::MissingCollectionName,
         NFTCoreError::InvalidCollectionName,
     )
-        .unwrap_or_revert();
+    .unwrap_or_revert();
 
     // TODO: figure out examples of collection_symbol
     // The symbol for the NFT collection.
@@ -1644,7 +1649,7 @@ fn gather_installation_runtime_args_and_install() {
         NFTCoreError::MissingCollectionSymbol,
         NFTCoreError::InvalidCollectionSymbol,
     )
-        .unwrap_or_revert();
+    .unwrap_or_revert();
 
     // This represents the total number of NFTs that will
     // be minted by a specific instance of a contract.
@@ -1654,13 +1659,13 @@ fn gather_installation_runtime_args_and_install() {
         NFTCoreError::MissingTotalTokenSupply,
         NFTCoreError::InvalidTotalTokenSupply,
     )
-        .unwrap_or_revert();
+    .unwrap_or_revert();
 
     let allow_minting: bool = utils::get_optional_named_arg_with_user_errors(
         ARG_ALLOW_MINTING,
         NFTCoreError::InvalidMintingStatus,
     )
-        .unwrap_or(true);
+    .unwrap_or(true);
 
     // Represents the modes in which NFTs can be minted, i.e whether a singular known
     // entity v. users interacting with the contract. Refer to the `MintingMode`
@@ -1670,7 +1675,7 @@ fn gather_installation_runtime_args_and_install() {
         ARG_MINTING_MODE,
         NFTCoreError::InvalidMintingMode,
     )
-        .unwrap_or(0);
+    .unwrap_or(0);
 
     // Represents the ownership model of the NFTs that will be minted
     // over the lifetime of the contract. Refer to the enum `OwnershipMode`
@@ -1681,7 +1686,7 @@ fn gather_installation_runtime_args_and_install() {
         NFTCoreError::MissingOwnershipMode,
         NFTCoreError::InvalidOwnershipMode,
     )
-        .unwrap_or_revert();
+    .unwrap_or_revert();
 
     // Represents the type of NFT (i.e something physical/digital)
     // which will be minted over the lifetime of the contract.
@@ -1693,7 +1698,7 @@ fn gather_installation_runtime_args_and_install() {
         NFTCoreError::MissingNftKind,
         NFTCoreError::InvalidNftKind,
     )
-        .unwrap_or_revert();
+    .unwrap_or_revert();
 
     // Represents whether Accounts or Contracts, or both can hold NFTs for
     // a given contract instance. Refer to the enum `NFTHolderMode`
@@ -1703,7 +1708,7 @@ fn gather_installation_runtime_args_and_install() {
         ARG_HOLDER_MODE,
         NFTCoreError::InvalidHolderMode,
     )
-        .unwrap_or(2u8);
+    .unwrap_or(2u8);
 
     // Represents whether a given contract whitelist can be modified
     // for a given NFT contract instance. If not provided as an argument
@@ -1713,7 +1718,7 @@ fn gather_installation_runtime_args_and_install() {
         ARG_WHITELIST_MODE,
         NFTCoreError::InvalidWhitelistMode,
     )
-        .unwrap_or(0u8);
+    .unwrap_or(0u8);
 
     // A whitelist of contract hashes specifying which contracts can mint
     // NFTs in the contract holder mode with restricted minting.
@@ -1723,7 +1728,7 @@ fn gather_installation_runtime_args_and_install() {
         ARG_CONTRACT_WHITELIST,
         NFTCoreError::InvalidContractWhitelist,
     )
-        .unwrap_or_default();
+    .unwrap_or_default();
 
     // Represents the schema for the metadata for a given NFT contract instance.
     // Refer to the `NFTMetadataKind` enum in src/utils for details.
@@ -1733,7 +1738,7 @@ fn gather_installation_runtime_args_and_install() {
         NFTCoreError::MissingNFTMetadataKind,
         NFTCoreError::InvalidNFTMetadataKind,
     )
-        .unwrap_or_revert();
+    .unwrap_or_revert();
 
     // The JSON schema representation of the NFT which will be minted.
     // This value cannot be changed after installation.
@@ -1742,7 +1747,7 @@ fn gather_installation_runtime_args_and_install() {
         NFTCoreError::MissingJsonSchema,
         NFTCoreError::InvalidJsonSchema,
     )
-        .unwrap_or_revert();
+    .unwrap_or_revert();
 
     // Represents whether NFTs minted by a given contract will be identified
     // by an ordinal u64 index or a base16 encoded SHA256 hash of an NFTs metadata.
@@ -1753,7 +1758,7 @@ fn gather_installation_runtime_args_and_install() {
         NFTCoreError::MissingIdentifierMode,
         NFTCoreError::InvalidIdentifierMode,
     )
-        .unwrap_or_revert();
+    .unwrap_or_revert();
 
     // Represents whether the metadata related to NFTs can be updated.
     // This value cannot be changed after installation. Refer to `MetadataMutability` in
@@ -1763,7 +1768,7 @@ fn gather_installation_runtime_args_and_install() {
         NFTCoreError::MissingMetadataMutability,
         NFTCoreError::InvalidMetadataMutability,
     )
-        .unwrap_or_revert();
+    .unwrap_or_revert();
 
     if identifier_mode == 1 && metadata_mutability == 1 {
         runtime::revert(NFTCoreError::InvalidMetadataMutability)
@@ -1776,7 +1781,7 @@ fn gather_installation_runtime_args_and_install() {
         ARG_BURN_MODE,
         NFTCoreError::InvalidBurnMode,
     )
-        .unwrap_or(0u8);
+    .unwrap_or(0u8);
 
     let (contract_hash, contract_version) = install_nft_contract();
 
@@ -1848,9 +1853,13 @@ fn upgrade_nft_contract() {
 
     storage::write(version_uref, contract_version);
 
-    runtime::call_contract::<()>(contract_hash, ENTRY_POINT_UPGRADE, runtime_args! {
-        ARG_NFT_PACKAGE_HASH => nft_contact_package_hash
-    });
+    runtime::call_contract::<()>(
+        contract_hash,
+        ENTRY_POINT_UPGRADE,
+        runtime_args! {
+            ARG_NFT_PACKAGE_HASH => nft_contact_package_hash
+        },
+    );
 }
 
 #[no_mangle]
