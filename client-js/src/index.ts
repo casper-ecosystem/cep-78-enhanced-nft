@@ -99,6 +99,7 @@ export class CEP78Client {
       nft_kind: CLValueBuilder.u8(args.nftKind),
       json_schema: CLValueBuilder.string(JSON.stringify(args.jsonSchema)),
       nft_metadata_kind: CLValueBuilder.u8(args.nftMetadataKind),
+      // two below can conflict
       identifier_mode: CLValueBuilder.u8(args.identifierMode),
       metadata_mutability: CLValueBuilder.u8(args.metadataMutability),
     });

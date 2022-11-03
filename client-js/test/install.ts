@@ -1,18 +1,4 @@
 import {
-  CasperClient,
-  Contracts,
-  CLPublicKey,
-  CLKey,
-  CLAccountHash,
-  CLByteArray,
-  CLValueBuilder,
-  RuntimeArgs,
-  Keys,
-  decodeBase64,
-  DeployUtil,
-} from "casper-js-sdk";
-
-import {
   CEP78Client,
   NFTOwnershipMode,
   NFTKind,
@@ -51,8 +37,8 @@ const install = async () => {
             required: false,
           },
           vin: { name: "vin", description: "", required: true },
-          registerationDate: {
-            name: "registerationDate",
+          registrationDate: {
+            name: "registrationDate",
             description: "",
             required: true,
           },

@@ -1,6 +1,4 @@
-import {
-  CEP78Client,
-} from "../src/index";
+import { CEP78Client } from "../src/index";
 
 import {
   FAUCET_KEYS,
@@ -83,7 +81,7 @@ const run = async () => {
         fuelType: "petrol",
         engineCapacity: "2000",
         vin: "4Y1SL65848Z411439",
-        registerationDate: "2019-10-01",
+        registrationDate: "2019-10-01",
       },
     },
     "1000000000",
@@ -111,7 +109,7 @@ const run = async () => {
     {
       tokenId: "0",
       source: FAUCET_KEYS.publicKey,
-      target: USER1_KEYS.publicKey
+      target: USER1_KEYS.publicKey,
     },
     "13000000000",
     FAUCET_KEYS.publicKey,
