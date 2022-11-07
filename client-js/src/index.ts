@@ -1,4 +1,7 @@
+import { Some } from "ts-results";
 import {
+  CLMap,
+  CLString,
   CLPublicKey,
   CLKey,
   RuntimeArgs,
@@ -8,10 +11,7 @@ import {
   CLValueBuilder,
   CLU8,
 } from "casper-js-sdk";
-import { Some } from "ts-results";
 import * as fs from "fs";
-
-const { Contract } = Contracts;
 
 import {
   InstallArgs,
@@ -28,6 +28,8 @@ import {
   NFTMetadataKind,
   NFTKind,
 } from "./types";
+
+const { Contract } = Contracts;
 
 export {
   InstallArgs,
@@ -67,13 +69,14 @@ const buildKeyHashList = (list: string[]) =>
 // TODO: In future, when we want to support also
 // browser version - we will need to polyfill this
 // and move to some separate module.
-export const getBinary = (pathToBinary: string) => {
-  return new Uint8Array(fs.readFileSync(pathToBinary, null).buffer);
-};
+export const getBinary = (pathToBinary: string) =>
+  new Uint8Array(fs.readFileSync(pathToBinary, null).buffer);
 
 export class CEP78Client {
   casperClient: CasperClient;
+
   contractClient: Contracts.Contract;
+
   contractHashKey: CLKey;
 
   constructor(public nodeAddress: string, public networkName: string) {
@@ -294,7 +297,7 @@ export class CEP78Client {
     return preparedDeploy;
   }
 
-  public async mint(
+  public mint(
     args: MintArgs,
     paymentAmount: string,
     deploySender: CLPublicKey,
@@ -321,7 +324,7 @@ export class CEP78Client {
     return preparedDeploy;
   }
 
-  public async burn(
+  public burn(
     args: BurnArgs,
     paymentAmount: string,
     deploySender: CLPublicKey,
@@ -349,7 +352,7 @@ export class CEP78Client {
     return preparedDeploy;
   }
 
-  public async transfer(
+  public transfer(
     args: TransferArgs,
     paymentAmount: string,
     deploySender: CLPublicKey,
@@ -400,7 +403,7 @@ export class CEP78Client {
       tokenId
     );
 
-    return `account-hash-${result.toJSON()}`;
+    return `account-hash-${(result as CLKey).toJSON()}`;
   }
 
   public async getMetadataOf(tokenId: string, metadataType?: NFTMetadataKind) {
@@ -419,7 +422,9 @@ export class CEP78Client {
       tokenId
     );
 
-    return result.toJSON();
+    const clMap = result as CLMap<CLString, CLString>;
+
+    return clMap.toJSON() as { [key: string]: string };
   }
 
   public async getBalanceOf(account: CLPublicKey) {
@@ -428,6 +433,6 @@ export class CEP78Client {
       account.toAccountHashStr().slice(13)
     );
 
-    return result.toJSON();
+    return (result as CLU8).toJSON();
   }
 }
