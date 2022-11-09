@@ -11,7 +11,10 @@ use crate::utility::{
         CONTRACT_NAME, ENTRY_POINT_INIT, NFT_CONTRACT_WASM, NFT_TEST_COLLECTION, NFT_TEST_SYMBOL,
         NUMBER_OF_MINTED_TOKENS,
     },
-    installer_request_builder::{InstallerRequestBuilder, NFTHolderMode, WhitelistMode},
+    installer_request_builder::{
+        InstallerRequestBuilder, NFTHolderMode, NFTIdentifierMode, NFTMetadataKind, OwnershipMode,
+        WhitelistMode,
+    },
     support,
 };
 
@@ -266,4 +269,25 @@ fn should_disallow_installation_of_contract_with_empty_locked_whitelist() {
         83,
         "should fail execution since whitelist mode is locked and the provided whitelist is empty",
     );
+}
+
+#[test]
+fn should_disallow_installation_with_zero_issuance() {
+    let mut builder = InMemoryWasmTestBuilder::default();
+    builder.run_genesis(&DEFAULT_RUN_GENESIS_REQUEST).commit();
+
+    let install_request = InstallerRequestBuilder::new(*DEFAULT_ACCOUNT_ADDR, NFT_CONTRACT_WASM)
+        .with_collection_name(NFT_TEST_COLLECTION.to_string())
+        .with_collection_symbol(NFT_TEST_SYMBOL.to_string())
+        .with_total_token_supply(0u64)
+        .with_ownership_mode(OwnershipMode::Minter)
+        .with_identifier_mode(NFTIdentifierMode::Ordinal)
+        .with_nft_metadata_kind(NFTMetadataKind::Raw)
+        .build();
+
+    builder.exec(install_request).expect_failure().commit();
+
+    let error = builder.get_error().expect("must have error");
+
+    support::assert_expected_error(error, 123u16, "cannot install when issuance is 0");
 }

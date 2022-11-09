@@ -1,5 +1,5 @@
 [package]
-name = "migrate"
+name = "updated_receipts"
 version = "0.1.0"
 edition = "2021"
 
@@ -10,7 +10,7 @@ casper-contract = "1.4.3"
 casper-types = "1.5.0"
 
 [[bin]]
-name = "migrate"
+name = "updated_receipts"
 path = "src/main.rs"
 bench = false
 doctest = false

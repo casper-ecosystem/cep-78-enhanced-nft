@@ -1,6 +1,6 @@
 use crate::utility::constants::{
-    ARG_KEY_NAME, ARG_NFT_CONTRACT_HASH, HASH_KEY_NAME, MINTING_CONTRACT_NAME,
-    PAGE_DICTIONARY_PREFIX, PAGE_SIZE, REVERSE_TRACKER,
+    ARG_KEY_NAME, ARG_NFT_CONTRACT_HASH, HASH_KEY_NAME, INDEX_BY_HASH, MINTING_CONTRACT_NAME,
+    PAGE_DICTIONARY_PREFIX, PAGE_SIZE,
 };
 use blake2::{
     digest::{Update, VariableOutput},
@@ -234,7 +234,7 @@ pub(crate) fn get_token_page_by_id(
     let token_page = get_dictionary_value_from_key(
         builder,
         nft_contract_key,
-        &format!("{}-{}", PAGE_DICTIONARY_PREFIX, page_number),
+        &format!("{}{}", PAGE_DICTIONARY_PREFIX, page_number),
         &token_page_item_key,
     );
     token_page
@@ -247,7 +247,7 @@ pub(crate) fn get_token_page_by_hash(
     token_hash: String,
 ) -> Vec<bool> {
     let token_number: u64 =
-        get_dictionary_value_from_key(builder, nft_contract_key, REVERSE_TRACKER, &token_hash);
+        get_dictionary_value_from_key(builder, nft_contract_key, INDEX_BY_HASH, &token_hash);
     get_token_page_by_id(builder, nft_contract_key, token_owner_key, token_number)
 }
 
@@ -263,4 +263,8 @@ pub(crate) fn get_stored_value_from_global_state<T: CLTyped + FromBytes>(
         .unwrap()
         .clone()
         .into_t::<T>()
+}
+
+pub(crate) fn get_receipt_name(nft_receipt: String, page_table_entry: u64) -> String {
+    format!("{}-m-{}-p-{}", nft_receipt, PAGE_SIZE, page_table_entry)
 }

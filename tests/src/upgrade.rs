@@ -8,9 +8,9 @@ use crate::utility::{
     constants::{
         ACCESS_KEY_NAME, ACCOUNT_USER_1, ARG_IS_HASH_IDENTIFIER_MODE, ARG_NFT_CONTRACT_HASH,
         ARG_NFT_PACKAGE_HASH, ARG_SOURCE_KEY, ARG_TARGET_KEY, ARG_TOKEN_HASH, ARG_TOKEN_META_DATA,
-        ARG_TOKEN_OWNER, BACKFILLED_TOKEN_TRACKER, CONTRACT_1_0_0_WASM, MAX_PAGE_NUMBER,
-        MIGRATE_WASM, MINT_SESSION_WASM, NFT_CONTRACT_WASM, NFT_TEST_COLLECTION, NFT_TEST_SYMBOL,
-        PAGE_SIZE, RECEIPT_NAME, TOKEN_COUNT_AT_UPGRADE, TRANSFER_SESSION_WASM,
+        ARG_TOKEN_OWNER, CONTRACT_1_0_0_WASM, MINT_SESSION_WASM, NFT_CONTRACT_WASM,
+        NFT_TEST_COLLECTION, NFT_TEST_SYMBOL, PAGE_LIMIT, PAGE_SIZE, RECEIPT_NAME,
+        TRANSFER_SESSION_WASM, UNMATCHED_HASH_COUNT, UPDATED_RECEIPTS_WASM,
     },
     installer_request_builder::{
         InstallerRequestBuilder, MetadataMutability, NFTIdentifierMode, NFTMetadataKind,
@@ -40,7 +40,9 @@ fn should_safely_upgrade_in_ordinal_identifier_mode() {
     let nft_contract_hash_1_0_0 = support::get_nft_contract_hash(&builder);
     let nft_contract_key_1_0_0: Key = nft_contract_hash_1_0_0.into();
 
-    for _ in 0..3 {
+    let number_of_tokens_pre_migration = 3usize;
+
+    for _ in 0..number_of_tokens_pre_migration {
         let mint_request = ExecuteRequestBuilder::standard(
             *DEFAULT_ACCOUNT_ADDR,
             MINT_SESSION_WASM,
@@ -92,7 +94,7 @@ fn should_safely_upgrade_in_ordinal_identifier_mode() {
     let nft_contract_key: Key = nft_contract_hash.into();
 
     let actual_page_record_width = builder
-        .query(None, nft_contract_key, &[MAX_PAGE_NUMBER.to_string()])
+        .query(None, nft_contract_key, &[PAGE_LIMIT.to_string()])
         .expect("must have the stored value")
         .as_cl_value()
         .map(|page_cl_value| CLValue::into_t::<u64>(page_cl_value.clone()))
@@ -111,8 +113,8 @@ fn should_safely_upgrade_in_ordinal_identifier_mode() {
     );
 
     let expected_page = {
-        let mut page = vec![false; 10];
-        for page_entry in page.iter_mut().take(3) {
+        let mut page = vec![false; PAGE_SIZE as usize];
+        for page_entry in page.iter_mut().take(number_of_tokens_pre_migration) {
             *page_entry = true;
         }
         page
@@ -216,19 +218,10 @@ fn should_safely_upgrade_in_hash_identifier_mode() {
     let nft_contract_hash = support::get_nft_contract_hash(&builder);
     let nft_contract_key: Key = nft_contract_hash.into();
 
-    let token_hash_tracker = support::get_stored_value_from_global_state::<u64>(
-        &builder,
-        nft_contract_key,
-        vec![BACKFILLED_TOKEN_TRACKER.to_string()],
-    )
-    .expect("must get u64 value");
-
-    assert_eq!(token_hash_tracker, 0);
-
     let number_of_tokens_at_upgrade = support::get_stored_value_from_global_state::<u64>(
         &builder,
         nft_contract_key,
-        vec![TOKEN_COUNT_AT_UPGRADE.to_string()],
+        vec![UNMATCHED_HASH_COUNT.to_string()],
     )
     .expect("must get u64 value");
 
@@ -266,7 +259,7 @@ fn should_safely_upgrade_in_hash_identifier_mode() {
     );
 
     let expected_page = {
-        let mut page = vec![false; 10];
+        let mut page = vec![false; PAGE_SIZE as usize];
         for page_ownership in page.iter_mut().take(4) {
             *page_ownership = true;
         }
@@ -296,11 +289,16 @@ fn should_safely_upgrade_in_hash_identifier_mode() {
         expected_metadata[0].clone(),
     );
 
-    assert!(actual_page[0])
+    // Because token hashes are backfilled, during the migration the
+    // bits of the page are filled from right to left as the address
+    // counts down instead of up. Thus as the `expected_metadata[0]`
+    // represents the first hash to be retroactively filled in reverse
+    // the address of the token hash is [2] instead of [0]
+    assert!(actual_page[2])
 }
 
 #[test]
-fn should_update_receipts_post_upgrade() {
+fn should_update_receipts_post_upgrade_paged() {
     let mut builder = InMemoryWasmTestBuilder::default();
     builder.run_genesis(&DEFAULT_RUN_GENESIS_REQUEST).commit();
 
@@ -350,7 +348,7 @@ fn should_update_receipts_post_upgrade() {
 
     let migrate_request = ExecuteRequestBuilder::standard(
         *DEFAULT_ACCOUNT_ADDR,
-        MIGRATE_WASM,
+        UPDATED_RECEIPTS_WASM,
         runtime_args! {
             ARG_NFT_PACKAGE_HASH => nft_package_key
         },
@@ -377,7 +375,7 @@ fn should_update_receipts_post_upgrade() {
 
     let receipt_page_0 = *default_account
         .named_keys()
-        .get(&format!("{}-m-{}-p-{}", nft_receipt, PAGE_SIZE, 0))
+        .get(&support::get_receipt_name(nft_receipt.clone(), 0))
         .expect("must have page 0 receipt");
 
     let expected_page = vec![true; PAGE_SIZE as usize];
@@ -390,7 +388,7 @@ fn should_update_receipts_post_upgrade() {
 
     let receipt_page_1 = *default_account
         .named_keys()
-        .get(&format!("{}-m-{}-p-{}", nft_receipt, PAGE_SIZE, 1))
+        .get(&support::get_receipt_name(nft_receipt, 1))
         .expect("must have page 0 receipt");
 
     let actual_page_1 =
@@ -398,4 +396,79 @@ fn should_update_receipts_post_upgrade() {
             .expect("must get actual page");
 
     assert_eq!(expected_page, actual_page_1);
+}
+
+#[test]
+fn should_not_be_able_to_reinvoke_migrate_entrypoint() {
+    let mut builder = InMemoryWasmTestBuilder::default();
+    builder.run_genesis(&DEFAULT_RUN_GENESIS_REQUEST).commit();
+
+    let install_request = InstallerRequestBuilder::new(*DEFAULT_ACCOUNT_ADDR, CONTRACT_1_0_0_WASM)
+        .with_collection_name(NFT_TEST_COLLECTION.to_string())
+        .with_collection_symbol(NFT_TEST_SYMBOL.to_string())
+        .with_total_token_supply(100u64)
+        .with_ownership_mode(OwnershipMode::Minter)
+        .with_identifier_mode(NFTIdentifierMode::Ordinal)
+        .with_nft_metadata_kind(NFTMetadataKind::Raw)
+        .build();
+
+    builder.exec(install_request).expect_success().commit();
+
+    let upgrade_request = ExecuteRequestBuilder::standard(
+        *DEFAULT_ACCOUNT_ADDR,
+        NFT_CONTRACT_WASM,
+        runtime_args! {
+            ARG_NFT_PACKAGE_HASH => support::get_nft_contract_package_hash(&builder),
+        },
+    )
+    .build();
+
+    builder.exec(upgrade_request).expect_success().commit();
+
+    // Once the new contract version has been added to the package
+    // calling the updated_receipts entrypoint should cause an error to be returned.
+    let upgrade_request = ExecuteRequestBuilder::standard(
+        *DEFAULT_ACCOUNT_ADDR,
+        NFT_CONTRACT_WASM,
+        runtime_args! {
+            ARG_NFT_PACKAGE_HASH => support::get_nft_contract_package_hash(&builder),
+        },
+    )
+    .build();
+    builder.exec(upgrade_request).expect_failure();
+
+    let error = builder.get_error().expect("must have error");
+
+    support::assert_expected_error(error, 126u16, "must have previously migrated error");
+}
+
+#[test]
+fn should_not_migrate_contracts_with_zero_token_issuance() {
+    let mut builder = InMemoryWasmTestBuilder::default();
+    builder.run_genesis(&DEFAULT_RUN_GENESIS_REQUEST).commit();
+
+    let install_request = InstallerRequestBuilder::new(*DEFAULT_ACCOUNT_ADDR, CONTRACT_1_0_0_WASM)
+        .with_collection_name(NFT_TEST_COLLECTION.to_string())
+        .with_collection_symbol(NFT_TEST_SYMBOL.to_string())
+        .with_total_token_supply(0u64)
+        .with_ownership_mode(OwnershipMode::Minter)
+        .with_identifier_mode(NFTIdentifierMode::Ordinal)
+        .with_nft_metadata_kind(NFTMetadataKind::Raw)
+        .build();
+
+    builder.exec(install_request).expect_success().commit();
+
+    let upgrade_request = ExecuteRequestBuilder::standard(
+        *DEFAULT_ACCOUNT_ADDR,
+        NFT_CONTRACT_WASM,
+        runtime_args! {
+            ARG_NFT_PACKAGE_HASH => support::get_nft_contract_package_hash(&builder),
+        },
+    )
+    .build();
+    builder.exec(upgrade_request).expect_failure();
+
+    let error = builder.get_error().expect("must have error");
+
+    support::assert_expected_error(error, 122u16, "cannot upgrade when issuance is 0");
 }

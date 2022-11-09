@@ -12,7 +12,7 @@ build-contract:
 	cd client/owner_of_session && cargo build --release --target wasm32-unknown-unknown
 	cd client/get_approved_session && cargo build --release --target wasm32-unknown-unknown
 	cd client/transfer_session && cargo build --release --target wasm32-unknown-unknown
-	cd client/migrate && cargo build --release --target wasm32-unknown-unknown
+	cd client/updated_receipts && cargo build --release --target wasm32-unknown-unknown
 	cd test-contracts/minting_contract && cargo build --release --target wasm32-unknown-unknown
 	wasm-strip contract/target/wasm32-unknown-unknown/release/contract.wasm
 	wasm-strip client/mint_session/target/wasm32-unknown-unknown/release/mint_call.wasm
@@ -20,7 +20,7 @@ build-contract:
 	wasm-strip client/owner_of_session/target/wasm32-unknown-unknown/release/owner_of_call.wasm
 	wasm-strip client/get_approved_session/target/wasm32-unknown-unknown/release/get_approved_call.wasm
 	wasm-strip client/transfer_session/target/wasm32-unknown-unknown/release/transfer_call.wasm
-	wasm-strip client/migrate/target/wasm32-unknown-unknown/release/migrate.wasm
+	wasm-strip client/updated_receipts/target/wasm32-unknown-unknown/release/updated_receipts.wasm
 	wasm-strip test-contracts/minting_contract/target/wasm32-unknown-unknown/release/minting_contract.wasm
 
 setup-test: build-contract
@@ -31,7 +31,7 @@ setup-test: build-contract
 	cp client/owner_of_session/target/wasm32-unknown-unknown/release/owner_of_call.wasm tests/wasm
 	cp client/get_approved_session/target/wasm32-unknown-unknown/release/get_approved_call.wasm tests/wasm
 	cp client/transfer_session/target/wasm32-unknown-unknown/release/transfer_call.wasm tests/wasm
-	cp client/migrate/target/wasm32-unknown-unknown/release/migrate.wasm tests/wasm
+	cp client/updated_receipts/target/wasm32-unknown-unknown/release/updated_receipts.wasm tests/wasm
 	cp test-contracts/minting_contract/target/wasm32-unknown-unknown/release/minting_contract.wasm tests/wasm
 
 

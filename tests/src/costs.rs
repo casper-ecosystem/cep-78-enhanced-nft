@@ -61,6 +61,9 @@ fn mint_cost_should_remain_stable() {
 
     builder.exec(second_mint_request).expect_success().commit();
 
+    // We check only the second and third gas costs as the first mint cost
+    // has the additional gas of allocating a whole new page. Thus we ensure
+    // that costs once a page has been allocated remain stable.
     let second_mint_gas_costs = builder.last_exec_gas_cost();
 
     let third_mint_request = ExecuteRequestBuilder::standard(
@@ -151,6 +154,9 @@ fn transfer_costs_should_remain_stable() {
         .expect_success()
         .commit();
 
+    // We check only the second and third gas costs as the first transfer cost
+    // has the additional gas of allocating a whole new page. Thus we ensure
+    // that costs once a page has been allocated remain stable.
     let second_transfer_gas_cost = builder.last_exec_gas_cost();
 
     let third_transfer_request = ExecuteRequestBuilder::standard(
