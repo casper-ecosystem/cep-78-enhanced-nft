@@ -157,7 +157,10 @@ fn should_safely_upgrade_in_hash_identifier_mode() {
 
     let mut expected_metadata: Vec<String> = vec![];
 
-    for i in 0..3 {
+    let number_of_tokens_pre_migration = 3usize;
+
+    // Build of prestate before migration.
+    for i in 0..number_of_tokens_pre_migration {
         let token_metadata = support::CEP78Metadata::with_random_checksum(
             "Some Name".to_string(),
             format!("https://www.foobar.com/{}", i),
@@ -316,7 +319,10 @@ fn should_update_receipts_post_upgrade_paged() {
     let nft_contract_hash_1_0_0 = support::get_nft_contract_hash(&builder);
     let nft_contract_key_1_0_0: Key = nft_contract_hash_1_0_0.into();
 
-    for _ in 0..20 {
+    // We mint 20 tokens for a page size of 10 to ensure we get two updated
+    // receipts post migration
+    let number_of_tokens_pre_migration = 20usize;
+    for _ in 0..number_of_tokens_pre_migration {
         let mint_request = ExecuteRequestBuilder::standard(
             *DEFAULT_ACCOUNT_ADDR,
             MINT_SESSION_WASM,
