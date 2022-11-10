@@ -8,7 +8,7 @@ pub(crate) const GET_APPROVED_WASM: &str = "get_approved_call.wasm";
 pub(crate) const UPDATED_RECEIPTS_WASM: &str = "updated_receipts.wasm";
 pub(crate) const CONTRACT_NAME: &str = "nft_contract";
 pub(crate) const MINTING_CONTRACT_NAME: &str = "minting_contract_hash";
-pub(crate) const NFT_TEST_COLLECTION: &str = "nft_test";
+pub(crate) const NFT_TEST_COLLECTION: &str = "nft-test";
 pub(crate) const NFT_TEST_SYMBOL: &str = "TEST";
 pub(crate) const ENTRY_POINT_INIT: &str = "init";
 pub(crate) const ENTRY_POINT_SET_VARIABLES: &str = "set_variables";
@@ -88,7 +88,7 @@ pub(crate) const MALFORMED_META_DATA: &str = r#"{
   "token_uri": "https://www.barfoo.com"
 }"#;
 pub(crate) const ACCESS_KEY_NAME: &str = "nft_contract_package_access";
-pub(crate) const CONTRACT_1_0_0_WASM: &str = "contract_1_0_0.wasm";
+pub(crate) const CONTRACT_1_0_0_WASM: &str = "1_0_0/contract.wasm";
 pub(crate) const PAGE_SIZE: u64 = 10;
 pub(crate) const UNMATCHED_HASH_COUNT: &str = "unmatched_hash_count";
 pub(crate) const PAGE_DICTIONARY_PREFIX: &str = "page-";

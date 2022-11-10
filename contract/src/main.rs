@@ -1296,9 +1296,8 @@ pub extern "C" fn migrate() {
     );
 
     let new_receipt_string_representation = format!(
-        "nft-{}-{}",
-        collection_name,
-        new_contract_package_hash_representation.to_formatted_string()
+        "cep78-{}-{}",
+        collection_name, new_contract_package_hash_representation
     );
     storage::write(receipt_uref, new_receipt_string_representation);
 
@@ -1393,8 +1392,9 @@ fn generate_entry_points() -> EntryPoints {
             Parameter::new(ARG_RECEIPT_NAME, CLType::String),
             Parameter::new(ARG_IDENTIFIER_MODE, CLType::U8),
             Parameter::new(ARG_BURN_MODE, CLType::U8),
-        Parameter::new(ARG_NFT_METADATA_KIND, CLType::U8),
-                Parameter::new(ARG_METADATA_MUTABILITY, CLType::U8),],
+            Parameter::new(ARG_NFT_METADATA_KIND, CLType::U8),
+            Parameter::new(ARG_METADATA_MUTABILITY, CLType::U8),
+        ],
         CLType::Unit,
         EntryPointAccess::Public,
         EntryPointType::Contract,
@@ -1789,11 +1789,7 @@ fn install_contract() {
     // of a read only reference to the NFTs owned by the calling `Account` or `Contract`
     // This allows for users to look up a set of named keys and correctly identify
     // the contract package from which the NFTs were obtained.
-    let receipt_name = format!(
-        "nft-{}-{}",
-        collection_name,
-        package_hash.to_formatted_string()
-    );
+    let receipt_name = format!("cep78-{}-{}", collection_name, package_hash);
 
     // Call contract to initialize it
     runtime::call_contract::<()>(
