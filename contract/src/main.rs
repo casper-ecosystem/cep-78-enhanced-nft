@@ -595,13 +595,7 @@ pub extern "C" fn mint() {
 
     let receipt_address = Key::dictionary(page_uref, page_item_key.as_bytes());
 
-    let receipt_name = utils::get_stored_value_with_user_errors::<String>(
-        RECEIPT_NAME,
-        NFTCoreError::MissingReceiptName,
-        NFTCoreError::InvalidReceiptName,
-    );
-
-    let receipt_string = format!("{}-m-{}-p-{}", receipt_name, PAGE_SIZE, page_table_entry);
+    let receipt_string = utils::get_receipt_name(page_table_entry);
 
     let receipt = CLValue::from_t((receipt_string, receipt_address, token_identifier_string))
         .unwrap_or_revert_with(NFTCoreError::FailedToConvertToCLValue);
@@ -1019,13 +1013,7 @@ pub extern "C" fn transfer() {
         utils::encode_page_address(&source_owner_key, page_table_entry).as_bytes(),
     );
 
-    let receipt_name = utils::get_stored_value_with_user_errors::<String>(
-        RECEIPT_NAME,
-        NFTCoreError::MissingReceiptName,
-        NFTCoreError::InvalidReceiptName,
-    );
-
-    let receipt_string = format!("{}-m-{}-p-{}", receipt_name, PAGE_SIZE, page_table_entry);
+    let receipt_string = utils::get_receipt_name(page_table_entry);
 
     let receipt = CLValue::from_t((receipt_string, owned_tokens_actual_key))
         .unwrap_or_revert_with(NFTCoreError::FailedToConvertToCLValue);
@@ -1351,12 +1339,6 @@ pub extern "C" fn updated_receipts() {
         utils::should_migrate_token_hashes(token_owner);
     }
 
-    let receipt = utils::get_stored_value_with_user_errors::<String>(
-        RECEIPT_NAME,
-        NFTCoreError::MissingReceiptName,
-        NFTCoreError::InvalidReceiptName,
-    );
-
     let page_table = utils::get_dictionary_value_from_key::<Vec<bool>>(
         PAGE_TABLE,
         &utils::get_owned_tokens_dictionary_item_key(token_owner),
@@ -1376,7 +1358,7 @@ pub extern "C" fn updated_receipts() {
         );
         let page_item_key = utils::encode_page_address(&token_owner, page_table_entry as u64);
         let page_dictionary_address = Key::dictionary(page_uref, page_item_key.as_bytes());
-        let receipt_name = format!("{}-m-{}-p-{}", receipt, PAGE_SIZE, page_table_entry);
+        let receipt_name = utils::get_receipt_name(page_table_entry as u64);
         updated_receipts.push((receipt_name, page_dictionary_address))
     }
 

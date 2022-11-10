@@ -30,6 +30,7 @@ use crate::{
     utils, BurnMode, BURNT_TOKENS, BURN_MODE, HASH_BY_INDEX, IDENTIFIER_MODE, INDEX_BY_HASH,
     NUMBER_OF_MINTED_TOKENS, OWNED_TOKENS, PAGE_TABLE, TOKEN_OWNERS, UNMATCHED_HASH_COUNT,
 };
+use crate::constants::RECEIPT_NAME;
 
 // The size of a given page, it is currently set to 10
 // to ease the math around addressing newly minted tokens.
@@ -671,4 +672,13 @@ pub(crate) fn get_owned_token_ids() -> Vec<TokenIdentifier> {
         }
     }
     token_identifiers
+}
+
+pub(crate) fn get_receipt_name(page_table_entry: u64) -> String {
+    let receipt = utils::get_stored_value_with_user_errors::<String>(
+        RECEIPT_NAME,
+        NFTCoreError::MissingReceiptName,
+        NFTCoreError::InvalidReceiptName,
+    );
+    format!("{}-m-{}-p-{}", receipt, PAGE_SIZE, page_table_entry)
 }
