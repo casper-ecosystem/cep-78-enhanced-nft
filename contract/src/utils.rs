@@ -539,7 +539,8 @@ pub(crate) fn should_migrate_token_hashes(token_owner: Key) -> bool {
         &NFTIdentifierMode::Hash,
         &get_owned_tokens_dictionary_item_key(token_owner),
     )
-        .is_none() {
+    .is_none()
+    {
         return false;
     }
     let page_table_uref = get_uref(
@@ -547,14 +548,15 @@ pub(crate) fn should_migrate_token_hashes(token_owner: Key) -> bool {
         NFTCoreError::MissingPageTableURef,
         NFTCoreError::InvalidPageTableURef,
     );
-     if storage::dictionary_get::<Vec<bool>>(
-         page_table_uref,
-         &get_owned_tokens_dictionary_item_key(token_owner),
+    if storage::dictionary_get::<Vec<bool>>(
+        page_table_uref,
+        &get_owned_tokens_dictionary_item_key(token_owner),
     )
     .unwrap_or_revert()
-    .is_some() {
-         return false;
-     }
+    .is_some()
+    {
+        return false;
+    }
     true
 }
 
