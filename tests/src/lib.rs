@@ -21,7 +21,11 @@ mod transfer;
 // A collection of tests that are focused
 // around updating metadata.
 #[cfg(test)]
+mod costs;
+#[cfg(test)]
 mod metadata;
+#[cfg(test)]
+mod upgrade;
 
 // A collection of helper methods and constants.
 #[cfg(test)]
