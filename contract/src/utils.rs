@@ -535,23 +535,27 @@ pub(crate) fn migrate_owned_tokens_in_ordinal_mode() {
 }
 
 pub(crate) fn should_migrate_token_hashes(token_owner: Key) -> bool {
-    let all_owners_seed_uref = get_uref(
+    if get_token_identifiers_from_dictionary(
+        &NFTIdentifierMode::Hash,
+        &get_owned_tokens_dictionary_item_key(token_owner),
+    )
+        .is_none() {
+        return false;
+    }
+    let page_table_uref = get_uref(
         PAGE_TABLE,
         NFTCoreError::MissingPageTableURef,
         NFTCoreError::InvalidPageTableURef,
     );
-    let is_absent_in_page_model = storage::dictionary_get::<Vec<bool>>(
-        all_owners_seed_uref,
-        &get_owned_tokens_dictionary_item_key(token_owner),
+     if storage::dictionary_get::<Vec<bool>>(
+         page_table_uref,
+         &get_owned_tokens_dictionary_item_key(token_owner),
     )
     .unwrap_or_revert()
-    .is_none();
-    let is_present_in_owned_tokens = get_token_identifiers_from_dictionary(
-        &NFTIdentifierMode::Hash,
-        &get_owned_tokens_dictionary_item_key(token_owner),
-    )
-    .is_some();
-    is_present_in_owned_tokens && is_absent_in_page_model
+    .is_some() {
+         return false;
+     }
+    true
 }
 
 pub(crate) fn migrate_token_hashes(token_owner: Key) {
