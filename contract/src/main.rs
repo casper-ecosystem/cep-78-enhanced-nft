@@ -980,6 +980,8 @@ pub extern "C" fn transfer() {
             .unwrap_or_revert()
     };
 
+    storage::dictionary_put(page_table_uref, &target_owner_item_key, page_table);
+
     let _ = core::mem::replace(&mut target_page[page_address as usize], true);
 
     storage::dictionary_put(page_uref, &target_page_dictionary_item_key, target_page);

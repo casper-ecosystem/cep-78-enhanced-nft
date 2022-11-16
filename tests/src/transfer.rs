@@ -14,11 +14,12 @@ use crate::utility::{
         ARG_TARGET_KEY, ARG_TOKEN_HASH, ARG_TOKEN_ID, ARG_TOKEN_META_DATA, ARG_TOKEN_OWNER,
         BALANCES, CONTRACT_NAME, ENTRY_POINT_APPROVE, ENTRY_POINT_MINT, ENTRY_POINT_TRANSFER,
         MINTING_CONTRACT_WASM, MINT_SESSION_WASM, NFT_CONTRACT_WASM, NFT_TEST_COLLECTION,
-        NFT_TEST_SYMBOL, OPERATOR, TEST_PRETTY_721_META_DATA, TOKEN_OWNERS, TRANSFER_SESSION_WASM,
+        NFT_TEST_SYMBOL, OPERATOR, PAGE_TABLE, TEST_PRETTY_721_META_DATA, TOKEN_OWNERS,
+        TRANSFER_SESSION_WASM,
     },
     installer_request_builder::{
         InstallerRequestBuilder, MetadataMutability, MintingMode, NFTHolderMode, NFTIdentifierMode,
-        OwnershipMode, WhitelistMode,
+        NFTMetadataKind, OwnershipMode, WhitelistMode,
     },
     support::{
         self, assert_expected_error, get_dictionary_value_from_key, get_minting_contract_hash,
@@ -900,4 +901,62 @@ fn should_not_allow_non_approved_contract_to_transfer() {
         .exec(approved_transfer_request)
         .expect_success()
         .commit();
+}
+
+#[test]
+fn transfer_should_correctly_track_page_table_entries() {
+    let mut builder = InMemoryWasmTestBuilder::default();
+    builder.run_genesis(&DEFAULT_RUN_GENESIS_REQUEST).commit();
+
+    let install_request = InstallerRequestBuilder::new(*DEFAULT_ACCOUNT_ADDR, NFT_CONTRACT_WASM)
+        .with_collection_name(NFT_TEST_COLLECTION.to_string())
+        .with_collection_symbol(NFT_TEST_SYMBOL.to_string())
+        .with_total_token_supply(100u64)
+        .with_ownership_mode(OwnershipMode::Transferable)
+        .with_nft_metadata_kind(NFTMetadataKind::Raw)
+        .build();
+
+    builder.exec(install_request).expect_success().commit();
+
+    let nft_contract_key: Key = get_nft_contract_hash(&builder).into();
+
+    let number_of_tokens_pre_migration = 20usize;
+    for _ in 0..number_of_tokens_pre_migration {
+        let mint_request = ExecuteRequestBuilder::standard(
+            *DEFAULT_ACCOUNT_ADDR,
+            MINT_SESSION_WASM,
+            runtime_args! {
+                ARG_NFT_CONTRACT_HASH => nft_contract_key,
+                ARG_TOKEN_OWNER => Key::Account(*DEFAULT_ACCOUNT_ADDR),
+                ARG_TOKEN_META_DATA => "",
+            },
+        )
+        .build();
+
+        builder.exec(mint_request).expect_success().commit();
+    }
+
+    let transfer_request = ExecuteRequestBuilder::standard(
+        *DEFAULT_ACCOUNT_ADDR,
+        TRANSFER_SESSION_WASM,
+        runtime_args! {
+            ARG_NFT_CONTRACT_HASH => nft_contract_key,
+            ARG_TOKEN_ID => 11u64,
+            ARG_IS_HASH_IDENTIFIER_MODE => false,
+            ARG_SOURCE_KEY => Key::Account(*DEFAULT_ACCOUNT_ADDR),
+            ARG_TARGET_KEY =>  Key::Account(AccountHash::new(ACCOUNT_USER_1)),
+        },
+    )
+    .build();
+
+    builder.exec(transfer_request).expect_success().commit();
+
+    let account_user_1_page_table = support::get_dictionary_value_from_key::<Vec<bool>>(
+        &builder,
+        &nft_contract_key,
+        PAGE_TABLE,
+        &AccountHash::new(ACCOUNT_USER_1).to_string(),
+    );
+
+    assert!(account_user_1_page_table[1])
 }
