@@ -1,3 +1,4 @@
+use bit_vec::BitVec;
 use serde::{Deserialize, Serialize};
 
 use casper_engine_test_support::{
@@ -6,7 +7,8 @@ use casper_engine_test_support::{
 };
 use casper_execution_engine::storage::global_state::in_memory::InMemoryGlobalState;
 use casper_types::{
-    account::AccountHash, runtime_args, system::mint, CLValue, ContractHash, Key, RuntimeArgs,
+    account::AccountHash, bytesrepr::FromBytes, runtime_args, system::mint, ContractHash, Key,
+    RuntimeArgs,
 };
 
 use crate::utility::{
@@ -18,9 +20,9 @@ use crate::utility::{
         ENTRY_POINT_SET_APPROVE_FOR_ALL, ENTRY_POINT_SET_VARIABLES, GET_APPROVED_WASM,
         MALFORMED_META_DATA, METADATA_CEP78, METADATA_CUSTOM_VALIDATED, METADATA_NFT721,
         METADATA_RAW, MINTING_CONTRACT_WASM, MINT_SESSION_WASM, NFT_CONTRACT_WASM,
-        NUMBER_OF_MINTED_TOKENS, OPERATOR, OWNER_OF_SESSION_WASM, PAGE_SIZE, RECEIPT_NAME,
-        TEST_COMPACT_META_DATA, TEST_PRETTY_721_META_DATA, TEST_PRETTY_CEP78_METADATA,
-        TOKEN_ISSUERS, TOKEN_OWNERS,
+        NFT_TEST_COLLECTION, NFT_TEST_SYMBOL, NUMBER_OF_MINTED_TOKENS, OPERATOR,
+        OWNER_OF_SESSION_WASM, RECEIPT_NAME, TEST_COMPACT_META_DATA, TEST_PRETTY_721_META_DATA,
+        TEST_PRETTY_CEP78_METADATA, TOKEN_ISSUERS, TOKEN_OWNERS,
     },
     installer_request_builder::{
         InstallerRequestBuilder, MetadataMutability, MintingMode, NFTHolderMode, NFTIdentifierMode,
@@ -219,12 +221,12 @@ fn should_mint() {
 
 #[test]
 fn mint_should_return_dictionary_key_to_callers_owned_tokens() {
-    const NFT_COLLECTION_NAME: &str = "enhanced_nft_collection";
     let mut builder = InMemoryWasmTestBuilder::default();
     builder.run_genesis(&DEFAULT_RUN_GENESIS_REQUEST).commit();
 
     let install_request = InstallerRequestBuilder::new(*DEFAULT_ACCOUNT_ADDR, NFT_CONTRACT_WASM)
-        .with_collection_name(NFT_COLLECTION_NAME.to_string())
+        .with_collection_name(NFT_TEST_COLLECTION.to_string())
+        .with_collection_symbol(NFT_TEST_SYMBOL.to_string())
         .with_total_token_supply(100u64)
         .with_allowing_minting(true)
         .build();
@@ -245,34 +247,37 @@ fn mint_should_return_dictionary_key_to_callers_owned_tokens() {
 
     builder.exec(mint_session_call).expect_success().commit();
 
-    let account = builder.get_expected_account(*DEFAULT_ACCOUNT_ADDR);
-
     let nft_receipt: String = support::query_stored_value(
         &mut builder,
         nft_contract_key,
         vec![RECEIPT_NAME.to_string()],
     );
 
-    let account_receipt = *account
-        .named_keys()
-        .get(&format!("{}-m-{}-p-{}", nft_receipt, PAGE_SIZE, 0))
-        .expect("must have receipt");
-
-    let actual_page = builder
-        .query(None, account_receipt, &[])
-        .expect("must have stored_value")
-        .as_cl_value()
-        .map(|page_cl_value| CLValue::into_t::<Vec<bool>>(page_cl_value.clone()))
+    let default_account = builder
+        .query(None, Key::Account(*DEFAULT_ACCOUNT_ADDR), &[])
         .unwrap()
-        .unwrap();
+        .as_account()
+        .unwrap()
+        .clone();
 
-    let expected_page = {
-        let mut page = vec![false; PAGE_SIZE as usize];
-        let _ = std::mem::replace(&mut page[0], true);
-        page
+    println!("{:?}", default_account);
+
+    let receipt_page_0 = *default_account
+        .named_keys()
+        .get(&support::get_receipt_name(nft_receipt, 0))
+        .expect("must have page 0 receipt");
+
+    let actual_page_0 =
+        support::get_stored_value_from_global_state::<u32>(&builder, receipt_page_0, vec![])
+            .expect("must get actual page");
+
+    let (expected_page, _) = {
+        let mut page = BitVec::from_elem(32, false);
+        page.set(0, true);
+        u32::from_bytes(&page.to_bytes()).expect("must convert")
     };
 
-    assert_eq!(actual_page, expected_page);
+    assert_eq!(expected_page, actual_page_0);
 }
 
 #[test]

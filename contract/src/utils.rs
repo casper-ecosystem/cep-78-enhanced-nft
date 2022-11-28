@@ -7,6 +7,8 @@ use alloc::{
 };
 use core::{convert::TryInto, mem::MaybeUninit};
 
+use bit_vec::BitVec;
+
 use casper_contract::{
     contract_api::{self, runtime, storage},
     ext_ffi,
@@ -23,11 +25,11 @@ use casper_types::{
 use crate::{
     constants::{
         ARG_TOKEN_HASH, ARG_TOKEN_ID, HOLDER_MODE, OWNERSHIP_MODE, PAGE_DICTIONARY_PREFIX,
-        PAGE_LIMIT, RECEIPT_NAME,
+        RECEIPT_NAME,
     },
     error::NFTCoreError,
     modalities::{NFTHolderMode, NFTIdentifierMode, OwnershipMode, TokenIdentifier},
-    utils, BurnMode, BURNT_TOKENS, BURN_MODE, HASH_BY_INDEX, IDENTIFIER_MODE, INDEX_BY_HASH,
+    page, utils, BurnMode, BURNT_TOKENS, BURN_MODE, HASH_BY_INDEX, IDENTIFIER_MODE, INDEX_BY_HASH,
     NUMBER_OF_MINTED_TOKENS, OWNED_TOKENS, PAGE_TABLE, TOKEN_OWNERS, UNMATCHED_HASH_COUNT,
 };
 
@@ -463,7 +465,6 @@ pub(crate) fn get_token_index(token_identifier: &TokenIdentifier) -> u64 {
 }
 
 pub(crate) fn migrate_owned_tokens_in_ordinal_mode() {
-    runtime::print("migrating owned tokens");
     let current_number_of_minted_tokens = utils::get_stored_value_with_user_errors::<u64>(
         NUMBER_OF_MINTED_TOKENS,
         NFTCoreError::MissingTotalTokenSupply,
@@ -473,11 +474,6 @@ pub(crate) fn migrate_owned_tokens_in_ordinal_mode() {
         PAGE_TABLE,
         NFTCoreError::MissingPageTableURef,
         NFTCoreError::InvalidPageTableURef,
-    );
-    let page_table_width = get_stored_value_with_user_errors::<u64>(
-        PAGE_LIMIT,
-        NFTCoreError::MissingPageLimit,
-        NFTCoreError::InvalidPageLimit,
     );
     let mut searched_token_ids: Vec<u64> = vec![];
     for token_id in 0..current_number_of_minted_tokens {
@@ -494,40 +490,62 @@ pub(crate) fn migrate_owned_tokens_in_ordinal_mode() {
                 &token_owner_item_key,
             )
             .unwrap_or_revert();
-            runtime::print("Got list");
             for token_identifier in owned_tokens_list.into_iter() {
                 let token_id = token_identifier.get_index().unwrap_or_revert();
                 let page_number = token_id / PAGE_SIZE;
                 let page_index = token_id % PAGE_SIZE;
-                let mut page_record = match storage::dictionary_get::<Vec<bool>>(
-                    page_table_uref,
-                    &token_owner_item_key,
-                )
-                .unwrap_or_revert()
-                {
-                    Some(page_record) => page_record,
-                    None => vec![false; page_table_width as usize],
+                let mut page_table = {
+                    let encoded_page_table =
+                        storage::dictionary_get::<u64>(page_table_uref, &token_owner_item_key)
+                            .unwrap_or_revert()
+                            .unwrap_or(0u64);
+                    BitVec::from_bytes(
+                        &encoded_page_table
+                            .to_bytes()
+                            .unwrap_or_revert_with(NFTCoreError::FailedToDecodePageTable),
+                    )
                 };
                 let page_uref = get_uref(
                     &format!("{}{}", PAGE_DICTIONARY_PREFIX, page_number),
                     NFTCoreError::MissingStorageUref,
                     NFTCoreError::InvalidStorageUref,
                 );
-                let page_item_key = encode_page_address(&token_owner_key, page_number);
-                let _ = core::mem::replace(&mut page_record[page_number as usize], true);
-                storage::dictionary_put(page_table_uref, &token_owner_item_key, page_record);
-                let mut page = match storage::dictionary_get::<Vec<bool>>(page_uref, &page_item_key)
-                    .unwrap_or_revert()
-                {
-                    None => vec![false; PAGE_SIZE as usize],
-                    Some(single_page) => single_page,
-                };
-                let is_already_marked_as_owned =
-                    core::mem::replace(&mut page[page_index as usize], true);
-                if is_already_marked_as_owned {
-                    runtime::revert(NFTCoreError::InvalidPageIndex)
+                if page_table.get(page_number as usize) != Some(page::ALLOCATED) {
+                    page_table.set(page_number as usize, page::ALLOCATED)
                 }
-                storage::dictionary_put(page_uref, &page_item_key, page);
+                let encoded_allocated_page_table = {
+                    let (decimal_representation, _remainder) =
+                        u64::from_bytes(&page_table.to_bytes())
+                            .unwrap_or_revert_with(NFTCoreError::FailedToEncodePageTable);
+                    decimal_representation
+                };
+                storage::dictionary_put(
+                    page_table_uref,
+                    &token_owner_item_key,
+                    encoded_allocated_page_table,
+                );
+                let mut page = {
+                    let encoded_page =
+                        storage::dictionary_get::<u32>(page_uref, &token_owner_item_key)
+                            .unwrap_or_revert()
+                            .unwrap_or(0u32);
+                    BitVec::from_bytes(
+                        &encoded_page
+                            .to_bytes()
+                            .unwrap_or_revert_with(NFTCoreError::FailedToDecodePage),
+                    )
+                };
+                if page.get(page_index as usize) == Some(page::OWNED) {
+                    runtime::revert(NFTCoreError::InvalidPageIndex)
+                } else {
+                    page.set(page_index as usize, page::OWNED)
+                }
+                let encoded_page = {
+                    let (decimal_representation, _remainder) = u32::from_bytes(&page.to_bytes())
+                        .unwrap_or_revert_with(NFTCoreError::FailedToEncodePage);
+                    decimal_representation
+                };
+                storage::dictionary_put(page_uref, &token_owner_item_key, encoded_page);
                 searched_token_ids.push(token_id)
             }
         }
@@ -548,7 +566,7 @@ pub(crate) fn should_migrate_token_hashes(token_owner: Key) -> bool {
         NFTCoreError::MissingPageTableURef,
         NFTCoreError::InvalidPageTableURef,
     );
-    if storage::dictionary_get::<Vec<bool>>(
+    if storage::dictionary_get::<u64>(
         page_table_uref,
         &get_owned_tokens_dictionary_item_key(token_owner),
     )
@@ -582,40 +600,60 @@ pub(crate) fn migrate_token_hashes(token_owner: Key) {
         NFTCoreError::InvalidPageTableURef,
     );
 
-    let page_table_width = get_stored_value_with_user_errors::<u64>(
-        PAGE_LIMIT,
-        NFTCoreError::MissingPageLimit,
-        NFTCoreError::InvalidPageLimit,
-    );
-
     for token_identifier in owned_tokens_list.into_iter() {
         let token_address = unmatched_hash_count - 1;
         let page_table_entry = token_address / PAGE_SIZE;
         let page_address = token_address % PAGE_SIZE;
-        let mut page_table =
-            match storage::dictionary_get::<Vec<bool>>(page_table_uref, &token_owner_item_key)
-                .unwrap_or_revert()
-            {
-                Some(page_record) => page_record,
-                None => vec![false; page_table_width as usize],
-            };
-        let _ = core::mem::replace(&mut page_table[page_table_entry as usize], true);
-        storage::dictionary_put(page_table_uref, &token_owner_item_key, page_table);
+        let mut page_table = {
+            let encoded_page_table =
+                storage::dictionary_get::<u64>(page_table_uref, &token_owner_item_key)
+                    .unwrap_or_revert()
+                    .unwrap_or(0u64);
+            BitVec::from_bytes(
+                &encoded_page_table
+                    .to_bytes()
+                    .unwrap_or_revert_with(NFTCoreError::FailedToDecodePageTable),
+            )
+        };
+        if page_table.get(page_table_entry as usize) != Some(page::ALLOCATED) {
+            page_table.set(page_table_entry as usize, page::ALLOCATED)
+        }
+        let encoded_allocated_page_table = {
+            let (decimal_representation, _remainder) = u64::from_bytes(&page_table.to_bytes())
+                .unwrap_or_revert_with(NFTCoreError::FailedToEncodePageTable);
+            decimal_representation
+        };
+        storage::dictionary_put(
+            page_table_uref,
+            &token_owner_item_key,
+            encoded_allocated_page_table,
+        );
         let page_uref = get_uref(
             &format!("{}{}", PAGE_DICTIONARY_PREFIX, page_table_entry),
             NFTCoreError::MissingStorageUref,
             NFTCoreError::InvalidStorageUref,
         );
-        let page_item_key = encode_page_address(&token_owner, page_table_entry);
-        let mut page = match storage::dictionary_get::<Vec<bool>>(page_uref, &page_item_key)
-            .unwrap_or_revert()
-        {
-            Some(single_page) => single_page,
-            None => vec![false; PAGE_SIZE as usize],
+        let mut page = {
+            let encoded_page = storage::dictionary_get::<u32>(page_uref, &token_owner_item_key)
+                .unwrap_or_revert()
+                .unwrap_or(0u32);
+            BitVec::from_bytes(
+                &encoded_page
+                    .to_bytes()
+                    .unwrap_or_revert_with(NFTCoreError::FailedToDecodePage),
+            )
         };
-        let _ = core::mem::replace(&mut page[page_address as usize], true);
-        runtime::print(&format!("{:?}", page.clone()));
-        storage::dictionary_put(page_uref, &page_item_key, page);
+        if page.get(page_address as usize) == Some(page::OWNED) {
+            runtime::revert(NFTCoreError::InvalidPageIndex)
+        } else {
+            page.set(page_address as usize, page::OWNED)
+        }
+        let encoded_page = {
+            let (decimal_representation, _remainder) = u32::from_bytes(&page.to_bytes())
+                .unwrap_or_revert_with(NFTCoreError::FailedToEncodePage);
+            decimal_representation
+        };
+        storage::dictionary_put(page_uref, &token_owner_item_key, encoded_page);
         insert_hash_id_lookups(unmatched_hash_count - 1, token_identifier);
         unmatched_hash_count -= 1;
     }
@@ -634,8 +672,12 @@ pub(crate) fn migrate_token_hashes(token_owner: Key) {
 pub(crate) fn get_owned_token_ids() -> Vec<TokenIdentifier> {
     let token_owner: Key = get_verified_caller().unwrap_or_revert();
     let token_item_key = get_owned_tokens_dictionary_item_key(token_owner);
-    let page_table = get_dictionary_value_from_key::<Vec<bool>>(PAGE_TABLE, &token_item_key)
-        .unwrap_or_revert_with(NFTCoreError::InvalidTokenOwner);
+    let page_table = BitVec::from_bytes(
+        &get_dictionary_value_from_key::<u64>(PAGE_TABLE, &token_item_key)
+            .unwrap_or_revert_with(NFTCoreError::InvalidTokenOwner)
+            .to_bytes()
+            .unwrap_or_revert_with(NFTCoreError::FailedToDecodePageTable),
+    );
     let identifier_mode: NFTIdentifierMode = get_stored_value_with_user_errors::<u8>(
         IDENTIFIER_MODE,
         NFTCoreError::MissingIdentifierMode,
@@ -644,8 +686,8 @@ pub(crate) fn get_owned_token_ids() -> Vec<TokenIdentifier> {
     .try_into()
     .unwrap_or_revert();
     let mut token_identifiers: Vec<TokenIdentifier> = vec![];
-    for (page_table_entry, allocated) in page_table.into_iter().enumerate() {
-        if !allocated {
+    for (page_table_entry, allocated) in page_table.iter().enumerate() {
+        if allocated != page::ALLOCATED {
             continue;
         }
         let page_uref = get_uref(
@@ -654,13 +696,17 @@ pub(crate) fn get_owned_token_ids() -> Vec<TokenIdentifier> {
             NFTCoreError::InvalidStorageUref,
         );
 
-        let page_item_key = encode_page_address(&token_owner, page_table_entry as u64);
-        let page = storage::dictionary_get::<Vec<bool>>(page_uref, &page_item_key)
-            .unwrap_or_revert()
-            .unwrap_or_revert();
+        let page_item_key = get_owned_tokens_dictionary_item_key(token_owner);
+        let page = BitVec::from_bytes(
+            &storage::dictionary_get::<u32>(page_uref, &page_item_key)
+                .unwrap_or_revert()
+                .unwrap_or_revert()
+                .to_bytes()
+                .unwrap_or_revert_with(NFTCoreError::FailedToDecodePage),
+        );
 
-        for (page_address, is_token_owned) in page.into_iter().enumerate() {
-            if !is_token_owned {
+        for (page_address, is_token_owned) in page.iter().enumerate() {
+            if is_token_owned != page::OWNED {
                 continue;
             }
             let token_number = (page_table_entry as u64 * PAGE_SIZE) + (page_address as u64);
