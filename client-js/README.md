@@ -118,18 +118,6 @@ public install(
 
 Further information on CEP-78 modality options can be found in the base [cep-78-enhanced-nft](https://github.com/ACStoneCL/cep-78-enhanced-nft) repository on GitHub.
 
-### Minting an NFT
-
-The `mint` entry point allows an entity to mint, or create, a CEP-78 token using the previously installed contract, assuming they possess the necessary access rights.
-
-### Transferring an NFT
-
-The `transfer` entry point allows the current holder of a CEP-78 token to transfer the token to another user, assuming that the modality options allow this functionality.
-
-### Burning an NFT
-
-The `burn` entry point allows the current holder of a CEP-78 token to remove the token from circulation.
-
 ## Testing
 
 ### Running an Install Test
