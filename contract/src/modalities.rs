@@ -86,7 +86,7 @@ impl TryFrom<u8> for NFTKind {
             0 => Ok(NFTKind::Physical),
             1 => Ok(NFTKind::Digital),
             2 => Ok(NFTKind::Virtual),
-            _ => Err(NFTCoreError::InvalidOwnershipMode),
+            _ => Err(NFTCoreError::InvalidNftKind),
         }
     }
 }
@@ -137,6 +137,7 @@ impl TryFrom<u8> for OwnershipMode {
 }
 
 #[repr(u8)]
+#[derive(PartialEq)]
 pub enum NFTIdentifierMode {
     Ordinal = 0,
     Hash = 1,

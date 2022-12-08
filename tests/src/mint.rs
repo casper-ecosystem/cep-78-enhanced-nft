@@ -6,7 +6,7 @@ use casper_engine_test_support::{
 };
 use casper_execution_engine::storage::global_state::in_memory::InMemoryGlobalState;
 use casper_types::{
-    account::AccountHash, runtime_args, system::mint, ContractHash, Key, RuntimeArgs,
+    account::AccountHash, runtime_args, system::mint, CLValue, ContractHash, Key, RuntimeArgs,
 };
 
 use crate::utility::{
@@ -15,11 +15,12 @@ use crate::utility::{
         ARG_IS_HASH_IDENTIFIER_MODE, ARG_MINTING_MODE, ARG_NFT_CONTRACT_HASH, ARG_OPERATOR,
         ARG_TOKEN_HASH, ARG_TOKEN_ID, ARG_TOKEN_META_DATA, ARG_TOKEN_OWNER, BALANCES,
         BALANCE_OF_SESSION_WASM, CONTRACT_NAME, ENTRY_POINT_APPROVE, ENTRY_POINT_MINT,
-        ENTRY_POINT_SET_APPROVE_FOR_ALL, ENTRY_POINT_SET_VARIABLES, MALFORMED_META_DATA,
-        METADATA_CEP78, METADATA_CUSTOM_VALIDATED, METADATA_NFT721, METADATA_RAW,
-        MINTING_CONTRACT_WASM, MINT_SESSION_WASM, NFT_CONTRACT_WASM, NUMBER_OF_MINTED_TOKENS,
-        OPERATOR, OWNED_TOKENS, RECEIPT_NAME, TEST_COMPACT_META_DATA, TEST_PRETTY_721_META_DATA,
-        TEST_PRETTY_CEP78_METADATA, TOKEN_ISSUERS, TOKEN_OWNERS,
+        ENTRY_POINT_SET_APPROVE_FOR_ALL, ENTRY_POINT_SET_VARIABLES, GET_APPROVED_WASM,
+        MALFORMED_META_DATA, METADATA_CEP78, METADATA_CUSTOM_VALIDATED, METADATA_NFT721,
+        METADATA_RAW, MINTING_CONTRACT_WASM, MINT_SESSION_WASM, NFT_CONTRACT_WASM,
+        NUMBER_OF_MINTED_TOKENS, OPERATOR, OWNER_OF_SESSION_WASM, PAGE_SIZE, RECEIPT_NAME,
+        TEST_COMPACT_META_DATA, TEST_PRETTY_721_META_DATA, TEST_PRETTY_CEP78_METADATA,
+        TOKEN_ISSUERS, TOKEN_OWNERS,
     },
     installer_request_builder::{
         InstallerRequestBuilder, MetadataMutability, MintingMode, NFTHolderMode, NFTIdentifierMode,
@@ -29,7 +30,7 @@ use crate::utility::{
     support::{
         self, assert_expected_error, call_entry_point_with_ret, create_dummy_key_pair,
         get_dictionary_value_from_key, get_minting_contract_hash, get_nft_contract_hash,
-        query_stored_value,
+        get_token_page_by_hash, query_stored_value,
     },
 };
 
@@ -143,7 +144,7 @@ fn entry_points_with_ret_should_return_correct_value() {
             ARG_IS_HASH_IDENTIFIER_MODE => false,
             ARG_TOKEN_ID => 0u64,
         },
-        "owner_of_call.wasm",
+        OWNER_OF_SESSION_WASM,
         "owner_of",
     );
 
@@ -153,14 +154,13 @@ fn entry_points_with_ret_should_return_correct_value() {
         "actual and expected owner should be equal"
     );
 
-    let (_, operator_public_key) = support::create_dummy_key_pair(ACCOUNT_USER_1);
     let approve_request = ExecuteRequestBuilder::contract_call_by_hash(
         *DEFAULT_ACCOUNT_ADDR,
         nft_contract_hash,
         ENTRY_POINT_APPROVE,
         runtime_args! {
             ARG_TOKEN_ID => 0u64,
-            ARG_OPERATOR => Key::Account(operator_public_key.to_account_hash())
+            ARG_OPERATOR => Key::Account(AccountHash::new(ACCOUNT_USER_1))
         },
     )
     .build();
@@ -174,11 +174,11 @@ fn entry_points_with_ret_should_return_correct_value() {
             ARG_IS_HASH_IDENTIFIER_MODE => false,
             ARG_TOKEN_ID => 0u64,
         },
-        "get_approved_call.wasm",
+        GET_APPROVED_WASM,
         "get_approved",
     );
 
-    let expected_operator = Key::Account(operator_public_key.to_account_hash());
+    let expected_operator = Key::Account(AccountHash::new(ACCOUNT_USER_1));
     assert_eq!(
         actual_operator,
         Some(expected_operator),
@@ -231,12 +231,12 @@ fn mint_should_return_dictionary_key_to_callers_owned_tokens() {
 
     builder.exec(install_request).expect_success().commit();
 
-    let nft_contract_hash: Key = get_nft_contract_hash(&builder).into();
+    let nft_contract_key: Key = get_nft_contract_hash(&builder).into();
     let mint_session_call = ExecuteRequestBuilder::standard(
         *DEFAULT_ACCOUNT_ADDR,
         MINT_SESSION_WASM,
         runtime_args! {
-            ARG_NFT_CONTRACT_HASH => nft_contract_hash,
+            ARG_NFT_CONTRACT_HASH => nft_contract_key,
             ARG_TOKEN_OWNER => Key::Account(*DEFAULT_ACCOUNT_ADDR),
             ARG_TOKEN_META_DATA => TEST_PRETTY_721_META_DATA.to_string(),
         },
@@ -247,47 +247,32 @@ fn mint_should_return_dictionary_key_to_callers_owned_tokens() {
 
     let account = builder.get_expected_account(*DEFAULT_ACCOUNT_ADDR);
 
-    let receipt: String = query_stored_value(
+    let nft_receipt: String = support::query_stored_value(
         &mut builder,
-        nft_contract_hash,
+        nft_contract_key,
         vec![RECEIPT_NAME.to_string()],
     );
 
-    let (_, owned_tokens_key) = account
+    let account_receipt = *account
         .named_keys()
-        .get_key_value(&receipt)
-        .expect("should have owned_tokens_key");
+        .get(&format!("{}-m-{}-p-{}", nft_receipt, PAGE_SIZE, 0))
+        .expect("must have receipt");
 
-    match builder.query(None, *owned_tokens_key, &[]).unwrap() {
-        casper_types::StoredValue::CLValue(val) => {
-            let expected = val
-                .into_t::<Vec<u64>>()
-                .expect("should be Vec<u64> as Identifier defaults to indices");
-            assert_eq!(vec![0u64], expected);
-        }
-        _ => panic!("wrong stored value type"),
-    }
+    let actual_page = builder
+        .query(None, account_receipt, &[])
+        .expect("must have stored_value")
+        .as_cl_value()
+        .map(|page_cl_value| CLValue::into_t::<Vec<bool>>(page_cl_value.clone()))
+        .unwrap()
+        .unwrap();
 
-    let mint_session_call = ExecuteRequestBuilder::standard(
-        *DEFAULT_ACCOUNT_ADDR,
-        MINT_SESSION_WASM,
-        runtime_args! {
-            ARG_NFT_CONTRACT_HASH => nft_contract_hash,
-            ARG_TOKEN_OWNER => Key::Account(*DEFAULT_ACCOUNT_ADDR),
-            ARG_TOKEN_META_DATA => TEST_PRETTY_721_META_DATA.to_string(),
-        },
-    )
-    .build();
+    let expected_page = {
+        let mut page = vec![false; PAGE_SIZE as usize];
+        let _ = std::mem::replace(&mut page[0], true);
+        page
+    };
 
-    builder.exec(mint_session_call).expect_success().commit();
-
-    match builder.query(None, *owned_tokens_key, &[]).unwrap() {
-        casper_types::StoredValue::CLValue(val) => {
-            let expected = val.into_t::<Vec<u64>>().expect("should still be Vec<U256>");
-            assert_eq!(vec![0u64, 1u64], expected);
-        }
-        _ => panic!("also the wrong stored value type"),
-    }
+    assert_eq!(actual_page, expected_page);
 }
 
 #[test]
@@ -358,14 +343,14 @@ fn mint_should_increment_number_of_minted_tokens_by_one_and_add_public_key_to_to
 
     assert_eq!(DEFAULT_ACCOUNT_ADDR.clone(), minter_account_hash);
 
-    let actual_token_ids = support::get_dictionary_value_from_key::<Vec<u64>>(
+    let token_page = support::get_token_page_by_id(
         &builder,
         nft_contract_key,
-        OWNED_TOKENS,
-        &DEFAULT_ACCOUNT_ADDR.clone().to_string(),
+        &Key::Account(*DEFAULT_ACCOUNT_ADDR),
+        0u64,
     );
 
-    assert_eq!(vec![0u64], actual_token_ids);
+    assert!(token_page[0]);
 
     // If total_token_supply is initialized to 1 the following test should fail.
     // If we set total_token_supply > 1 it should pass
@@ -1290,14 +1275,14 @@ fn should_mint_with_hash_identifier_mode() {
     let token_id_hash: String =
         base16::encode_lower(&support::create_blake2b_hash(&TEST_PRETTY_721_META_DATA));
 
-    let actual_token_ids = get_dictionary_value_from_key::<Vec<String>>(
+    let token_page = get_token_page_by_hash(
         &builder,
         &nft_contract_key,
-        OWNED_TOKENS,
-        &DEFAULT_ACCOUNT_ADDR.clone().to_string(),
+        &Key::Account(*DEFAULT_ACCOUNT_ADDR),
+        token_id_hash,
     );
 
-    assert_eq!(vec![token_id_hash], actual_token_ids);
+    assert!(token_page[0])
 }
 
 #[test]
