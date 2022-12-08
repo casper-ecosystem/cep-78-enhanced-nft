@@ -6,8 +6,8 @@
   "scripts": {
     "dev": "tsc --watch",
     "build": "tsc",
-    "test:install": "ts-node test/install.ts",
-    "test:usage": "ts-node test/usage.ts",
+    "test:install": "ts-node e2e/install.ts",
+    "test:usage": "ts-node e2e/usage.ts",
     "lint": "eslint src/",
     "lint:fix": "eslint src/ --fix"
   },
