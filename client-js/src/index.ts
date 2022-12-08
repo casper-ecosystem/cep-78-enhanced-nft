@@ -94,6 +94,15 @@ export class CEP78Client {
     const wasmToInstall =
       wasm || getBinary(`${__dirname}/../wasm/contract.wasm`);
 
+    if (
+      args.identifierMode === NFTIdentifierMode.Hash &&
+      args.metadataMutability === MetadataMutability.Mutable
+    ) {
+      throw new Error(
+        `You can't combine NFTIdentifierMode.Hash and MetadataMutability.Mutable`
+      );
+    }
+
     const runtimeArgs = RuntimeArgs.fromMap({
       collection_name: CLValueBuilder.string(args.collectionName),
       collection_symbol: CLValueBuilder.string(args.collectionSymbol),
