@@ -1,4 +1,3 @@
-import { Some } from "ts-results";
 import {
   CLMap,
   CLString,
@@ -11,6 +10,7 @@ import {
   CLValueBuilder,
   CLU8,
 } from "casper-js-sdk";
+import { Some } from "ts-results";
 import * as fs from "fs";
 
 import {
@@ -66,9 +66,6 @@ const buildKeyHashList = (list: string[]) =>
     )
   );
 
-// TODO: In future, when we want to support also
-// browser version - we will need to polyfill this
-// and move to some separate module.
 export const getBinary = (pathToBinary: string) =>
   new Uint8Array(fs.readFileSync(pathToBinary, null).buffer);
 
@@ -161,16 +158,11 @@ export class CEP78Client {
   public setContractHash(
     contractHash: string,
     contractPackageHash?: string,
-    bootstrap?: boolean
   ) {
     this.contractClient.setContractHash(contractHash, contractPackageHash);
     this.contractHashKey = CLValueBuilder.key(
       CLValueBuilder.byteArray(convertHashStrToHashBuff(contractHash))
     );
-
-    if (bootstrap) {
-      // TODO: Set all possible config options inside the client and validate every client call.
-    }
   }
 
   public async collectionName() {
