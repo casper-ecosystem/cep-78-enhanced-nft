@@ -97,3 +97,7 @@ export type TransferArgs = {
   target: CLKeyParameters;
   source: CLKeyParameters;
 } & TokenArgs;
+
+export type TokenMetadataArgs = {
+  tokenMetaData: string;
+}
