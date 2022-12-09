@@ -18,6 +18,7 @@ import {
   ConfigurableVariables,
   MintArgs,
   BurnArgs,
+  ApproveArgs,
   TransferArgs,
   BurnMode,
   WhitelistMode,
@@ -94,7 +95,6 @@ export class CEP78Client {
       nft_kind: CLValueBuilder.u8(args.nftKind),
       json_schema: CLValueBuilder.string(JSON.stringify(args.jsonSchema)),
       nft_metadata_kind: CLValueBuilder.u8(args.nftMetadataKind),
-      // two below can conflict
       identifier_mode: CLValueBuilder.u8(args.identifierMode),
       metadata_mutability: CLValueBuilder.u8(args.metadataMutability),
     });
@@ -433,6 +433,36 @@ export class CEP78Client {
     );
 
     return (result as CLU8).toJSON();
+  }
+
+  public approve(
+    args: ApproveArgs,
+    paymentAmount: string,
+    deploySender: CLPublicKey,
+    keys?: Keys.AsymmetricKey[]
+  ) {
+    const runtimeArgs = RuntimeArgs.fromMap({
+      operator: args.operator
+    });
+
+    if (args.tokenId !== undefined) {
+      runtimeArgs.insert("token_id", CLValueBuilder.u64(args.tokenId));
+    }
+
+    if (args.tokenHash !== undefined) {
+      runtimeArgs.insert("token_hash", CLValueBuilder.string(args.tokenHash));
+    }
+
+    const preparedDeploy = this.contractClient.callEntrypoint(
+      "approve",
+      runtimeArgs,
+      deploySender,
+      this.networkName,
+      paymentAmount,
+      keys
+    );
+
+    return preparedDeploy;
   }
 
   public storeBalanceOf(
