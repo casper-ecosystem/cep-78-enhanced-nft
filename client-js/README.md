@@ -1,8 +1,8 @@
 # CEP-78 JavaScript Client Tutorial
 
-This tutorial outlines usage of the JavaScript client available for the CEP-78 Enhanced NFT Standard.
+This tutorial outlines the usage of the JavaScript client available for the CEP-78 Enhanced NFT Standard.
 
-Further information on the CEP-78 Enhanced NFT Standard itself can be found [here](https://github.com/casper-ecosystem/cep-78-enhanced-nft).
+Further information on the CEP-78 Enhanced NFT Standard can be found [here](https://github.com/casper-ecosystem/cep-78-enhanced-nft).
 
 ## Installing Dependencies
 
@@ -52,17 +52,17 @@ const install = async () => {
 
 `InstallArgs` are specified in the associated `.env` file as follows:
 
-* `collectionName` - The name of the NFT collection, passed in as a `String`. This parameter is required and cannot be changed post installation.
+* `collectionName` - The name of the NFT collection, passed in as a `String`. **This parameter is required and cannot be changed post installation**.
 
-* `collectionSymbol` - The symbol representing a given NFT collection, passed in as a `String`. This parameter is required and cannot be changed post installation.
+* `collectionSymbol` - The symbol representing a given NFT collection, passed in as a `String`. **This parameter is required and cannot be changed post installation**.
 
-* `totalTokenSupply` - The total number of NFTs that a specific instance of a contract will mint passed in as a `U64` value. This parameter is required and cannot be changed post installation.
+* `totalTokenSupply` - The total number of NFTs that a specific contract instance will mint passed in as a `U64` value. **This parameter is required and cannot be changed post installation**.
 
 * `ownershipMode` - The `OwnershipMode` modality that dictates the ownership behavior of the NFT contract. This argument is passed in as a `u8` value and is required at the time of installation.
 
 * `nftKind` - The `NFTKind` modality that specifies the off-chain items represented by the on-chain NFT data. This argument is passed in as a `u8` value and is required at the time of installation.
 
-* `jsonSchema` - The JSON schema for the NFT tokens that will be minted by the NFT contract passed in as a `String`. This parameter is required if the metadata kind is set to `CustomValidated(4)` and cannot be changed post installation.
+* `jsonSchema` - The JSON schema for the NFT tokens that will be minted by the NFT contract passed in as a `String`. This parameter is required if the metadata kind is set to `CustomValidated(4)` and **cannot be changed post installation**.
 
 * `nftMetadataKind` - The metadata schema for the NFTs to be minted by the NFT contract. This argument is passed in as a `u8` value and is required at the time of installation.
 
@@ -70,11 +70,11 @@ const install = async () => {
 
 * `metadataMutability` - The `MetadataMutability` modality dictates whether the metadata of minted NFTs can be updated. This argument is passed in as a `u8` value and is required at the time of installation.
 
-* `mintingmode?` - The `MintingMode` modality that dictates the access to the `mint()` entry-point in the NFT contract. This is an optional parameter that will default to restricting access to the installer of the contract. This parameter cannot be changed once the contract has been installed.
+* `mintingmode?` - The `MintingMode` modality dictates the access to the `mint()` entry point in the NFT contract. This optional parameter will default to restricting access to the installer of the contract. **This parameter cannot be changed once the contract has been installed**.
 
-* `holdermode?` - The `NFTHolderMode` modality dictates which entities can hold NFTs. This is an optional parameter and will default to a mixed mode allowing either `Accounts` or `Contracts` to hold NFTs. This parameter cannot be changed once the contract has been installed.
+* `holdermode?` - The `NFTHolderMode` modality dictates which entities can hold NFTs. This optional parameter will default to a mixed mode, allowing either `Accounts` or `Contracts` to hold NFTs. **This parameter cannot be changed once the contract has been installed**.
 
-* `burnMode?` - The `BurnMode` modality dictates whether minted NFTs can be burnt. This is an optional parameter and will allow tokens to be burnt by default. This parameter cannot be changed once the contract has been installed.
+* `burnMode?` - The `BurnMode` modality dictates whether minted NFTs can be burnt. This optional parameter will allow tokens to be burnt by default. **This parameter cannot be changed once the contract has been installed**.
 
 Further information on CEP-78 modality options can be found in the base [cep-78-enhanced-nft](https://github.com/ACStoneCL/cep-78-enhanced-nft) repository on GitHub.
 
