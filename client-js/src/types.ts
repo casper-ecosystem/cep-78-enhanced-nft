@@ -100,4 +100,15 @@ export type TransferArgs = {
 
 export type TokenMetadataArgs = {
   tokenMetaData: string;
-}
+};
+
+export type StoreBalanceOfArgs = {
+  tokenOwner: CLKeyParameters;
+  keyName: string;
+};
+
+export type StoreApprovedArgs = {
+  keyName: string;
+} & TokenArgs;
+
+export type StoreOwnerOfArgs = StoreApprovedArgs;

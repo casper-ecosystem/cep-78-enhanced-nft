@@ -47,7 +47,7 @@ const run = async () => {
   console.log(`... Contract Hash: ${contractHash}`);
   console.log(`... Contract Package Hash: ${contractPackageHash}`);
 
-  await cc.setContractHash(contractHash, undefined, true);
+  await cc.setContractHash(contractHash, undefined);
 
   console.log(`\n=====================================\n`);
 

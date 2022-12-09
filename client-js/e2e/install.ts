@@ -54,7 +54,7 @@ const install = async () => {
       metadataMutability: MetadataMutability.Immutable,
       mintingMode: MintingMode.Installer,
     },
-    "165000000000",
+    "250000000000",
     FAUCET_KEYS.publicKey,
     [FAUCET_KEYS]
   );

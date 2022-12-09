@@ -27,29 +27,15 @@ import {
   NFTOwnershipMode,
   NFTMetadataKind,
   NFTKind,
+  TokenMetadataArgs,
+  StoreBalanceOfArgs,
+  StoreApprovedArgs,
+  StoreOwnerOfArgs
 } from "./types";
 
 const { Contract } = Contracts;
 
-export {
-  InstallArgs,
-  MintArgs,
-  BurnArgs,
-  TransferArgs,
-  NFTOwnershipMode,
-  NFTKind,
-  NFTHolderMode,
-  NFTMetadataKind,
-  NFTIdentifierMode,
-  MetadataMutability,
-  MintingMode,
-  BurnMode,
-  WhitelistMode,
-  JSONSchemaEntry,
-  JSONSchemaObject,
-} from "./types";
-
-export { getMintedId } from "./utils";
+export * from "./types";
 
 const convertHashStrToHashBuff = (hashStr: string) => {
   let hashHex = hashStr;
@@ -155,10 +141,7 @@ export class CEP78Client {
     );
   }
 
-  public setContractHash(
-    contractHash: string,
-    contractPackageHash?: string,
-  ) {
+  public setContractHash(contractHash: string, contractPackageHash?: string) {
     this.contractClient.setContractHash(contractHash, contractPackageHash);
     this.contractHashKey = CLValueBuilder.key(
       CLValueBuilder.byteArray(convertHashStrToHashBuff(contractHash))
@@ -391,12 +374,27 @@ export class CEP78Client {
     return preparedDeploy;
   }
 
-  // public async setTokenMetadata(
-  //   args: TokenMetadataArgs,
-  //   paymentAmount: string,
-  //   deploySender: CLPublicKey,
-  //   keys?: Keys.AsymmetricKey[]
-  // ) {}
+  public setTokenMetadata(
+    args: TokenMetadataArgs,
+    paymentAmount: string,
+    deploySender: CLPublicKey,
+    keys?: Keys.AsymmetricKey[]
+  ) {
+    const runtimeArgs = RuntimeArgs.fromMap({
+      token_meta_data: CLValueBuilder.string(args.tokenMetaData),
+    });
+
+    const preparedDeploy = this.contractClient.callEntrypoint(
+      "set_token_metadata",
+      runtimeArgs,
+      deploySender,
+      this.networkName,
+      paymentAmount,
+      keys
+    );
+
+    return preparedDeploy;
+  }
 
   public async getOwnerOf(tokenId: string) {
     const result = await this.contractClient.queryContractDictionary(
@@ -436,4 +434,107 @@ export class CEP78Client {
 
     return (result as CLU8).toJSON();
   }
+
+  public storeBalanceOf(
+    args: StoreBalanceOfArgs,
+    paymentAmount: string,
+    deploySender: CLPublicKey,
+    keys?: Keys.AsymmetricKey[],
+    wasm?: Uint8Array
+  ) {
+    const wasmToCall =
+      wasm || getBinary(`${__dirname}/../wasm/balance_of.wasm`);
+
+    const runtimeArgs = RuntimeArgs.fromMap({
+      nft_contract_hash: this.contractHashKey,
+      token_owner: args.tokenOwner,
+      key_name: CLValueBuilder.string(args.keyName),
+    });
+
+    const preparedDeploy = this.contractClient.install(
+      wasmToCall,
+      runtimeArgs,
+      paymentAmount,
+      deploySender,
+      this.networkName,
+      keys
+    );
+
+    return preparedDeploy;
+  }
+
+  public storeGetApproved(
+    args: StoreApprovedArgs,
+    paymentAmount: string,
+    deploySender: CLPublicKey,
+    keys?: Keys.AsymmetricKey[],
+    wasm?: Uint8Array
+  ) {
+    const wasmToCall =
+      wasm || getBinary(`${__dirname}/../wasm/owner_of_call.wasm`);
+
+    const runtimeArgs = RuntimeArgs.fromMap({
+      nft_contract_hash: this.contractHashKey,
+      key_name: CLValueBuilder.string(args.keyName)
+    });
+
+    if (args.tokenId) {
+      runtimeArgs.insert("is_hash_identifier_mode", CLValueBuilder.bool(false));
+      runtimeArgs.insert("token_id", CLValueBuilder.u64(args.tokenId));
+    }
+
+    if (args.tokenHash) {
+      runtimeArgs.insert("is_hash_identifier_mode", CLValueBuilder.bool(true));
+      runtimeArgs.insert("token_id", CLValueBuilder.u64(args.tokenHash));
+    }
+
+    const preparedDeploy = this.contractClient.install(
+      wasmToCall,
+      runtimeArgs,
+      paymentAmount,
+      deploySender,
+      this.networkName,
+      keys
+    );
+
+    return preparedDeploy;
+  }
+
+  public storeOwnerOf(
+    args: StoreOwnerOfArgs,
+    paymentAmount: string,
+    deploySender: CLPublicKey,
+    keys?: Keys.AsymmetricKey[],
+    wasm?: Uint8Array
+  ) {
+    const wasmToCall =
+      wasm || getBinary(`${__dirname}/../wasm/owner_of_call.wasm`);
+
+    const runtimeArgs = RuntimeArgs.fromMap({
+      nft_contract_hash: this.contractHashKey,
+      key_name: CLValueBuilder.string(args.keyName)
+    });
+
+    if (args.tokenId) {
+      runtimeArgs.insert("is_hash_identifier_mode", CLValueBuilder.bool(false));
+      runtimeArgs.insert("token_id", CLValueBuilder.u64(args.tokenId));
+    }
+
+    if (args.tokenHash) {
+      runtimeArgs.insert("is_hash_identifier_mode", CLValueBuilder.bool(true));
+      runtimeArgs.insert("token_id", CLValueBuilder.u64(args.tokenHash));
+    }
+
+    const preparedDeploy = this.contractClient.install(
+      wasmToCall,
+      runtimeArgs,
+      paymentAmount,
+      deploySender,
+      this.networkName,
+      keys
+    );
+
+    return preparedDeploy;
+  }
+
 }
