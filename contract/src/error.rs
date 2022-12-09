@@ -129,6 +129,11 @@ pub enum NFTCoreError {
     MissingMigrationFlag = 124,
     InvalidMigrationFlag = 125,
     ContractAlreadyMigrated = 126,
+    FailedToEncodePageTable = 127,
+    FailedToDecodePageTable = 128,
+    MissingPage = 129,
+    FailedToEncodePage = 130,
+    FailedToDecodePage = 131,
 }
 
 impl From<NFTCoreError> for ApiError {
