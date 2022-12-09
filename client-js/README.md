@@ -78,6 +78,78 @@ const install = async () => {
 
 Further information on CEP-78 modality options can be found in the base [cep-78-enhanced-nft](https://github.com/ACStoneCL/cep-78-enhanced-nft) repository on GitHub.
 
+## Minting a Token
+
+The CEP-78 JS Client includes code to construct a deploy that will `Mint` a token, as follows:
+
+```js
+
+  const mintDeploy = await cc.mint(
+    {
+      owner: FAUCET_KEYS.publicKey,
+      meta: {
+        color: "Blue",
+        size: "Medium",
+        material: "Aluminum",
+        condition: "Used",
+      },
+    },
+    "1000000000",
+    FAUCET_KEYS.publicKey,
+    [FAUCET_KEYS]
+  );
+
+  const mintDeployHash = await mintDeploy.send(NODE_URL!);
+
+```
+The arguments adhere to those provided in the original installation.
+
+## Transferring a Token
+
+After minting one or more tokens, you can then use the following code to transfer the tokens between accounts:
+
+```js
+
+  const transferDeploy = await cc.transfer(
+    {
+      tokenId: "0",
+      source: FAUCET_KEYS.publicKey,
+      target: USER1_KEYS.publicKey,
+    },
+    "13000000000",
+    FAUCET_KEYS.publicKey,
+    [FAUCET_KEYS]
+  );
+
+  const transferDeployHash = await transferDeploy.send(NODE_URL!);
+
+```
+
+Transferring accepts the following arguments:
+
+* `tokenId` - The sequential ID assigned to a token in mint order.
+
+* `source` - The account sending the token in question.
+
+* `target` - The account receiving the transferred token.
+
+## Burning a Token
+
+The following code shows how to burn a minted NFT that you hold and have access rights to, requiring only the `tokenId` argument:
+
+```js
+
+  const burnDeploy = await cc.burn(
+    { tokenId: "0" },
+    "13000000000",
+    USER1_KEYS.publicKey,
+    [USER1_KEYS]
+  );
+
+  const burnDeployHash = await burnDeploy.send(NODE_URL!);
+
+```
+
 ## Testing
 
 ### Running an Install Test
