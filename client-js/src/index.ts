@@ -19,6 +19,7 @@ import {
   MintArgs,
   BurnArgs,
   ApproveArgs,
+  ApproveAllArgs,
   TransferArgs,
   BurnMode,
   WhitelistMode,
@@ -465,6 +466,30 @@ export class CEP78Client {
     return preparedDeploy;
   }
 
+  public approveAll(
+    args: ApproveAllArgs,
+    paymentAmount: string,
+    deploySender: CLPublicKey,
+    keys?: Keys.AsymmetricKey[]
+  ) {
+    const runtimeArgs = RuntimeArgs.fromMap({
+      token_owner: args.tokenOwner,
+      approve_all: CLValueBuilder.bool(args.approveAll),
+      operator: args.operator,
+    });
+
+    const preparedDeploy = this.contractClient.callEntrypoint(
+      "set_approval_for_all",
+      runtimeArgs,
+      deploySender,
+      this.networkName,
+      paymentAmount,
+      keys
+    );
+
+    return preparedDeploy;
+  }
+
   public storeBalanceOf(
     args: StoreBalanceOfArgs,
     paymentAmount: string,
@@ -566,5 +591,4 @@ export class CEP78Client {
 
     return preparedDeploy;
   }
-
 }

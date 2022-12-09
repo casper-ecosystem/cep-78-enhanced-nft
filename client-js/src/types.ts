@@ -116,3 +116,9 @@ export type StoreOwnerOfArgs = StoreApprovedArgs;
 export type ApproveArgs = {
   operator: CLKeyParameters;
 } & TokenArgs;
+
+export type ApproveAllArgs = {
+  operator: CLKeyParameters;
+  approveAll: boolean;
+  tokenOwner: CLKeyParameters;
+}; 
