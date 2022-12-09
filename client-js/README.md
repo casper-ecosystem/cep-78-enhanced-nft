@@ -4,13 +4,9 @@ This tutorial outlines usage of the JavaScript client available for the CEP-78 E
 
 Further information on the CEP-78 Enhanced NFT Standard itself can be found [here](https://github.com/casper-ecosystem/cep-78-enhanced-nft).
 
-## Requirements
+## Installing Dependencies
 
-The JavaScript client for CEP-78 requires the use of the CasperLabs SDK for JavaScript. Information on installation and use of the Casper JS SDK is available [here](https://github.com/casper-ecosystem/casper-js-sdk).
-
-It also requires the use of `ts-results`, available [here](https://github.com/vultix/ts-results).
-
-These dependencies can be installed using the following command in the `client-js` directory:
+Dependencies can be installed using the following command in the `client-js` directory:
 
 ```js
 npm i
@@ -22,71 +18,35 @@ The `install` method crafts a [Deploy](https://docs.casperlabs.io/design/casper-
 
 ```js
 
-public install(
-    args: InstallArgs,
-    paymentAmount: string,
-    deploySender: CLPublicKey,
-    keys?: Keys.AsymmetricKey[],
-    wasm?: Uint8Array
-  ) {
-    const wasmToInstall =
-      wasm || getBinary(`${__dirname}/../wasm/contract.wasm`);
-      
+const install = async () => {
+  const cc = new CEP78Client(process.env.NODE_URL!, process.env.NETWORK_NAME!);
 
-    const runtimeArgs = RuntimeArgs.fromMap({
-      collection_name: CLValueBuilder.string(args.collectionName),
-      collection_symbol: CLValueBuilder.string(args.collectionSymbol),
-      total_token_supply: CLValueBuilder.u64(args.totalTokenSupply),
-      ownership_mode: CLValueBuilder.u8(args.ownershipMode),
-      nft_kind: CLValueBuilder.u8(args.nftKind),
-      json_schema: CLValueBuilder.string(JSON.stringify(args.jsonSchema)),
-      nft_metadata_kind: CLValueBuilder.u8(args.nftMetadataKind),
-      // two below can conflict
-      identifier_mode: CLValueBuilder.u8(args.identifierMode),
-      metadata_mutability: CLValueBuilder.u8(args.metadataMutability),
-    });
+  const installDeploy = await cc.install(
+    {
+      collectionName: "my-collection",
+      collectionSymbol: "MY-NFTS",
+      totalTokenSupply: "1000",
+      ownershipMode: NFTOwnershipMode.Transferable,
+      nftKind: NFTKind.Physical,
+      jsonSchema: {
+        properties: {
+          color: { name: "color", description: "", required: true },
+          size: { name: "size", description: "", required: true },
+          material: { name: "material", description: "", required: true },
+          condition: { name: "condition", description: "", required: false },
+        },
+      },
+      nftMetadataKind: NFTMetadataKind.CustomValidated,
+      identifierMode: NFTIdentifierMode.Ordinal,
+      metadataMutability: MetadataMutability.Immutable,
+      mintingMode: MintingMode.Installer,
+    },
+    "165000000000",
+    FAUCET_KEYS.publicKey,
+    [FAUCET_KEYS]
+  );
 
-    if (args.mintingMode !== undefined) {
-      runtimeArgs.insert("minting_mode", CLValueBuilder.u8(args.mintingMode));
-    }
-
-    if (args.allowMinting !== undefined) {
-      runtimeArgs.insert(
-        "allow_minting",
-        CLValueBuilder.bool(args.allowMinting)
-      );
-    }
-
-    if (args.whitelistMode !== undefined) {
-      runtimeArgs.insert(
-        "whitelist_mode",
-        CLValueBuilder.u8(args.whitelistMode)
-      );
-    }
-
-    if (args.holderMode !== undefined) {
-      runtimeArgs.insert("holder_mode", CLValueBuilder.u8(args.holderMode));
-    }
-
-    if (args.contractWhitelist !== undefined) {
-      const list = buildKeyHashList(args.contractWhitelist);
-      runtimeArgs.insert("contract_whitelist", CLValueBuilder.list(list));
-    }
-
-    if (args.burnMode !== undefined) {
-      const value = CLValueBuilder.u8(args.burnMode);
-      runtimeArgs.insert("burn_mode", CLValueBuilder.option(Some(value)));
-    }
-
-    return this.contractClient.install(
-      wasmToInstall,
-      runtimeArgs,
-      paymentAmount,
-      deploySender,
-      this.networkName,
-      keys || []
-    );
-  }
+  const hash = await installDeploy.send(process.env.NODE_URL!);
 
 ```
 
