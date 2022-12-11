@@ -1,0 +1,16 @@
+[
+   [
+      "operator",
+      {
+         "bytes":"0112b28459a5c90b7c90f700788302d463b5c29acfef1dd3da5d1ef162f71061f7",
+         "cl_type":"PublicKey"
+      }
+   ],
+   [
+      "token_id",
+      {
+         "bytes":"0000000000000000",
+         "cl_type":"U64"
+      }
+   ]
+]

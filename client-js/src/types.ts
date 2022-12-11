@@ -99,7 +99,7 @@ export type TransferArgs = {
 } & TokenArgs;
 
 export type TokenMetadataArgs = {
-  tokenMetaData: string;
+  tokenMetaData: Record<string, string>;
 };
 
 export type StoreBalanceOfArgs = {

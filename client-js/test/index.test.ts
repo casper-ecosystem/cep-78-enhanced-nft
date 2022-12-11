@@ -22,7 +22,8 @@ import SET_VARIABLES_ARGS_JSON from "./jsons/set-variables-args.json";
 import MINT_DEPLOY_ARGS_JSON from "./jsons/mint-args.json";
 import BURN_DEPLOY_ARGS_JSON from "./jsons/burn-args.json";
 import TRANSFER_DEPLOY_ARGS_JSON from "./jsons/transfer-args.json";
-
+import SET_TOKEN_METADATA_DEPLOY_ARGS_JSON from "./jsons/set-metadata-args.json";
+import APPROVE_DEPLOY_ARGS_JSON from "./jsons/approve-args.json";
 
 describe("CEP78Client", () => {
   const MOCKED_OWNER_PUBKEY = CLPublicKey.fromHex(
@@ -62,6 +63,10 @@ describe("CEP78Client", () => {
 
     const JSONDeploy = DeployUtil.deployToJson(installDeploy) as any;
 
+    expect(installDeploy).toBeInstanceOf(DeployUtil.Deploy);
+    expect(JSONDeploy.deploy.session.ModuleBytes.args).toEqual(
+      INSTALL_ARGS_JSON
+    );
     expect(JSONDeploy.deploy.session.ModuleBytes.args).toEqual(
       INSTALL_ARGS_JSON
     );
@@ -87,6 +92,10 @@ describe("CEP78Client", () => {
 
     const JSONDeploy = DeployUtil.deployToJson(setVariablesDeploy) as any;
 
+    expect(setVariablesDeploy).toBeInstanceOf(DeployUtil.Deploy);
+    expect(JSONDeploy.deploy.session.StoredContractByHash.entry_point).toEqual(
+      "set_variables"
+    );
     expect(JSONDeploy.deploy.session.StoredContractByHash.args).toEqual(
       SET_VARIABLES_ARGS_JSON
     );
@@ -109,6 +118,7 @@ describe("CEP78Client", () => {
 
     const JSONDeploy = DeployUtil.deployToJson(mintDeploy) as any;
 
+    expect(mintDeploy).toBeInstanceOf(DeployUtil.Deploy);
     expect(JSONDeploy.deploy.session.ModuleBytes.args).toEqual(
       MINT_DEPLOY_ARGS_JSON
     );
@@ -123,6 +133,10 @@ describe("CEP78Client", () => {
 
     const JSONDeploy = DeployUtil.deployToJson(burnDeploy) as any;
 
+    expect(burnDeploy).toBeInstanceOf(DeployUtil.Deploy);
+    expect(JSONDeploy.deploy.session.StoredContractByHash.entry_point).toEqual(
+      "burn"
+    );
     expect(JSONDeploy.deploy.session.StoredContractByHash.args).toEqual(
       BURN_DEPLOY_ARGS_JSON
     );
@@ -141,18 +155,48 @@ describe("CEP78Client", () => {
 
     const JSONDeploy = DeployUtil.deployToJson(transferDeploy) as any;
 
+    expect(transferDeploy).toBeInstanceOf(DeployUtil.Deploy);
     expect(JSONDeploy.deploy.session.ModuleBytes.args).toEqual(
       TRANSFER_DEPLOY_ARGS_JSON
     );
   });
-  // const transferDeploy = await cc.transfer(
-  //   {
-  //     tokenId: "0",
-  //     source: FAUCET_KEYS.publicKey,
-  //     target: USER1_KEYS.publicKey,
-  //   },
-  //   "13000000000",
-  //   FAUCET_KEYS.publicKey,
-  //   [FAUCET_KEYS]
-  // );
+
+  it("Should correctly construct deploy for 'set_token_metadata'", async () => {
+    const setTokenMetaDataDeploy = await cc.setTokenMetadata(
+      { tokenMetaData: { color: "Red", size: "XLarge", material: "Cotton" } },
+      "13000000000",
+      keyPair.publicKey
+    );
+
+    const JSONDeploy = DeployUtil.deployToJson(setTokenMetaDataDeploy) as any;
+
+    expect(setTokenMetaDataDeploy).toBeInstanceOf(DeployUtil.Deploy);
+    expect(JSONDeploy.deploy.session.StoredContractByHash.entry_point).toEqual(
+      "set_token_metadata"
+    );
+    expect(JSONDeploy.deploy.session.StoredContractByHash.args).toEqual(
+      SET_TOKEN_METADATA_DEPLOY_ARGS_JSON
+    );
+  });
+
+  it("Should correctly construct deploy for 'approve'", async () => {
+    const setApproveDeploy = await cc.approve(
+      {
+        operator: MOCKED_RECIPIENT_PUBKEY,
+        tokenId: "0",
+      },
+      "1000000000",
+      keyPair.publicKey
+    );
+
+    const JSONDeploy = DeployUtil.deployToJson(setApproveDeploy) as any;
+
+    expect(setApproveDeploy).toBeInstanceOf(DeployUtil.Deploy);
+    expect(JSONDeploy.deploy.session.StoredContractByHash.entry_point).toEqual(
+      "approve"
+    );
+    expect(JSONDeploy.deploy.session.StoredContractByHash.args).toEqual(
+      APPROVE_DEPLOY_ARGS_JSON
+    );
+  });
 });

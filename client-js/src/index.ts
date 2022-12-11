@@ -32,7 +32,7 @@ import {
   TokenMetadataArgs,
   StoreBalanceOfArgs,
   StoreApprovedArgs,
-  StoreOwnerOfArgs
+  StoreOwnerOfArgs,
 } from "./types";
 
 const { Contract } = Contracts;
@@ -382,7 +382,9 @@ export class CEP78Client {
     keys?: Keys.AsymmetricKey[]
   ) {
     const runtimeArgs = RuntimeArgs.fromMap({
-      token_meta_data: CLValueBuilder.string(args.tokenMetaData),
+      token_meta_data: CLValueBuilder.string(
+        JSON.stringify(args.tokenMetaData)
+      ),
     });
 
     const preparedDeploy = this.contractClient.callEntrypoint(
@@ -443,7 +445,7 @@ export class CEP78Client {
     keys?: Keys.AsymmetricKey[]
   ) {
     const runtimeArgs = RuntimeArgs.fromMap({
-      operator: args.operator
+      operator: args.operator,
     });
 
     if (args.tokenId !== undefined) {
@@ -530,7 +532,7 @@ export class CEP78Client {
 
     const runtimeArgs = RuntimeArgs.fromMap({
       nft_contract_hash: this.contractHashKey,
-      key_name: CLValueBuilder.string(args.keyName)
+      key_name: CLValueBuilder.string(args.keyName),
     });
 
     if (args.tokenId) {
@@ -567,7 +569,7 @@ export class CEP78Client {
 
     const runtimeArgs = RuntimeArgs.fromMap({
       nft_contract_hash: this.contractHashKey,
-      key_name: CLValueBuilder.string(args.keyName)
+      key_name: CLValueBuilder.string(args.keyName),
     });
 
     if (args.tokenId) {
