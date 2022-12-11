@@ -69,167 +69,36 @@ const run = async () => {
 
   const JSONSetting = await cc.getJSONSchemaConfig();
 
-  // /* Mint */
-  // printHeader("Mint");
+  /* Mint */
+  printHeader("Mint");
 
-  // const mintDeploy = await cc.mint(
-  //   {
-  //     owner: FAUCET_KEYS.publicKey,
-  //     meta: {
-  //       color: "Blue",
-  //       size: "Medium",
-  //       material: "Aluminum",
-  //       condition: "Used",
-  //     },
-  //   },
-  //   "1000000000",
-  //   FAUCET_KEYS.publicKey,
-  //   [FAUCET_KEYS]
-  // );
+  const mintDeploy = await cc.mint(
+    {
+      owner: FAUCET_KEYS.publicKey,
+      meta: {
+        color: "Blue",
+        size: "Medium",
+        material: "Aluminum",
+        condition: "Used",
+      },
+    },
+    "1000000000",
+    FAUCET_KEYS.publicKey,
+    [FAUCET_KEYS]
+  );
 
-  // const mintDeployHash = await mintDeploy.send(NODE_URL!);
+  const mintDeployHash = await mintDeploy.send(NODE_URL!);
 
-  // console.log("...... Deploy hash: ", mintDeployHash);
-  // console.log("...... Waiting for the deploy...");
+  console.log("...... Deploy hash: ", mintDeployHash);
+  console.log("...... Waiting for the deploy...");
 
-  // await getDeploy(NODE_URL!, mintDeployHash);
+  await getDeploy(NODE_URL!, mintDeployHash);
 
-  // console.log("Deploy Succedeed");
+  console.log("Deploy Succedeed");
 
-  // /* Token details */
+  /* Token details */
 
-  // printTokenDetails("0", FAUCET_KEYS.publicKey);
-
-  // /* Transfer */
-  // printHeader("Transfer");
-
-  // const transferDeploy = await cc.transfer(
-  //   {
-  //     tokenId: "0",
-  //     source: FAUCET_KEYS.publicKey,
-  //     target: USER1_KEYS.publicKey,
-  //   },
-  //   "13000000000",
-  //   FAUCET_KEYS.publicKey,
-  //   [FAUCET_KEYS]
-  // );
-
-  // const transferDeployHash = await transferDeploy.send(NODE_URL!);
-
-  // console.log("...... Deploy hash: ", transferDeployHash);
-  // console.log("...... Waiting for the deploy...");
-
-  // await getDeploy(NODE_URL!, transferDeployHash);
-
-  // console.log("Deploy Succedeed");
-
-  // /* Token details */
-
-  // printTokenDetails("0", USER1_KEYS.publicKey);
-
-  // /* Store owner of at account named key */
-  // printHeader("Store owner of");
-
-  // const storeOwnerOfDeploy = cc.storeOwnerOf(
-  //   {
-  //     keyName: "stored_owner_of_token",
-  //     tokenId: "0",
-  //   },
-  //   "13000000000",
-  //   FAUCET_KEYS.publicKey,
-  //   [FAUCET_KEYS]
-  // );
-
-  // const storeOwnerOfDeployHash = await storeOwnerOfDeploy.send(NODE_URL!);
-  // console.log("...... Deploy hash: ", storeOwnerOfDeployHash);
-  // console.log("...... Waiting for the deploy...");
-
-  // await getDeploy(NODE_URL!, storeOwnerOfDeployHash); 
-
-  // console.log("Deploy Succedeed");
-
-  // accountInfo = await getAccountInfo(NODE_URL!, FAUCET_KEYS.publicKey);
-
-  // console.log(`\n=====================================\n`);
-
-  // console.log(`... Account Info: `);
-  // console.log(JSON.stringify(accountInfo, null, 2));
-
-  // const storedOwnerValue = await getAccountNamedKeyValue(
-  //   accountInfo,
-  //   `stored_owner_of_token`
-  // );
-
-  // console.log('.. storedOwnerValue: ', storedOwnerValue);
-
-  // /* Burn */
-  // printHeader("Burn");
-
-  // const burnDeploy = await cc.burn(
-  //   { tokenId: "0" },
-  //   "13000000000",
-  //   USER1_KEYS.publicKey,
-  //   [USER1_KEYS]
-  // );
-
-  // const burnDeployHash = await burnDeploy.send(NODE_URL!);
-
-  // console.log("...... Deploy hash: ", burnDeployHash);
-  // console.log("...... Waiting for the deploy...");
-
-  // await getDeploy(NODE_URL!, burnDeployHash);
-
-  // console.log("Deploy Succedeed");
-
-
-  // /* Mint another one */
-  // printHeader("Mint");
-
-  // const mintDeploy2 = await cc.mint(
-  //   {
-  //     owner: FAUCET_KEYS.publicKey,
-  //     meta: {
-  //       color: "Red",
-  //       size: "Large",
-  //       material: "Steel",
-  //       condition: "New",
-  //     },
-  //   },
-  //   "1000000000",
-  //   FAUCET_KEYS.publicKey,
-  //   [FAUCET_KEYS]
-  // );
-
-  // const mintDeployHash2 = await mintDeploy2.send(NODE_URL!);
-
-  // console.log("...... Deploy hash: ", mintDeployHash2);
-  // console.log("...... Waiting for the deploy...");
-
-  // await getDeploy(NODE_URL!, mintDeployHash2);
-
-  // console.log("Deploy Succedeed");
-
-  // /* Set approve */ 
-  // printHeader("Set approve for USER3");
-
-  // const setApproveDeploy = await cc.approve(
-  //   {
-  //     operator: USER2_KEYS.publicKey,
-  //     tokenId: "0"
-  //   },
-  //   "1000000000",
-  //   FAUCET_KEYS.publicKey,
-  //   [FAUCET_KEYS]
-  // );
-
-  // const setApproveDeployHash = await setApproveDeploy.send(NODE_URL!);
-
-  // console.log("...... Deploy hash: ", setApproveDeployHash);
-  // console.log("...... Waiting for the deploy...");
-
-  // await getDeploy(NODE_URL!, setApproveDeployHash);
-
-  // console.log("Deploy Succedeed");
+  printTokenDetails("0", FAUCET_KEYS.publicKey);
 
   /* Transfer */
   printHeader("Transfer");
@@ -241,8 +110,8 @@ const run = async () => {
       target: USER1_KEYS.publicKey,
     },
     "13000000000",
-    USER2_KEYS.publicKey,
-    [USER2_KEYS]
+    FAUCET_KEYS.publicKey,
+    [FAUCET_KEYS]
   );
 
   const transferDeployHash = await transferDeploy.send(NODE_URL!);
@@ -254,6 +123,63 @@ const run = async () => {
 
   console.log("Deploy Succedeed");
 
+  /* Token details */
+
+  printTokenDetails("0", USER1_KEYS.publicKey);
+
+  /* Store owner of at account named key */
+  printHeader("Store owner of");
+
+  const storeOwnerOfDeploy = cc.storeOwnerOf(
+    {
+      keyName: "stored_owner_of_token",
+      tokenId: "0",
+    },
+    "13000000000",
+    FAUCET_KEYS.publicKey,
+    [FAUCET_KEYS]
+  );
+
+  const storeOwnerOfDeployHash = await storeOwnerOfDeploy.send(NODE_URL!);
+  console.log("...... Deploy hash: ", storeOwnerOfDeployHash);
+  console.log("...... Waiting for the deploy...");
+
+  await getDeploy(NODE_URL!, storeOwnerOfDeployHash); 
+
+  console.log("Deploy Succedeed");
+
+  accountInfo = await getAccountInfo(NODE_URL!, FAUCET_KEYS.publicKey);
+
+  console.log(`\n=====================================\n`);
+
+  console.log(`... Account Info: `);
+  console.log(JSON.stringify(accountInfo, null, 2));
+
+  const storedOwnerValue = await getAccountNamedKeyValue(
+    accountInfo,
+    `stored_owner_of_token`
+  );
+
+  console.log('.. storedOwnerValue: ', storedOwnerValue);
+
+  /* Burn */
+  printHeader("Burn");
+
+  const burnDeploy = await cc.burn(
+    { tokenId: "0" },
+    "13000000000",
+    USER1_KEYS.publicKey,
+    [USER1_KEYS]
+  );
+
+  const burnDeployHash = await burnDeploy.send(NODE_URL!);
+
+  console.log("...... Deploy hash: ", burnDeployHash);
+  console.log("...... Waiting for the deploy...");
+
+  await getDeploy(NODE_URL!, burnDeployHash);
+
+  console.log("Deploy Succedeed");
 };
 
 run();
