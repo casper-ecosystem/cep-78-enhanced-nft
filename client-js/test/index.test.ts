@@ -24,6 +24,10 @@ import BURN_DEPLOY_ARGS_JSON from "./jsons/burn-args.json";
 import TRANSFER_DEPLOY_ARGS_JSON from "./jsons/transfer-args.json";
 import SET_TOKEN_METADATA_DEPLOY_ARGS_JSON from "./jsons/set-metadata-args.json";
 import APPROVE_DEPLOY_ARGS_JSON from "./jsons/approve-args.json";
+import APPROVE_ALL_DEPLOY_ARGS_JSON from "./jsons/approve-all-args.json";
+import BALANCE_OF_DEPLOY_ARGS_JSON from "./jsons/balance-of-args.json";
+import GET_APPROVED_DEPLOY_ARGS_JSON from "./jsons/get-approved-args.json";
+import OWNER_OF_DEPLOY_ARGS_JSON from "./jsons/owner-of-args.json";
 
 describe("CEP78Client", () => {
   const MOCKED_OWNER_PUBKEY = CLPublicKey.fromHex(
@@ -197,6 +201,81 @@ describe("CEP78Client", () => {
     );
     expect(JSONDeploy.deploy.session.StoredContractByHash.args).toEqual(
       APPROVE_DEPLOY_ARGS_JSON
+    );
+  });
+
+  it("Should correctly construct deploy for 'set_approval_for_all'", async () => {
+    const setApproveAllDeploy = await cc.approveAll(
+      {
+        tokenOwner: MOCKED_OWNER_PUBKEY,
+        operator: MOCKED_RECIPIENT_PUBKEY,
+        approveAll: true,
+      },
+      "1000000000",
+      keyPair.publicKey
+    );
+
+    const JSONDeploy = DeployUtil.deployToJson(setApproveAllDeploy) as any;
+
+    expect(setApproveAllDeploy).toBeInstanceOf(DeployUtil.Deploy);
+    expect(JSONDeploy.deploy.session.StoredContractByHash.entry_point).toEqual(
+      "set_approval_for_all"
+    );
+    expect(JSONDeploy.deploy.session.StoredContractByHash.args).toEqual(
+      APPROVE_ALL_DEPLOY_ARGS_JSON
+    );
+  });
+
+  it("Should correctly construct deploy for 'balance_of'", async () => {
+    const balanceOfDeploy = await cc.storeBalanceOf(
+      {
+        tokenOwner: MOCKED_OWNER_PUBKEY,
+        keyName: "abc",
+      },
+      "1000000000",
+      keyPair.publicKey
+    );
+
+    const JSONDeploy = DeployUtil.deployToJson(balanceOfDeploy) as any;
+
+    expect(balanceOfDeploy).toBeInstanceOf(DeployUtil.Deploy);
+    expect(JSONDeploy.deploy.session.ModuleBytes.args).toEqual(
+      BALANCE_OF_DEPLOY_ARGS_JSON
+    );
+  });
+
+  it("Should correctly construct deploy for 'get_approved'", async () => {
+    const getApprovedDeploy = await cc.storeGetApproved(
+      {
+        keyName: "def",
+      },
+      "1000000000",
+      keyPair.publicKey
+    );
+
+    const JSONDeploy = DeployUtil.deployToJson(getApprovedDeploy) as any;
+
+    expect(getApprovedDeploy).toBeInstanceOf(DeployUtil.Deploy);
+    expect(JSONDeploy.deploy.session.ModuleBytes.args).toEqual(
+      GET_APPROVED_DEPLOY_ARGS_JSON
+    );
+  });
+
+  it("Should correctly construct deploy for 'owner_of'", async () => {
+    const ownerOfDeploy = await cc.storeGetApproved(
+      {
+        keyName: "def",
+        tokenId: "0",
+      },
+      "1000000000",
+      keyPair.publicKey
+    );
+
+    const JSONDeploy = DeployUtil.deployToJson(ownerOfDeploy) as any;
+
+    expect(ownerOfDeploy).toBeInstanceOf(DeployUtil.Deploy);
+    expect(JSONDeploy.deploy.session.ModuleBytes.args).toEqual(
+      OWNER_OF_DEPLOY_ARGS_JSON
     );
   });
 });

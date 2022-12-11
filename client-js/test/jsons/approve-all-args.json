@@ -1,0 +1,23 @@
+[
+   [
+      "token_owner",
+      {
+         "bytes":"0145fb72c75e1b459839555d70356a5e6172e706efa204d86c86050e2f7878960f",
+         "cl_type":"PublicKey"
+      }
+   ],
+   [
+      "approve_all",
+      {
+         "bytes":"01",
+         "cl_type":"Bool"
+      }
+   ],
+   [
+      "operator",
+      {
+         "bytes":"0112b28459a5c90b7c90f700788302d463b5c29acfef1dd3da5d1ef162f71061f7",
+         "cl_type":"PublicKey"
+      }
+   ]
+]

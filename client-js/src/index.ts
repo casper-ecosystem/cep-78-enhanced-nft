@@ -500,7 +500,7 @@ export class CEP78Client {
     wasm?: Uint8Array
   ) {
     const wasmToCall =
-      wasm || getBinary(`${__dirname}/../wasm/balance_of.wasm`);
+      wasm || getBinary(`${__dirname}/../wasm/balance_of_call.wasm`);
 
     const runtimeArgs = RuntimeArgs.fromMap({
       nft_contract_hash: this.contractHashKey,

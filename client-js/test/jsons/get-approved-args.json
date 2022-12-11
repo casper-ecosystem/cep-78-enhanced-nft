@@ -1,0 +1,16 @@
+[
+   [
+      "nft_contract_hash",
+      {
+         "bytes":"010c0f9056626a55273bd8238f595908f2e4d78acc2546bf1f78f39f814bc60fe4",
+         "cl_type":"Key"
+      }
+   ],
+   [
+      "key_name",
+      {
+         "bytes":"03000000646566",
+         "cl_type":"String"
+      }
+   ]
+]
