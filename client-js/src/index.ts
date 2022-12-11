@@ -58,11 +58,11 @@ export const getBinary = (pathToBinary: string) =>
   new Uint8Array(fs.readFileSync(pathToBinary, null).buffer);
 
 export class CEP78Client {
-  casperClient: CasperClient;
+  private casperClient: CasperClient;
 
-  contractClient: Contracts.Contract;
+  public contractClient: Contracts.Contract;
 
-  contractHashKey: CLKey;
+  public contractHashKey: CLKey;
 
   constructor(public nodeAddress: string, public networkName: string) {
     this.casperClient = new CasperClient(nodeAddress);

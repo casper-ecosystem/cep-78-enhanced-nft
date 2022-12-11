@@ -1,0 +1,9 @@
+
+> cep78-js-client@0.1.0 test
+> jest
+
+  console.info
+    secp256k1 unavailable, reverting to browser version
+
+      at Object.<anonymous> (node_modules/eccrypto/index.js:23:13)
+
