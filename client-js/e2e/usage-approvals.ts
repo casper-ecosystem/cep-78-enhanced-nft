@@ -49,25 +49,6 @@ const run = async () => {
 
   await cc.setContractHash(contractHash, undefined);
 
-  console.log(`\n=====================================\n`);
-
-  const allowMintingSetting = await cc.getAllowMintingConfig();
-  console.log(`AllowMintingSetting: ${allowMintingSetting}`);
-
-  const burnModeSetting = await cc.getBurnModeConfig();
-  console.log(`BurnModeSetting: ${burnModeSetting}`);
-
-  const holderModeSetting = await cc.getHolderModeConfig();
-  console.log(`HolderModeSetting: ${holderModeSetting}`);
-
-  const identifierModeSetting = await cc.getIdentifierModeConfig();
-  console.log(`IdentifierModeSetting: ${identifierModeSetting}`);
-
-  const whitelistModeSetting = await cc.getWhitelistModeConfig();
-  console.log(`WhitelistMode: ${whitelistModeSetting}`);
-
-  const JSONSetting = await cc.getJSONSchemaConfig();
-
   /* Mint */
   printHeader("Mint");
 
@@ -75,10 +56,13 @@ const run = async () => {
     {
       owner: FAUCET_KEYS.publicKey,
       meta: {
-        color: "Blue",
-        size: "Medium",
-        material: "Aluminum",
-        condition: "Used",
+        type: "vehicle",
+        make: "Audi",
+        model: "S3",
+        fuelType: "petrol",
+        engineCapacity: "2000",
+        vin: "4Y1SL65848Z411439",
+        registrationDate: "2019-10-01",
       },
     },
     "1000000000",

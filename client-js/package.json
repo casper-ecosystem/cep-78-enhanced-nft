@@ -8,6 +8,7 @@
     "build": "tsc",
     "test:install": "ts-node e2e/install.ts",
     "test:usage": "ts-node e2e/usage.ts",
+    "test:usage-approvals": "ts-node e2e/usage-approvals.ts",
     "lint": "eslint src/",
     "lint:fix": "eslint src/ --fix"
   },
