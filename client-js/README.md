@@ -19,7 +19,6 @@ As every deploy created by the SDK you can send it using `.send(rpcUrl)` method 
 
 ```js
 
-const install = async () => {
   const contractClient  = new CEP78Client(process.env.NODE_URL!, process.env.NETWORK_NAME!);
 
   const installDeploy = await contractClient.install(
@@ -51,7 +50,7 @@ const install = async () => {
 
 ```
 
-`InstallArgs` are specified in the associated `.env` file as follows:
+`InstallArgs` are specified sd follows:
 
 * `collectionName` - The name of the NFT collection, passed in as a `String`. **This parameter is required and cannot be changed post installation**.
 
@@ -71,11 +70,11 @@ const install = async () => {
 
 * `metadataMutability` - The `MetadataMutability` modality dictates whether the metadata of minted NFTs can be updated. This argument is passed in as a `u8` value and is required at the time of installation.
 
-* `mintingmode?` - The `MintingMode` modality dictates the access to the `mint()` entry point in the NFT contract. This optional parameter will default to restricting access to the installer of the contract. **This parameter cannot be changed once the contract has been installed**.
+* `mintingmode` - The `MintingMode` modality dictates the access to the `mint()` entry point in the NFT contract. This optional parameter will default to restricting access to the installer of the contract. **This parameter cannot be changed once the contract has been installed**.
 
-* `holdermode?` - The `NFTHolderMode` modality dictates which entities can hold NFTs. This optional parameter will default to a mixed mode, allowing either `Accounts` or `Contracts` to hold NFTs. **This parameter cannot be changed once the contract has been installed**.
+* `holdermode` - The `NFTHolderMode` modality dictates which entities can hold NFTs. This optional parameter will default to a mixed mode, allowing either `Accounts` or `Contracts` to hold NFTs. **This parameter cannot be changed once the contract has been installed**.
 
-* `burnMode?` - The `BurnMode` modality dictates whether minted NFTs can be burnt. This optional parameter will allow tokens to be burnt by default. **This parameter cannot be changed once the contract has been installed**.
+* `burnMode` - The `BurnMode` modality dictates whether minted NFTs can be burnt. This optional parameter will allow tokens to be burnt by default. **This parameter cannot be changed once the contract has been installed**.
 
 Further information on CEP-78 modality options can be found in the base [cep-78-enhanced-nft](https://github.com/ACStoneCL/cep-78-enhanced-nft) repository on GitHub.
 
