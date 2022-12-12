@@ -14,14 +14,15 @@ npm i
 
 ## Installing a CEP-78 Contract using the JavaScript Client
 
-The `install` method crafts a [Deploy](https://docs.casperlabs.io/design/casper-design/#execution-semantics-deploys) using `InstallArgs` and sends that Deploy to the specified Casper network.
+The `install` method crafts a [Deploy](https://docs.casperlabs.io/design/casper-design/#execution-semantics-deploys) using `InstallArgs`.
+As every deploy created by the SDK you can send it using `.send(rpcUrl)` method providing rpc url that you want to use. It will return deployHash. 
 
 ```js
 
 const install = async () => {
-  const cc = new CEP78Client(process.env.NODE_URL!, process.env.NETWORK_NAME!);
+  const contractClient  = new CEP78Client(process.env.NODE_URL!, process.env.NETWORK_NAME!);
 
-  const installDeploy = await cc.install(
+  const installDeploy = await contractClient.install(
     {
       collectionName: "my-collection",
       collectionSymbol: "MY-NFTS",
@@ -84,7 +85,7 @@ The CEP-78 JS Client includes code to construct a deploy that will `Mint` a toke
 
 ```js
 
-  const mintDeploy = await cc.mint(
+  const mintDeploy = await contractClient.mint(
     {
       owner: FAUCET_KEYS.publicKey,
       meta: {
@@ -110,7 +111,7 @@ After minting one or more tokens, you can then use the following code to transfe
 
 ```js
 
-  const transferDeploy = await cc.transfer(
+  const transferDeploy = await contractClient.transfer(
     {
       tokenId: "0",
       source: FAUCET_KEYS.publicKey,
@@ -139,7 +140,7 @@ The following code shows how to burn a minted NFT that you hold and have access 
 
 ```js
 
-  const burnDeploy = await cc.burn(
+  const burnDeploy = await contractClient.burn(
     { tokenId: "0" },
     "13000000000",
     USER1_KEYS.publicKey,
@@ -185,7 +186,7 @@ The test will then provide the installing account's information, which will incl
 
 ### Running a Usage Test
 
-A usage test uses the same variables as the Install test above, but tests the functionality of the contract after installation.
+A usage test uses the same variables as the Install test above, but tests the basic functionality of the contract after installation.
 
 The usage test can be run using the following command:
 
