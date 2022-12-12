@@ -463,7 +463,6 @@ pub(crate) fn get_token_index(token_identifier: &TokenIdentifier) -> u64 {
 }
 
 pub(crate) fn migrate_owned_tokens_in_ordinal_mode() {
-    runtime::print("migrating owned tokens");
     let current_number_of_minted_tokens = utils::get_stored_value_with_user_errors::<u64>(
         NUMBER_OF_MINTED_TOKENS,
         NFTCoreError::MissingTotalTokenSupply,
@@ -494,7 +493,6 @@ pub(crate) fn migrate_owned_tokens_in_ordinal_mode() {
                 &token_owner_item_key,
             )
             .unwrap_or_revert();
-            runtime::print("Got list");
             for token_identifier in owned_tokens_list.into_iter() {
                 let token_id = token_identifier.get_index().unwrap_or_revert();
                 let page_number = token_id / PAGE_SIZE;
@@ -614,7 +612,6 @@ pub(crate) fn migrate_token_hashes(token_owner: Key) {
             None => vec![false; PAGE_SIZE as usize],
         };
         let _ = core::mem::replace(&mut page[page_address as usize], true);
-        runtime::print(&format!("{:?}", page.clone()));
         storage::dictionary_put(page_uref, &page_item_key, page);
         insert_hash_id_lookups(unmatched_hash_count - 1, token_identifier);
         unmatched_hash_count -= 1;
