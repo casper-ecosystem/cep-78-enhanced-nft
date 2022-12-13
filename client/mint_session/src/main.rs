@@ -29,7 +29,7 @@ pub extern "C" fn call() {
     let token_owner = runtime::get_named_arg::<Key>(ARG_TOKEN_OWNER);
     let token_metadata: String = runtime::get_named_arg(ARG_TOKEN_META_DATA);
 
-    runtime::call_contract::<()>(nft_contract_hash, "register_owner", runtime_args! {
+    runtime::call_contract::<()>(nft_contract_hash, ENTRY_POINT_REGISTER_OWNER, runtime_args! {
         ARG_TOKEN_OWNER => token_owner,
     });
 

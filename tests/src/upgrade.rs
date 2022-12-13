@@ -8,9 +8,10 @@ use crate::utility::{
     constants::{
         ACCESS_KEY_NAME, ACCOUNT_USER_1, ARG_IS_HASH_IDENTIFIER_MODE, ARG_NFT_CONTRACT_HASH,
         ARG_NFT_PACKAGE_HASH, ARG_SOURCE_KEY, ARG_TARGET_KEY, ARG_TOKEN_HASH, ARG_TOKEN_META_DATA,
-        ARG_TOKEN_OWNER, CONTRACT_1_0_0_WASM, MINT_1_0_0_WASM, MINT_SESSION_WASM,
-        NFT_CONTRACT_WASM, NFT_TEST_COLLECTION, NFT_TEST_SYMBOL, PAGE_LIMIT, PAGE_SIZE,
-        RECEIPT_NAME, TRANSFER_SESSION_WASM, UNMATCHED_HASH_COUNT, UPDATED_RECEIPTS_WASM,
+        ARG_TOKEN_OWNER, CONTRACT_1_0_0_WASM, ENTRY_POINT_REGISTER_OWNER, MINT_1_0_0_WASM,
+        MINT_SESSION_WASM, NFT_CONTRACT_WASM, NFT_TEST_COLLECTION, NFT_TEST_SYMBOL, PAGE_LIMIT,
+        PAGE_SIZE, RECEIPT_NAME, TRANSFER_SESSION_WASM, UNMATCHED_HASH_COUNT,
+        UPDATED_RECEIPTS_WASM,
     },
     installer_request_builder::{
         InstallerRequestBuilder, MetadataMutability, NFTIdentifierMode, NFTMetadataKind,
@@ -273,7 +274,7 @@ fn should_safely_upgrade_in_hash_identifier_mode() {
     let register_request = ExecuteRequestBuilder::contract_call_by_hash(
         *DEFAULT_ACCOUNT_ADDR,
         nft_contract_hash,
-        "register_owner",
+        ENTRY_POINT_REGISTER_OWNER,
         runtime_args! {
             ARG_TOKEN_OWNER => Key::Account(AccountHash::new(ACCOUNT_USER_1))
         },

@@ -22,6 +22,7 @@ const ENTRY_POINT_MINT: &str = "mint";
 const ENTRY_POINT_TRANSFER: &str = "transfer";
 const ENTRY_POINT_BURN: &str = "burn";
 const ENTRY_POINT_METADATA: &str = "metadata";
+const ENTRY_POINT_REGISTER_OWNER: &str = "register_owner";
 
 const ARG_NFT_CONTRACT_HASH: &str = "nft_contract_hash";
 const ARG_TOKEN_OWNER: &str = "token_owner";
@@ -43,7 +44,7 @@ pub extern "C" fn mint() {
 
     runtime::call_contract::<()>(
         nft_contract_hash,
-        "register_owner",
+        ENTRY_POINT_REGISTER_OWNER,
         runtime_args! {
             ARG_TOKEN_OWNER => token_owner,
         }
@@ -135,7 +136,7 @@ pub extern "C" fn register_contract() {
 
     runtime::call_contract::<()>(
         nft_contract_hash,
-        "register_owner",
+        ENTRY_POINT_REGISTER_OWNER,
         runtime_args! {
             ARG_TOKEN_OWNER => token_owner
         }

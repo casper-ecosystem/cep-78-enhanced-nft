@@ -19,6 +19,7 @@ pub(crate) const ENTRY_POINT_APPROVE: &str = "approve";
 pub(crate) const ENTRY_POINT_METADATA: &str = "metadata";
 pub(crate) const ENTRY_POINT_SET_APPROVE_FOR_ALL: &str = "set_approval_for_all";
 pub(crate) const ENTRY_POINT_SET_TOKEN_METADATA: &str = "set_token_metadata";
+pub(crate) const ENTRY_POINT_REGISTER_OWNER: &str = "register_owner";
 pub(crate) const ARG_COLLECTION_NAME: &str = "collection_name";
 pub(crate) const ARG_COLLECTION_SYMBOL: &str = "collection_symbol";
 pub(crate) const ARG_TOTAL_TOKEN_SUPPLY: &str = "total_token_supply";
