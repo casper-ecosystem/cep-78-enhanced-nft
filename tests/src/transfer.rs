@@ -19,7 +19,7 @@ use crate::utility::{
     },
     installer_request_builder::{
         InstallerRequestBuilder, MetadataMutability, MintingMode, NFTHolderMode, NFTIdentifierMode,
-        OwnershipMode, WhitelistMode,
+        NFTMetadataKind, OwnershipMode, ReportingMode, WhitelistMode,
     },
     support::{
         self, assert_expected_error, get_dictionary_value_from_key, get_minting_contract_hash,
@@ -977,4 +977,56 @@ fn should_not_allow_non_approved_contract_to_transfer() {
         .exec(approved_transfer_request)
         .expect_success()
         .commit();
+}
+
+#[test]
+fn should_prevent_transfer_to_unregistered_owner() {
+    let mut builder = InMemoryWasmTestBuilder::default();
+    builder.run_genesis(&DEFAULT_RUN_GENESIS_REQUEST).commit();
+
+    let install_request = InstallerRequestBuilder::new(*DEFAULT_ACCOUNT_ADDR, NFT_CONTRACT_WASM)
+        .with_total_token_supply(1000u64)
+        .with_identifier_mode(NFTIdentifierMode::Ordinal)
+        .with_metadata_mutability(MetadataMutability::Immutable)
+        .with_ownership_mode(OwnershipMode::Transferable)
+        .with_reporting_mode(ReportingMode::Report)
+        .with_nft_metadata_kind(NFTMetadataKind::Raw)
+        .build();
+
+    builder.exec(install_request).expect_success().commit();
+
+    let nft_contract_hash = get_nft_contract_hash(&builder);
+    let nft_contract_key: Key = nft_contract_hash.into();
+
+    let mint_session_call = ExecuteRequestBuilder::standard(
+        *DEFAULT_ACCOUNT_ADDR,
+        MINT_SESSION_WASM,
+        runtime_args! {
+            ARG_NFT_CONTRACT_HASH => nft_contract_key,
+            ARG_TOKEN_OWNER => Key::Account(*DEFAULT_ACCOUNT_ADDR),
+            ARG_TOKEN_META_DATA => "",
+        },
+    )
+    .build();
+
+    builder.exec(mint_session_call).expect_success().commit();
+
+    let transfer_request = ExecuteRequestBuilder::standard(
+        *DEFAULT_ACCOUNT_ADDR,
+        TRANSFER_SESSION_WASM,
+        runtime_args! {
+            ARG_NFT_CONTRACT_HASH => nft_contract_key,
+            ARG_TOKEN_ID => 0u64,
+            ARG_SOURCE_KEY => Key::Account(*DEFAULT_ACCOUNT_ADDR),
+            ARG_TARGET_KEY => Key::Account(AccountHash::new([7u8;32])),
+            ARG_IS_HASH_IDENTIFIER_MODE => false
+        },
+    )
+    .build();
+
+    builder.exec(transfer_request).expect_failure();
+
+    let error = builder.get_error().expect("must have error");
+
+    assert_expected_error(error, 128u16, "must raise unregistered owner in transfer");
 }
