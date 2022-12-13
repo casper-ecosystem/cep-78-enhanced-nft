@@ -89,8 +89,9 @@ fn should_dissallow_transfer_with_minter_or_assigned_ownership_mode() {
         "register_owner",
         runtime_args! {
             ARG_TOKEN_OWNER => Key::Account(token_receiver.to_account_hash())
-        }
-    ).build();
+        },
+    )
+    .build();
 
     builder.exec(register_request).expect_success().commit();
 
@@ -171,8 +172,9 @@ fn should_transfer_token_from_sender_to_receiver() {
         "register_owner",
         runtime_args! {
             ARG_TOKEN_OWNER => Key::Account(token_receiver.to_account_hash())
-        }
-    ).build();
+        },
+    )
+    .build();
 
     builder.exec(register_request).expect_success().commit();
 
@@ -374,15 +376,6 @@ fn should_be_able_to_transfer_token_using_approved_operator() {
 
     builder.exec(install_request).expect_success().commit();
 
-    let account = builder.get_expected_account(*DEFAULT_ACCOUNT_ADDR);
-    let nft_contract_hash = account
-        .named_keys()
-        .get(CONTRACT_NAME)
-        .cloned()
-        .and_then(Key::into_hash)
-        .map(ContractHash::new)
-        .expect("failed to find nft contract");
-
     // mint token for DEFAULT_ACCOUNT_ADDR
     let token_owner = DEFAULT_ACCOUNT_PUBLIC_KEY.clone().to_account_hash();
     let nft_contract_hash = get_nft_contract_hash(&builder);
@@ -462,8 +455,9 @@ fn should_be_able_to_transfer_token_using_approved_operator() {
         "register_owner",
         runtime_args! {
             ARG_TOKEN_OWNER => Key::Account(to_account_public_key.to_account_hash())
-        }
-    ).build();
+        },
+    )
+    .build();
 
     builder.exec(register_owner).expect_success().commit();
 
@@ -592,8 +586,9 @@ fn should_dissallow_same_operator_to_tranfer_token_twice() {
         "register_owner",
         runtime_args! {
             ARG_TOKEN_OWNER => Key::Account(to_account_public_key.to_account_hash())
-        }
-    ).build();
+        },
+    )
+    .build();
 
     builder.exec(register_request).expect_success().commit();
 
@@ -660,7 +655,7 @@ fn should_transfer_between_contract_to_account() {
 
     builder.exec(install_request).expect_success().commit();
 
-    let nft_contract_hash= get_nft_contract_hash(&builder);
+    let nft_contract_hash = get_nft_contract_hash(&builder);
     let nft_contract_key: Key = nft_contract_hash.into();
 
     let actual_contract_whitelist: Vec<ContractHash> = query_stored_value(
@@ -700,8 +695,9 @@ fn should_transfer_between_contract_to_account() {
         "register_owner",
         runtime_args! {
             ARG_TOKEN_OWNER => Key::Account(*DEFAULT_ACCOUNT_ADDR)
-        }
-    ).build();
+        },
+    )
+    .build();
 
     builder.exec(register_request).expect_success().commit();
 
@@ -854,8 +850,9 @@ fn should_transfer_token_in_hash_identifier_mode() {
         "register_owner",
         runtime_args! {
             ARG_TOKEN_OWNER => Key::Account(AccountHash::new([3u8;32]))
-        }
-    ).build();
+        },
+    )
+    .build();
 
     builder.exec(register_request).expect_success().commit();
 
@@ -925,8 +922,9 @@ fn should_not_allow_non_approved_contract_to_transfer() {
         "register_owner",
         runtime_args! {
             ARG_TOKEN_OWNER => Key::Account(AccountHash::new([7u8;32]))
-        }
-    ).build();
+        },
+    )
+    .build();
 
     builder.exec(register_request).expect_success().commit();
 

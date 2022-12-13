@@ -7,7 +7,12 @@ use casper_engine_test_support::ExecuteRequestBuilder;
 use casper_execution_engine::core::engine_state::ExecuteRequest;
 use casper_types::{account::AccountHash, CLValue, ContractHash, RuntimeArgs};
 
-use crate::utility::constants::{ARG_ALLOW_MINTING, ARG_BURN_MODE, ARG_COLLECTION_NAME, ARG_COLLECTION_SYMBOL, ARG_CONTRACT_WHITELIST, ARG_HOLDER_MODE, ARG_IDENTIFIER_MODE, ARG_JSON_SCHEMA, ARG_METADATA_MUTABILITY, ARG_MINTING_MODE, ARG_NFT_KIND, ARG_NFT_METADATA_KIND, ARG_OWNERSHIP_MODE, ARG_REPORTING_MODE, ARG_TOTAL_TOKEN_SUPPLY, ARG_WHITELIST_MODE};
+use crate::utility::constants::{
+    ARG_ALLOW_MINTING, ARG_BURN_MODE, ARG_COLLECTION_NAME, ARG_COLLECTION_SYMBOL,
+    ARG_CONTRACT_WHITELIST, ARG_HOLDER_MODE, ARG_IDENTIFIER_MODE, ARG_JSON_SCHEMA,
+    ARG_METADATA_MUTABILITY, ARG_MINTING_MODE, ARG_NFT_KIND, ARG_NFT_METADATA_KIND,
+    ARG_OWNERSHIP_MODE, ARG_REPORTING_MODE, ARG_TOTAL_TOKEN_SUPPLY, ARG_WHITELIST_MODE,
+};
 
 pub(crate) static TEST_CUSTOM_METADATA_SCHEMA: Lazy<CustomMetadataSchema> = Lazy::new(|| {
     let mut properties = BTreeMap::new();
@@ -184,7 +189,7 @@ impl InstallerRequestBuilder {
             identifier_mode: CLValue::from_t(NFTIdentifierMode::Ordinal as u8).unwrap(),
             metadata_mutability: CLValue::from_t(MetadataMutability::Mutable as u8).unwrap(),
             burn_mode: CLValue::from_t(BurnMode::Burnable as u8).unwrap(),
-            reporting_mode: CLValue::from_t(ReportingMode::Report as u8).unwrap()
+            reporting_mode: CLValue::from_t(ReportingMode::Report as u8).unwrap(),
         }
     }
 

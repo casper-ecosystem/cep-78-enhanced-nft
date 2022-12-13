@@ -12,6 +12,7 @@ use casper_contract::contract_api::{runtime};
 use casper_types::{runtime_args, ContractHash, Key, RuntimeArgs};
 
 const ENTRY_POINT_MINT: &str = "mint";
+const ENTRY_POINT_REGISTER_OWNER: &str = "register_owner";
 
 const ARG_NFT_CONTRACT_HASH: &str = "nft_contract_hash";
 const ARG_TOKEN_OWNER: &str = "token_owner";

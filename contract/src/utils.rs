@@ -23,15 +23,13 @@ use casper_types::{
 use crate::{
     constants::{
         ARG_TOKEN_HASH, ARG_TOKEN_ID, HOLDER_MODE, OWNERSHIP_MODE, PAGE_DICTIONARY_PREFIX,
-        PAGE_LIMIT, RECEIPT_NAME,
+        PAGE_LIMIT, RECEIPT_NAME, REPORTING_MODE,
     },
     error::NFTCoreError,
-    modalities::{NFTHolderMode, NFTIdentifierMode, OwnershipMode, TokenIdentifier},
+    modalities::{NFTHolderMode, NFTIdentifierMode, OwnershipMode, ReportingMode, TokenIdentifier},
     utils, BurnMode, BURNT_TOKENS, BURN_MODE, HASH_BY_INDEX, IDENTIFIER_MODE, INDEX_BY_HASH,
     NUMBER_OF_MINTED_TOKENS, OWNED_TOKENS, PAGE_TABLE, TOKEN_OWNERS, UNMATCHED_HASH_COUNT,
 };
-use crate::constants::REPORTING_MODE;
-use crate::modalities::ReportingMode;
 
 // The size of a given page, it is currently set to 10
 // to ease the math around addressing newly minted tokens.
@@ -552,10 +550,12 @@ pub(crate) fn should_migrate_token_hashes(token_owner: Key) -> bool {
     );
     // If the owner has registered, then they will have an page table entry
     // but it will contain no bits set.
-    let page_table =storage::dictionary_get::<Vec<bool>>(
+    let page_table = storage::dictionary_get::<Vec<bool>>(
         page_table_uref,
         &get_owned_tokens_dictionary_item_key(token_owner),
-    ).unwrap_or_revert().unwrap_or_revert_with(NFTCoreError::UnRegisteredOwnerFromMigration);
+    )
+    .unwrap_or_revert()
+    .unwrap_or_revert_with(NFTCoreError::UnregisteredOwnerFromMigration);
     if page_table.contains(&true) {
         return false;
     }
@@ -694,6 +694,8 @@ pub(crate) fn get_reporting_mode() -> ReportingMode {
     utils::get_stored_value_with_user_errors::<u8>(
         REPORTING_MODE,
         NFTCoreError::MissingReportingMode,
-        NFTCoreError::InvalidReportingMode
-    ).try_into().unwrap_or_revert()
+        NFTCoreError::InvalidReportingMode,
+    )
+    .try_into()
+    .unwrap_or_revert()
 }

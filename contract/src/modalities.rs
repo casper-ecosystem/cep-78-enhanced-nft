@@ -241,7 +241,7 @@ impl TryFrom<u8> for ReportingMode {
         match value {
             0 => Ok(ReportingMode::NoReport),
             1 => Ok(ReportingMode::Report),
-            _ => Err(NFTCoreError::InvalidReportingMode)
+            _ => Err(NFTCoreError::InvalidReportingMode),
         }
     }
 }

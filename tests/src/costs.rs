@@ -124,8 +124,9 @@ fn transfer_costs_should_remain_stable() {
         "register_owner",
         runtime_args! {
             ARG_TOKEN_OWNER => Key::Account(AccountHash::new([9u8;32]))
-        }
-    ).build();
+        },
+    )
+    .build();
 
     builder.exec(register_request).expect_success().commit();
 

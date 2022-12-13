@@ -8,9 +8,9 @@ use crate::utility::{
     constants::{
         ACCESS_KEY_NAME, ACCOUNT_USER_1, ARG_IS_HASH_IDENTIFIER_MODE, ARG_NFT_CONTRACT_HASH,
         ARG_NFT_PACKAGE_HASH, ARG_SOURCE_KEY, ARG_TARGET_KEY, ARG_TOKEN_HASH, ARG_TOKEN_META_DATA,
-        ARG_TOKEN_OWNER, CONTRACT_1_0_0_WASM, MINT_SESSION_WASM, NFT_CONTRACT_WASM,
-        NFT_TEST_COLLECTION, NFT_TEST_SYMBOL, PAGE_LIMIT, PAGE_SIZE, RECEIPT_NAME,
-        TRANSFER_SESSION_WASM, UNMATCHED_HASH_COUNT, UPDATED_RECEIPTS_WASM, MINT_1_0_0_WASM
+        ARG_TOKEN_OWNER, CONTRACT_1_0_0_WASM, MINT_1_0_0_WASM, MINT_SESSION_WASM,
+        NFT_CONTRACT_WASM, NFT_TEST_COLLECTION, NFT_TEST_SYMBOL, PAGE_LIMIT, PAGE_SIZE,
+        RECEIPT_NAME, TRANSFER_SESSION_WASM, UNMATCHED_HASH_COUNT, UPDATED_RECEIPTS_WASM,
     },
     installer_request_builder::{
         InstallerRequestBuilder, MetadataMutability, NFTIdentifierMode, NFTMetadataKind,
@@ -221,8 +221,6 @@ fn should_safely_upgrade_in_hash_identifier_mode() {
     let nft_contract_hash = support::get_nft_contract_hash(&builder);
     let nft_contract_key: Key = nft_contract_hash.into();
 
-
-
     let number_of_tokens_at_upgrade = support::get_stored_value_from_global_state::<u64>(
         &builder,
         nft_contract_key,
@@ -278,39 +276,40 @@ fn should_safely_upgrade_in_hash_identifier_mode() {
         "register_owner",
         runtime_args! {
             ARG_TOKEN_OWNER => Key::Account(AccountHash::new(ACCOUNT_USER_1))
-        }
-    ).build();
+        },
+    )
+    .build();
 
     builder.exec(register_request).expect_success().commit();
 
-     let transfer_request = ExecuteRequestBuilder::standard(
+    let transfer_request = ExecuteRequestBuilder::standard(
         *DEFAULT_ACCOUNT_ADDR,
         TRANSFER_SESSION_WASM,
-         runtime_args! {
-             ARG_NFT_CONTRACT_HASH => nft_contract_key,
-             ARG_SOURCE_KEY => Key::Account(*DEFAULT_ACCOUNT_ADDR),
-             ARG_TARGET_KEY => Key::Account(AccountHash::new(ACCOUNT_USER_1)),
-             ARG_IS_HASH_IDENTIFIER_MODE => true,
-             ARG_TOKEN_HASH => expected_metadata[0].clone()
-         },
+        runtime_args! {
+            ARG_NFT_CONTRACT_HASH => nft_contract_key,
+            ARG_SOURCE_KEY => Key::Account(*DEFAULT_ACCOUNT_ADDR),
+            ARG_TARGET_KEY => Key::Account(AccountHash::new(ACCOUNT_USER_1)),
+            ARG_IS_HASH_IDENTIFIER_MODE => true,
+            ARG_TOKEN_HASH => expected_metadata[0].clone()
+        },
     )
-     .build();
+    .build();
 
-     builder.exec(transfer_request).expect_success().commit();
+    builder.exec(transfer_request).expect_success().commit();
 
-     let actual_page = support::get_token_page_by_hash(
-         &builder,
-         &nft_contract_key,
-         &Key::Account(AccountHash::new(ACCOUNT_USER_1)),
-         expected_metadata[0].clone(),
-     );
+    let actual_page = support::get_token_page_by_hash(
+        &builder,
+        &nft_contract_key,
+        &Key::Account(AccountHash::new(ACCOUNT_USER_1)),
+        expected_metadata[0].clone(),
+    );
 
-     // Because token hashes are backfilled, during the migration the
-     // bits of the page are filled from right to left as the address
-     // counts down instead of up. Thus as the `expected_metadata[0]`
-     // represents the first hash to be retroactively filled in reverse
-     // the address of the token hash is [2] instead of [0]
-     assert!(actual_page[2])
+    // Because token hashes are backfilled, during the migration the
+    // bits of the page are filled from right to left as the address
+    // counts down instead of up. Thus as the `expected_metadata[0]`
+    // represents the first hash to be retroactively filled in reverse
+    // the address of the token hash is [2] instead of [0]
+    assert!(actual_page[2])
 }
 
 #[test]
@@ -333,6 +332,7 @@ fn should_update_receipts_post_upgrade_paged() {
     let nft_contract_key_1_0_0: Key = nft_contract_hash_1_0_0.into();
 
     let number_of_tokens_pre_migration = 20usize;
+
     for _ in 0..number_of_tokens_pre_migration {
         let mint_request = ExecuteRequestBuilder::standard(
             *DEFAULT_ACCOUNT_ADDR,
@@ -392,31 +392,16 @@ fn should_update_receipts_post_upgrade_paged() {
 
     let receipt_page_0 = *default_account
         .named_keys()
-        .get(&support::get_receipt_name(nft_receipt.clone(), 0))
+        .get(&support::get_receipt_name(nft_receipt, 0))
         .expect("must have page 0 receipt");
 
     let actual_page_0 =
         support::get_stored_value_from_global_state::<Vec<bool>>(&builder, receipt_page_0, vec![])
             .expect("must get actual page");
 
-    for page_address in 0..number_of_tokens_pre_migration {
-        assert!(actual_page_0[page_address])
+    for bit in actual_page_0.iter().take(number_of_tokens_pre_migration) {
+        assert!(*bit)
     }
-
-
-    //
-    // assert_eq!(expected_page, actual_page_0);
-    //
-    // let receipt_page_1 = *default_account
-    //     .named_keys()
-    //     .get(&support::get_receipt_name(nft_receipt, 1))
-    //     .expect("must have page 0 receipt");
-    //
-    // let actual_page_1 =
-    //     support::get_stored_value_from_global_state::<Vec<bool>>(&builder, receipt_page_1, vec![])
-    //         .expect("must get actual page");
-    //
-    // assert_eq!(expected_page, actual_page_1);
 }
 
 #[test]
