@@ -1452,6 +1452,7 @@ fn generate_entry_points() -> EntryPoints {
             Parameter::new(ARG_BURN_MODE, CLType::U8),
             Parameter::new(ARG_NFT_METADATA_KIND, CLType::U8),
             Parameter::new(ARG_METADATA_MUTABILITY, CLType::U8),
+            Parameter::new(ARG_REPORTING_MODE, CLType::U8)
         ],
         CLType::Unit,
         EntryPointAccess::Public,
@@ -1844,6 +1845,11 @@ fn install_contract() {
     )
     .unwrap_or(0u8);
 
+    // Represents whether the lookup of owner => identifiers (ordinal/hash)
+    // is supported. Additionally, it also represents if receipts are returned after
+    // invoking either the mint or transfer entrypoints.
+    // This value cannot be changed post installation.
+    // Refer to `src/modalities.rs` for further details.
     let reporting_mode: u8 = utils::get_optional_named_arg_with_user_errors(
         ARG_REPORTING_MODE,
         NFTCoreError::InvalidReportingMode,
