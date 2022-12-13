@@ -35,7 +35,7 @@ use crate::modalities::ReportingMode;
 
 // The size of a given page, it is currently set to 10
 // to ease the math around addressing newly minted tokens.
-pub const PAGE_SIZE: u64 = 10;
+pub const PAGE_SIZE: u64 = 1000;
 
 pub(crate) fn upsert_dictionary_value_from_key<T: CLTyped + FromBytes + ToBytes>(
     dictionary_name: &str,

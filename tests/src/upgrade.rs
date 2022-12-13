@@ -10,7 +10,7 @@ use crate::utility::{
         ARG_NFT_PACKAGE_HASH, ARG_SOURCE_KEY, ARG_TARGET_KEY, ARG_TOKEN_HASH, ARG_TOKEN_META_DATA,
         ARG_TOKEN_OWNER, CONTRACT_1_0_0_WASM, MINT_SESSION_WASM, NFT_CONTRACT_WASM,
         NFT_TEST_COLLECTION, NFT_TEST_SYMBOL, PAGE_LIMIT, PAGE_SIZE, RECEIPT_NAME,
-        TRANSFER_SESSION_WASM, UNMATCHED_HASH_COUNT, UPDATED_RECEIPTS_WASM,
+        TRANSFER_SESSION_WASM, UNMATCHED_HASH_COUNT, UPDATED_RECEIPTS_WASM, MINT_1_0_0_WASM
     },
     installer_request_builder::{
         InstallerRequestBuilder, MetadataMutability, NFTIdentifierMode, NFTMetadataKind,
@@ -18,7 +18,6 @@ use crate::utility::{
     },
     support,
 };
-use crate::utility::constants::MINT_1_0_0_WASM;
 
 const OWNED_TOKENS: &str = "owned_tokens";
 
@@ -30,7 +29,7 @@ fn should_safely_upgrade_in_ordinal_identifier_mode() {
     let install_request = InstallerRequestBuilder::new(*DEFAULT_ACCOUNT_ADDR, CONTRACT_1_0_0_WASM)
         .with_collection_name(NFT_TEST_COLLECTION.to_string())
         .with_collection_symbol(NFT_TEST_SYMBOL.to_string())
-        .with_total_token_supply(100u64)
+        .with_total_token_supply(1000u64)
         .with_ownership_mode(OwnershipMode::Minter)
         .with_identifier_mode(NFTIdentifierMode::Ordinal)
         .with_nft_metadata_kind(NFTMetadataKind::Raw)
@@ -102,7 +101,7 @@ fn should_safely_upgrade_in_ordinal_identifier_mode() {
         .unwrap()
         .expect("must convert");
 
-    let expected_page_record_width = 100u64 / PAGE_SIZE;
+    let expected_page_record_width = 1000u64 / PAGE_SIZE;
 
     assert_eq!(expected_page_record_width, actual_page_record_width);
 
@@ -272,35 +271,46 @@ fn should_safely_upgrade_in_hash_identifier_mode() {
         page
     };
     assert_eq!(actual_page, expected_page);
-    //
-    // let transfer_request = ExecuteRequestBuilder::standard(
-    //     *DEFAULT_ACCOUNT_ADDR,
-    //     TRANSFER_SESSION_WASM,
-    //     runtime_args! {
-    //         ARG_NFT_CONTRACT_HASH => nft_contract_key,
-    //         ARG_TARGET_KEY => Key::Account(AccountHash::new(ACCOUNT_USER_1)),
-    //         ARG_SOURCE_KEY => Key::Account(*DEFAULT_ACCOUNT_ADDR),
-    //         ARG_IS_HASH_IDENTIFIER_MODE => true,
-    //         ARG_TOKEN_HASH => expected_metadata[0].clone()
-    //     },
-    // )
-    // .build();
-    //
-    // builder.exec(transfer_request).expect_success().commit();
-    //
-    // let actual_page = support::get_token_page_by_hash(
-    //     &builder,
-    //     &nft_contract_key,
-    //     &Key::Account(AccountHash::new(ACCOUNT_USER_1)),
-    //     expected_metadata[0].clone(),
-    // );
-    //
-    // // Because token hashes are backfilled, during the migration the
-    // // bits of the page are filled from right to left as the address
-    // // counts down instead of up. Thus as the `expected_metadata[0]`
-    // // represents the first hash to be retroactively filled in reverse
-    // // the address of the token hash is [2] instead of [0]
-    // assert!(actual_page[2])
+
+    let register_request = ExecuteRequestBuilder::contract_call_by_hash(
+        *DEFAULT_ACCOUNT_ADDR,
+        nft_contract_hash,
+        "register_owner",
+        runtime_args! {
+            ARG_TOKEN_OWNER => Key::Account(AccountHash::new(ACCOUNT_USER_1))
+        }
+    ).build();
+
+    builder.exec(register_request).expect_success().commit();
+
+     let transfer_request = ExecuteRequestBuilder::standard(
+        *DEFAULT_ACCOUNT_ADDR,
+        TRANSFER_SESSION_WASM,
+         runtime_args! {
+             ARG_NFT_CONTRACT_HASH => nft_contract_key,
+             ARG_SOURCE_KEY => Key::Account(*DEFAULT_ACCOUNT_ADDR),
+             ARG_TARGET_KEY => Key::Account(AccountHash::new(ACCOUNT_USER_1)),
+             ARG_IS_HASH_IDENTIFIER_MODE => true,
+             ARG_TOKEN_HASH => expected_metadata[0].clone()
+         },
+    )
+     .build();
+
+     builder.exec(transfer_request).expect_success().commit();
+
+     let actual_page = support::get_token_page_by_hash(
+         &builder,
+         &nft_contract_key,
+         &Key::Account(AccountHash::new(ACCOUNT_USER_1)),
+         expected_metadata[0].clone(),
+     );
+
+     // Because token hashes are backfilled, during the migration the
+     // bits of the page are filled from right to left as the address
+     // counts down instead of up. Thus as the `expected_metadata[0]`
+     // represents the first hash to be retroactively filled in reverse
+     // the address of the token hash is [2] instead of [0]
+     assert!(actual_page[2])
 }
 
 #[test]
@@ -322,8 +332,6 @@ fn should_update_receipts_post_upgrade_paged() {
     let nft_contract_hash_1_0_0 = support::get_nft_contract_hash(&builder);
     let nft_contract_key_1_0_0: Key = nft_contract_hash_1_0_0.into();
 
-    // We mint 20 tokens for a page size of 10 to ensure we get two updated
-    // receipts post migration
     let number_of_tokens_pre_migration = 20usize;
     for _ in 0..number_of_tokens_pre_migration {
         let mint_request = ExecuteRequestBuilder::standard(
@@ -387,24 +395,28 @@ fn should_update_receipts_post_upgrade_paged() {
         .get(&support::get_receipt_name(nft_receipt.clone(), 0))
         .expect("must have page 0 receipt");
 
-    let expected_page = vec![true; PAGE_SIZE as usize];
-
     let actual_page_0 =
         support::get_stored_value_from_global_state::<Vec<bool>>(&builder, receipt_page_0, vec![])
             .expect("must get actual page");
 
-    assert_eq!(expected_page, actual_page_0);
+    for page_address in 0..number_of_tokens_pre_migration {
+        assert!(actual_page_0[page_address])
+    }
 
-    let receipt_page_1 = *default_account
-        .named_keys()
-        .get(&support::get_receipt_name(nft_receipt, 1))
-        .expect("must have page 0 receipt");
 
-    let actual_page_1 =
-        support::get_stored_value_from_global_state::<Vec<bool>>(&builder, receipt_page_1, vec![])
-            .expect("must get actual page");
-
-    assert_eq!(expected_page, actual_page_1);
+    //
+    // assert_eq!(expected_page, actual_page_0);
+    //
+    // let receipt_page_1 = *default_account
+    //     .named_keys()
+    //     .get(&support::get_receipt_name(nft_receipt, 1))
+    //     .expect("must have page 0 receipt");
+    //
+    // let actual_page_1 =
+    //     support::get_stored_value_from_global_state::<Vec<bool>>(&builder, receipt_page_1, vec![])
+    //         .expect("must get actual page");
+    //
+    // assert_eq!(expected_page, actual_page_1);
 }
 
 #[test]
