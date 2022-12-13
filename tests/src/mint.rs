@@ -1273,7 +1273,7 @@ fn should_mint_with_hash_identifier_mode() {
     builder.exec(mint_session_call).expect_success().commit();
 
     let token_id_hash: String =
-        base16::encode_lower(&support::create_blake2b_hash(&TEST_PRETTY_721_META_DATA));
+        base16::encode_lower(&support::create_blake2b_hash(TEST_PRETTY_721_META_DATA));
 
     let token_page = get_token_page_by_hash(
         &builder,
@@ -1349,7 +1349,7 @@ fn should_approve_in_hash_identifier_mode() {
     builder.exec(mint_session_call).expect_success().commit();
 
     let token_hash: String =
-        base16::encode_lower(&support::create_blake2b_hash(&TEST_PRETTY_721_META_DATA));
+        base16::encode_lower(&support::create_blake2b_hash(TEST_PRETTY_721_META_DATA));
 
     let operator = Key::Account(AccountHash::new([7u8; 32]));
 
