@@ -14,8 +14,8 @@ use crate::utility::{
         ARG_TARGET_KEY, ARG_TOKEN_HASH, ARG_TOKEN_ID, ARG_TOKEN_META_DATA, ARG_TOKEN_OWNER,
         BALANCES, CONTRACT_NAME, ENTRY_POINT_APPROVE, ENTRY_POINT_MINT, ENTRY_POINT_REGISTER_OWNER,
         ENTRY_POINT_TRANSFER, MINTING_CONTRACT_WASM, MINT_SESSION_WASM, NFT_CONTRACT_WASM,
-        NFT_TEST_COLLECTION, NFT_TEST_SYMBOL, OPERATOR, PAGE_TABLE, TEST_PRETTY_721_META_DATA, TOKEN_OWNERS,
-        TRANSFER_SESSION_WASM,
+        NFT_TEST_COLLECTION, NFT_TEST_SYMBOL, OPERATOR, PAGE_TABLE, TEST_PRETTY_721_META_DATA,
+        TOKEN_OWNERS, TRANSFER_SESSION_WASM,
     },
     installer_request_builder::{
         InstallerRequestBuilder, MetadataMutability, MintingMode, NFTHolderMode, NFTIdentifierMode,
@@ -994,7 +994,8 @@ fn transfer_should_correctly_track_page_table_entries() {
 
     builder.exec(install_request).expect_success().commit();
 
-    let nft_contract_key: Key = get_nft_contract_hash(&builder).into();
+    let nft_contract_hash = get_nft_contract_hash(&builder);
+    let nft_contract_key: Key = nft_contract_hash.into();
 
     let number_of_tokens_pre_migration = 20usize;
     for _ in 0..number_of_tokens_pre_migration {
@@ -1011,6 +1012,18 @@ fn transfer_should_correctly_track_page_table_entries() {
 
         builder.exec(mint_request).expect_success().commit();
     }
+
+    let register_request = ExecuteRequestBuilder::contract_call_by_hash(
+        *DEFAULT_ACCOUNT_ADDR,
+        nft_contract_hash,
+        ENTRY_POINT_REGISTER_OWNER,
+        runtime_args! {
+            ARG_TOKEN_OWNER => Key::Account(AccountHash::new(ACCOUNT_USER_1))
+        },
+    )
+    .build();
+
+    builder.exec(register_request).expect_success().commit();
 
     let transfer_request = ExecuteRequestBuilder::standard(
         *DEFAULT_ACCOUNT_ADDR,
@@ -1034,7 +1047,7 @@ fn transfer_should_correctly_track_page_table_entries() {
         &AccountHash::new(ACCOUNT_USER_1).to_string(),
     );
 
-    assert!(account_user_1_page_table[1])
+    assert!(account_user_1_page_table[0])
 }
 
 #[test]
