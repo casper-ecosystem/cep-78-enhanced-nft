@@ -227,3 +227,21 @@ impl TryFrom<u8> for BurnMode {
         }
     }
 }
+
+#[repr(u8)]
+pub enum ReportingMode {
+    NoReport = 0,
+    Report = 1,
+}
+
+impl TryFrom<u8> for ReportingMode {
+    type Error = NFTCoreError;
+
+    fn try_from(value: u8) -> Result<Self, Self::Error> {
+        match value {
+            0 => Ok(ReportingMode::NoReport),
+            1 => Ok(ReportingMode::Report),
+            _ => Err(NFTCoreError::InvalidReportingMode)
+        }
+    }
+}

@@ -63,6 +63,8 @@ use crate::{
     },
     utils::{get_uref, PAGE_SIZE},
 };
+use crate::constants::{ARG_REPORTING_MODE, ENTRY_POINT_REGISTER_OWNER, REPORTING_MODE};
+use crate::modalities::ReportingMode;
 
 #[no_mangle]
 pub extern "C" fn init() {
@@ -231,6 +233,12 @@ pub extern "C" fn init() {
     .try_into()
     .unwrap_or_revert();
 
+    let reporting_mode: ReportingMode = utils::get_named_arg_with_user_errors::<u8>(
+        ARG_REPORTING_MODE,
+        NFTCoreError::MissingReportingMode,
+        NFTCoreError::InvalidReportingMode,
+    ).unwrap_or_revert().try_into().unwrap_or_revert();
+
     // Put all created URefs into the contract's context (necessary to retain access rights,
     // for future use).
     //
@@ -274,6 +282,7 @@ pub extern "C" fn init() {
         storage::new_uref(metadata_mutability as u8).into(),
     );
     runtime::put_key(BURN_MODE, storage::new_uref(burn_mode as u8).into());
+    runtime::put_key(REPORTING_MODE, storage::new_uref(reporting_mode as u8).into());
 
     // Initialize contract with variables which must be present but maybe set to
     // different values after initialization.
@@ -390,7 +399,7 @@ pub extern "C" fn mint() {
     );
 
     // The minted_tokens_count is the number of minted tokens so far.
-    let mut minted_tokens_count = utils::get_stored_value_with_user_errors::<u64>(
+    let minted_tokens_count = utils::get_stored_value_with_user_errors::<u64>(
         NUMBER_OF_MINTED_TOKENS,
         NFTCoreError::MissingNumberOfMintedTokens,
         NFTCoreError::InvalidNumberOfMintedTokens,
@@ -481,11 +490,7 @@ pub extern "C" fn mint() {
     .try_into()
     .unwrap_or_revert();
 
-    if (NFTIdentifierMode::Hash == identifier_mode)
-        && utils::should_migrate_token_hashes(token_owner_key)
-    {
-        utils::migrate_token_hashes(token_owner_key)
-    }
+
 
     // This is the token ID.
     let token_identifier: TokenIdentifier = match identifier_mode {
@@ -518,58 +523,6 @@ pub extern "C" fn mint() {
         utils::insert_hash_id_lookups(minted_tokens_count, token_identifier.clone());
     }
 
-    //there is an explicit page_table;
-    // this is the entry in that overall page table which maps to the underlying page
-    // upon which this mint's address will exist
-    let page_table_entry = minted_tokens_count / PAGE_SIZE;
-    let page_address = minted_tokens_count % PAGE_SIZE;
-
-    // Update the page entry first
-    let page_table_uref = utils::get_uref(
-        PAGE_TABLE,
-        NFTCoreError::MissingPageTableURef,
-        NFTCoreError::InvalidPageTableURef,
-    );
-
-    let page_table_width = utils::get_stored_value_with_user_errors::<u64>(
-        PAGE_LIMIT,
-        NFTCoreError::MissingPageLimit,
-        NFTCoreError::InvalidPageLimit,
-    );
-
-    let mut page_table =
-        match storage::dictionary_get::<Vec<bool>>(page_table_uref, &owned_tokens_item_key)
-            .unwrap_or_revert()
-        {
-            Some(page_record) => page_record,
-            None => vec![false; page_table_width as usize],
-        };
-
-    let _ = core::mem::replace(&mut page_table[page_table_entry as usize], true);
-
-    storage::dictionary_put(page_table_uref, &owned_tokens_item_key, page_table);
-
-    // Update the individual page record.
-    let page_uref = utils::get_uref(
-        &format!("{}{}", PAGE_DICTIONARY_PREFIX, page_table_entry),
-        NFTCoreError::MissingPageUref,
-        NFTCoreError::InvalidPageUref,
-    );
-
-    let page_item_key = utils::encode_page_address(&token_owner_key, page_table_entry);
-
-    let mut page =
-        match storage::dictionary_get::<Vec<bool>>(page_uref, &page_item_key).unwrap_or_revert() {
-            Some(single_page) => single_page,
-            None => {
-                vec![false; PAGE_SIZE as usize]
-            }
-        };
-
-    let _ = core::mem::replace(&mut page[page_address as usize], true);
-
-    storage::dictionary_put(page_uref, &page_item_key, page);
-
     //Increment the count of owned tokens.
     let updated_token_count =
         match utils::get_dictionary_value_from_key::<u64>(TOKEN_COUNTS, &owned_tokens_item_key) {
@@ -583,23 +536,78 @@ pub extern "C" fn mint() {
     );
 
     // Increment number_of_minted_tokens by one
-    minted_tokens_count += 1u64;
     let number_of_minted_tokens_uref = utils::get_uref(
         NUMBER_OF_MINTED_TOKENS,
         NFTCoreError::MissingTotalTokenSupply,
         NFTCoreError::InvalidTotalTokenSupply,
     );
-    storage::write(number_of_minted_tokens_uref, minted_tokens_count);
+    storage::write(number_of_minted_tokens_uref, minted_tokens_count + 1u64);
 
-    let token_identifier_string = token_identifier.get_dictionary_item_key();
+    if let ReportingMode::Report = utils::get_reporting_mode() {
+        if (NFTIdentifierMode::Hash == identifier_mode)
+            && utils::should_migrate_token_hashes(token_owner_key)
+        {
+            utils::migrate_token_hashes(token_owner_key)
+        }
+        //there is an explicit page_table;
+        // this is the entry in that overall page table which maps to the underlying page
+        // upon which this mint's address will exist
+        let page_table_entry = minted_tokens_count / PAGE_SIZE;
+        let page_address = minted_tokens_count % PAGE_SIZE;
 
-    let receipt_address = Key::dictionary(page_uref, page_item_key.as_bytes());
+        // Update the page entry first
+        let page_table_uref = utils::get_uref(
+            PAGE_TABLE,
+            NFTCoreError::MissingPageTableURef,
+            NFTCoreError::InvalidPageTableURef,
+        );
 
-    let receipt_string = utils::get_receipt_name(page_table_entry);
+        // Update the individual page record.
+        let page_uref = utils::get_uref(
+            &format!("{}{}", PAGE_DICTIONARY_PREFIX, page_table_entry),
+            NFTCoreError::MissingPageUref,
+            NFTCoreError::InvalidPageUref,
+        );
 
-    let receipt = CLValue::from_t((receipt_string, receipt_address, token_identifier_string))
-        .unwrap_or_revert_with(NFTCoreError::FailedToConvertToCLValue);
-    runtime::ret(receipt)
+        let mut page_table =
+            match storage::dictionary_get::<Vec<bool>>(page_table_uref, &owned_tokens_item_key)
+                .unwrap_or_revert()
+            {
+                Some(page_record) => page_record,
+                None => runtime::revert(NFTCoreError::UnregisteredOwnerInMint),
+            };
+
+        let page_item_key = utils::encode_page_address(&token_owner_key, page_table_entry);
+
+        let mut page = if !page_table[page_table_entry as usize] {
+            let _ = core::mem::replace(&mut page_table[page_table_entry as usize], true);
+            storage::dictionary_put(page_table_uref, &owned_tokens_item_key, page_table);
+            // match storage::dictionary_get::<Vec<bool>>(page_uref, &page_item_key).unwrap_or_revert() {
+            //         Some(single_page) => single_page,
+            //         None => {
+            //             vec![false; PAGE_SIZE as usize]
+            //         }
+            //     }
+            vec![false; PAGE_SIZE as usize]
+        } else {
+            storage::dictionary_get::<Vec<bool>>(page_uref, &page_item_key).unwrap_or_revert()
+                .unwrap_or_revert_with(NFTCoreError::MissingPage)
+        };
+
+        let _ = core::mem::replace(&mut page[page_address as usize], true);
+
+        storage::dictionary_put(page_uref, &page_item_key, page);
+
+        let token_identifier_string = token_identifier.get_dictionary_item_key();
+
+        let receipt_address = Key::dictionary(page_uref, page_item_key.as_bytes());
+
+        let receipt_string = utils::get_receipt_name(page_table_entry);
+
+        let receipt = CLValue::from_t((receipt_string, receipt_address, token_identifier_string))
+            .unwrap_or_revert_with(NFTCoreError::FailedToConvertToCLValue);
+        runtime::ret(receipt)
+    }
 }
 
 // Marks token as burnt. This blocks any future call to transfer token.
@@ -897,44 +905,6 @@ pub extern "C" fn transfer() {
         None => runtime::revert(NFTCoreError::InvalidTokenIdentifier),
     }
 
-    // Update to_account owned_tokens. Revert if owned_tokens list is not found
-    let token_number = utils::get_token_index(&token_identifier);
-
-    let page_table_uref = utils::get_uref(
-        PAGE_TABLE,
-        NFTCoreError::MissingPageTableURef,
-        NFTCoreError::InvalidPageTableURef,
-    );
-
-    let page_table_width = utils::get_stored_value_with_user_errors::<u64>(
-        PAGE_LIMIT,
-        NFTCoreError::MissingPageLimit,
-        NFTCoreError::InvalidPageLimit,
-    );
-
-    let page_table_entry = token_number / PAGE_SIZE;
-    let page_address = token_number % PAGE_SIZE;
-
-    let page_uref = utils::get_uref(
-        &format!("{}{}", PAGE_DICTIONARY_PREFIX, page_table_entry),
-        NFTCoreError::MissingStorageUref,
-        NFTCoreError::InvalidStorageUref,
-    );
-
-    let source_page_item_key = utils::encode_page_address(&source_owner_key, page_table_entry);
-
-    let mut source_page = storage::dictionary_get::<Vec<bool>>(page_uref, &source_page_item_key)
-        .unwrap_or_revert()
-        .unwrap_or_revert_with(NFTCoreError::InvalidPageNumber);
-
-    if !source_page[page_address as usize] {
-        runtime::revert(NFTCoreError::InvalidTokenIdentifier)
-    }
-
-    let _ = core::mem::replace(&mut source_page[page_address as usize], false);
-
-    storage::dictionary_put(page_uref, &source_page_item_key, source_page);
-
     // Update the from_account balance
     let updated_from_account_balance =
         match utils::get_dictionary_value_from_key::<u64>(TOKEN_COUNTS, &source_owner_item_key) {
@@ -956,33 +926,6 @@ pub extern "C" fn transfer() {
         &source_owner_item_key,
         updated_from_account_balance,
     );
-
-    let mut page_table =
-        match storage::dictionary_get::<Vec<bool>>(page_table_uref, &target_owner_item_key)
-            .unwrap_or_revert()
-        {
-            Some(page_table) => page_table,
-            None => {
-                vec![false; page_table_width as usize]
-            }
-        };
-
-    let target_page_dictionary_item_key =
-        utils::encode_page_address(&target_owner_key, page_table_entry);
-
-    let mut target_page = if !page_table[page_table_entry as usize] {
-        // Create a new page here
-        let _ = core::mem::replace(&mut page_table[page_table_entry as usize], true);
-        vec![false; PAGE_SIZE as usize]
-    } else {
-        storage::dictionary_get::<Vec<bool>>(page_uref, &target_page_dictionary_item_key)
-            .unwrap_or_revert()
-            .unwrap_or_revert()
-    };
-
-    let _ = core::mem::replace(&mut target_page[page_address as usize], true);
-
-    storage::dictionary_put(page_uref, &target_page_dictionary_item_key, target_page);
 
     // Update the to_account balance
     let updated_to_account_balance =
@@ -1008,16 +951,72 @@ pub extern "C" fn transfer() {
         Option::<Key>::None,
     );
 
-    let owned_tokens_actual_key = Key::dictionary(
-        page_uref,
-        utils::encode_page_address(&source_owner_key, page_table_entry).as_bytes(),
-    );
+    if let ReportingMode::Report = utils::get_reporting_mode() {
+        // Update to_account owned_tokens. Revert if owned_tokens list is not found
+        let token_number = utils::get_token_index(&token_identifier);
 
-    let receipt_string = utils::get_receipt_name(page_table_entry);
+        let page_table_uref = utils::get_uref(
+            PAGE_TABLE,
+            NFTCoreError::MissingPageTableURef,
+            NFTCoreError::InvalidPageTableURef,
+        );
+        
+        let page_table_entry = token_number / PAGE_SIZE;
+        let page_address = token_number % PAGE_SIZE;
 
-    let receipt = CLValue::from_t((receipt_string, owned_tokens_actual_key))
-        .unwrap_or_revert_with(NFTCoreError::FailedToConvertToCLValue);
-    runtime::ret(receipt)
+        let page_uref = utils::get_uref(
+            &format!("{}{}", PAGE_DICTIONARY_PREFIX, page_table_entry),
+            NFTCoreError::MissingStorageUref,
+            NFTCoreError::InvalidStorageUref,
+        );
+
+        let source_page_item_key = utils::encode_page_address(&source_owner_key, page_table_entry);
+
+        let mut source_page = storage::dictionary_get::<Vec<bool>>(page_uref, &source_page_item_key)
+            .unwrap_or_revert()
+            .unwrap_or_revert_with(NFTCoreError::InvalidPageNumber);
+
+        if !source_page[page_address as usize] {
+            runtime::revert(NFTCoreError::InvalidTokenIdentifier)
+        }
+
+        let _ = core::mem::replace(&mut source_page[page_address as usize], false);
+
+        storage::dictionary_put(page_uref, &source_page_item_key, source_page);
+
+        let mut target_page_table = storage::dictionary_get::<Vec<bool>>(page_table_uref, &target_owner_item_key)
+            .unwrap_or_revert()
+            .unwrap_or_revert_with(NFTCoreError::UnregisteredOwnerInTransfer);
+
+        let target_page_dictionary_item_key =
+            utils::encode_page_address(&target_owner_key, page_table_entry);
+
+        let mut target_page = if !target_page_table[page_table_entry as usize] {
+            // Create a new page here
+            let _ = core::mem::replace(&mut target_page_table[page_table_entry as usize], true);
+            storage::dictionary_put(page_table_uref, &target_owner_item_key, target_page_table);
+            vec![false; PAGE_SIZE as usize]
+        } else {
+            storage::dictionary_get::<Vec<bool>>(page_uref, &target_page_dictionary_item_key)
+                .unwrap_or_revert()
+                .unwrap_or_revert()
+        };
+
+        let _ = core::mem::replace(&mut target_page[page_address as usize], true);
+
+        storage::dictionary_put(page_uref, &target_page_dictionary_item_key, target_page);
+
+        let owned_tokens_actual_key = Key::dictionary(
+            page_uref,
+            utils::encode_page_address(&source_owner_key, page_table_entry).as_bytes(),
+        );
+
+        let receipt_string = utils::get_receipt_name(page_table_entry);
+
+        let receipt = CLValue::from_t((receipt_string, owned_tokens_actual_key))
+            .unwrap_or_revert_with(NFTCoreError::FailedToConvertToCLValue);
+        runtime::ret(receipt)
+    }
 }
 
 // Returns the length of the Vec<String> in OWNED_TOKENS dictionary. If key is not found
@@ -1271,14 +1270,7 @@ pub extern "C" fn migrate() {
         .unwrap_or_revert_with(NFTCoreError::FailedToCreateDictionary);
     let page_table_width = utils::max_number_of_pages(total_token_supply);
     runtime::put_key(PAGE_LIMIT, storage::new_uref(page_table_width).into());
-
-    let identifier: NFTIdentifierMode = utils::get_stored_value_with_user_errors::<u8>(
-        IDENTIFIER_MODE,
-        NFTCoreError::MissingIdentifierMode,
-        NFTCoreError::InvalidIdentifierMode,
-    )
-    .try_into()
-    .unwrap_or_revert();
+    runtime::put_key(REPORTING_MODE, storage::new_uref(ReportingMode::Report as u8).into());
 
     let collection_name = utils::get_stored_value_with_user_errors::<String>(
         COLLECTION_NAME,
@@ -1301,6 +1293,15 @@ pub extern "C" fn migrate() {
     );
     storage::write(receipt_uref, new_receipt_string_representation);
 
+
+    let identifier: NFTIdentifierMode = utils::get_stored_value_with_user_errors::<u8>(
+        IDENTIFIER_MODE,
+        NFTCoreError::MissingIdentifierMode,
+        NFTCoreError::InvalidIdentifierMode,
+    )
+        .try_into()
+        .unwrap_or_revert();
+
     match identifier {
         NFTIdentifierMode::Ordinal => utils::migrate_owned_tokens_in_ordinal_mode(),
         NFTIdentifierMode::Hash => {
@@ -1322,7 +1323,11 @@ pub extern "C" fn migrate() {
 }
 
 #[no_mangle]
-pub extern "C" fn updated_receipts() {
+pub extern "C" fn updated_receipts()  {
+    if let ReportingMode::NoReport = utils::get_reporting_mode() {
+        runtime::revert(NFTCoreError::InvalidReportingMode)
+    }
+
     let token_owner = utils::get_verified_caller().unwrap_or_revert();
 
     let identifier_mode: NFTIdentifierMode = utils::get_stored_value_with_user_errors::<u8>(
@@ -1335,7 +1340,7 @@ pub extern "C" fn updated_receipts() {
 
     if identifier_mode == NFTIdentifierMode::Hash && utils::should_migrate_token_hashes(token_owner)
     {
-        utils::should_migrate_token_hashes(token_owner);
+        utils::migrate_token_hashes(token_owner);
     }
 
     let page_table = utils::get_dictionary_value_from_key::<Vec<bool>>(
@@ -1362,6 +1367,40 @@ pub extern "C" fn updated_receipts() {
     }
 
     runtime::ret(CLValue::from_t(updated_receipts).unwrap_or_revert())
+}
+
+#[no_mangle]
+pub extern "C" fn register_owner() {
+    if let ReportingMode::NoReport = utils::get_reporting_mode() {
+        runtime::revert(NFTCoreError::InvalidReportingMode)
+    }
+
+    let owner_key = match utils::get_ownership_mode().unwrap_or_revert() {
+        OwnershipMode::Minter => { utils::get_verified_caller().unwrap_or_revert() }
+        OwnershipMode::Assigned | OwnershipMode::Transferable => {
+            utils::get_named_arg_with_user_errors::<Key>(ARG_TOKEN_OWNER, NFTCoreError::MissingTokenOwner, NFTCoreError::InvalidTokenOwner)
+                .unwrap_or_revert()
+        }
+    };
+
+    let page_table_uref = utils::get_uref(
+        PAGE_TABLE,
+        NFTCoreError::MissingPageTableURef,
+        NFTCoreError::InvalidPageTableURef
+    );
+
+    let owner_item_key = utils::get_owned_tokens_dictionary_item_key(owner_key);
+
+    if storage::dictionary_get::<Vec<bool>>(page_table_uref, &owner_item_key)
+        .unwrap_or_revert()
+        .is_none() {
+        let page_table_width = utils::get_stored_value_with_user_errors::<u64>(
+            PAGE_LIMIT,
+            NFTCoreError::MissingPageLimit,
+                NFTCoreError::InvalidPageLimit
+        );
+        storage::dictionary_put(page_table_uref, &owner_item_key, vec![false; page_table_width as usize])
+    }
 }
 
 fn generate_entry_points() -> EntryPoints {
@@ -1582,6 +1621,14 @@ fn generate_entry_points() -> EntryPoints {
         EntryPointType::Contract,
     );
 
+    let register_owner = EntryPoint::new(
+        ENTRY_POINT_REGISTER_OWNER,
+        vec![],
+        CLType::Unit,
+        EntryPointAccess::Public,
+        EntryPointType::Contract
+    );
+
     entry_points.add_entry_point(init_contract);
     entry_points.add_entry_point(set_variables);
     entry_points.add_entry_point(mint);
@@ -1596,6 +1643,7 @@ fn generate_entry_points() -> EntryPoints {
     entry_points.add_entry_point(set_token_metadata);
     entry_points.add_entry_point(migrate);
     entry_points.add_entry_point(updated_receipts);
+    entry_points.add_entry_point(register_owner);
     entry_points
 }
 
@@ -1773,6 +1821,11 @@ fn install_contract() {
     )
     .unwrap_or(0u8);
 
+    let reporting_mode: u8 = utils::get_optional_named_arg_with_user_errors(
+        ARG_REPORTING_MODE,
+        NFTCoreError::InvalidReportingMode
+    ).unwrap_or(0u8);
+
     let (contract_hash, contract_version) = install_nft_contract();
 
     // Store contract_hash and contract_version under the keys CONTRACT_NAME and CONTRACT_VERSION
@@ -1811,7 +1864,8 @@ fn install_contract() {
              ARG_NFT_METADATA_KIND => nft_metadata_kind,
              ARG_IDENTIFIER_MODE => identifier_mode,
              ARG_METADATA_MUTABILITY => metadata_mutability,
-             ARG_BURN_MODE => burn_mode
+             ARG_BURN_MODE => burn_mode,
+             ARG_REPORTING_MODE => reporting_mode
         },
     );
 }

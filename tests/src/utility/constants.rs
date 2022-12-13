@@ -41,6 +41,7 @@ pub(crate) const ARG_NFT_METADATA_KIND: &str = "nft_metadata_kind";
 pub(crate) const ARG_IDENTIFIER_MODE: &str = "identifier_mode";
 pub(crate) const ARG_METADATA_MUTABILITY: &str = "metadata_mutability";
 pub(crate) const ARG_BURN_MODE: &str = "burn_mode";
+pub(crate) const ARG_REPORTING_MODE: &str = "reporting_mode";
 pub(crate) const TOKEN_ISSUERS: &str = "token_issuers";
 pub(crate) const ARG_OWNERSHIP_MODE: &str = "ownership_mode";
 pub(crate) const ARG_NFT_KIND: &str = "nft_kind";
@@ -89,6 +90,7 @@ pub(crate) const MALFORMED_META_DATA: &str = r#"{
 }"#;
 pub(crate) const ACCESS_KEY_NAME: &str = "nft_contract_package_access";
 pub(crate) const CONTRACT_1_0_0_WASM: &str = "1_0_0/contract.wasm";
+pub(crate) const MINT_1_0_0_WASM: &str = "1_0_0/mint_call.wasm";
 pub(crate) const PAGE_SIZE: u64 = 10;
 pub(crate) const UNMATCHED_HASH_COUNT: &str = "unmatched_hash_count";
 pub(crate) const PAGE_DICTIONARY_PREFIX: &str = "page-";

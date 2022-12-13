@@ -118,6 +118,17 @@ fn transfer_costs_should_remain_stable() {
         builder.exec(mint_request).expect_success().commit();
     }
 
+    let register_request = ExecuteRequestBuilder::contract_call_by_hash(
+        *DEFAULT_ACCOUNT_ADDR,
+        nft_contract_hash,
+        "register_owner",
+        runtime_args! {
+            ARG_TOKEN_OWNER => Key::Account(AccountHash::new([9u8;32]))
+        }
+    ).build();
+
+    builder.exec(register_request).expect_success().commit();
+
     let first_transfer_request = ExecuteRequestBuilder::standard(
         *DEFAULT_ACCOUNT_ADDR,
         TRANSFER_SESSION_WASM,
