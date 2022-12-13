@@ -19,7 +19,7 @@ use crate::utility::{
     },
     installer_request_builder::{
         InstallerRequestBuilder, MetadataMutability, MintingMode, NFTHolderMode, NFTIdentifierMode,
-        NFTMetadataKind, OwnershipMode, OwnerReverseLookupMode, WhitelistMode,
+        NFTMetadataKind, OwnerReverseLookupMode, OwnershipMode, WhitelistMode,
     },
     support::{
         self, assert_expected_error, get_dictionary_value_from_key, get_minting_contract_hash,

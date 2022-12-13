@@ -24,8 +24,8 @@ use crate::utility::{
     },
     installer_request_builder::{
         InstallerRequestBuilder, MetadataMutability, MintingMode, NFTHolderMode, NFTIdentifierMode,
-        NFTMetadataKind, OwnershipMode, OwnerReverseLookupMode, WhitelistMode, TEST_CUSTOM_METADATA,
-        TEST_CUSTOM_METADATA_SCHEMA,
+        NFTMetadataKind, OwnerReverseLookupMode, OwnershipMode, WhitelistMode,
+        TEST_CUSTOM_METADATA, TEST_CUSTOM_METADATA_SCHEMA,
     },
     support::{
         self, assert_expected_error, call_entry_point_with_ret, create_dummy_key_pair,
