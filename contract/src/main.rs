@@ -1452,7 +1452,7 @@ fn generate_entry_points() -> EntryPoints {
             Parameter::new(ARG_BURN_MODE, CLType::U8),
             Parameter::new(ARG_NFT_METADATA_KIND, CLType::U8),
             Parameter::new(ARG_METADATA_MUTABILITY, CLType::U8),
-            Parameter::new(ARG_REPORTING_MODE, CLType::U8)
+            Parameter::new(ARG_REPORTING_MODE, CLType::U8),
         ],
         CLType::Unit,
         EntryPointAccess::Public,
