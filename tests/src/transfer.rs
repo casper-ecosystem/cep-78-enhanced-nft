@@ -19,7 +19,7 @@ use crate::utility::{
     },
     installer_request_builder::{
         InstallerRequestBuilder, MetadataMutability, MintingMode, NFTHolderMode, NFTIdentifierMode,
-        NFTMetadataKind, OwnershipMode, ReportingMode, WhitelistMode,
+        NFTMetadataKind, OwnershipMode, OwnerReverseLookupMode, WhitelistMode,
     },
     support::{
         self, assert_expected_error, get_dictionary_value_from_key, get_minting_contract_hash,
@@ -1060,7 +1060,7 @@ fn should_prevent_transfer_to_unregistered_owner() {
         .with_identifier_mode(NFTIdentifierMode::Ordinal)
         .with_metadata_mutability(MetadataMutability::Immutable)
         .with_ownership_mode(OwnershipMode::Transferable)
-        .with_reporting_mode(ReportingMode::Report)
+        .with_reporting_mode(OwnerReverseLookupMode::Complete)
         .with_nft_metadata_kind(NFTMetadataKind::Raw)
         .build();
 

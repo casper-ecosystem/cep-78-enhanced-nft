@@ -41,7 +41,7 @@ use crate::{
         ARG_COLLECTION_NAME, ARG_COLLECTION_SYMBOL, ARG_CONTRACT_WHITELIST, ARG_HOLDER_MODE,
         ARG_IDENTIFIER_MODE, ARG_JSON_SCHEMA, ARG_METADATA_MUTABILITY, ARG_MINTING_MODE,
         ARG_NFT_KIND, ARG_NFT_METADATA_KIND, ARG_NFT_PACKAGE_HASH, ARG_OPERATOR,
-        ARG_OWNERSHIP_MODE, ARG_RECEIPT_NAME, ARG_REPORTING_MODE, ARG_SOURCE_KEY, ARG_TARGET_KEY,
+        ARG_OWNERSHIP_MODE, ARG_RECEIPT_NAME, ARG_OWNER_LOOKUP_MODE, ARG_SOURCE_KEY, ARG_TARGET_KEY,
         ARG_TOKEN_META_DATA, ARG_TOKEN_OWNER, ARG_TOTAL_TOKEN_SUPPLY, ARG_WHITELIST_MODE,
         BURNT_TOKENS, BURN_MODE, COLLECTION_NAME, COLLECTION_SYMBOL, CONTRACT_NAME,
         CONTRACT_VERSION, CONTRACT_WHITELIST, ENTRY_POINT_APPROVE, ENTRY_POINT_BALANCE_OF,
@@ -60,7 +60,7 @@ use crate::{
     metadata::CustomMetadataSchema,
     modalities::{
         BurnMode, MetadataMutability, MintingMode, NFTHolderMode, NFTIdentifierMode, NFTKind,
-        NFTMetadataKind, OwnershipMode, ReportingMode, TokenIdentifier, WhitelistMode,
+        NFTMetadataKind, OwnershipMode, OwnerReverseLookupMode, TokenIdentifier, WhitelistMode,
     },
     utils::{get_uref, PAGE_SIZE},
 };
@@ -236,8 +236,8 @@ pub extern "C" fn init() {
     .try_into()
     .unwrap_or_revert();
 
-    let reporting_mode: ReportingMode = utils::get_named_arg_with_user_errors::<u8>(
-        ARG_REPORTING_MODE,
+    let reporting_mode: OwnerReverseLookupMode = utils::get_named_arg_with_user_errors::<u8>(
+        ARG_OWNER_LOOKUP_MODE,
         NFTCoreError::MissingReportingMode,
         NFTCoreError::InvalidReportingMode,
     )
@@ -550,7 +550,7 @@ pub extern "C" fn mint() {
     );
     storage::write(number_of_minted_tokens_uref, minted_tokens_count + 1u64);
 
-    if let ReportingMode::Report = utils::get_reporting_mode() {
+    if let OwnerReverseLookupMode::Complete = utils::get_reporting_mode() {
         if (NFTIdentifierMode::Hash == identifier_mode)
             && utils::should_migrate_token_hashes(token_owner_key)
         {
@@ -959,7 +959,7 @@ pub extern "C" fn transfer() {
         Option::<Key>::None,
     );
 
-    if let ReportingMode::Report = utils::get_reporting_mode() {
+    if let OwnerReverseLookupMode::Complete = utils::get_reporting_mode() {
         // Update to_account owned_tokens. Revert if owned_tokens list is not found
         let token_number = utils::get_token_index(&token_identifier);
 
@@ -1280,7 +1280,7 @@ pub extern "C" fn migrate() {
     runtime::put_key(PAGE_LIMIT, storage::new_uref(page_table_width).into());
     runtime::put_key(
         REPORTING_MODE,
-        storage::new_uref(ReportingMode::Report as u8).into(),
+        storage::new_uref(OwnerReverseLookupMode::Complete as u8).into(),
     );
 
     let collection_name = utils::get_stored_value_with_user_errors::<String>(
@@ -1334,7 +1334,7 @@ pub extern "C" fn migrate() {
 
 #[no_mangle]
 pub extern "C" fn updated_receipts() {
-    if let ReportingMode::NoReport = utils::get_reporting_mode() {
+    if let OwnerReverseLookupMode::NoLookUp = utils::get_reporting_mode() {
         runtime::revert(NFTCoreError::InvalidReportingMode)
     }
 
@@ -1381,7 +1381,7 @@ pub extern "C" fn updated_receipts() {
 
 #[no_mangle]
 pub extern "C" fn register_owner() {
-    if let ReportingMode::NoReport = utils::get_reporting_mode() {
+    if let OwnerReverseLookupMode::NoLookUp = utils::get_reporting_mode() {
         runtime::revert(NFTCoreError::InvalidReportingMode)
     }
 
@@ -1452,7 +1452,7 @@ fn generate_entry_points() -> EntryPoints {
             Parameter::new(ARG_BURN_MODE, CLType::U8),
             Parameter::new(ARG_NFT_METADATA_KIND, CLType::U8),
             Parameter::new(ARG_METADATA_MUTABILITY, CLType::U8),
-            Parameter::new(ARG_REPORTING_MODE, CLType::U8),
+            Parameter::new(ARG_OWNER_LOOKUP_MODE, CLType::U8),
         ],
         CLType::Unit,
         EntryPointAccess::Public,
@@ -1851,7 +1851,7 @@ fn install_contract() {
     // This value cannot be changed post installation.
     // Refer to `src/modalities.rs` for further details.
     let reporting_mode: u8 = utils::get_optional_named_arg_with_user_errors(
-        ARG_REPORTING_MODE,
+        ARG_OWNER_LOOKUP_MODE,
         NFTCoreError::InvalidReportingMode,
     )
     .unwrap_or(0u8);
@@ -1895,7 +1895,7 @@ fn install_contract() {
              ARG_IDENTIFIER_MODE => identifier_mode,
              ARG_METADATA_MUTABILITY => metadata_mutability,
              ARG_BURN_MODE => burn_mode,
-             ARG_REPORTING_MODE => reporting_mode
+             ARG_OWNER_LOOKUP_MODE => reporting_mode
         },
     );
 }

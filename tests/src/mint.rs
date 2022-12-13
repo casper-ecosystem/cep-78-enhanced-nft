@@ -24,7 +24,7 @@ use crate::utility::{
     },
     installer_request_builder::{
         InstallerRequestBuilder, MetadataMutability, MintingMode, NFTHolderMode, NFTIdentifierMode,
-        NFTMetadataKind, OwnershipMode, ReportingMode, WhitelistMode, TEST_CUSTOM_METADATA,
+        NFTMetadataKind, OwnershipMode, OwnerReverseLookupMode, WhitelistMode, TEST_CUSTOM_METADATA,
         TEST_CUSTOM_METADATA_SCHEMA,
     },
     support::{
@@ -1386,7 +1386,7 @@ fn should_mint_without_returning_receipts_and_flat_gas_cost() {
         .with_identifier_mode(NFTIdentifierMode::Ordinal)
         .with_metadata_mutability(MetadataMutability::Immutable)
         .with_ownership_mode(OwnershipMode::Transferable)
-        .with_reporting_mode(ReportingMode::NoReport)
+        .with_reporting_mode(OwnerReverseLookupMode::NoLookUp)
         .with_nft_metadata_kind(NFTMetadataKind::Raw)
         .build();
 
@@ -1508,7 +1508,7 @@ fn should_prevent_mint_to_unregistered_owner() {
         .with_identifier_mode(NFTIdentifierMode::Ordinal)
         .with_metadata_mutability(MetadataMutability::Immutable)
         .with_ownership_mode(OwnershipMode::Transferable)
-        .with_reporting_mode(ReportingMode::Report)
+        .with_reporting_mode(OwnerReverseLookupMode::Complete)
         .with_nft_metadata_kind(NFTMetadataKind::Raw)
         .build();
 

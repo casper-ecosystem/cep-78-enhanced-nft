@@ -229,18 +229,18 @@ impl TryFrom<u8> for BurnMode {
 }
 
 #[repr(u8)]
-pub enum ReportingMode {
-    NoReport = 0,
-    Report = 1,
+pub enum OwnerReverseLookupMode {
+    NoLookUp = 0,
+    Complete = 1,
 }
 
-impl TryFrom<u8> for ReportingMode {
+impl TryFrom<u8> for OwnerReverseLookupMode {
     type Error = NFTCoreError;
 
     fn try_from(value: u8) -> Result<Self, Self::Error> {
         match value {
-            0 => Ok(ReportingMode::NoReport),
-            1 => Ok(ReportingMode::Report),
+            0 => Ok(OwnerReverseLookupMode::NoLookUp),
+            1 => Ok(OwnerReverseLookupMode::Complete),
             _ => Err(NFTCoreError::InvalidReportingMode),
         }
     }

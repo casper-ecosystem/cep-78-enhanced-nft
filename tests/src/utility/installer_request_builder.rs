@@ -11,7 +11,7 @@ use crate::utility::constants::{
     ARG_ALLOW_MINTING, ARG_BURN_MODE, ARG_COLLECTION_NAME, ARG_COLLECTION_SYMBOL,
     ARG_CONTRACT_WHITELIST, ARG_HOLDER_MODE, ARG_IDENTIFIER_MODE, ARG_JSON_SCHEMA,
     ARG_METADATA_MUTABILITY, ARG_MINTING_MODE, ARG_NFT_KIND, ARG_NFT_METADATA_KIND,
-    ARG_OWNERSHIP_MODE, ARG_REPORTING_MODE, ARG_TOTAL_TOKEN_SUPPLY, ARG_WHITELIST_MODE,
+    ARG_OWNERSHIP_MODE, ARG_OWNER_LOOKUP_MODE, ARG_TOTAL_TOKEN_SUPPLY, ARG_WHITELIST_MODE,
 };
 
 pub(crate) static TEST_CUSTOM_METADATA_SCHEMA: Lazy<CustomMetadataSchema> = Lazy::new(|| {
@@ -135,9 +135,9 @@ pub enum BurnMode {
 }
 
 #[repr(u8)]
-pub enum ReportingMode {
-    NoReport = 0,
-    Report = 1,
+pub enum OwnerReverseLookupMode {
+    NoLookUp = 0,
+    Complete = 1,
 }
 
 #[derive(Debug)]
@@ -189,7 +189,7 @@ impl InstallerRequestBuilder {
             identifier_mode: CLValue::from_t(NFTIdentifierMode::Ordinal as u8).unwrap(),
             metadata_mutability: CLValue::from_t(MetadataMutability::Mutable as u8).unwrap(),
             burn_mode: CLValue::from_t(BurnMode::Burnable as u8).unwrap(),
-            reporting_mode: CLValue::from_t(ReportingMode::Report as u8).unwrap(),
+            reporting_mode: CLValue::from_t(OwnerReverseLookupMode::Complete as u8).unwrap(),
         }
     }
 
@@ -296,7 +296,7 @@ impl InstallerRequestBuilder {
         self
     }
 
-    pub(crate) fn with_reporting_mode(mut self, reporting_mode: ReportingMode) -> Self {
+    pub(crate) fn with_reporting_mode(mut self, reporting_mode: OwnerReverseLookupMode) -> Self {
         self.reporting_mode = CLValue::from_t(reporting_mode as u8).unwrap();
         self
     }
@@ -318,7 +318,7 @@ impl InstallerRequestBuilder {
         runtime_args.insert_cl_value(ARG_IDENTIFIER_MODE, self.identifier_mode);
         runtime_args.insert_cl_value(ARG_METADATA_MUTABILITY, self.metadata_mutability);
         runtime_args.insert_cl_value(ARG_BURN_MODE, self.burn_mode);
-        runtime_args.insert_cl_value(ARG_REPORTING_MODE, self.reporting_mode);
+        runtime_args.insert_cl_value(ARG_OWNER_LOOKUP_MODE, self.reporting_mode);
         ExecuteRequestBuilder::standard(self.account_hash, &self.session_file, runtime_args).build()
     }
 }

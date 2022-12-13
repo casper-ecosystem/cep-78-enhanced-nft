@@ -26,7 +26,7 @@ use crate::{
         PAGE_LIMIT, RECEIPT_NAME, REPORTING_MODE,
     },
     error::NFTCoreError,
-    modalities::{NFTHolderMode, NFTIdentifierMode, OwnershipMode, ReportingMode, TokenIdentifier},
+    modalities::{NFTHolderMode, NFTIdentifierMode, OwnershipMode, OwnerReverseLookupMode, TokenIdentifier},
     utils, BurnMode, BURNT_TOKENS, BURN_MODE, HASH_BY_INDEX, IDENTIFIER_MODE, INDEX_BY_HASH,
     NUMBER_OF_MINTED_TOKENS, OWNED_TOKENS, PAGE_TABLE, TOKEN_OWNERS, UNMATCHED_HASH_COUNT,
 };
@@ -687,7 +687,7 @@ pub(crate) fn get_receipt_name(page_table_entry: u64) -> String {
     format!("{}-m-{}-p-{}", receipt, PAGE_SIZE, page_table_entry)
 }
 
-pub(crate) fn get_reporting_mode() -> ReportingMode {
+pub(crate) fn get_reporting_mode() -> OwnerReverseLookupMode {
     utils::get_stored_value_with_user_errors::<u8>(
         REPORTING_MODE,
         NFTCoreError::MissingReportingMode,
