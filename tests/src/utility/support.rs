@@ -231,13 +231,12 @@ pub(crate) fn get_token_page_by_id(
 ) -> Vec<bool> {
     let page_number = token_id / PAGE_SIZE;
     let token_page_item_key = make_page_dictionary_item_key(token_owner_key, page_number);
-    let token_page = get_dictionary_value_from_key(
+    get_dictionary_value_from_key(
         builder,
         nft_contract_key,
         &format!("{}{}", PAGE_DICTIONARY_PREFIX, page_number),
         &token_page_item_key,
-    );
-    token_page
+    )
 }
 
 pub(crate) fn get_token_page_by_hash(

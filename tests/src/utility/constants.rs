@@ -96,5 +96,4 @@ pub(crate) const PAGE_LIMIT: &str = "page_limit";
 pub(crate) const HASH_KEY_NAME: &str = "nft_contract_package";
 pub(crate) const ARG_NFT_PACKAGE_HASH: &str = "nft_package_hash";
 pub(crate) const INDEX_BY_HASH: &str = "index_by_hash";
-// pub(crate) const PAGE_TABLE: &str = "page_table";
-// pub(crate) const MIGRATION_FLAG: &str = "migration_flag";
+pub(crate) const PAGE_TABLE: &str = "page_table";
