@@ -1264,8 +1264,6 @@ pub extern "C" fn migrate() {
         None => runtime::put_key(MIGRATION_FLAG, storage::new_uref(true).into()),
     }
 
-    runtime::print("invoking migrating entrypoint");
-
     let total_token_supply = utils::get_stored_value_with_user_errors::<u64>(
         TOTAL_TOKEN_SUPPLY,
         NFTCoreError::MissingTotalTokenSupply,

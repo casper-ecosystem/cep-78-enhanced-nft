@@ -5,7 +5,7 @@ use core::convert::TryFrom;
 use crate::NFTCoreError;
 
 #[repr(u8)]
-#[derive(PartialEq)]
+#[derive(PartialEq, Eq)]
 pub enum WhitelistMode {
     Unlocked = 0,
     Locked = 1,
@@ -24,7 +24,7 @@ impl TryFrom<u8> for WhitelistMode {
 }
 
 #[repr(u8)]
-#[derive(PartialEq, Clone, Copy)]
+#[derive(PartialEq, Eq, Clone, Copy)]
 pub enum NFTHolderMode {
     Accounts = 0,
     Contracts = 1,
@@ -137,7 +137,7 @@ impl TryFrom<u8> for OwnershipMode {
 }
 
 #[repr(u8)]
-#[derive(PartialEq)]
+#[derive(PartialEq, Eq)]
 pub enum NFTIdentifierMode {
     Ordinal = 0,
     Hash = 1,
@@ -173,7 +173,7 @@ impl TryFrom<u8> for MetadataMutability {
     }
 }
 
-#[derive(PartialEq, Clone)]
+#[derive(PartialEq, Eq, Clone)]
 pub(crate) enum TokenIdentifier {
     Index(u64),
     Hash(String),
