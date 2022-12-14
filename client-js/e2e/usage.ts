@@ -80,50 +80,42 @@ const run = async () => {
 
   const JSONSetting = await cc.getJSONSchemaConfig();
 
-  // /* Register */
-  // printHeader("Register");
+  /* Register */
+  printHeader("Register");
 
-  // const registerDeployOne = await cc.register(
-  //   {
-  //     tokenOwner: FAUCET_KEYS.publicKey
-  //   },
-  //   "1000000000",
-  //   FAUCET_KEYS.publicKey,
-  //   [FAUCET_KEYS]
-  // );
+  const registerDeployOne = await cc.register(
+    {
+      tokenOwner: FAUCET_KEYS.publicKey
+    },
+    "1000000000",
+    FAUCET_KEYS.publicKey,
+    [FAUCET_KEYS]
+  );
 
-  // await runDeployFlow(registerDeployOne);
+  await runDeployFlow(registerDeployOne);
 
-  // /* Mint */
-  // printHeader("Mint");
+  /* Mint */
+  printHeader("Mint");
 
-  // const mintDeploy = await cc.mint(
-  //   {
-  //     owner: FAUCET_KEYS.publicKey,
-  //     meta: {
-  //       color: "Blue",
-  //       size: "Medium",
-  //       material: "Aluminum",
-  //       condition: "Used",
-  //     },
-  //   },
-  //   "2000000000",
-  //   FAUCET_KEYS.publicKey,
-  //   [FAUCET_KEYS]
-  // );
+  const mintDeploy = await cc.mint(
+    {
+      owner: FAUCET_KEYS.publicKey,
+      meta: {
+        color: "Blue",
+        size: "Medium",
+        material: "Aluminum",
+        condition: "Used",
+      },
+    },
+    "2000000000",
+    FAUCET_KEYS.publicKey,
+    [FAUCET_KEYS]
+  );
 
-  // const mintDeployHash = await mintDeploy.send(NODE_URL!);
+  runDeployFlow(mintDeploy);
 
-  // console.log("...... Deploy hash: ", mintDeployHash);
-  // console.log("...... Waiting for the deploy...");
-
-  // await getDeploy(NODE_URL!, mintDeployHash);
-
-  // console.log("Deploy Succedeed");
-
-  // /* Token details */
-
-  // printTokenDetails("0", FAUCET_KEYS.publicKey);
+  /* Token details */
+  printTokenDetails("0", FAUCET_KEYS.publicKey);
 
   /* Register */
   printHeader("Register");
@@ -153,17 +145,9 @@ const run = async () => {
     [FAUCET_KEYS]
   );
 
-  const transferDeployHash = await transferDeploy.send(NODE_URL!);
-
-  console.log("...... Deploy hash: ", transferDeployHash);
-  console.log("...... Waiting for the deploy...");
-
-  await getDeploy(NODE_URL!, transferDeployHash);
-
-  console.log("Deploy Succedeed");
+  await runDeployFlow(transferDeploy);
 
   /* Token details */
-
   printTokenDetails("0", USER1_KEYS.publicKey);
 
   /* Store owner of at account named key */
@@ -179,27 +163,17 @@ const run = async () => {
     [FAUCET_KEYS]
   );
 
-  const storeOwnerOfDeployHash = await storeOwnerOfDeploy.send(NODE_URL!);
-  console.log("...... Deploy hash: ", storeOwnerOfDeployHash);
-  console.log("...... Waiting for the deploy...");
+  await runDeployFlow(storeOwnerOfDeploy);
 
-  await getDeploy(NODE_URL!, storeOwnerOfDeployHash); 
-
-  console.log("Deploy Succedeed");
-
+  // Getting new account info to update namedKeys
   accountInfo = await getAccountInfo(NODE_URL!, FAUCET_KEYS.publicKey);
-
-  console.log(`\n=====================================\n`);
-
-  console.log(`... Account Info: `);
-  console.log(JSON.stringify(accountInfo, null, 2));
 
   const storedOwnerValue = await getAccountNamedKeyValue(
     accountInfo,
     `stored_owner_of_token`
   );
 
-  console.log('.. storedOwnerValue: ', storedOwnerValue);
+  console.log('.. storedOwnerValue UREF: ', storedOwnerValue);
 
   /* Burn */
   printHeader("Burn");
@@ -211,14 +185,7 @@ const run = async () => {
     [USER1_KEYS]
   );
 
-  const burnDeployHash = await burnDeploy.send(NODE_URL!);
-
-  console.log("...... Deploy hash: ", burnDeployHash);
-  console.log("...... Waiting for the deploy...");
-
-  await getDeploy(NODE_URL!, burnDeployHash);
-
-  console.log("Deploy Succedeed");
+  await runDeployFlow(burnDeploy);
 };
 
 run();

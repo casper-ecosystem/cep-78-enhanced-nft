@@ -10,7 +10,6 @@ import {
   CLValueBuilder,
   CLU8,
 } from "casper-js-sdk";
-import { Some } from "ts-results";
 import * as fs from "fs";
 
 import {
