@@ -93,6 +93,7 @@ const run = async () => {
         condition: "Used",
       },
     },
+    true,
     "2000000000",
     FAUCET_KEYS.publicKey,
     [FAUCET_KEYS]
@@ -126,6 +127,7 @@ const run = async () => {
       source: FAUCET_KEYS.publicKey,
       target: USER1_KEYS.publicKey,
     },
+    true,
     "13000000000",
     FAUCET_KEYS.publicKey,
     [FAUCET_KEYS]

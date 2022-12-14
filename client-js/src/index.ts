@@ -39,6 +39,10 @@ const { Contract } = Contracts;
 
 export * from "./types";
 
+enum ERRORS {
+  CONFLICT_CONFIG = "Conflicting arguments provided",
+}
+
 const convertHashStrToHashBuff = (hashStr: string) => {
   let hashHex = hashStr;
   if (hashStr.startsWith("hash-")) {
@@ -312,25 +316,43 @@ export class CEP78Client {
 
   public mint(
     args: MintArgs,
+    useSession: boolean,
     paymentAmount: string,
     deploySender: CLPublicKey,
     keys?: Keys.AsymmetricKey[],
     wasm?: Uint8Array
   ) {
-    const wasmToCall = wasm || getBinary(`${__dirname}/../wasm/mint_call.wasm`);
+    if (useSession === false && !!wasm) throw new Error(ERRORS.CONFLICT_CONFIG);
 
     const runtimeArgs = RuntimeArgs.fromMap({
-      nft_contract_hash: this.contractHashKey,
       token_owner: CLValueBuilder.key(args.owner),
       token_meta_data: CLValueBuilder.string(JSON.stringify(args.meta)),
     });
 
-    const preparedDeploy = this.contractClient.install(
-      wasmToCall,
+    if (useSession) {
+      const wasmToCall =
+        wasm || getBinary(`${__dirname}/../wasm/mint_call.wasm`);
+
+      runtimeArgs.insert("nft_contract_hash", this.contractHashKey);
+
+      const preparedDeploy = this.contractClient.install(
+        wasmToCall,
+        runtimeArgs,
+        paymentAmount,
+        deploySender,
+        this.networkName,
+        keys
+      );
+
+      return preparedDeploy;
+    }  
+
+    const preparedDeploy = this.contractClient.callEntrypoint(
+      "mint",
       runtimeArgs,
-      paymentAmount,
       deploySender,
       this.networkName,
+      paymentAmount,
       keys
     );
 
@@ -367,16 +389,15 @@ export class CEP78Client {
 
   public transfer(
     args: TransferArgs,
+    useSession: boolean,
     paymentAmount: string,
     deploySender: CLPublicKey,
     keys?: Keys.AsymmetricKey[],
     wasm?: Uint8Array
   ) {
-    const wasmToCall =
-      wasm || getBinary(`${__dirname}/../wasm/transfer_call.wasm`);
+    if (useSession === false && !!wasm) throw new Error(ERRORS.CONFLICT_CONFIG);
 
     const runtimeArgs = RuntimeArgs.fromMap({
-      nft_contract_hash: this.contractHashKey,
       target_key: CLValueBuilder.key(args.target),
       source_key: CLValueBuilder.key(args.source),
     });
@@ -391,12 +412,29 @@ export class CEP78Client {
       runtimeArgs.insert("token_id", CLValueBuilder.u64(args.tokenHash));
     }
 
-    const preparedDeploy = this.contractClient.install(
-      wasmToCall,
+    if (useSession) {
+      runtimeArgs.insert("nft_contract_hash", this.contractHashKey);
+      const wasmToCall =
+        wasm || getBinary(`${__dirname}/../wasm/transfer_call.wasm`);
+
+      const preparedDeploy = this.contractClient.install(
+        wasmToCall,
+        runtimeArgs,
+        paymentAmount,
+        deploySender,
+        this.networkName,
+        keys
+      );
+
+      return preparedDeploy;
+    }
+
+    const preparedDeploy = this.contractClient.callEntrypoint(
+      "transfer",
       runtimeArgs,
-      paymentAmount,
       deploySender,
       this.networkName,
+      paymentAmount,
       keys
     );
 
