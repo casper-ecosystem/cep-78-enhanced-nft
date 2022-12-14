@@ -23,17 +23,19 @@ use casper_types::{
 use crate::{
     constants::{
         ARG_TOKEN_HASH, ARG_TOKEN_ID, HOLDER_MODE, OWNERSHIP_MODE, PAGE_DICTIONARY_PREFIX,
-        PAGE_LIMIT, RECEIPT_NAME,
+        PAGE_LIMIT, RECEIPT_NAME, REPORTING_MODE,
     },
     error::NFTCoreError,
-    modalities::{NFTHolderMode, NFTIdentifierMode, OwnershipMode, TokenIdentifier},
+    modalities::{
+        NFTHolderMode, NFTIdentifierMode, OwnerReverseLookupMode, OwnershipMode, TokenIdentifier,
+    },
     utils, BurnMode, BURNT_TOKENS, BURN_MODE, HASH_BY_INDEX, IDENTIFIER_MODE, INDEX_BY_HASH,
     NUMBER_OF_MINTED_TOKENS, OWNED_TOKENS, PAGE_TABLE, TOKEN_OWNERS, UNMATCHED_HASH_COUNT,
 };
 
 // The size of a given page, it is currently set to 10
 // to ease the math around addressing newly minted tokens.
-pub const PAGE_SIZE: u64 = 10;
+pub const PAGE_SIZE: u64 = 1000;
 
 pub(crate) fn upsert_dictionary_value_from_key<T: CLTyped + FromBytes + ToBytes>(
     dictionary_name: &str,
@@ -463,7 +465,6 @@ pub(crate) fn get_token_index(token_identifier: &TokenIdentifier) -> u64 {
 }
 
 pub(crate) fn migrate_owned_tokens_in_ordinal_mode() {
-    runtime::print("migrating owned tokens");
     let current_number_of_minted_tokens = utils::get_stored_value_with_user_errors::<u64>(
         NUMBER_OF_MINTED_TOKENS,
         NFTCoreError::MissingTotalTokenSupply,
@@ -494,7 +495,6 @@ pub(crate) fn migrate_owned_tokens_in_ordinal_mode() {
                 &token_owner_item_key,
             )
             .unwrap_or_revert();
-            runtime::print("Got list");
             for token_identifier in owned_tokens_list.into_iter() {
                 let token_id = token_identifier.get_index().unwrap_or_revert();
                 let page_number = token_id / PAGE_SIZE;
@@ -548,13 +548,15 @@ pub(crate) fn should_migrate_token_hashes(token_owner: Key) -> bool {
         NFTCoreError::MissingPageTableURef,
         NFTCoreError::InvalidPageTableURef,
     );
-    if storage::dictionary_get::<Vec<bool>>(
+    // If the owner has registered, then they will have an page table entry
+    // but it will contain no bits set.
+    let page_table = storage::dictionary_get::<Vec<bool>>(
         page_table_uref,
         &get_owned_tokens_dictionary_item_key(token_owner),
     )
     .unwrap_or_revert()
-    .is_some()
-    {
+    .unwrap_or_revert_with(NFTCoreError::UnregisteredOwnerFromMigration);
+    if page_table.contains(&true) {
         return false;
     }
     true
@@ -614,7 +616,6 @@ pub(crate) fn migrate_token_hashes(token_owner: Key) {
             None => vec![false; PAGE_SIZE as usize],
         };
         let _ = core::mem::replace(&mut page[page_address as usize], true);
-        runtime::print(&format!("{:?}", page.clone()));
         storage::dictionary_put(page_uref, &page_item_key, page);
         insert_hash_id_lookups(unmatched_hash_count - 1, token_identifier);
         unmatched_hash_count -= 1;
@@ -686,4 +687,14 @@ pub(crate) fn get_receipt_name(page_table_entry: u64) -> String {
         NFTCoreError::InvalidReceiptName,
     );
     format!("{}-m-{}-p-{}", receipt, PAGE_SIZE, page_table_entry)
+}
+
+pub(crate) fn get_reporting_mode() -> OwnerReverseLookupMode {
+    utils::get_stored_value_with_user_errors::<u8>(
+        REPORTING_MODE,
+        NFTCoreError::MissingReportingMode,
+        NFTCoreError::InvalidReportingMode,
+    )
+    .try_into()
+    .unwrap_or_revert()
 }

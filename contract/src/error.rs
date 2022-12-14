@@ -129,6 +129,13 @@ pub enum NFTCoreError {
     MissingMigrationFlag = 124,
     InvalidMigrationFlag = 125,
     ContractAlreadyMigrated = 126,
+    UnregisteredOwnerInMint = 127,
+    UnregisteredOwnerInTransfer = 128,
+    MissingReportingMode = 129,
+    InvalidReportingMode = 130,
+    MissingPage = 131,
+    UnregisteredOwnerFromMigration = 132,
+    ExceededMaxTotalSupply = 133,
 }
 
 impl From<NFTCoreError> for ApiError {

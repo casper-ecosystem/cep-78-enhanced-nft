@@ -22,6 +22,7 @@ const ENTRY_POINT_MINT: &str = "mint";
 const ENTRY_POINT_TRANSFER: &str = "transfer";
 const ENTRY_POINT_BURN: &str = "burn";
 const ENTRY_POINT_METADATA: &str = "metadata";
+const ENTRY_POINT_REGISTER_OWNER: &str = "register_owner";
 
 const ARG_NFT_CONTRACT_HASH: &str = "nft_contract_hash";
 const ARG_TOKEN_OWNER: &str = "token_owner";
@@ -40,6 +41,14 @@ pub extern "C" fn mint() {
 
     let token_owner = runtime::get_named_arg::<Key>(ARG_TOKEN_OWNER);
     let token_metadata: String = runtime::get_named_arg(ARG_TOKEN_META_DATA);
+
+    runtime::call_contract::<()>(
+        nft_contract_hash,
+        ENTRY_POINT_REGISTER_OWNER,
+        runtime_args! {
+            ARG_TOKEN_OWNER => token_owner,
+        }
+    );
 
     let (collection_name, owned_tokens_dictionary_key,_token_id_string ) = runtime::call_contract::<(String, Key, String)>(
         nft_contract_hash,
@@ -114,6 +123,24 @@ pub extern "C" fn metadata() {
     );
 
     runtime::put_key("metadata", storage::new_uref(metadata).into());
+}
+
+#[no_mangle]
+pub extern "C" fn register_contract() {
+    let nft_contract_hash: ContractHash = runtime::get_named_arg::<Key>(ARG_NFT_CONTRACT_HASH)
+        .into_hash()
+        .map(|hash| ContractHash::new(hash))
+        .unwrap();
+
+    let token_owner = runtime::get_named_arg::<Key>(ARG_TOKEN_OWNER);
+
+    runtime::call_contract::<()>(
+        nft_contract_hash,
+        ENTRY_POINT_REGISTER_OWNER,
+        runtime_args! {
+            ARG_TOKEN_OWNER => token_owner
+        }
+    )
 }
 
 

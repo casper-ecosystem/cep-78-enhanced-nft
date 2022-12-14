@@ -291,3 +291,28 @@ fn should_disallow_installation_with_zero_issuance() {
 
     support::assert_expected_error(error, 123u16, "cannot install when issuance is 0");
 }
+
+#[test]
+fn should_disallow_installation_with_supply_exceeding_hard_cap() {
+    let mut builder = InMemoryWasmTestBuilder::default();
+    builder.run_genesis(&DEFAULT_RUN_GENESIS_REQUEST).commit();
+
+    let install_request = InstallerRequestBuilder::new(*DEFAULT_ACCOUNT_ADDR, NFT_CONTRACT_WASM)
+        .with_collection_name(NFT_TEST_COLLECTION.to_string())
+        .with_collection_symbol(NFT_TEST_SYMBOL.to_string())
+        .with_total_token_supply(1_000_001u64)
+        .with_ownership_mode(OwnershipMode::Minter)
+        .with_identifier_mode(NFTIdentifierMode::Ordinal)
+        .with_nft_metadata_kind(NFTMetadataKind::Raw)
+        .build();
+
+    builder.exec(install_request).expect_failure().commit();
+
+    let error = builder.get_error().expect("must have error");
+
+    support::assert_expected_error(
+        error,
+        133u16,
+        "cannot install when issuance is more than 1_000_000",
+    );
+}
