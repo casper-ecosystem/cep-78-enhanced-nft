@@ -94,6 +94,7 @@ export interface RegisterArgs {
 export interface MintArgs {
   owner: CLKeyParameters;
   meta: Record<string, string>;
+  useSession?: boolean;
 }
 
 export interface TokenArgs {

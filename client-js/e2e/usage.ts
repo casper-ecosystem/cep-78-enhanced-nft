@@ -22,7 +22,7 @@ const runDeployFlow = async (deploy: DeployUtil.Deploy) => {
 
   await getDeploy(NODE_URL!, deployHash);
 
-  console.log("Deploy Succedeed");
+  console.log(`...... Deploy ${deployHash} succedeed`);
 }
 
 const run = async () => {
@@ -80,24 +80,10 @@ const run = async () => {
 
   const JSONSetting = await cc.getJSONSchemaConfig();
 
-  /* Register */
-  printHeader("Register");
-
-  const registerDeployOne = await cc.register(
-    {
-      tokenOwner: FAUCET_KEYS.publicKey
-    },
-    "1000000000",
-    FAUCET_KEYS.publicKey,
-    [FAUCET_KEYS]
-  );
-
-  await runDeployFlow(registerDeployOne);
-
   /* Mint */
   printHeader("Mint");
 
-  const mintDeploy = await cc.mint(
+  const mintDeploy = cc.mint(
     {
       owner: FAUCET_KEYS.publicKey,
       meta: {
@@ -112,15 +98,15 @@ const run = async () => {
     [FAUCET_KEYS]
   );
 
-  runDeployFlow(mintDeploy);
+  await runDeployFlow(mintDeploy);
 
   /* Token details */
-  printTokenDetails("0", FAUCET_KEYS.publicKey);
+  await printTokenDetails("0", FAUCET_KEYS.publicKey);
 
   /* Register */
   printHeader("Register");
 
-  const registerDeployTwo = await cc.register(
+  const registerDeployTwo = cc.register(
     {
       tokenOwner: USER1_KEYS.publicKey
     },
@@ -134,7 +120,7 @@ const run = async () => {
   /* Transfer */
   printHeader("Transfer");
 
-  const transferDeploy = await cc.transfer(
+  const transferDeploy = cc.transfer(
     {
       tokenId: "0",
       source: FAUCET_KEYS.publicKey,
@@ -148,7 +134,7 @@ const run = async () => {
   await runDeployFlow(transferDeploy);
 
   /* Token details */
-  printTokenDetails("0", USER1_KEYS.publicKey);
+  await printTokenDetails("0", USER1_KEYS.publicKey);
 
   /* Store owner of at account named key */
   printHeader("Store owner of");
@@ -178,7 +164,7 @@ const run = async () => {
   /* Burn */
   printHeader("Burn");
 
-  const burnDeploy = await cc.burn(
+  const burnDeploy = cc.burn(
     { tokenId: "0" },
     "13000000000",
     USER1_KEYS.publicKey,
