@@ -69,7 +69,7 @@ const run = async () => {
 
   const JSONSetting = await cc.getJSONSchemaConfig();
 
-  /* Mint */
+  /* Register */
   printHeader("Register");
 
   const registerDeploy = await cc.register(

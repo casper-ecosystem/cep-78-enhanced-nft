@@ -133,6 +133,13 @@ export class CEP78Client {
       runtimeArgs.insert("burn_mode", CLValueBuilder.option(Some(value)));
     }
 
+    if (args.ownerReverseLookupMode !== undefined) {
+      runtimeArgs.insert(
+        "owner_reverse_lookup_mode",
+        CLValueBuilder.u8(args.ownerReverseLookupMode)
+      );
+    }
+
     return this.contractClient.install(
       wasmToInstall,
       runtimeArgs,
@@ -290,7 +297,7 @@ export class CEP78Client {
     keys?: Keys.AsymmetricKey[]
   ) {
     const runtimeArgs = RuntimeArgs.fromMap({
-      token_owner: args.tokenOwner
+      token_owner: args.tokenOwner,
     });
 
     const preparedDeploy = this.contractClient.callEntrypoint(

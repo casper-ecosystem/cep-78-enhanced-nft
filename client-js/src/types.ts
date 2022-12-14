@@ -50,6 +50,11 @@ export enum WhitelistMode {
   Locked,
 }
 
+export enum OwnerReverseLookupMode {
+  NoLookup,
+  Complete
+}
+
 export interface JSONSchemaEntry {
   name: string;
   description: string;
@@ -79,6 +84,7 @@ export type InstallArgs = {
   whitelistMode?: WhitelistMode;
   holderMode?: NFTHolderMode;
   burnMode?: BurnMode;
+  ownerReverseLookupMode: OwnerReverseLookupMode;
 } & ConfigurableVariables;
 
 export interface RegisterArgs {

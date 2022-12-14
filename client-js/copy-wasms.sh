@@ -1,5 +1,5 @@
 #!/bin/bash
-rm wasm/*
+rm -rf wasm/*
 cp ../contract/target/wasm32-unknown-unknown/release/contract.wasm ./wasm
 cp ../client/mint_session/target/wasm32-unknown-unknown/release/mint_call.wasm ./wasm
 cp ../client/balance_of_session/target/wasm32-unknown-unknown/release/balance_of_call.wasm ./wasm
