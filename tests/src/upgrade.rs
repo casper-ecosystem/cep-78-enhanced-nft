@@ -1,12 +1,8 @@
-use bit_vec::BitVec;
-
 use casper_engine_test_support::{
     ExecuteRequestBuilder, InMemoryWasmTestBuilder, DEFAULT_ACCOUNT_ADDR,
     DEFAULT_RUN_GENESIS_REQUEST,
 };
-use casper_types::{
-    account::AccountHash, bytesrepr::FromBytes, runtime_args, CLValue, Key, RuntimeArgs,
-};
+use casper_types::{account::AccountHash, runtime_args, CLValue, Key, RuntimeArgs};
 
 use crate::utility::{
     constants::{
@@ -117,7 +113,7 @@ fn should_safely_upgrade_in_ordinal_identifier_mode() {
     );
 
     let expected_page = {
-        let mut page = vec![false; 32usize];
+        let mut page = vec![false; PAGE_SIZE as usize];
         for page_entry in page.iter_mut().take(number_of_tokens_pre_migration) {
             *page_entry = true;
         }
@@ -266,13 +262,12 @@ fn should_safely_upgrade_in_hash_identifier_mode() {
     );
 
     let expected_page = {
-        let mut page = vec![false; 32usize];
-        for page_entry in page.iter_mut().take(4) {
-            *page_entry = true;
+        let mut page = vec![false; PAGE_SIZE as usize];
+        for page_ownership in page.iter_mut().take(4) {
+            *page_ownership = true;
         }
         page
     };
-
     assert_eq!(actual_page, expected_page);
 
     let transfer_request = ExecuteRequestBuilder::standard(
@@ -377,14 +372,6 @@ fn should_update_receipts_post_upgrade_paged() {
     )
     .expect("must have receipt");
 
-    let (expected_page, _) = {
-        let mut page = BitVec::from_elem(32, false);
-        for page_address in 0..(PAGE_SIZE as usize) {
-            page.set(page_address, true)
-        }
-        u32::from_bytes(&page.to_bytes()).expect("must convert")
-    };
-
     let default_account = builder
         .query(None, Key::Account(*DEFAULT_ACCOUNT_ADDR), &[])
         .unwrap()
@@ -397,8 +384,10 @@ fn should_update_receipts_post_upgrade_paged() {
         .get(&support::get_receipt_name(nft_receipt.clone(), 0))
         .expect("must have page 0 receipt");
 
+    let expected_page = vec![true; PAGE_SIZE as usize];
+
     let actual_page_0 =
-        support::get_stored_value_from_global_state::<u32>(&builder, receipt_page_0, vec![])
+        support::get_stored_value_from_global_state::<Vec<bool>>(&builder, receipt_page_0, vec![])
             .expect("must get actual page");
 
     assert_eq!(expected_page, actual_page_0);
@@ -409,7 +398,7 @@ fn should_update_receipts_post_upgrade_paged() {
         .expect("must have page 0 receipt");
 
     let actual_page_1 =
-        support::get_stored_value_from_global_state::<u32>(&builder, receipt_page_1, vec![])
+        support::get_stored_value_from_global_state::<Vec<bool>>(&builder, receipt_page_1, vec![])
             .expect("must get actual page");
 
     assert_eq!(expected_page, actual_page_1);

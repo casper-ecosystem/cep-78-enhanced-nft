@@ -2,7 +2,6 @@ use crate::utility::constants::{
     ARG_KEY_NAME, ARG_NFT_CONTRACT_HASH, HASH_KEY_NAME, INDEX_BY_HASH, MINTING_CONTRACT_NAME,
     PAGE_DICTIONARY_PREFIX, PAGE_SIZE,
 };
-use bit_vec::BitVec;
 use blake2::{
     digest::{Update, VariableOutput},
     VarBlake2b,
@@ -212,6 +211,18 @@ impl CEP78Metadata {
     }
 }
 
+pub(crate) fn make_page_dictionary_item_key(
+    token_owner_key: &Key,
+    current_page_number: u64,
+) -> String {
+    let mut preimage = Vec::new();
+    preimage.append(&mut token_owner_key.clone().to_bytes().unwrap());
+    preimage.append(&mut current_page_number.to_bytes().unwrap());
+
+    let key_bytes = create_blake2b_hash(preimage);
+    base16::encode_lower(&key_bytes)
+}
+
 pub(crate) fn get_token_page_by_id(
     builder: &WasmTestBuilder<InMemoryGlobalState>,
     nft_contract_key: &Key,
@@ -219,18 +230,14 @@ pub(crate) fn get_token_page_by_id(
     token_id: u64,
 ) -> Vec<bool> {
     let page_number = token_id / PAGE_SIZE;
-    let token_page_item_key = match token_owner_key {
-        Key::Account(owner_account_hash) => owner_account_hash.clone().to_string(),
-        Key::Hash(owner_contract_hash) => ContractHash::new(*owner_contract_hash).to_string(),
-        _ => panic!("Invalid key"),
-    };
-    let encoded_page: u32 = get_dictionary_value_from_key(
+    let token_page_item_key = make_page_dictionary_item_key(token_owner_key, page_number);
+    let token_page = get_dictionary_value_from_key(
         builder,
         nft_contract_key,
         &format!("{}{}", PAGE_DICTIONARY_PREFIX, page_number),
         &token_page_item_key,
     );
-    get_boolean_page(encoded_page)
+    token_page
 }
 
 pub(crate) fn get_token_page_by_hash(
@@ -260,17 +267,4 @@ pub(crate) fn get_stored_value_from_global_state<T: CLTyped + FromBytes>(
 
 pub(crate) fn get_receipt_name(nft_receipt: String, page_table_entry: u64) -> String {
     format!("{}-m-{}-p-{}", nft_receipt, PAGE_SIZE, page_table_entry)
-}
-
-fn get_boolean_page(encoded_page: u32) -> Vec<bool> {
-    let mut page = Vec::new();
-    let decoded_page = BitVec::from_bytes(&encoded_page.to_bytes().unwrap());
-    for bit in decoded_page.iter() {
-        if bit {
-            page.push(true)
-        } else {
-            page.push(false)
-        }
-    }
-    page
 }

@@ -8,7 +8,6 @@ mod constants;
 mod error;
 mod metadata;
 mod modalities;
-mod page;
 mod utils;
 
 extern crate alloc;
@@ -21,8 +20,6 @@ use alloc::{
     vec::Vec,
 };
 use core::convert::TryInto;
-
-use bit_vec::BitVec;
 
 use casper_types::{
     contracts::NamedKeys, runtime_args, CLType, CLValue, ContractHash, ContractPackageHash,
@@ -37,7 +34,6 @@ use casper_contract::{
     },
     unwrap_or_revert::UnwrapOrRevert,
 };
-use casper_types::bytesrepr::ToBytes;
 
 use crate::{
     constants::{
@@ -65,8 +61,7 @@ use crate::{
         BurnMode, MetadataMutability, MintingMode, NFTHolderMode, NFTIdentifierMode, NFTKind,
         NFTMetadataKind, OwnershipMode, TokenIdentifier, WhitelistMode,
     },
-    page::Operation,
-    utils::PAGE_SIZE,
+    utils::{get_uref, PAGE_SIZE},
 };
 
 #[no_mangle]
@@ -527,9 +522,53 @@ pub extern "C" fn mint() {
     // this is the entry in that overall page table which maps to the underlying page
     // upon which this mint's address will exist
     let page_table_entry = minted_tokens_count / PAGE_SIZE;
+    let page_address = minted_tokens_count % PAGE_SIZE;
 
-    page::mark_allocation_in_page_table(token_owner_key, page_table_entry);
-    page::mark_page_entry_as_owned(token_owner_key, &token_identifier, Operation::Mint);
+    // Update the page entry first
+    let page_table_uref = utils::get_uref(
+        PAGE_TABLE,
+        NFTCoreError::MissingPageTableURef,
+        NFTCoreError::InvalidPageTableURef,
+    );
+
+    let page_table_width = utils::get_stored_value_with_user_errors::<u64>(
+        PAGE_LIMIT,
+        NFTCoreError::MissingPageLimit,
+        NFTCoreError::InvalidPageLimit,
+    );
+
+    let mut page_table =
+        match storage::dictionary_get::<Vec<bool>>(page_table_uref, &owned_tokens_item_key)
+            .unwrap_or_revert()
+        {
+            Some(page_record) => page_record,
+            None => vec![false; page_table_width as usize],
+        };
+
+    let _ = core::mem::replace(&mut page_table[page_table_entry as usize], true);
+
+    storage::dictionary_put(page_table_uref, &owned_tokens_item_key, page_table);
+
+    // Update the individual page record.
+    let page_uref = utils::get_uref(
+        &format!("{}{}", PAGE_DICTIONARY_PREFIX, page_table_entry),
+        NFTCoreError::MissingPageUref,
+        NFTCoreError::InvalidPageUref,
+    );
+
+    let page_item_key = utils::encode_page_address(&token_owner_key, page_table_entry);
+
+    let mut page =
+        match storage::dictionary_get::<Vec<bool>>(page_uref, &page_item_key).unwrap_or_revert() {
+            Some(single_page) => single_page,
+            None => {
+                vec![false; PAGE_SIZE as usize]
+            }
+        };
+
+    let _ = core::mem::replace(&mut page[page_address as usize], true);
+
+    storage::dictionary_put(page_uref, &page_item_key, page);
 
     //Increment the count of owned tokens.
     let updated_token_count =
@@ -554,14 +593,7 @@ pub extern "C" fn mint() {
 
     let token_identifier_string = token_identifier.get_dictionary_item_key();
 
-    let receipt_address = Key::dictionary(
-        utils::get_uref(
-            &format!("{}{}", PAGE_DICTIONARY_PREFIX, page_table_entry),
-            NFTCoreError::MissingPageUref,
-            NFTCoreError::InvalidPageUref,
-        ),
-        utils::get_owned_tokens_dictionary_item_key(token_owner_key).as_bytes(),
-    );
+    let receipt_address = Key::dictionary(page_uref, page_item_key.as_bytes());
 
     let receipt_string = utils::get_receipt_name(page_table_entry);
 
@@ -868,7 +900,20 @@ pub extern "C" fn transfer() {
     // Update to_account owned_tokens. Revert if owned_tokens list is not found
     let token_number = utils::get_token_index(&token_identifier);
 
+    let page_table_uref = utils::get_uref(
+        PAGE_TABLE,
+        NFTCoreError::MissingPageTableURef,
+        NFTCoreError::InvalidPageTableURef,
+    );
+
+    let page_table_width = utils::get_stored_value_with_user_errors::<u64>(
+        PAGE_LIMIT,
+        NFTCoreError::MissingPageLimit,
+        NFTCoreError::InvalidPageLimit,
+    );
+
     let page_table_entry = token_number / PAGE_SIZE;
+    let page_address = token_number % PAGE_SIZE;
 
     let page_uref = utils::get_uref(
         &format!("{}{}", PAGE_DICTIONARY_PREFIX, page_table_entry),
@@ -876,7 +921,19 @@ pub extern "C" fn transfer() {
         NFTCoreError::InvalidStorageUref,
     );
 
-    page::mark_page_entry_as_not_owned(source_owner_key, &token_identifier, Operation::Transfer);
+    let source_page_item_key = utils::encode_page_address(&source_owner_key, page_table_entry);
+
+    let mut source_page = storage::dictionary_get::<Vec<bool>>(page_uref, &source_page_item_key)
+        .unwrap_or_revert()
+        .unwrap_or_revert_with(NFTCoreError::InvalidPageNumber);
+
+    if !source_page[page_address as usize] {
+        runtime::revert(NFTCoreError::InvalidTokenIdentifier)
+    }
+
+    let _ = core::mem::replace(&mut source_page[page_address as usize], false);
+
+    storage::dictionary_put(page_uref, &source_page_item_key, source_page);
 
     // Update the from_account balance
     let updated_from_account_balance =
@@ -900,8 +957,32 @@ pub extern "C" fn transfer() {
         updated_from_account_balance,
     );
 
-    page::mark_allocation_in_page_table(target_owner_key, page_table_entry);
-    page::mark_page_entry_as_owned(target_owner_key, &token_identifier, Operation::Transfer);
+    let mut page_table =
+        match storage::dictionary_get::<Vec<bool>>(page_table_uref, &target_owner_item_key)
+            .unwrap_or_revert()
+        {
+            Some(page_table) => page_table,
+            None => {
+                vec![false; page_table_width as usize]
+            }
+        };
+
+    let target_page_dictionary_item_key =
+        utils::encode_page_address(&target_owner_key, page_table_entry);
+
+    let mut target_page = if !page_table[page_table_entry as usize] {
+        // Create a new page here
+        let _ = core::mem::replace(&mut page_table[page_table_entry as usize], true);
+        vec![false; PAGE_SIZE as usize]
+    } else {
+        storage::dictionary_get::<Vec<bool>>(page_uref, &target_page_dictionary_item_key)
+            .unwrap_or_revert()
+            .unwrap_or_revert()
+    };
+
+    let _ = core::mem::replace(&mut target_page[page_address as usize], true);
+
+    storage::dictionary_put(page_uref, &target_page_dictionary_item_key, target_page);
 
     // Update the to_account balance
     let updated_to_account_balance =
@@ -1174,6 +1255,8 @@ pub extern "C" fn migrate() {
         None => runtime::put_key(MIGRATION_FLAG, storage::new_uref(true).into()),
     }
 
+    runtime::print("invoking migrating entrypoint");
+
     let total_token_supply = utils::get_stored_value_with_user_errors::<u64>(
         TOTAL_TOKEN_SUPPLY,
         NFTCoreError::MissingTotalTokenSupply,
@@ -1206,7 +1289,7 @@ pub extern "C" fn migrate() {
     let new_contract_package_hash_representation =
         runtime::get_named_arg::<ContractPackageHash>(ARG_NFT_PACKAGE_HASH);
 
-    let receipt_uref = utils::get_uref(
+    let receipt_uref = get_uref(
         RECEIPT_NAME,
         NFTCoreError::MissingReceiptName,
         NFTCoreError::InvalidReceiptName,
@@ -1255,23 +1338,16 @@ pub extern "C" fn updated_receipts() {
         utils::should_migrate_token_hashes(token_owner);
     }
 
-    let page_table = {
-        let encoded_page = utils::get_dictionary_value_from_key::<u64>(
-            PAGE_TABLE,
-            &utils::get_owned_tokens_dictionary_item_key(token_owner),
-        )
-        .unwrap_or(0u64);
-        BitVec::from_bytes(
-            &encoded_page
-                .to_bytes()
-                .unwrap_or_revert_with(NFTCoreError::FailedToDecodePageTable),
-        )
-    };
+    let page_table = utils::get_dictionary_value_from_key::<Vec<bool>>(
+        PAGE_TABLE,
+        &utils::get_owned_tokens_dictionary_item_key(token_owner),
+    )
+    .unwrap_or_default();
 
     let mut updated_receipts: Vec<(String, Key)> = vec![];
 
-    for (page_table_entry, allocated) in page_table.iter().enumerate() {
-        if allocated != page::ALLOCATED {
+    for (page_table_entry, allocated) in page_table.into_iter().enumerate() {
+        if !allocated {
             continue;
         }
         let page_uref = utils::get_uref(
@@ -1279,7 +1355,7 @@ pub extern "C" fn updated_receipts() {
             NFTCoreError::MissingPageUref,
             NFTCoreError::InvalidPageUref,
         );
-        let page_item_key = utils::get_owned_tokens_dictionary_item_key(token_owner);
+        let page_item_key = utils::encode_page_address(&token_owner, page_table_entry as u64);
         let page_dictionary_address = Key::dictionary(page_uref, page_item_key.as_bytes());
         let receipt_name = utils::get_receipt_name(page_table_entry as u64);
         updated_receipts.push((receipt_name, page_dictionary_address))
