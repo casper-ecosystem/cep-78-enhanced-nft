@@ -296,7 +296,7 @@ export class CEP78Client {
     keys?: Keys.AsymmetricKey[]
   ) {
     const runtimeArgs = RuntimeArgs.fromMap({
-      token_owner: args.tokenOwner,
+      token_owner: CLValueBuilder.key(args.tokenOwner),
     });
 
     const preparedDeploy = this.contractClient.callEntrypoint(
