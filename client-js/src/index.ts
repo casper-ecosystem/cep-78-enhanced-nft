@@ -33,6 +33,7 @@ import {
   StoreBalanceOfArgs,
   StoreApprovedArgs,
   StoreOwnerOfArgs,
+  OwnerReverseLookupMode
 } from "./types";
 
 const { Contract } = Contracts;
@@ -181,6 +182,16 @@ export class CEP78Client {
 
   public async getAllowMintingConfig() {
     return this.contractClient.queryContractData(["allow_minting"]);
+  }
+
+  public async getReportingModeConfig() {
+    const internalValue = await this.contractClient.queryContractData([
+      "reporting_mode",
+    ]);
+    const u8res = (internalValue as CLU8).toString();
+    return OwnerReverseLookupMode[
+      parseInt(u8res, 10)
+    ] as keyof typeof OwnerReverseLookupMode;
   }
 
   public async getWhitelistModeConfig() {
@@ -345,7 +356,7 @@ export class CEP78Client {
       );
 
       return preparedDeploy;
-    }  
+    }
 
     const preparedDeploy = this.contractClient.callEntrypoint(
       "mint",

@@ -1,4 +1,4 @@
-import { CEP78Client } from "../src/index";
+import { CEP78Client, OwnerReverseLookupMode } from "../src/index";
 
 import {
   FAUCET_KEYS,
@@ -23,7 +23,7 @@ const runDeployFlow = async (deploy: DeployUtil.Deploy) => {
   await getDeploy(NODE_URL!, deployHash);
 
   console.log(`...... Deploy ${deployHash} succedeed`);
-}
+};
 
 const run = async () => {
   const cc = new CEP78Client(process.env.NODE_URL!, process.env.NETWORK_NAME!);
@@ -78,6 +78,11 @@ const run = async () => {
   const whitelistModeSetting = await cc.getWhitelistModeConfig();
   console.log(`WhitelistMode: ${whitelistModeSetting}`);
 
+  const ownerReverseLookupModeSetting = await cc.getReportingModeConfig();
+  console.log(`OwnerReverseLookupMode: ${ownerReverseLookupModeSetting}`);
+
+  const useSession = ownerReverseLookupModeSetting === "Complete";
+
   const JSONSetting = await cc.getJSONSchemaConfig();
 
   /* Mint */
@@ -93,7 +98,7 @@ const run = async () => {
         condition: "Used",
       },
     },
-    true,
+    useSession,
     "2000000000",
     FAUCET_KEYS.publicKey,
     [FAUCET_KEYS]
@@ -104,19 +109,21 @@ const run = async () => {
   /* Token details */
   await printTokenDetails("0", FAUCET_KEYS.publicKey);
 
-  /* Register */
-  printHeader("Register");
+  if (useSession) {
+    /* Register */
+    printHeader("Register");
 
-  const registerDeployTwo = cc.register(
-    {
-      tokenOwner: USER1_KEYS.publicKey
-    },
-    "1000000000",
-    USER1_KEYS.publicKey,
-    [USER1_KEYS]
-  );
+    const registerDeployTwo = cc.register(
+      {
+        tokenOwner: USER1_KEYS.publicKey,
+      },
+      "1000000000",
+      USER1_KEYS.publicKey,
+      [USER1_KEYS]
+    );
 
-  await runDeployFlow(registerDeployTwo);
+    await runDeployFlow(registerDeployTwo);
+  }
 
   /* Transfer */
   printHeader("Transfer");
@@ -127,7 +134,7 @@ const run = async () => {
       source: FAUCET_KEYS.publicKey,
       target: USER1_KEYS.publicKey,
     },
-    true,
+    useSession,
     "13000000000",
     FAUCET_KEYS.publicKey,
     [FAUCET_KEYS]
@@ -161,7 +168,7 @@ const run = async () => {
     `stored_owner_of_token`
   );
 
-  console.log('.. storedOwnerValue UREF: ', storedOwnerValue);
+  console.log(".. storedOwnerValue UREF: ", storedOwnerValue);
 
   /* Burn */
   printHeader("Burn");

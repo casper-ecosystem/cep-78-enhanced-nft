@@ -84,7 +84,7 @@ export type InstallArgs = {
   whitelistMode?: WhitelistMode;
   holderMode?: NFTHolderMode;
   burnMode?: BurnMode;
-  ownerReverseLookupMode: OwnerReverseLookupMode;
+  ownerReverseLookupMode?: OwnerReverseLookupMode;
 } & ConfigurableVariables;
 
 export interface RegisterArgs {
