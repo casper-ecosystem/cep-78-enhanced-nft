@@ -129,8 +129,7 @@ export class CEP78Client {
     }
 
     if (args.burnMode !== undefined) {
-      const value = CLValueBuilder.u8(args.burnMode);
-      runtimeArgs.insert("burn_mode", CLValueBuilder.option(Some(value)));
+      runtimeArgs.insert("burn_mode", CLValueBuilder.u8(args.burnMode));
     }
 
     if (args.ownerReverseLookupMode !== undefined) {
