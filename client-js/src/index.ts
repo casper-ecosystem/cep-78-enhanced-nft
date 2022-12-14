@@ -17,6 +17,7 @@ import {
   InstallArgs,
   ConfigurableVariables,
   MintArgs,
+  RegisterArgs,
   BurnArgs,
   ApproveArgs,
   ApproveAllArgs,
@@ -272,6 +273,28 @@ export class CEP78Client {
 
     const preparedDeploy = this.contractClient.callEntrypoint(
       "set_variables",
+      runtimeArgs,
+      deploySender,
+      this.networkName,
+      paymentAmount,
+      keys
+    );
+
+    return preparedDeploy;
+  }
+
+  public register(
+    args: RegisterArgs,
+    paymentAmount: string,
+    deploySender: CLPublicKey,
+    keys?: Keys.AsymmetricKey[]
+  ) {
+    const runtimeArgs = RuntimeArgs.fromMap({
+      token_owner: args.tokenOwner
+    });
+
+    const preparedDeploy = this.contractClient.callEntrypoint(
+      "register_owner",
       runtimeArgs,
       deploySender,
       this.networkName,

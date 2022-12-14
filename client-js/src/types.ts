@@ -81,6 +81,10 @@ export type InstallArgs = {
   burnMode?: BurnMode;
 } & ConfigurableVariables;
 
+export interface RegisterArgs {
+  tokenOwner: CLKeyParameters;
+}
+
 export interface MintArgs {
   owner: CLKeyParameters;
   meta: Record<string, string>;

@@ -70,6 +70,27 @@ const run = async () => {
   const JSONSetting = await cc.getJSONSchemaConfig();
 
   /* Mint */
+  printHeader("Register");
+
+  const registerDeploy = await cc.register(
+    {
+      tokenOwner: FAUCET_KEYS.publicKey
+    },
+    "1000000000",
+    FAUCET_KEYS.publicKey,
+    [FAUCET_KEYS]
+  );
+
+  const registerDeployHash = await registerDeploy.send(NODE_URL!);
+
+  console.log("...... Deploy hash: ", registerDeployHash);
+  console.log("...... Waiting for the deploy...");
+
+  await getDeploy(NODE_URL!, registerDeployHash);
+
+  console.log("Deploy Succedeed");
+
+  /* Mint */
   printHeader("Mint");
 
   const mintDeploy = await cc.mint(
