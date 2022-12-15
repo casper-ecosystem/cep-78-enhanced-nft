@@ -79,9 +79,13 @@ const run = async () => {
   console.log(`WhitelistMode: ${whitelistModeSetting}`);
 
   const ownerReverseLookupModeSetting = await cc.getReportingModeConfig();
-  console.log(`OwnerReverseLookupMode: ${ownerReverseLookupModeSetting}`);
+  console.log(
+    `OwnerReverseLookupMode: ${ownerReverseLookupModeSetting}`
+  );
 
-  const useSession = ownerReverseLookupModeSetting === "Complete";
+  const useSessionCode =
+    ownerReverseLookupModeSetting ===
+    OwnerReverseLookupMode[OwnerReverseLookupMode.Complete];
 
   const JSONSetting = await cc.getJSONSchemaConfig();
 
@@ -98,7 +102,7 @@ const run = async () => {
         condition: "Used",
       },
     },
-    useSession,
+    { useSessionCode },
     "2000000000",
     FAUCET_KEYS.publicKey,
     [FAUCET_KEYS]
@@ -109,7 +113,7 @@ const run = async () => {
   /* Token details */
   await printTokenDetails("0", FAUCET_KEYS.publicKey);
 
-  if (useSession) {
+  if (useSessionCode) {
     /* Register */
     printHeader("Register");
 
@@ -134,7 +138,7 @@ const run = async () => {
       source: FAUCET_KEYS.publicKey,
       target: USER1_KEYS.publicKey,
     },
-    useSession,
+    { useSessionCode },
     "13000000000",
     FAUCET_KEYS.publicKey,
     [FAUCET_KEYS]

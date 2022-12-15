@@ -1,3 +1,6 @@
+import * as fs from "fs";
+
+import { BigNumber } from "@ethersproject/bignumber";
 import {
   CLMap,
   CLString,
@@ -10,9 +13,9 @@ import {
   CLValueBuilder,
   CLU8,
 } from "casper-js-sdk";
-import * as fs from "fs";
 
 import {
+  CallConfig,
   InstallArgs,
   ConfigurableVariables,
   MintArgs,
@@ -22,6 +25,7 @@ import {
   ApproveAllArgs,
   TransferArgs,
   BurnMode,
+  MigrateArgs,
   WhitelistMode,
   NFTHolderMode,
   NFTIdentifierMode,
@@ -33,7 +37,7 @@ import {
   StoreBalanceOfArgs,
   StoreApprovedArgs,
   StoreOwnerOfArgs,
-  OwnerReverseLookupMode
+  OwnerReverseLookupMode,
 } from "./types";
 
 const { Contract } = Contracts;
@@ -188,80 +192,72 @@ export class CEP78Client {
     const internalValue = await this.contractClient.queryContractData([
       "reporting_mode",
     ]);
-    const u8res = (internalValue as CLU8).toString();
-    return OwnerReverseLookupMode[
-      parseInt(u8res, 10)
-    ] as keyof typeof OwnerReverseLookupMode;
+    const u8res = (internalValue as BigNumber).toNumber();
+    return OwnerReverseLookupMode[u8res] as keyof typeof OwnerReverseLookupMode;
   }
 
   public async getWhitelistModeConfig() {
     const internalValue = await this.contractClient.queryContractData([
       "whitelist_mode",
     ]);
-    const u8res = (internalValue as CLU8).toString();
-    return WhitelistMode[parseInt(u8res, 10)] as keyof typeof WhitelistMode;
+    const u8res = (internalValue as BigNumber).toNumber();
+    return WhitelistMode[u8res] as keyof typeof WhitelistMode;
   }
 
   public async getBurnModeConfig() {
     const internalValue = await this.contractClient.queryContractData([
       "burn_mode",
     ]);
-    const u8res = (internalValue as CLU8).toString();
-    return BurnMode[parseInt(u8res, 10)] as keyof typeof BurnMode;
+    const u8res = (internalValue as BigNumber).toString();
+    return BurnMode[u8res] as keyof typeof BurnMode;
   }
 
   public async getHolderModeConfig() {
     const internalValue = await this.contractClient.queryContractData([
       "holder_mode",
     ]);
-    const u8res = (internalValue as CLU8).toString();
-    return NFTHolderMode[parseInt(u8res, 10)] as keyof typeof NFTHolderMode;
+    const u8res = (internalValue as BigNumber).toNumber();
+    return NFTHolderMode[u8res] as keyof typeof NFTHolderMode;
   }
 
   public async getIdentifierModeConfig() {
     const internalValue = await this.contractClient.queryContractData([
       "identifier_mode",
     ]);
-    const u8res = (internalValue as CLU8).toString();
-    return NFTIdentifierMode[
-      parseInt(u8res, 10)
-    ] as keyof typeof NFTIdentifierMode;
+    const u8res = (internalValue as BigNumber).toNumber();
+    return NFTIdentifierMode[u8res] as keyof typeof NFTIdentifierMode;
   }
 
   public async getMetadataMutabilityConfig() {
     const internalValue = await this.contractClient.queryContractData([
       "metadata_mutability",
     ]);
-    const u8res = (internalValue as CLU8).toString();
-    return MetadataMutability[
-      parseInt(u8res, 10)
-    ] as keyof typeof MetadataMutability;
+    const u8res = (internalValue as BigNumber).toNumber();
+    return MetadataMutability[u8res] as keyof typeof MetadataMutability;
   }
 
   public async getNFTKindConfig() {
     const internalValue = await this.contractClient.queryContractData([
       "nft_kind",
     ]);
-    const u8res = (internalValue as CLU8).toString();
-    return NFTKind[parseInt(u8res, 10)] as keyof typeof NFTKind;
+    const u8res = (internalValue as BigNumber).toNumber();
+    return NFTKind[u8res] as keyof typeof NFTKind;
   }
 
   public async getMetadataKindConfig() {
     const internalValue = await this.contractClient.queryContractData([
       "nft_metadata_kind",
     ]);
-    const u8res = (internalValue as CLU8).toString();
-    return NFTMetadataKind[parseInt(u8res, 10)] as keyof typeof NFTMetadataKind;
+    const u8res = (internalValue as BigNumber).toNumber();
+    return NFTMetadataKind[u8res] as keyof typeof NFTMetadataKind;
   }
 
   public async getOwnershipModeConfig() {
     const internalValue = await this.contractClient.queryContractData([
       "ownership_mode",
     ]);
-    const u8res = (internalValue as CLU8).toString();
-    return NFTOwnershipMode[
-      parseInt(u8res, 10)
-    ] as keyof typeof NFTOwnershipMode;
+    const u8res = (internalValue as BigNumber).toNumber();
+    return NFTOwnershipMode[u8res] as keyof typeof NFTOwnershipMode;
   }
 
   public async getJSONSchemaConfig() {
@@ -327,20 +323,21 @@ export class CEP78Client {
 
   public mint(
     args: MintArgs,
-    useSession: boolean,
+    config: CallConfig,
     paymentAmount: string,
     deploySender: CLPublicKey,
     keys?: Keys.AsymmetricKey[],
     wasm?: Uint8Array
   ) {
-    if (useSession === false && !!wasm) throw new Error(ERRORS.CONFLICT_CONFIG);
+    if (config.useSessionCode === false && !!wasm)
+      throw new Error(ERRORS.CONFLICT_CONFIG);
 
     const runtimeArgs = RuntimeArgs.fromMap({
       token_owner: CLValueBuilder.key(args.owner),
       token_meta_data: CLValueBuilder.string(JSON.stringify(args.meta)),
     });
 
-    if (useSession) {
+    if (config.useSessionCode) {
       const wasmToCall =
         wasm || getBinary(`${__dirname}/../wasm/mint_call.wasm`);
 
@@ -400,13 +397,13 @@ export class CEP78Client {
 
   public transfer(
     args: TransferArgs,
-    useSession: boolean,
+    config: CallConfig,
     paymentAmount: string,
     deploySender: CLPublicKey,
     keys?: Keys.AsymmetricKey[],
     wasm?: Uint8Array
   ) {
-    if (useSession === false && !!wasm) throw new Error(ERRORS.CONFLICT_CONFIG);
+    if (config.useSessionCode === false && !!wasm) throw new Error(ERRORS.CONFLICT_CONFIG);
 
     const runtimeArgs = RuntimeArgs.fromMap({
       target_key: CLValueBuilder.key(args.target),
@@ -423,7 +420,7 @@ export class CEP78Client {
       runtimeArgs.insert("token_id", CLValueBuilder.u64(args.tokenHash));
     }
 
-    if (useSession) {
+    if (config.useSessionCode) {
       runtimeArgs.insert("nft_contract_hash", this.contractHashKey);
       const wasmToCall =
         wasm || getBinary(`${__dirname}/../wasm/transfer_call.wasm`);
@@ -665,6 +662,53 @@ export class CEP78Client {
       paymentAmount,
       deploySender,
       this.networkName,
+      keys
+    );
+
+    return preparedDeploy;
+  }
+
+  public updatedReceipts(
+    paymentAmount: string,
+    deploySender: CLPublicKey,
+    keys?: Keys.AsymmetricKey[],
+    wasm?: Uint8Array
+  ) {
+    const wasmToCall =
+      wasm || getBinary(`${__dirname}/../wasm/updated_receipts.wasm`);
+
+    const runtimeArgs = RuntimeArgs.fromMap({
+      nft_contract_hash: this.contractHashKey,
+    });
+
+    const preparedDeploy = this.contractClient.install(
+      wasmToCall,
+      runtimeArgs,
+      paymentAmount,
+      deploySender,
+      this.networkName,
+      keys
+    );
+
+    return preparedDeploy;
+  }
+
+  public migrate(
+    args: MigrateArgs,
+    paymentAmount: string,
+    deploySender: CLPublicKey,
+    keys?: Keys.AsymmetricKey[]
+  ) {
+    const runtimeArgs = RuntimeArgs.fromMap({
+      // nft_package_hash:
+    });
+
+    const preparedDeploy = this.contractClient.callEntrypoint(
+      "set_approval_for_all",
+      runtimeArgs,
+      deploySender,
+      this.networkName,
+      paymentAmount,
       keys
     );
 

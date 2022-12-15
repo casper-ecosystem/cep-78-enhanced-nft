@@ -28,6 +28,8 @@ import APPROVE_ALL_DEPLOY_ARGS_JSON from "./jsons/approve-all-args.json";
 import BALANCE_OF_DEPLOY_ARGS_JSON from "./jsons/balance-of-args.json";
 import GET_APPROVED_DEPLOY_ARGS_JSON from "./jsons/get-approved-args.json";
 import OWNER_OF_DEPLOY_ARGS_JSON from "./jsons/owner-of-args.json";
+import REGISTER_ARGS_JSON from "./jsons/register-args.json";
+import UPDATED_RECEPIENT_ARGS_JSON from "./jsons/updated-reciepients-args.json";
 
 describe("CEP78Client", () => {
   const MOCKED_OWNER_PUBKEY = CLPublicKey.fromHex(
@@ -105,6 +107,26 @@ describe("CEP78Client", () => {
     );
   });
 
+  it("Should correctly construct deploy for 'register'", async () => {
+    const registerDeploy = await cc.register(
+      {
+        tokenOwner: MOCKED_OWNER_PUBKEY,
+      },
+      "250000000000",
+      keyPair.publicKey
+    );
+
+    const JSONDeploy = DeployUtil.deployToJson(registerDeploy) as any;
+
+    expect(registerDeploy).toBeInstanceOf(DeployUtil.Deploy);
+    expect(JSONDeploy.deploy.session.StoredContractByHash.entry_point).toEqual(
+      "register_owner"
+    );
+    expect(JSONDeploy.deploy.session.StoredContractByHash.args).toEqual(
+      REGISTER_ARGS_JSON
+    );
+  });
+
   it("Should correctly construct deploy for 'mint'", async () => {
     const mintDeploy = await cc.mint(
       {
@@ -116,6 +138,7 @@ describe("CEP78Client", () => {
           condition: "Used",
         },
       },
+      { useSessionCode: true },
       "1000000000",
       keyPair.publicKey
     );
@@ -153,6 +176,7 @@ describe("CEP78Client", () => {
         source: MOCKED_OWNER_PUBKEY,
         target: MOCKED_RECIPIENT_PUBKEY,
       },
+      { useSessionCode: true },
       "13000000000",
       keyPair.publicKey
     );
@@ -261,8 +285,22 @@ describe("CEP78Client", () => {
     );
   });
 
+  it("Should correctly construct deploy for 'updated_reciepients'", async () => {
+    const updatedReceiptsDeploy = await cc.updatedReceipts(
+      "1000000000",
+      keyPair.publicKey
+    );
+
+    const JSONDeploy = DeployUtil.deployToJson(updatedReceiptsDeploy) as any;
+
+    expect(updatedReceiptsDeploy).toBeInstanceOf(DeployUtil.Deploy);
+    expect(JSONDeploy.deploy.session.ModuleBytes.args).toEqual(
+      UPDATED_RECEPIENT_ARGS_JSON
+    );
+  });
+
   it("Should correctly construct deploy for 'owner_of'", async () => {
-    const ownerOfDeploy = await cc.storeGetApproved(
+    const ownerOfDeploy = await cc.storeOwnerOf(
       {
         keyName: "def",
         tokenId: "0",

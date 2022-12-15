@@ -1,5 +1,9 @@
 import { CLKeyParameters } from "casper-js-sdk";
 
+export interface CallConfig {
+  useSessionCode: boolean
+}
+
 export enum NFTOwnershipMode {
   Minter,
   Assigned,
@@ -132,3 +136,7 @@ export type ApproveAllArgs = {
   approveAll: boolean;
   tokenOwner: CLKeyParameters;
 }; 
+
+export type MigrateArgs = {
+  nftPackageHash: string
+}
