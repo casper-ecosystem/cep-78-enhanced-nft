@@ -136,6 +136,10 @@ pub enum NFTCoreError {
     MissingPage = 131,
     UnregisteredOwnerFromMigration = 132,
     ExceededMaxTotalSupply = 133,
+    MissingCep78PackageHash = 134,
+    InvalidCep78InvalidHash = 135,
+    InvalidPackageHashName = 136,
+    InvalidAccessKeyName = 137,
 }
 
 impl From<NFTCoreError> for ApiError {

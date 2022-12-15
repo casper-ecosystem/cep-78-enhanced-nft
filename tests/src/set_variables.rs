@@ -9,7 +9,7 @@ use crate::utility::{
         ACCOUNT_USER_1, ARG_ALLOW_MINTING, CONTRACT_NAME, ENTRY_POINT_SET_VARIABLES,
         NFT_CONTRACT_WASM, NFT_TEST_COLLECTION, NFT_TEST_SYMBOL,
     },
-    installer_request_builder::InstallerRequestBuilder,
+    installer_request_builder::{InstallerRequestBuilder, OwnerReverseLookupMode},
     support,
 };
 
@@ -25,6 +25,7 @@ fn only_installer_should_be_able_to_toggle_allow_minting() {
         .with_collection_symbol(NFT_TEST_SYMBOL.to_string())
         .with_total_token_supply(1u64)
         .with_allowing_minting(false)
+        .with_reporting_mode(OwnerReverseLookupMode::NoLookUp)
         .build();
 
     builder.exec(install_request).expect_success().commit();

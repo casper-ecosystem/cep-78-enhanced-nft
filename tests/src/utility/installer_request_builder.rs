@@ -12,6 +12,7 @@ use crate::utility::constants::{
     ARG_CONTRACT_WHITELIST, ARG_HOLDER_MODE, ARG_IDENTIFIER_MODE, ARG_JSON_SCHEMA,
     ARG_METADATA_MUTABILITY, ARG_MINTING_MODE, ARG_NFT_KIND, ARG_NFT_METADATA_KIND,
     ARG_OWNERSHIP_MODE, ARG_OWNER_LOOKUP_MODE, ARG_TOTAL_TOKEN_SUPPLY, ARG_WHITELIST_MODE,
+    NFT_TEST_COLLECTION, NFT_TEST_SYMBOL,
 };
 
 pub(crate) static TEST_CUSTOM_METADATA_SCHEMA: Lazy<CustomMetadataSchema> = Lazy::new(|| {
@@ -173,8 +174,10 @@ impl InstallerRequestBuilder {
         InstallerRequestBuilder {
             account_hash: AccountHash::default(),
             session_file: String::default(),
-            collection_name: CLValue::from_t("name".to_string()).expect("name is legit CLValue"),
-            collection_symbol: CLValue::from_t("SYM").expect("collection_symbol is legit CLValue"),
+            collection_name: CLValue::from_t(NFT_TEST_COLLECTION.to_string())
+                .expect("name is legit CLValue"),
+            collection_symbol: CLValue::from_t(NFT_TEST_SYMBOL)
+                .expect("collection_symbol is legit CLValue"),
             total_token_supply: CLValue::from_t(1u64).expect("total_token_supply is legit CLValue"),
             allow_minting: CLValue::from_t(true).unwrap(),
             minting_mode: CLValue::from_t(MintingMode::Installer as u8).unwrap(),

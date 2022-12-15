@@ -6,12 +6,12 @@ use casper_types::{account::AccountHash, runtime_args, CLValue, Key, RuntimeArgs
 
 use crate::utility::{
     constants::{
-        ACCESS_KEY_NAME, ACCOUNT_USER_1, ARG_IS_HASH_IDENTIFIER_MODE, ARG_NFT_CONTRACT_HASH,
-        ARG_NFT_PACKAGE_HASH, ARG_SOURCE_KEY, ARG_TARGET_KEY, ARG_TOKEN_HASH, ARG_TOKEN_META_DATA,
-        ARG_TOKEN_OWNER, CONTRACT_1_0_0_WASM, ENTRY_POINT_REGISTER_OWNER, MINT_1_0_0_WASM,
-        MINT_SESSION_WASM, NFT_CONTRACT_WASM, NFT_TEST_COLLECTION, NFT_TEST_SYMBOL, PAGE_LIMIT,
-        PAGE_SIZE, RECEIPT_NAME, TRANSFER_SESSION_WASM, UNMATCHED_HASH_COUNT,
-        UPDATED_RECEIPTS_WASM,
+        ACCESS_KEY_NAME, ACCOUNT_USER_1, ARG_COLLECTION_NAME, ARG_IS_HASH_IDENTIFIER_MODE,
+        ARG_NFT_CONTRACT_HASH, ARG_NFT_PACKAGE_HASH, ARG_SOURCE_KEY, ARG_TARGET_KEY,
+        ARG_TOKEN_HASH, ARG_TOKEN_META_DATA, ARG_TOKEN_OWNER, CONTRACT_1_0_0_WASM,
+        ENTRY_POINT_REGISTER_OWNER, MINT_1_0_0_WASM, MINT_SESSION_WASM, NFT_CONTRACT_WASM,
+        NFT_TEST_COLLECTION, NFT_TEST_SYMBOL, PAGE_LIMIT, PAGE_SIZE, RECEIPT_NAME,
+        TRANSFER_SESSION_WASM, UNMATCHED_HASH_COUNT, UPDATED_RECEIPTS_WASM,
     },
     installer_request_builder::{
         InstallerRequestBuilder, MetadataMutability, NFTIdentifierMode, NFTMetadataKind,
@@ -84,7 +84,8 @@ fn should_safely_upgrade_in_ordinal_identifier_mode() {
         *DEFAULT_ACCOUNT_ADDR,
         NFT_CONTRACT_WASM,
         runtime_args! {
-            ARG_NFT_PACKAGE_HASH => package_hash
+            ARG_NFT_PACKAGE_HASH => package_hash,
+            ARG_COLLECTION_NAME => NFT_TEST_COLLECTION.to_string()
         },
     )
     .build();
@@ -129,6 +130,7 @@ fn should_safely_upgrade_in_ordinal_identifier_mode() {
             ARG_NFT_CONTRACT_HASH => nft_contract_key,
             ARG_TOKEN_OWNER => Key::Account(*DEFAULT_ACCOUNT_ADDR),
             ARG_TOKEN_META_DATA => "",
+            ARG_COLLECTION_NAME => NFT_TEST_COLLECTION.to_string()
         },
     )
     .build();
@@ -213,6 +215,7 @@ fn should_safely_upgrade_in_hash_identifier_mode() {
         NFT_CONTRACT_WASM,
         runtime_args! {
             ARG_NFT_PACKAGE_HASH => support::get_nft_contract_package_hash(&builder),
+            ARG_COLLECTION_NAME => NFT_TEST_COLLECTION.to_string()
         },
     )
     .build();
@@ -246,6 +249,7 @@ fn should_safely_upgrade_in_hash_identifier_mode() {
             ARG_NFT_CONTRACT_HASH => nft_contract_key,
             ARG_TOKEN_OWNER => Key::Account(*DEFAULT_ACCOUNT_ADDR),
             ARG_TOKEN_META_DATA => json_token_metadata,
+            ARG_COLLECTION_NAME => NFT_TEST_COLLECTION.to_string()
         },
     )
     .build();
@@ -355,7 +359,8 @@ fn should_update_receipts_post_upgrade_paged() {
         *DEFAULT_ACCOUNT_ADDR,
         NFT_CONTRACT_WASM,
         runtime_args! {
-            ARG_NFT_PACKAGE_HASH => nft_contract_package_hash
+            ARG_NFT_PACKAGE_HASH => nft_contract_package_hash,
+            ARG_COLLECTION_NAME => NFT_TEST_COLLECTION.to_string()
         },
     )
     .build();
@@ -426,6 +431,7 @@ fn should_not_be_able_to_reinvoke_migrate_entrypoint() {
         NFT_CONTRACT_WASM,
         runtime_args! {
             ARG_NFT_PACKAGE_HASH => support::get_nft_contract_package_hash(&builder),
+            ARG_COLLECTION_NAME => NFT_TEST_COLLECTION.to_string()
         },
     )
     .build();
@@ -439,6 +445,7 @@ fn should_not_be_able_to_reinvoke_migrate_entrypoint() {
         NFT_CONTRACT_WASM,
         runtime_args! {
             ARG_NFT_PACKAGE_HASH => support::get_nft_contract_package_hash(&builder),
+            ARG_COLLECTION_NAME => NFT_TEST_COLLECTION.to_string()
         },
     )
     .build();
@@ -470,6 +477,7 @@ fn should_not_migrate_contracts_with_zero_token_issuance() {
         NFT_CONTRACT_WASM,
         runtime_args! {
             ARG_NFT_PACKAGE_HASH => support::get_nft_contract_package_hash(&builder),
+            ARG_COLLECTION_NAME => NFT_TEST_COLLECTION.to_string()
         },
     )
     .build();

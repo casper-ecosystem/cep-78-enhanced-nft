@@ -23,8 +23,8 @@ use core::convert::TryInto;
 
 use casper_types::{
     contracts::NamedKeys, runtime_args, CLType, CLValue, ContractHash, ContractPackageHash,
-    ContractVersion, EntryPoint, EntryPointAccess, EntryPointType, EntryPoints, Key, KeyTag,
-    Parameter, RuntimeArgs, Tagged,
+    EntryPoint, EntryPointAccess, EntryPointType, EntryPoints, Key, KeyTag, Parameter, RuntimeArgs,
+    Tagged,
 };
 
 use casper_contract::{
@@ -37,25 +37,25 @@ use casper_contract::{
 
 use crate::{
     constants::{
-        ACCESS_KEY_NAME, ALLOW_MINTING, ARG_ALLOW_MINTING, ARG_APPROVE_ALL, ARG_BURN_MODE,
-        ARG_COLLECTION_NAME, ARG_COLLECTION_SYMBOL, ARG_CONTRACT_WHITELIST, ARG_HOLDER_MODE,
-        ARG_IDENTIFIER_MODE, ARG_JSON_SCHEMA, ARG_METADATA_MUTABILITY, ARG_MINTING_MODE,
-        ARG_NFT_KIND, ARG_NFT_METADATA_KIND, ARG_NFT_PACKAGE_HASH, ARG_OPERATOR,
-        ARG_OWNERSHIP_MODE, ARG_OWNER_LOOKUP_MODE, ARG_RECEIPT_NAME, ARG_SOURCE_KEY,
-        ARG_TARGET_KEY, ARG_TOKEN_META_DATA, ARG_TOKEN_OWNER, ARG_TOTAL_TOKEN_SUPPLY,
-        ARG_WHITELIST_MODE, BURNT_TOKENS, BURN_MODE, COLLECTION_NAME, COLLECTION_SYMBOL,
-        CONTRACT_NAME, CONTRACT_VERSION, CONTRACT_WHITELIST, ENTRY_POINT_APPROVE,
-        ENTRY_POINT_BALANCE_OF, ENTRY_POINT_BURN, ENTRY_POINT_GET_APPROVED, ENTRY_POINT_INIT,
-        ENTRY_POINT_METADATA, ENTRY_POINT_MIGRATE, ENTRY_POINT_MINT, ENTRY_POINT_OWNER_OF,
-        ENTRY_POINT_REGISTER_OWNER, ENTRY_POINT_SET_APPROVE_FOR_ALL,
+        ACCESS_KEY_NAME_1_0_0, ACCESS_KEY_NAME_PREFIX, ALLOW_MINTING, ARG_ALLOW_MINTING,
+        ARG_APPROVE_ALL, ARG_BURN_MODE, ARG_COLLECTION_NAME, ARG_COLLECTION_SYMBOL,
+        ARG_CONTRACT_WHITELIST, ARG_HOLDER_MODE, ARG_IDENTIFIER_MODE, ARG_JSON_SCHEMA,
+        ARG_METADATA_MUTABILITY, ARG_MINTING_MODE, ARG_NFT_KIND, ARG_NFT_METADATA_KIND,
+        ARG_NFT_PACKAGE_HASH, ARG_OPERATOR, ARG_OWNERSHIP_MODE, ARG_OWNER_LOOKUP_MODE,
+        ARG_RECEIPT_NAME, ARG_SOURCE_KEY, ARG_TARGET_KEY, ARG_TOKEN_META_DATA, ARG_TOKEN_OWNER,
+        ARG_TOTAL_TOKEN_SUPPLY, ARG_WHITELIST_MODE, BURNT_TOKENS, BURN_MODE, COLLECTION_NAME,
+        COLLECTION_SYMBOL, CONTRACT_NAME, CONTRACT_VERSION, CONTRACT_WHITELIST,
+        ENTRY_POINT_APPROVE, ENTRY_POINT_BALANCE_OF, ENTRY_POINT_BURN, ENTRY_POINT_GET_APPROVED,
+        ENTRY_POINT_INIT, ENTRY_POINT_METADATA, ENTRY_POINT_MIGRATE, ENTRY_POINT_MINT,
+        ENTRY_POINT_OWNER_OF, ENTRY_POINT_REGISTER_OWNER, ENTRY_POINT_SET_APPROVE_FOR_ALL,
         ENTRY_POINT_SET_TOKEN_METADATA, ENTRY_POINT_SET_VARIABLES, ENTRY_POINT_TRANSFER,
-        ENTRY_POINT_UPDATED_RECEIPTS, HASH_BY_INDEX, HASH_KEY_NAME, HOLDER_MODE, IDENTIFIER_MODE,
-        INDEX_BY_HASH, INSTALLER, JSON_SCHEMA, MAX_TOTAL_TOKEN_SUPPLY, METADATA_CEP78,
-        METADATA_CUSTOM_VALIDATED, METADATA_MUTABILITY, METADATA_NFT721, METADATA_RAW,
-        MIGRATION_FLAG, MINTING_MODE, NFT_KIND, NFT_METADATA_KIND, NUMBER_OF_MINTED_TOKENS,
-        OPERATOR, OWNED_TOKENS, OWNERSHIP_MODE, PAGE_DICTIONARY_PREFIX, PAGE_LIMIT, PAGE_TABLE,
-        RECEIPT_NAME, REPORTING_MODE, TOKEN_COUNTS, TOKEN_ISSUERS, TOKEN_OWNERS,
-        TOTAL_TOKEN_SUPPLY, UNMATCHED_HASH_COUNT, WHITELIST_MODE,
+        ENTRY_POINT_UPDATED_RECEIPTS, HASH_BY_INDEX, HASH_KEY_NAME_1_0_0, HASH_KEY_NAME_PREFIX,
+        HOLDER_MODE, IDENTIFIER_MODE, INDEX_BY_HASH, INSTALLER, JSON_SCHEMA,
+        MAX_TOTAL_TOKEN_SUPPLY, METADATA_CEP78, METADATA_CUSTOM_VALIDATED, METADATA_MUTABILITY,
+        METADATA_NFT721, METADATA_RAW, MIGRATION_FLAG, MINTING_MODE, NFT_KIND, NFT_METADATA_KIND,
+        NUMBER_OF_MINTED_TOKENS, OPERATOR, OWNED_TOKENS, OWNERSHIP_MODE, PAGE_DICTIONARY_PREFIX,
+        PAGE_LIMIT, PAGE_TABLE, RECEIPT_NAME, REPORTING_MODE, TOKEN_COUNTS, TOKEN_ISSUERS,
+        TOKEN_OWNERS, TOTAL_TOKEN_SUPPLY, UNMATCHED_HASH_COUNT, WHITELIST_MODE,
     },
     error::NFTCoreError,
     metadata::CustomMetadataSchema,
@@ -63,7 +63,7 @@ use crate::{
         BurnMode, MetadataMutability, MintingMode, NFTHolderMode, NFTIdentifierMode, NFTKind,
         NFTMetadataKind, OwnerReverseLookupMode, OwnershipMode, TokenIdentifier, WhitelistMode,
     },
-    utils::{get_uref, PAGE_SIZE},
+    utils::PAGE_SIZE,
 };
 
 #[no_mangle]
@@ -193,6 +193,13 @@ pub extern "C" fn init() {
     )
     .unwrap_or_revert();
 
+    let package_hash = utils::get_named_arg_with_user_errors::<String>(
+        ARG_NFT_PACKAGE_HASH,
+        NFTCoreError::MissingCep78PackageHash,
+        NFTCoreError::InvalidCep78InvalidHash,
+    )
+    .unwrap_or_revert();
+
     let nft_metadata_kind: NFTMetadataKind = utils::get_named_arg_with_user_errors::<u8>(
         ARG_NFT_METADATA_KIND,
         NFTCoreError::MissingNFTMetadataKind,
@@ -250,7 +257,10 @@ pub extern "C" fn init() {
     // for future use).
     //
     // Initialize contract with URefs for all invariant values, which can never be changed.
-    runtime::put_key(COLLECTION_NAME, storage::new_uref(collection_name).into());
+    runtime::put_key(
+        COLLECTION_NAME,
+        storage::new_uref(collection_name.clone()).into(),
+    );
     runtime::put_key(
         COLLECTION_SYMBOL,
         storage::new_uref(collection_symbol).into(),
@@ -276,6 +286,10 @@ pub extern "C" fn init() {
         storage::new_uref(contract_whitelist).into(),
     );
     runtime::put_key(RECEIPT_NAME, storage::new_uref(receipt_name).into());
+    runtime::put_key(
+        &format!("cep78_{}", collection_name),
+        storage::new_uref(package_hash).into(),
+    );
     runtime::put_key(
         NFT_METADATA_KIND,
         storage::new_uref(nft_metadata_kind as u8).into(),
@@ -557,7 +571,7 @@ pub extern "C" fn mint() {
         {
             utils::migrate_token_hashes(token_owner_key)
         }
-        //there is an explicit page_table;
+        // there is an explicit page_table;
         // this is the entry in that overall page table which maps to the underlying page
         // upon which this mint's address will exist
         let page_table_entry = minted_tokens_count / PAGE_SIZE;
@@ -581,35 +595,28 @@ pub extern "C" fn mint() {
             match storage::dictionary_get::<Vec<bool>>(page_table_uref, &owned_tokens_item_key)
                 .unwrap_or_revert()
             {
-                Some(page_record) => page_record,
+                Some(page_table) => page_table,
                 None => runtime::revert(NFTCoreError::UnregisteredOwnerInMint),
             };
 
-        let page_item_key = utils::encode_page_address(&token_owner_key, page_table_entry);
-
         let mut page = if !page_table[page_table_entry as usize] {
+            // We mark the page table entry to true to signal the allocation of a page.
             let _ = core::mem::replace(&mut page_table[page_table_entry as usize], true);
             storage::dictionary_put(page_table_uref, &owned_tokens_item_key, page_table);
-            // match storage::dictionary_get::<Vec<bool>>(page_uref,
-            // &page_item_key).unwrap_or_revert() {         Some(single_page) =>
-            // single_page,         None => {
-            //             vec![false; PAGE_SIZE as usize]
-            //         }
-            //     }
             vec![false; PAGE_SIZE as usize]
         } else {
-            storage::dictionary_get::<Vec<bool>>(page_uref, &page_item_key)
+            storage::dictionary_get::<Vec<bool>>(page_uref, &owned_tokens_item_key)
                 .unwrap_or_revert()
                 .unwrap_or_revert_with(NFTCoreError::MissingPage)
         };
 
         let _ = core::mem::replace(&mut page[page_address as usize], true);
 
-        storage::dictionary_put(page_uref, &page_item_key, page);
+        storage::dictionary_put(page_uref, &owned_tokens_item_key, page);
 
         let token_identifier_string = token_identifier.get_dictionary_item_key();
 
-        let receipt_address = Key::dictionary(page_uref, page_item_key.as_bytes());
+        let receipt_address = Key::dictionary(page_uref, owned_tokens_item_key.as_bytes());
 
         let receipt_string = utils::get_receipt_name(page_table_entry);
 
@@ -769,6 +776,8 @@ pub extern "C" fn approve() {
     );
 }
 
+// This is an extremely gas intensive operation. DO NOT invoke this
+// entrypoint unless absoluteness necessary
 // Approves the specified operator for transfer token_owner's tokens.
 #[no_mangle]
 pub extern "C" fn set_approval_for_all() {
@@ -801,7 +810,10 @@ pub extern "C" fn set_approval_for_all() {
         NFTCoreError::InvalidStorageUref,
     );
 
-    let owned_tokens = utils::get_owned_token_ids();
+    let owned_tokens = match utils::get_reporting_mode() {
+        OwnerReverseLookupMode::NoLookUp => utils::get_owned_token_ids_by_token_number(),
+        OwnerReverseLookupMode::Complete => utils::get_owned_token_ids_by_page(),
+    };
 
     // Depending on approve_all we either approve all or disapprove all.
     for token_id in owned_tokens {
@@ -979,10 +991,8 @@ pub extern "C" fn transfer() {
             NFTCoreError::InvalidStorageUref,
         );
 
-        let source_page_item_key = utils::encode_page_address(&source_owner_key, page_table_entry);
-
         let mut source_page =
-            storage::dictionary_get::<Vec<bool>>(page_uref, &source_page_item_key)
+            storage::dictionary_get::<Vec<bool>>(page_uref, &source_owner_item_key)
                 .unwrap_or_revert()
                 .unwrap_or_revert_with(NFTCoreError::InvalidPageNumber);
 
@@ -992,15 +1002,12 @@ pub extern "C" fn transfer() {
 
         let _ = core::mem::replace(&mut source_page[page_address as usize], false);
 
-        storage::dictionary_put(page_uref, &source_page_item_key, source_page);
+        storage::dictionary_put(page_uref, &source_owner_item_key, source_page);
 
         let mut target_page_table =
             storage::dictionary_get::<Vec<bool>>(page_table_uref, &target_owner_item_key)
                 .unwrap_or_revert()
                 .unwrap_or_revert_with(NFTCoreError::UnregisteredOwnerInTransfer);
-
-        let target_page_dictionary_item_key =
-            utils::encode_page_address(&target_owner_key, page_table_entry);
 
         let mut target_page = if !target_page_table[page_table_entry as usize] {
             // Create a new page here
@@ -1008,19 +1015,16 @@ pub extern "C" fn transfer() {
             storage::dictionary_put(page_table_uref, &target_owner_item_key, target_page_table);
             vec![false; PAGE_SIZE as usize]
         } else {
-            storage::dictionary_get::<Vec<bool>>(page_uref, &target_page_dictionary_item_key)
+            storage::dictionary_get::<Vec<bool>>(page_uref, &target_owner_item_key)
                 .unwrap_or_revert()
                 .unwrap_or_revert()
         };
 
         let _ = core::mem::replace(&mut target_page[page_address as usize], true);
 
-        storage::dictionary_put(page_uref, &target_page_dictionary_item_key, target_page);
+        storage::dictionary_put(page_uref, &target_owner_item_key, target_page);
 
-        let owned_tokens_actual_key = Key::dictionary(
-            page_uref,
-            utils::encode_page_address(&source_owner_key, page_table_entry).as_bytes(),
-        );
+        let owned_tokens_actual_key = Key::dictionary(page_uref, source_owner_item_key.as_bytes());
 
         let receipt_string = utils::get_receipt_name(page_table_entry);
 
@@ -1293,15 +1297,16 @@ pub extern "C" fn migrate() {
     let new_contract_package_hash_representation =
         runtime::get_named_arg::<ContractPackageHash>(ARG_NFT_PACKAGE_HASH);
 
-    let receipt_uref = get_uref(
+    let receipt_uref = utils::get_uref(
         RECEIPT_NAME,
         NFTCoreError::MissingReceiptName,
         NFTCoreError::InvalidReceiptName,
     );
 
-    let new_receipt_string_representation = format!(
-        "cep78-{}-{}",
-        collection_name, new_contract_package_hash_representation
+    let new_receipt_string_representation = format!("cep78_{}", collection_name,);
+    runtime::put_key(
+        &new_receipt_string_representation,
+        storage::new_uref(new_contract_package_hash_representation.to_formatted_string()).into(),
     );
     storage::write(receipt_uref, new_receipt_string_representation);
 
@@ -1354,11 +1359,11 @@ pub extern "C" fn updated_receipts() {
         utils::migrate_token_hashes(token_owner);
     }
 
-    let page_table = utils::get_dictionary_value_from_key::<Vec<bool>>(
-        PAGE_TABLE,
-        &utils::get_owned_tokens_dictionary_item_key(token_owner),
-    )
-    .unwrap_or_default();
+    let token_owner_item_key = utils::get_owned_tokens_dictionary_item_key(token_owner);
+
+    let page_table =
+        utils::get_dictionary_value_from_key::<Vec<bool>>(PAGE_TABLE, &token_owner_item_key)
+            .unwrap_or_default();
 
     let mut updated_receipts: Vec<(String, Key)> = vec![];
 
@@ -1371,8 +1376,7 @@ pub extern "C" fn updated_receipts() {
             NFTCoreError::MissingPageUref,
             NFTCoreError::InvalidPageUref,
         );
-        let page_item_key = utils::encode_page_address(&token_owner, page_table_entry as u64);
-        let page_dictionary_address = Key::dictionary(page_uref, page_item_key.as_bytes());
+        let page_dictionary_address = Key::dictionary(page_uref, token_owner_item_key.as_bytes());
         let receipt_name = utils::get_receipt_name(page_table_entry as u64);
         updated_receipts.push((receipt_name, page_dictionary_address))
     }
@@ -1419,8 +1423,19 @@ pub extern "C" fn register_owner() {
             page_table_uref,
             &owner_item_key,
             vec![false; page_table_width as usize],
-        )
+        );
     }
+    let collection_name = utils::get_stored_value_with_user_errors::<String>(
+        COLLECTION_NAME,
+        NFTCoreError::MissingCollectionName,
+        NFTCoreError::InvalidCollectionName,
+    );
+    let package_uref = storage::new_uref(utils::get_stored_value_with_user_errors::<String>(
+        &format!("cep78_{}", collection_name),
+        NFTCoreError::MissingCep78PackageHash,
+        NFTCoreError::InvalidCep78InvalidHash,
+    ));
+    runtime::ret(CLValue::from_t((collection_name, package_uref)).unwrap_or_revert())
 }
 
 fn generate_entry_points() -> EntryPoints {
@@ -1642,10 +1657,16 @@ fn generate_entry_points() -> EntryPoints {
         EntryPointType::Contract,
     );
 
+    // This entrypoint allows users to register with a give CEP-78 instance,
+    // allocating the necessary page table to enable the reverse lookup
+    // functionality and allowing users to pay the upfront cost of allocation
+    // resulting in more stable gas costs when minting and transferring
+    // Note: This entrypoint MUST be invoked if the reverse lookup is enabled
+    // in order to own NFTs.
     let register_owner = EntryPoint::new(
         ENTRY_POINT_REGISTER_OWNER,
         vec![],
-        CLType::Unit,
+        CLType::Tuple2([Box::new(CLType::String), Box::new(CLType::URef)]),
         EntryPointAccess::Public,
         EntryPointType::Contract,
     );
@@ -1666,24 +1687,6 @@ fn generate_entry_points() -> EntryPoints {
     entry_points.add_entry_point(updated_receipts);
     entry_points.add_entry_point(register_owner);
     entry_points
-}
-
-fn install_nft_contract() -> (ContractHash, ContractVersion) {
-    let entry_points = generate_entry_points();
-
-    let named_keys = {
-        let mut named_keys = NamedKeys::new();
-        named_keys.insert(INSTALLER.to_string(), runtime::get_caller().into());
-
-        named_keys
-    };
-
-    storage::new_contract(
-        entry_points,
-        Some(named_keys),
-        Some(HASH_KEY_NAME.to_string()),
-        Some(ACCESS_KEY_NAME.to_string()),
-    )
 }
 
 fn install_contract() {
@@ -1857,13 +1860,33 @@ fn install_contract() {
     )
     .unwrap_or(0u8);
 
-    let (contract_hash, contract_version) = install_nft_contract();
+    if ownership_mode == 0 && minting_mode == 0 && reporting_mode == 1 {
+        runtime::revert(NFTCoreError::InvalidReportingMode)
+    }
+
+    let entry_points = generate_entry_points();
+
+    let named_keys = {
+        let mut named_keys = NamedKeys::new();
+        named_keys.insert(INSTALLER.to_string(), runtime::get_caller().into());
+
+        named_keys
+    };
+
+    let hash_key_name = format!("{}{}", HASH_KEY_NAME_PREFIX, collection_name);
+
+    let (contract_hash, contract_version) = storage::new_contract(
+        entry_points,
+        Some(named_keys),
+        Some(hash_key_name.clone()),
+        Some(format!("{}{}", ACCESS_KEY_NAME_PREFIX, collection_name)),
+    );
 
     // Store contract_hash and contract_version under the keys CONTRACT_NAME and CONTRACT_VERSION
     runtime::put_key(CONTRACT_NAME, contract_hash.into());
     runtime::put_key(CONTRACT_VERSION, storage::new_uref(contract_version).into());
 
-    let package_hash: ContractPackageHash = runtime::get_key(HASH_KEY_NAME)
+    let package_hash: ContractPackageHash = runtime::get_key(&hash_key_name)
         .unwrap_or_revert()
         .into_hash()
         .map(ContractPackageHash::new)
@@ -1873,7 +1896,7 @@ fn install_contract() {
     // of a read only reference to the NFTs owned by the calling `Account` or `Contract`
     // This allows for users to look up a set of named keys and correctly identify
     // the contract package from which the NFTs were obtained.
-    let receipt_name = format!("cep78-{}-{}", collection_name, package_hash);
+    let receipt_name = format!("cep78-{}", collection_name);
 
     // Call contract to initialize it
     runtime::call_contract::<()>(
@@ -1896,17 +1919,37 @@ fn install_contract() {
              ARG_IDENTIFIER_MODE => identifier_mode,
              ARG_METADATA_MUTABILITY => metadata_mutability,
              ARG_BURN_MODE => burn_mode,
-             ARG_OWNER_LOOKUP_MODE => reporting_mode
+             ARG_OWNER_LOOKUP_MODE => reporting_mode,
+             ARG_NFT_PACKAGE_HASH => package_hash.to_formatted_string(),
         },
     );
 }
 
 fn migrate_contract() {
-    let nft_contact_package_hash = runtime::get_key(HASH_KEY_NAME)
+    let nft_contact_package_hash = runtime::get_key(HASH_KEY_NAME_1_0_0)
         .unwrap_or_revert()
         .into_hash()
         .map(ContractPackageHash::new)
         .unwrap_or_revert_with(NFTCoreError::MissingPackageHashForUpgrade);
+
+    let collection_name: String = utils::get_named_arg_with_user_errors(
+        ARG_COLLECTION_NAME,
+        NFTCoreError::MissingNftKind,
+        NFTCoreError::InvalidCollectionName,
+    )
+    .unwrap_or_revert();
+
+    runtime::put_key(
+        &format!("{}{}", HASH_KEY_NAME_PREFIX, collection_name),
+        nft_contact_package_hash.into(),
+    );
+
+    if let Some(access_key) = runtime::get_key(ACCESS_KEY_NAME_1_0_0) {
+        runtime::put_key(
+            &format!("{}{}", ACCESS_KEY_NAME_PREFIX, collection_name),
+            access_key,
+        )
+    }
 
     let (contract_hash, contract_version) = storage::add_contract_version(
         nft_contact_package_hash,
@@ -1935,7 +1978,7 @@ fn migrate_contract() {
 
 #[no_mangle]
 pub extern "C" fn call() {
-    match runtime::get_key(ACCESS_KEY_NAME) {
+    match runtime::get_key(ACCESS_KEY_NAME_1_0_0) {
         Some(_access_key_uref) => migrate_contract(),
         None => install_contract(),
     }
