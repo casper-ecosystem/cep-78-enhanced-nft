@@ -7,8 +7,8 @@
     "dev": "tsc --watch",
     "build": "tsc",
     "test": "jest",
-    "test:install": "ts-node e2e/install.ts",
-    "test:usage": "ts-node e2e/usage.ts",
+    "example:install": "ts-node e2e/install.ts",
+    "example:usage": "ts-node e2e/usage.ts",
     "lint": "eslint src/",
     "lint:fix": "eslint src/ --fix"
   },
