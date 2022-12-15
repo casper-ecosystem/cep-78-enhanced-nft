@@ -17,7 +17,7 @@ use casper_types::{
     api_error,
     bytesrepr::{self, FromBytes, ToBytes},
     system::CallStackElement,
-    ApiError, CLTyped, ContractHash, Key, URef,
+    ApiError, CLTyped, ContractHash, ContractPackageHash, Key, URef,
 };
 
 use crate::{
@@ -278,7 +278,12 @@ pub(crate) fn to_ptr<T: ToBytes>(t: T) -> (*const u8, usize, Vec<u8>) {
     (ptr, size, bytes)
 }
 
-pub(crate) fn get_verified_caller() -> Result<Key, NFTCoreError> {
+pub enum Caller {
+    Session(AccountHash),
+    StoredCaller(ContractHash, ContractPackageHash),
+}
+
+pub(crate) fn get_verified_caller() -> Result<Caller, NFTCoreError> {
     let holder_mode = get_holder_mode()?;
     match *runtime::get_call_stack()
         .iter()
@@ -292,14 +297,21 @@ pub(crate) fn get_verified_caller() -> Result<Key, NFTCoreError> {
             if let NFTHolderMode::Contracts = holder_mode {
                 return Err(NFTCoreError::InvalidHolderMode);
             }
-            Ok(Key::Account(calling_account_hash))
+            Ok(Caller::Session(calling_account_hash))
         }
-        CallStackElement::StoredSession { contract_hash, .. }
-        | CallStackElement::StoredContract { contract_hash, .. } => {
+        CallStackElement::StoredSession {
+            contract_hash,
+            contract_package_hash,
+            ..
+        }
+        | CallStackElement::StoredContract {
+            contract_hash,
+            contract_package_hash,
+        } => {
             if let NFTHolderMode::Accounts = holder_mode {
                 return Err(NFTCoreError::InvalidHolderMode);
             }
-            Ok(contract_hash.into())
+            Ok(Caller::StoredCaller(contract_hash, contract_package_hash))
         }
     }
 }
@@ -626,8 +638,11 @@ pub(crate) fn migrate_token_hashes(token_owner: Key) {
 }
 
 pub(crate) fn get_owned_token_ids_by_token_number() -> Vec<TokenIdentifier> {
-    let token_owner: Key = get_verified_caller().unwrap_or_revert();
-
+    let token_owner: Key = match get_verified_caller().unwrap_or_revert() {
+        Caller::Session(account_hash) => account_hash.into(),
+        Caller::StoredCaller(contract_hash, _) => contract_hash.into(),
+    };
+    
     let identifier_mode: NFTIdentifierMode = get_stored_value_with_user_errors::<u8>(
         IDENTIFIER_MODE,
         NFTCoreError::MissingIdentifierMode,
@@ -670,7 +685,10 @@ pub(crate) fn get_owned_token_ids_by_token_number() -> Vec<TokenIdentifier> {
 }
 
 pub(crate) fn get_owned_token_ids_by_page() -> Vec<TokenIdentifier> {
-    let token_owner: Key = get_verified_caller().unwrap_or_revert();
+    let token_owner: Key = match get_verified_caller().unwrap_or_revert() {
+        Caller::Session(account_hash) => account_hash.into(),
+        Caller::StoredCaller(contract_hash, _) => contract_hash.into(),
+    };
     let token_item_key = get_owned_tokens_dictionary_item_key(token_owner);
     let page_table = get_dictionary_value_from_key::<Vec<bool>>(PAGE_TABLE, &token_item_key)
         .unwrap_or_revert_with(NFTCoreError::InvalidTokenOwner);
