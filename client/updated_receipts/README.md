@@ -12,6 +12,6 @@ The Wasm will be found in the `client/mint_session/target/wasm32-unknown-unknown
 
 ## Usage
 
-The `migrate.wasm` takes the following runtime arguments.
+The `updated_receipts.wasm` takes the following runtime arguments.
 
 * `nft_package_hash`: The NFT ContractPackageHash for a given instance of the NFT contract.
