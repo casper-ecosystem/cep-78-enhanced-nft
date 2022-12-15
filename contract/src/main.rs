@@ -1934,7 +1934,7 @@ fn migrate_contract() {
 
     let collection_name: String = utils::get_named_arg_with_user_errors(
         ARG_COLLECTION_NAME,
-        NFTCoreError::MissingNftKind,
+        NFTCoreError::MissingCollectionName,
         NFTCoreError::InvalidCollectionName,
     )
     .unwrap_or_revert();
