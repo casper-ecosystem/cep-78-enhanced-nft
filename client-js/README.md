@@ -23,7 +23,7 @@ It can be treated as a deploy builder for all of the possible interactions:
 
 ## Examples 
 
-As a good starting point, you can also look into `examples/` directory to see the most common usage scenarios (`install.ts` and `usage.ts`). You can even install the contract and run the example scenario by running the `npm run example:install` and `npm run example:usage`. You will just need to provide following env variables (preferebly in a `client-js/.env`).
+As a good starting point, you can also look into the `examples/` directory to see the most common usage scenarios (`install.ts` and `usage.ts`). You can install the contract and run the example scenario by running the `npm run example:install` and `npm run example:usage`. You will just need to provide following env variables (preferebly in a `client-js/.env`).
 
 ```
 NODE_URL=http://localhost:11101/rpc
