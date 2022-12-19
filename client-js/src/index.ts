@@ -25,6 +25,7 @@ import {
   ApproveAllArgs,
   TransferArgs,
   BurnMode,
+  MigrateArgs,
   WhitelistMode,
   NFTHolderMode,
   NFTIdentifierMode,
@@ -693,11 +694,14 @@ export class CEP78Client {
   }
 
   public migrate(
+    args: MigrateArgs,
     paymentAmount: string,
     deploySender: CLPublicKey,
     keys?: Keys.AsymmetricKey[]
   ) {
-    const runtimeArgs = RuntimeArgs.fromMap({});
+    const runtimeArgs = RuntimeArgs.fromMap({
+      collection_name: CLValueBuilder.string(args.collectionName)
+    });
 
     const preparedDeploy = this.contractClient.callEntrypoint(
       "migrate",

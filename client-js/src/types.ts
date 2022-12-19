@@ -1,7 +1,7 @@
 import { CLKeyParameters } from "casper-js-sdk";
 
 export interface CallConfig {
-  useSessionCode: boolean
+  useSessionCode: boolean;
 }
 
 export enum NFTOwnershipMode {
@@ -56,7 +56,7 @@ export enum WhitelistMode {
 
 export enum OwnerReverseLookupMode {
   NoLookup,
-  Complete
+  Complete,
 }
 
 export interface JSONSchemaEntry {
@@ -135,4 +135,8 @@ export type ApproveAllArgs = {
   operator: CLKeyParameters;
   approveAll: boolean;
   tokenOwner: CLKeyParameters;
-}; 
+};
+
+export type MigrateArgs = {
+  collectionName: string;
+};
