@@ -287,7 +287,7 @@ pub extern "C" fn init() {
     );
     runtime::put_key(RECEIPT_NAME, storage::new_uref(receipt_name).into());
     runtime::put_key(
-        &format!("cep78_{}", collection_name),
+        &format!("cep78_{collection_name}"),
         storage::new_uref(package_hash).into(),
     );
     runtime::put_key(
@@ -586,7 +586,7 @@ pub extern "C" fn mint() {
 
         // Update the individual page record.
         let page_uref = utils::get_uref(
-            &format!("{}{}", PAGE_DICTIONARY_PREFIX, page_table_entry),
+            &format!("{PAGE_DICTIONARY_PREFIX}{page_table_entry}"),
             NFTCoreError::MissingPageUref,
             NFTCoreError::InvalidPageUref,
         );
@@ -986,7 +986,7 @@ pub extern "C" fn transfer() {
         let page_address = token_number % PAGE_SIZE;
 
         let page_uref = utils::get_uref(
-            &format!("{}{}", PAGE_DICTIONARY_PREFIX, page_table_entry),
+            &format!("{PAGE_DICTIONARY_PREFIX}{page_table_entry}"),
             NFTCoreError::MissingStorageUref,
             NFTCoreError::InvalidStorageUref,
         );
@@ -1303,7 +1303,7 @@ pub extern "C" fn migrate() {
         NFTCoreError::InvalidReceiptName,
     );
 
-    let new_receipt_string_representation = format!("cep78_{}", collection_name,);
+    let new_receipt_string_representation = format!("cep78_{collection_name}",);
     runtime::put_key(
         &new_receipt_string_representation,
         storage::new_uref(new_contract_package_hash_representation.to_formatted_string()).into(),
@@ -1372,7 +1372,7 @@ pub extern "C" fn updated_receipts() {
             continue;
         }
         let page_uref = utils::get_uref(
-            &format!("{}{}", PAGE_DICTIONARY_PREFIX, page_table_entry),
+            &format!("{PAGE_DICTIONARY_PREFIX}{page_table_entry}"),
             NFTCoreError::MissingPageUref,
             NFTCoreError::InvalidPageUref,
         );
@@ -1431,7 +1431,7 @@ pub extern "C" fn register_owner() {
         NFTCoreError::InvalidCollectionName,
     );
     let package_uref = storage::new_uref(utils::get_stored_value_with_user_errors::<String>(
-        &format!("cep78_{}", collection_name),
+        &format!("cep78_{collection_name}"),
         NFTCoreError::MissingCep78PackageHash,
         NFTCoreError::InvalidCep78InvalidHash,
     ));
@@ -1873,13 +1873,13 @@ fn install_contract() {
         named_keys
     };
 
-    let hash_key_name = format!("{}{}", HASH_KEY_NAME_PREFIX, collection_name);
+    let hash_key_name = format!("{HASH_KEY_NAME_PREFIX}{collection_name}");
 
     let (contract_hash, contract_version) = storage::new_contract(
         entry_points,
         Some(named_keys),
         Some(hash_key_name.clone()),
-        Some(format!("{}{}", ACCESS_KEY_NAME_PREFIX, collection_name)),
+        Some(format!("{ACCESS_KEY_NAME_PREFIX}{collection_name}")),
     );
 
     // Store contract_hash and contract_version under the keys CONTRACT_NAME and CONTRACT_VERSION
@@ -1896,31 +1896,31 @@ fn install_contract() {
     // of a read only reference to the NFTs owned by the calling `Account` or `Contract`
     // This allows for users to look up a set of named keys and correctly identify
     // the contract package from which the NFTs were obtained.
-    let receipt_name = format!("cep78-{}", collection_name);
+    let receipt_name = format!("cep78-{collection_name}");
 
     // Call contract to initialize it
     runtime::call_contract::<()>(
         contract_hash,
         ENTRY_POINT_INIT,
         runtime_args! {
-             ARG_COLLECTION_NAME => collection_name,
-             ARG_COLLECTION_SYMBOL => collection_symbol,
-             ARG_TOTAL_TOKEN_SUPPLY => total_token_supply,
-             ARG_ALLOW_MINTING => allow_minting,
-             ARG_OWNERSHIP_MODE => ownership_mode,
-             ARG_NFT_KIND => nft_kind,
-             ARG_MINTING_MODE => minting_mode,
-             ARG_HOLDER_MODE => holder_mode,
-             ARG_WHITELIST_MODE => whitelist_lock,
-             ARG_CONTRACT_WHITELIST => contract_white_list,
-             ARG_JSON_SCHEMA => json_schema,
-             ARG_RECEIPT_NAME => receipt_name,
-             ARG_NFT_METADATA_KIND => nft_metadata_kind,
-             ARG_IDENTIFIER_MODE => identifier_mode,
-             ARG_METADATA_MUTABILITY => metadata_mutability,
-             ARG_BURN_MODE => burn_mode,
-             ARG_OWNER_LOOKUP_MODE => reporting_mode,
-             ARG_NFT_PACKAGE_HASH => package_hash.to_formatted_string(),
+            ARG_COLLECTION_NAME => collection_name,
+            ARG_COLLECTION_SYMBOL => collection_symbol,
+            ARG_TOTAL_TOKEN_SUPPLY => total_token_supply,
+            ARG_ALLOW_MINTING => allow_minting,
+            ARG_OWNERSHIP_MODE => ownership_mode,
+            ARG_NFT_KIND => nft_kind,
+            ARG_MINTING_MODE => minting_mode,
+            ARG_HOLDER_MODE => holder_mode,
+            ARG_WHITELIST_MODE => whitelist_lock,
+            ARG_CONTRACT_WHITELIST => contract_white_list,
+            ARG_JSON_SCHEMA => json_schema,
+            ARG_RECEIPT_NAME => receipt_name,
+            ARG_NFT_METADATA_KIND => nft_metadata_kind,
+            ARG_IDENTIFIER_MODE => identifier_mode,
+            ARG_METADATA_MUTABILITY => metadata_mutability,
+            ARG_BURN_MODE => burn_mode,
+            ARG_OWNER_LOOKUP_MODE => reporting_mode,
+            ARG_NFT_PACKAGE_HASH => package_hash.to_formatted_string(),
         },
     );
 }
@@ -1940,13 +1940,13 @@ fn migrate_contract() {
     .unwrap_or_revert();
 
     runtime::put_key(
-        &format!("{}{}", HASH_KEY_NAME_PREFIX, collection_name),
+        &format!("{HASH_KEY_NAME_PREFIX}{collection_name}"),
         nft_contact_package_hash.into(),
     );
 
     if let Some(access_key) = runtime::get_key(ACCESS_KEY_NAME_1_0_0) {
         runtime::put_key(
-            &format!("{}{}", ACCESS_KEY_NAME_PREFIX, collection_name),
+            &format!("{ACCESS_KEY_NAME_PREFIX}{collection_name}"),
             access_key,
         )
     }
