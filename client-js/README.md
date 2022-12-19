@@ -1,6 +1,6 @@
 ## casper-cep78-js-client
 
-This package was created to help JS/TS users dealing with [cep-78-enhanced-nft ](https://github.com/casper-ecosystem/cep-78-enhanced-nft). It was built on top of [casper-js-sdk](https://github.com/casper-ecosystem/casper-js-sdk)
+This package was created to help JS/TS users dealing with [cep-78-enhanced-nft](https://github.com/casper-ecosystem/cep-78-enhanced-nft). It was built on top of [casper-js-sdk](https://github.com/casper-ecosystem/casper-js-sdk)
 
 It can be treated as a deploy builder for all of the possible interactions:
 
@@ -10,20 +10,20 @@ It can be treated as a deploy builder for all of the possible interactions:
 - token burning
 - approvals
 - changing configuration after installation
-- setting token metada
+- setting token metadata
 - storing some of the contract related data in Account's `NamedKeys`
 
 ## Usage
 
-1. To install run `npm i -S capser-cep78-js-client`. 
-2. import the contract in your code `import { CEP78Client } from 'capser-cep78-js-client'`
-3. if you want to install it, look at the `install` method and all of the possibles configuration options (`InstallArgs`).
-4. if you want to start working with already installed contract, use `setContractHash(contractHash)` method.
+1. To install, run `npm i -S capser-cep78-js-client`. 
+2. Import the contract in your code `import { CEP78Client } from 'capser-cep78-js-client'`
+3. If you want to install it, look at the `install` method and all of the possible configuration options (`InstallArgs`).
+4. If you want to start working with a previously installed contract, use the `setContractHash(contractHash)` method.
 
 
 ## Examples 
 
-As a good starting point, you can also look into `examples/` directory to see the most common usage scenarios (`install.ts` and `usage.ts`). You can even install the contract and run the example scenario by running the `npm run example:install` and `npm run example:usage`. You will just need to provide following env variables (preferebly in a `client-js/.env`).
+As a good starting point, you can also look into the `examples/` directory to see the most common usage scenarios (`install.ts` and `usage.ts`). You can install the contract and run the example scenario by running the `npm run example:install` and `npm run example:usage`. You will just need to provide following env variables (preferebly in a `client-js/.env`).
 
 ```
 NODE_URL=http://localhost:11101/rpc
