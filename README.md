@@ -17,15 +17,9 @@ The release of version 1.1 for the CEP-78 Enhanced NFT Standard includes the fol
 
 * [Gas stabilization through the use of of page dictionaries](#data-storage-and-gas-stabilization).
 
-* New entry points related to the gas stabilization efforts.
-
-  * `register_owner` - Registers an owner with a given instance of CEP-78.
-
-  * `updated_receipts` - Allows an owner to update their receipts to the new CEP-78 1.1 receipt standard. If the contract enables `OwnerReverseLookupMode`, calling this entry point will return a list of receipt names alongside the dictionary addressed to the relevant pages.
-
-  * `migrate` - An entrypoint used to update a CEP-78 version 1.0 contract to the new version. 
-
 * `OwnerReverseLookupMode` Modality - A modality that allows lookup of which NFTs are owned by a given account. [More information is available here](#ownerreverselookupmode)
+
+* Owners must be registered prior to minting **or receiving a transferred token** as an account must pay upfront for page allocation.
 
 * A single instance of CEP-78 is limited to 1,000,000 tokens maximum.
 
@@ -33,7 +27,13 @@ The release of version 1.1 for the CEP-78 Enhanced NFT Standard includes the fol
     
     * **If an account attempts to install a second CEP-78 contract with the same name, it will overwrite the access rights and render the first instance unusable.**
 
-* Owners must be registered prior to minting **or receiving a transferred token** as an account must pay upfront for page allocation.
+* New entry points related to the gas stabilization efforts.
+
+  * `register_owner` - Registers an owner with a given instance of CEP-78.
+
+  * `updated_receipts` - Allows an owner to update their receipts to the new CEP-78 1.1 receipt standard. If the contract enables `OwnerReverseLookupMode`, calling this entry point will return a list of receipt names alongside the dictionary addressed to the relevant pages.
+
+  * `migrate` - An entrypoint used to update a CEP-78 version 1.0 contract to the new version. 
 
 * Syntax for a CEP-78 contract package has changed from `nft_contract_package` to `cep78_contract_package`.
 
