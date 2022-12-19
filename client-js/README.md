@@ -1,6 +1,6 @@
 ## casper-cep78-js-client
 
-This package was created to help JS/TS users dealing with [cep-78-enhanced-nft ](https://github.com/casper-ecosystem/cep-78-enhanced-nft). It was built on top of [casper-js-sdk](https://github.com/casper-ecosystem/casper-js-sdk)
+This package was created to help JS/TS users dealing with [cep-78-enhanced-nft](https://github.com/casper-ecosystem/cep-78-enhanced-nft). It was built on top of [casper-js-sdk](https://github.com/casper-ecosystem/casper-js-sdk)
 
 It can be treated as a deploy builder for all of the possible interactions:
 
