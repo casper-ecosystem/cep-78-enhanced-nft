@@ -11,7 +11,8 @@ use crate::utility::constants::{
     ARG_ALLOW_MINTING, ARG_BURN_MODE, ARG_COLLECTION_NAME, ARG_COLLECTION_SYMBOL,
     ARG_CONTRACT_WHITELIST, ARG_HOLDER_MODE, ARG_IDENTIFIER_MODE, ARG_JSON_SCHEMA,
     ARG_METADATA_MUTABILITY, ARG_MINTING_MODE, ARG_NFT_KIND, ARG_NFT_METADATA_KIND,
-    ARG_OWNERSHIP_MODE, ARG_TOTAL_TOKEN_SUPPLY, ARG_WHITELIST_MODE,
+    ARG_OWNERSHIP_MODE, ARG_OWNER_LOOKUP_MODE, ARG_TOTAL_TOKEN_SUPPLY, ARG_WHITELIST_MODE,
+    NFT_TEST_COLLECTION, NFT_TEST_SYMBOL,
 };
 
 pub(crate) static TEST_CUSTOM_METADATA_SCHEMA: Lazy<CustomMetadataSchema> = Lazy::new(|| {
@@ -134,6 +135,12 @@ pub enum BurnMode {
     NonBurnable = 1,
 }
 
+#[repr(u8)]
+pub enum OwnerReverseLookupMode {
+    NoLookUp = 0,
+    Complete = 1,
+}
+
 #[derive(Debug)]
 pub(crate) struct InstallerRequestBuilder {
     account_hash: AccountHash,
@@ -153,6 +160,7 @@ pub(crate) struct InstallerRequestBuilder {
     identifier_mode: CLValue,
     metadata_mutability: CLValue,
     burn_mode: CLValue,
+    reporting_mode: CLValue,
 }
 
 impl InstallerRequestBuilder {
@@ -166,8 +174,10 @@ impl InstallerRequestBuilder {
         InstallerRequestBuilder {
             account_hash: AccountHash::default(),
             session_file: String::default(),
-            collection_name: CLValue::from_t("name".to_string()).expect("name is legit CLValue"),
-            collection_symbol: CLValue::from_t("SYM").expect("collection_symbol is legit CLValue"),
+            collection_name: CLValue::from_t(NFT_TEST_COLLECTION.to_string())
+                .expect("name is legit CLValue"),
+            collection_symbol: CLValue::from_t(NFT_TEST_SYMBOL)
+                .expect("collection_symbol is legit CLValue"),
             total_token_supply: CLValue::from_t(1u64).expect("total_token_supply is legit CLValue"),
             allow_minting: CLValue::from_t(true).unwrap(),
             minting_mode: CLValue::from_t(MintingMode::Installer as u8).unwrap(),
@@ -182,6 +192,7 @@ impl InstallerRequestBuilder {
             identifier_mode: CLValue::from_t(NFTIdentifierMode::Ordinal as u8).unwrap(),
             metadata_mutability: CLValue::from_t(MetadataMutability::Mutable as u8).unwrap(),
             burn_mode: CLValue::from_t(BurnMode::Burnable as u8).unwrap(),
+            reporting_mode: CLValue::from_t(OwnerReverseLookupMode::Complete as u8).unwrap(),
         }
     }
 
@@ -288,6 +299,11 @@ impl InstallerRequestBuilder {
         self
     }
 
+    pub(crate) fn with_reporting_mode(mut self, reporting_mode: OwnerReverseLookupMode) -> Self {
+        self.reporting_mode = CLValue::from_t(reporting_mode as u8).unwrap();
+        self
+    }
+
     pub(crate) fn build(self) -> ExecuteRequest {
         let mut runtime_args = RuntimeArgs::new();
         runtime_args.insert_cl_value(ARG_COLLECTION_NAME, self.collection_name);
@@ -305,6 +321,7 @@ impl InstallerRequestBuilder {
         runtime_args.insert_cl_value(ARG_IDENTIFIER_MODE, self.identifier_mode);
         runtime_args.insert_cl_value(ARG_METADATA_MUTABILITY, self.metadata_mutability);
         runtime_args.insert_cl_value(ARG_BURN_MODE, self.burn_mode);
+        runtime_args.insert_cl_value(ARG_OWNER_LOOKUP_MODE, self.reporting_mode);
         ExecuteRequestBuilder::standard(self.account_hash, &self.session_file, runtime_args).build()
     }
 }

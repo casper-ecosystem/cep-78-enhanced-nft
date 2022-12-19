@@ -12,8 +12,8 @@ use crate::utility::{
         NUMBER_OF_MINTED_TOKENS,
     },
     installer_request_builder::{
-        InstallerRequestBuilder, NFTHolderMode, NFTIdentifierMode, NFTMetadataKind, OwnershipMode,
-        WhitelistMode,
+        InstallerRequestBuilder, MintingMode, NFTHolderMode, NFTIdentifierMode, NFTMetadataKind,
+        OwnerReverseLookupMode, OwnershipMode, WhitelistMode,
     },
     support,
 };
@@ -26,6 +26,7 @@ fn should_install_contract() {
     let install_request = InstallerRequestBuilder::new(*DEFAULT_ACCOUNT_ADDR, NFT_CONTRACT_WASM)
         .with_collection_name(NFT_TEST_COLLECTION.to_string())
         .with_collection_symbol(NFT_TEST_SYMBOL.to_string())
+        .with_reporting_mode(OwnerReverseLookupMode::NoLookUp)
         .with_total_token_supply(1u64)
         .build();
 
@@ -110,7 +111,8 @@ fn should_only_allow_init_during_installation_session() {
 
     let install_request_builder =
         InstallerRequestBuilder::new(*DEFAULT_ACCOUNT_ADDR, NFT_CONTRACT_WASM)
-            .with_total_token_supply(2u64);
+            .with_total_token_supply(2u64)
+            .with_reporting_mode(OwnerReverseLookupMode::NoLookUp);
     builder
         .exec(install_request_builder.build())
         .expect_success()
@@ -149,6 +151,7 @@ fn should_install_with_allow_minting_set_to_false() {
         .with_collection_name(NFT_TEST_COLLECTION.to_string())
         .with_collection_symbol(NFT_TEST_SYMBOL.to_string())
         .with_total_token_supply(1u64)
+        .with_reporting_mode(OwnerReverseLookupMode::NoLookUp)
         .build();
 
     builder.exec(install_request).expect_success().commit();
@@ -204,6 +207,7 @@ fn should_install_with_contract_holder_mode() {
     let install_request = InstallerRequestBuilder::new(*DEFAULT_ACCOUNT_ADDR, NFT_CONTRACT_WASM)
         .with_holder_mode(NFTHolderMode::Contracts)
         .with_whitelist_mode(WhitelistMode::Unlocked)
+        .with_reporting_mode(OwnerReverseLookupMode::NoLookUp)
         .with_contract_whitelist(vec![ContractHash::default()]);
 
     builder
@@ -262,6 +266,7 @@ fn should_disallow_installation_of_contract_with_empty_locked_whitelist() {
     let install_request_builder =
         InstallerRequestBuilder::new(*DEFAULT_ACCOUNT_ADDR, NFT_CONTRACT_WASM)
             .with_holder_mode(NFTHolderMode::Contracts)
+            .with_reporting_mode(OwnerReverseLookupMode::NoLookUp)
             .with_whitelist_mode(WhitelistMode::Locked);
 
     support::assert_expected_invalid_installer_request(
@@ -290,4 +295,54 @@ fn should_disallow_installation_with_zero_issuance() {
     let error = builder.get_error().expect("must have error");
 
     support::assert_expected_error(error, 123u16, "cannot install when issuance is 0");
+}
+
+#[test]
+fn should_disallow_installation_with_supply_exceeding_hard_cap() {
+    let mut builder = InMemoryWasmTestBuilder::default();
+    builder.run_genesis(&DEFAULT_RUN_GENESIS_REQUEST).commit();
+
+    let install_request = InstallerRequestBuilder::new(*DEFAULT_ACCOUNT_ADDR, NFT_CONTRACT_WASM)
+        .with_collection_name(NFT_TEST_COLLECTION.to_string())
+        .with_collection_symbol(NFT_TEST_SYMBOL.to_string())
+        .with_total_token_supply(1_000_001u64)
+        .with_ownership_mode(OwnershipMode::Minter)
+        .with_identifier_mode(NFTIdentifierMode::Ordinal)
+        .with_nft_metadata_kind(NFTMetadataKind::Raw)
+        .build();
+
+    builder.exec(install_request).expect_failure().commit();
+
+    let error = builder.get_error().expect("must have error");
+
+    support::assert_expected_error(
+        error,
+        133u16,
+        "cannot install when issuance is more than 1_000_000",
+    );
+}
+
+#[test]
+fn should_prevent_installation_with_ownership_and_minting_modality_conflict() {
+    let mut builder = InMemoryWasmTestBuilder::default();
+    builder.run_genesis(&DEFAULT_RUN_GENESIS_REQUEST).commit();
+
+    let install_request = InstallerRequestBuilder::new(*DEFAULT_ACCOUNT_ADDR, NFT_CONTRACT_WASM)
+        .with_collection_name(NFT_TEST_COLLECTION.to_string())
+        .with_collection_symbol(NFT_TEST_SYMBOL.to_string())
+        .with_total_token_supply(1_000u64)
+        .with_minting_mode(MintingMode::Installer as u8)
+        .with_ownership_mode(OwnershipMode::Minter)
+        .with_reporting_mode(OwnerReverseLookupMode::Complete)
+        .build();
+
+    builder.exec(install_request).expect_failure().commit();
+
+    let error = builder.get_error().expect("must have error");
+
+    support::assert_expected_error(
+        error,
+        130u16,
+        "cannot install when Ownership::Minter and MintingMode::Installer",
+    );
 }
