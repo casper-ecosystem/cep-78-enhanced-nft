@@ -11,6 +11,32 @@
 - A NFT contract instance must validate provided metadata against the specified metadata schema for that contract.
 - Standardized session code to interact with an NFT contract instance must be usable as is, so that a given DApp developer doesn't have to write any Wasm producing logic for normal usage of NFT contract instances produced by this contract.
 
+## New in Version 1.1 {#new-version}
+
+The release of version 1.1 for the CEP-78 Enhanced NFT Standard includes the following:
+
+* [Gas stabilization through the use of of page dictionaries](#data-storage-and-gas-stabilization).
+
+* New entry points related to the gas stabilization efforts.
+
+  * `register_owner` - Registers an owner with a given instance of CEP-78.
+
+  * `updated_receipts` - Allows an owner to update their receipts to the new CEP-78 1.1 receipt standard. If the contract enables `OwnerReverseLookupMode`, calling this entry point will return a list of receipt names alongside the dictionary addressed to the relevant pages.
+
+  * `migrate` - An entrypoint used to update a CEP-78 version 1.0 contract to the new version. 
+
+* `OwnerReverseLookupMode` Modality - A modality that allows lookup of which NFTs are owned by a given account. [More information is available here](#ownerreverselookupmode)
+
+* A single instance of CEP-78 is limited to 1,000,000 tokens maximum.
+
+    * Multiple instances of CEP-78 installed from a single account must differentiate their name.
+    
+    * **If an account attempts to install a second CEP-78 contract with the same name, it will overwrite the access rights and render the first instance unusable.**
+
+* Owners must be registered prior to minting **or receiving a transferred token** as an account must pay upfront for page allocation.
+
+* Syntax for a CEP-78 contract package has changed from `nft_contract_package` to `cep78_contract_package`.
+
 ## Table of Contents
 
 1) [Modalities](#modalities)
@@ -21,7 +47,9 @@
 
 4) [Test Suite and Specification](#test-suite-and-specification)
 
-5) [Error Codes](#error-codes)
+5) [Data Storage and Gas Stabilization](#gas-stabilization)
+
+6) [Error Codes](#error-codes)
 
 ## Modalities
 
@@ -239,10 +267,28 @@ provides two options:
 This modality is an optional installation parameter and will default to the `Burnable` mode if not provided. However, this
 mode cannot be changed once the contract has been installed. The mode is set by passing a `u8` value to the `burn_mode` runtime argument.
 
+#### OwnerReverseLookupMode
+
+The `OwnerReverseLookupMode` modality dictates whether the contract supports retrieving token identifiers for a given token owner.
+Additionally, it also dictates whether receipts pointing to the various pages are also returned by the `mint` and `transfer`
+entrypoints. This modality provides two options:
+
+1. `NoLookup`: The reporting and receipt functionality is not supported.
+2. `Complete`: The reporting and receipt functionality is supported.
+
+| OwnerReverseLookupMode | u8  |
+|------------------------|-----|
+| NoLookup               | 0   |
+| Complete               | 1   |
+
+This modality is an optional installation parameter and will default to the `NoLookup` mode if not provided. However, this
+mode cannot be changed once the contract has been installed. The mode is set by passing a `u8` value to the `owner_reverse_lookup_mode` runtime argument.
+
 #### Modality Conflicts
 
 The `MetadataMutability` option of `Mutable` cannot be used in conjunction with `NFTIdentifierMode` modality of `Hash`.
 
+If `ownership_mode` is set to `minter`, `OnwerReverseLookupMode` will be set to `NoLookup`, as all tokens are inherently owned by the single minting account.
 
 ### Usage
 
@@ -274,6 +320,8 @@ The following are the optional parameters that can be passed in at the time of i
 * `"holder_mode"`: The [`NFTHolderMode`](#nftholdermode) modality dictates which entities can hold NFTs. This is an optional parameter and will default to a mixed mode allowing either `Accounts` or `Contracts` to hold NFTs. This parameter cannot be changed once the contract has been installed.
 * `"contract_whitelist"`: The contract whitelist is a list of contract hashes that specifies which contracts can call the `mint()` entrypoint to mint NFTs. This is an optional parameter which will default to an empty whitelist. This value can be changed via the `set_variables` post installation. If the whitelist mode is set to locked, a non-empty whitelist must be passed; else, installation of the contract will fail.
 * `"burn_mode"`: The [`BurnMode`](#burnmode) modality dictates whether minted NFTs can be burnt. This is an optional parameter and will allow tokens to be burnt by default. This parameter cannot be changed once the contract has been installed.
+* `"owner_reverse_lookup_mode"`: The [`OwnerReverseLookupMode`](#reportingmode) modality dictates whether the lookup for owners to token identifiers is available. This is an optional parameter will not provide the lookup by default. This parameter cannot be changed once the contract has been installed.
+
 
 ##### Example deploy
 
@@ -492,6 +540,38 @@ of the NFT contract across the entire range of possible configurations (i.e moda
 ensures that as new modalities are added, and current modalities are extended, no regressions and conflicting behaviors are introduced.
 The test suite also asserts the correct working behavior of the utility session code provided in the client folder. The tests can be run 
 by using the provided `Makefile` and running the `make test` command.
+
+## Data Storage and Gas Stabilization
+
+In version 1.0 of the CEP-78 Enhanced NFT Standard contract, tracking minted tokens consisted of a single, unbounded list that would grow in size with each additional token. As a result, gas costs would increase over time as the list must be overwritten with each new minting.
+
+In an effort to stabilize the gas costs of larger NFT collections, version 1.1 of CEP-78 includes the use of a pre-allocated page system to track ownership of NFTs within the contract.
+
+This system stabilizes the cost for interacting with the contract, but not the mint price itself. The size of metadata for a collection, and any differences in that metadata, will still result in some fluctuation in the price for the NFT itself. However, the cost of engaging the system itself will remain stable. Users can expect to pay a higher upfront price for page allocation, but will not need to pay this cost again for any NFTs minted within that given page.
+
+### The CEP-78 Page System
+
+Ownership of NFTs within a CEP-78 contract now exists within a series of `pages`, consisting of 1,000 tokens each. When installing an instance of the CEP-78 contract on global state, the user determines the total token supply. This, in turn, determines the maximum number of pages, i.e., a 10,000 token collection would be made up of ten pages numbered 0 through 9.
+
+When registering as an owner and minting an NFT, the contract creates a `page_table` dictionary for that account. This dictionary consists of a series of `Boolean` values amounting to the total number of pages in the collection. In our 10,000 token example, this would be 10 `boolean` values set to false.
+
+Upon minting the token, the user will pay for a page allocation. This adds them to the `page` dictionary, in which each entry corresponds to a specific account that owns tokens within that page. That account's entry in the `page` dictionary will consist of 1,000 `page_address` boolean values set to false upon allocation, and the minting of any given token in that page will set the `page_address` bit to `True`.
+
+In addition, that account's `page_table` will be updated by marking the corresponding page number's boolean value as `True`.
+
+As an example, consider a new user minting their first NFT with a given CEP-78 contract set to a maximum number of 10,000 tokens. They are minting the 2,350th token within that collection. The following sequence of events would occur:
+
+1) The contract [registers their account as an owner]()
+
+2) The contract creates a `page_table` dictionary for that account, with 10 boolean values. As the numbering system begins with `0`, the third boolean value corresponding with page `2` is set to `True`.
+
+3) The account pays for allocation of page 2, creating an entry in the `Page 2` dictionary for that account. Within that entry, there are 1,000 boolean values set to false. Minting the 2,350th token in the collection sets the corresponding `page_address` boolean for 350 as `True`.
+
+4) Any further tokens minted by this account prior to the 3,000th token being minted will not have to pay for additional page allocations. If the account mints a token beyond 2,999, they must pay for the corresponding page allocation. For example, if they decided to mint the 5,125th token in the collection, they would need to pay for `page 5` to be allocated to them. They would then be added to the `page 5` dictionary with the `page_address` boolean for 125 set as `True`.
+
+This system binds the data writing costs to a maximum size of any given page dictionary.
+
+### 
 
 ## Error Codes
 
