@@ -17,7 +17,7 @@ The release of version 1.1 for the CEP-78 Enhanced NFT Standard includes the fol
 
 * [Gas stabilization through the use of of page dictionaries](#data-storage-and-gas-stabilization).
 
-* `OwnerReverseLookupMode` Modality - A modality that allows lookup of which NFTs are owned by a given account. [More information is available here](#ownerreverselookupmode)
+* `OwnerReverseLookupMode` Modality - A modality that allows lookup of which NFTs are owned by a given account. [More information is available here](#ownerreverselookupmode). If this modality is set to `NoLookup`, tokens will retain ownership data, but this data will not be natively indexed.
 
 * Owners must be registered prior to minting **or receiving a transferred token** as an account must pay upfront for page allocation.
 
