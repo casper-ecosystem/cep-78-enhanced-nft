@@ -17,7 +17,7 @@ The release of version 1.1 for the CEP-78 Enhanced NFT Standard includes the fol
 
 * [Gas stabilization through the use of of page dictionaries](#data-storage-and-gas-stabilization).
 
-* `OwnerReverseLookupMode` Modality - A modality that allows lookup of which NFTs are owned by a given account. [More information is available here](#ownerreverselookupmode). If this modality is set to `NoLookup`, tokens will retain ownership data, but this data will not be natively indexed.
+* `OwnerReverseLookupMode` Modality - A modality that allows lookup of which NFTs are owned by a given account or contract. [More information is available here](#ownerreverselookupmode). If this modality is set to `NoLookup`, tokens will retain ownership data, but this data will not be natively indexed.
 
 * Owners must be registered prior to minting **or receiving a transferred token** as an account must pay upfront for page allocation.
 
@@ -288,7 +288,7 @@ mode cannot be changed once the contract has been installed. The mode is set by 
 
 The `MetadataMutability` option of `Mutable` cannot be used in conjunction with `NFTIdentifierMode` modality of `Hash`.
 
-If `ownership_mode` is set to `minter`, `OnwerReverseLookupMode` will be set to `NoLookup`, as all tokens are inherently owned by the single minting account.
+If `ownership_mode` is set to `minter`, `OnwerReverseLookupMode` will be set to `NoLookup`, as all tokens are inherently owned by the single minting account or contract.
 
 ### Usage
 
@@ -553,11 +553,11 @@ This system stabilizes the cost for interacting with the contract, but not the m
 
 Ownership of NFTs within a CEP-78 contract now exists within a series of `pages`, consisting of 1,000 tokens each. When installing an instance of the CEP-78 contract on global state, the user determines the total token supply. This, in turn, determines the maximum number of pages, i.e., a 10,000 token collection would be made up of ten pages numbered 0 through 9.
 
-When registering as an owner and minting an NFT, the contract creates a `page_table` dictionary for that account. This dictionary consists of a series of `Boolean` values amounting to the total number of pages in the collection. In our 10,000 token example, this would be 10 `boolean` values set to false.
+When registering as an owner and minting an NFT, the contract creates a `page_table` dictionary for the minting account or contract. This dictionary consists of a series of `Boolean` values amounting to the total number of pages in the collection. In our 10,000 token example, this would be 10 `boolean` values set to false.
 
-Upon minting the token, the user will pay for a page allocation. This adds them to the `page` dictionary, in which each entry corresponds to a specific account that owns tokens within that page. That account's entry in the `page` dictionary will consist of 1,000 `page_address` boolean values set to false upon allocation, and the minting of any given token in that page will set the `page_address` bit to `True`.
+Upon minting the token, the user will pay for a page allocation. This adds them to the `page` dictionary, in which each entry corresponds to a specific account or contract that owns tokens within that page. That account or contract's entry in the `page` dictionary will consist of 1,000 `page_address` boolean values set to false upon allocation, and the minting of any given token in that page will set the `page_address` bit to `True`.
 
-In addition, that account's `page_table` will be updated by marking the corresponding page number's boolean value as `True`.
+In addition, that account or contract's `page_table` will be updated by marking the corresponding page number's boolean value as `True`.
 
 As an example, consider a new user minting their first NFT with a given CEP-78 contract set to a maximum number of 10,000 tokens. They are minting the 2,350th token within that collection. The following sequence of events would occur:
 
