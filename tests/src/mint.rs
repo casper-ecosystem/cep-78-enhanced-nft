@@ -1508,7 +1508,7 @@ fn should_maintain_page_table_despite_invoking_register_owner() {
         &builder,
         &nft_contract_key,
         PAGE_TABLE,
-        &*DEFAULT_ACCOUNT_ADDR.to_string(),
+        &DEFAULT_ACCOUNT_ADDR.to_string(),
     );
 
     assert_eq!(actual_page_table.len(), 1);
@@ -1531,7 +1531,7 @@ fn should_maintain_page_table_despite_invoking_register_owner() {
         &builder,
         &nft_contract_key,
         PAGE_TABLE,
-        &*DEFAULT_ACCOUNT_ADDR.to_string(),
+        &DEFAULT_ACCOUNT_ADDR.to_string(),
     );
 
     assert_eq!(actual_page_table, table_post_register)

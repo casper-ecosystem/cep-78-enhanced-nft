@@ -94,7 +94,7 @@ fn should_burn_minted_token() {
     builder.exec(burn_request).expect_success().commit();
 
     //This will error of token is not registered as burnt.
-    let _ = support::get_dictionary_value_from_key::<()>(
+    support::get_dictionary_value_from_key::<()>(
         &builder,
         nft_contract_key,
         BURNT_TOKENS,

@@ -57,7 +57,7 @@ fn should_prevent_update_in_immutable_mode() {
     builder.exec(mint_token_request).expect_success().commit();
 
     let token_hash: String =
-        base16::encode_lower(&support::create_blake2b_hash(&TEST_PRETTY_721_META_DATA));
+        base16::encode_lower(&support::create_blake2b_hash(TEST_PRETTY_721_META_DATA));
 
     let update_token_metadata_request = ExecuteRequestBuilder::contract_call_by_hash(
         *DEFAULT_ACCOUNT_ADDR,

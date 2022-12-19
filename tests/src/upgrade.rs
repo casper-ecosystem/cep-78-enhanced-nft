@@ -166,7 +166,7 @@ fn should_safely_upgrade_in_hash_identifier_mode() {
     for i in 0..number_of_tokens_pre_migration {
         let token_metadata = support::CEP78Metadata::with_random_checksum(
             "Some Name".to_string(),
-            format!("https://www.foobar.com/{}", i),
+            format!("https://www.foobar.com/{i}"),
         );
 
         let json_token_metadata =
