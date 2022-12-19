@@ -10,7 +10,7 @@ It can be treated as a deploy builder for all of the possible interactions:
 - token burning
 - approvals
 - changing configuration after installation
-- setting token metada
+- setting token metadata
 - storing some of the contract related data in Account's `NamedKeys`
 
 ## Usage
