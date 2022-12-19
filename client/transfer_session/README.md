@@ -2,6 +2,8 @@
 
 Utility session code for interacting with the `transfer` entry point present on the enhanced NFT contract. The session code transfers an NFT from the `Source` to the `Target`. Note that this code depends on the contract being set to `Ownership::Transferable` mode.
 
+For the transfer of NFT ownership to succeed, both parties (the sender and the receiver) must be registered with the contract. If the token receiver has not been registered, the transfer will fail.
+
 ## Compiling session code
 
 The session code can be compiled to Wasm by running the `make build-contract` command provided in the Makefile at the top level.

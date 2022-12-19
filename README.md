@@ -23,7 +23,9 @@ The release of version 1.1 for the CEP-78 Enhanced NFT Standard includes the fol
 
 * A single instance of CEP-78 is limited to 1,000,000 tokens maximum.
 
-    * Multiple instances of CEP-78 installed from a single account must differentiate their name.
+    * Multiple instances of CEP-78 installed from a single account/contract must differentiate their name.
+
+    * If you require multiple contracts for a CEP-78 implementation, we suggest differentiating the contracts by following this syntax: `<collection name>_series_1` and incrementing the number with each instance.
     
     * **If an account attempts to install a second CEP-78 contract with the same name, it will overwrite the access rights and render the first instance unusable.**
 
@@ -31,9 +33,9 @@ The release of version 1.1 for the CEP-78 Enhanced NFT Standard includes the fol
 
   * `register_owner` - Registers an owner with a given instance of CEP-78.
 
-  * `updated_receipts` - Allows an owner to update their receipts to the new CEP-78 1.1 receipt standard. If the contract enables `OwnerReverseLookupMode`, calling this entry point will return a list of receipt names alongside the dictionary addressed to the relevant pages.
+  * `updated_receipts` - Allows an owner to [update their receipts](#updated-receipts) to the new CEP-78 1.1 receipt standard.
 
-  * `migrate` - An entrypoint used to update a CEP-78 version 1.0 contract to the new version. 
+  * `migrate` - An entrypoint used to update a CEP-78 version 1.0 contract to the new version. Sending a deploy with *contract.wasm* will initiate the migration process, adding the 1.1 contract version to the contract package and will invoke the `migrate` entry point in order to perform the necessary data migration.
 
 * Syntax for a CEP-78 contract package has changed from `nft_contract_package` to `cep78_contract_package`.
 
@@ -284,11 +286,13 @@ entrypoints. This modality provides two options:
 This modality is an optional installation parameter and will default to the `NoLookup` mode if not provided. However, this
 mode cannot be changed once the contract has been installed. The mode is set by passing a `u8` value to the `owner_reverse_lookup_mode` runtime argument.
 
+If you are merging a contract from version 1.0 to 1.1, `OwnerReverseLookupMode` will be set to `1`.
+
 #### Modality Conflicts
 
 The `MetadataMutability` option of `Mutable` cannot be used in conjunction with `NFTIdentifierMode` modality of `Hash`.
 
-If `ownership_mode` is set to `minter`, `OnwerReverseLookupMode` will be set to `NoLookup`, as all tokens are inherently owned by the single minting account or contract.
+If `ownership_mode` is set to `minter`, `OwnerReverseLookupMode` will be set to `NoLookup`, as all tokens are inherently owned by the single minting account or contract. This rule applies to newly installed contracts.
 
 ### Usage
 
@@ -550,17 +554,19 @@ This system stabilizes the cost for interacting with the contract, but not the m
 
 ### The CEP-78 Page System
 
-Ownership of NFTs within a CEP-78 contract now exists within a series of `pages`, consisting of 1,000 tokens each. When installing an instance of the CEP-78 contract on global state, the user determines the total token supply. This, in turn, determines the maximum number of pages, i.e., a 10,000 token collection would be made up of ten pages numbered 0 through 9.
+Ownership of NFTs within a CEP-78 contract is now tracked with a series of `pages`, with each page tracking a range of 1,000 tokens each. When installing an instance of the CEP-78 contract, the user determines the total token supply. This, in turn, determines the maximum number of pages, i.e., for a 10,000 token collection, each account could have up to 10 pages numbering from 0-9 tracking ownership of NFTs.
 
-When registering as an owner and minting an NFT, the contract creates a `page_table` dictionary for the minting account or contract. This dictionary consists of a series of `Boolean` values amounting to the total number of pages in the collection. In our 10,000 token example, this would be 10 `boolean` values set to false.
+A `page_table` tracks which pages within a range have been allocated and set for a certain user. The size of the page table directly correlates to the total token supply, i.e. for a CEP-78 instance tracking 10,000 tokens, the page table would be 10 bits wide. For a total of 20,000 it would be 20 bits wide. The cost of the initial page table allocation depends on the overall total size of a collection, with larger collections possessing correspondingly greater gas costs. To make initial minting costs more stable across contracts, the process of allocating a page table has been shifted to the `register_owner` entry point.
 
-Upon minting the token, the user will pay for a page allocation. This adds them to the `page` dictionary, in which each entry corresponds to a specific account or contract that owns tokens within that page. That account or contract's entry in the `page` dictionary will consist of 1,000 `page_address` boolean values set to false upon allocation, and the minting of any given token in that page will set the `page_address` bit to `True`.
+After registering as an owner, the contract creates an entry within the `page_table` dictionary for the minting account or contract. This dictionary entry consists of a series of `boolean` values amounting to the total number of pages in the collection. In our 10,000 token example, this would be 10 bits set to false.
 
-In addition, that account or contract's `page_table` will be updated by marking the corresponding page number's boolean value as `True`.
+Upon minting the token, the user will pay for a page allocation. This adds them to the `page` dictionary, in which each entry corresponds to a specific account or contract that owns tokens within that page. That account or contract's entry in the `page` dictionary will consist of 1,000 `page_address` bits set to `False` upon allocation, and the minting of any given token in that page will set the `page_address` bit to `True`.
+
+In addition, that account or contract's `page_table` will be updated by marking the corresponding page number's bit as `True`.
 
 As an example, consider a new user minting their first NFT with a given CEP-78 contract set to a maximum number of 10,000 tokens. They are minting the 2,350th token within that collection. The following sequence of events would occur:
 
-1) The contract [registers their account as an owner]()
+1) The contract registers their account as an owner.
 
 2) The contract creates a `page_table` dictionary for that account, with 10 boolean values. As the numbering system begins with `0`, the third boolean value corresponding with page `2` is set to `True`.
 
@@ -570,7 +576,21 @@ As an example, consider a new user minting their first NFT with a given CEP-78 c
 
 This system binds the data writing costs to a maximum size of any given page dictionary.
 
-### 
+### Updated Receipts
+
+If the contract enables `OwnerReverseLookupMode`, calling the `updated_receipts` entry point will return a list of receipt names alongside the dictionary addressed to the relevant pages.
+
+Updated receipts come in the format of "{<collection name>}_m{modulo}_p{<page number>}". Once again using the 2,350th token as an example, the receipt would read:
+
+```
+cep78_collection_m_350_p_2
+```
+
+You can determine the token number by multiplying the `page_number` by the `page_size` and adding the `modulo`.
+
+If the `NFTIdentifierMode` is set to `Ordinal`, this number corresponds directly to the token ID.
+
+If it is set to `Hash`, you will need to reference the `HASH_BY_INDEX` dictionary to determine the mapping of token numbers to token hashes.
 
 ## Error Codes
 
@@ -682,3 +702,34 @@ This system binds the data writing costs to a maximum size of any given page dic
 |  104  | ForbiddenMetadataUpdate           |
 |  105  | MissingBurnMode                   |
 |  106  | InvalidBurnMode                   |
+|  107  | MissingHashByIndex                |
+|  108  | InvalidHashByIndex                |
+|  109  | MissingIndexByHash                |
+|  110  | InvalidIndexByHash                |
+|  111  | MissingPageTableURef              |
+|  112  | InvalidPageTableURef              |
+|  113  | MissingPageLimit                  |
+|  114  | InvalidPageLimit                  |
+|  115  | InvalidPageNumber                 |
+|  116  | InvalidPageIndex                  |
+|  117  | MissingUnmatchedHashCount         |
+|  118  | InvalidUnmatchedHashCount         |
+|  119  | MissingPackageHashForUpgrade      |
+|  120  | MissingPageUref                   |
+|  121  | InvalidPageUref                   |
+|  122  | CannotUpgradeWithZeroSupply       |
+|  123  | CannotInstallWithZeroSupply       |
+|  124  | MissingMigrationFlag              |
+|  125  | InvalidMigrationFlag              |
+|  126  | ContractAlreadyMigrated           |
+|  127  | UnregisteredOwnerInMint           |
+|  128  | UnregisteredOwnerInTransfer       |
+|  129  | MissingReportingMode              |
+|  130  | InvalidReportingMode              |
+|  131  | MissingPage                       |
+|  132  | UnregisteredOwnerFromMigration    |
+|  133  | ExceededMaxTotalSupply            |
+|  134  | MissingCep78PackageHash           |
+|  135  | InvalidCep78InvalidHash           |
+|  136  | InvalidPackageHashName            |
+|  137  | InvalidAccessKeyName              |
