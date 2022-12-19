@@ -519,7 +519,7 @@ export class CEP78Client {
     keys?: Keys.AsymmetricKey[]
   ) {
     const runtimeArgs = RuntimeArgs.fromMap({
-      operator: args.operator,
+      operator: CLValueBuilder.key(args.operator),
     });
 
     if (args.tokenId !== undefined) {
@@ -549,9 +549,9 @@ export class CEP78Client {
     keys?: Keys.AsymmetricKey[]
   ) {
     const runtimeArgs = RuntimeArgs.fromMap({
-      token_owner: args.tokenOwner,
+      token_owner: CLValueBuilder.key(args.tokenOwner),
       approve_all: CLValueBuilder.bool(args.approveAll),
-      operator: args.operator,
+      operator: CLValueBuilder.key(args.operator),
     });
 
     const preparedDeploy = this.contractClient.callEntrypoint(
