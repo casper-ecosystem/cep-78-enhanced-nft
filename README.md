@@ -239,6 +239,23 @@ provides two options:
 This modality is an optional installation parameter and will default to the `Burnable` mode if not provided. However, this
 mode cannot be changed once the contract has been installed. The mode is set by passing a `u8` value to the `burn_mode` runtime argument.
 
+#### OwnerReverseLookupMode
+
+The `OwnerReverseLookupMode` modality dictates whether the contract supports retrieving token identifiers for a given token owner.
+Additionally, it also dictates whether receipts pointing to the various pages are also returned by the `mint` and `transfer`
+entrypoints. This modality provides two options:
+
+1. `NoLookup`: The reporting and receipt functionality is not supported.
+2. `Complete`: The reporting and receipt functionality is supported.
+
+| OwnerReverseLookupMode | u8  |
+|------------------------|-----|
+| NoLookup               | 0   |
+| Complete               | 1   |
+
+This modality is an optional installation parameter and will default to the `NoLookup` mode if not provided. However, this
+mode cannot be changed once the contract has been installed. The mode is set by passing a `u8` value to the `owner_reverse_lookup_mode` runtime argument.
+
 #### Modality Conflicts
 
 The `MetadataMutability` option of `Mutable` cannot be used in conjunction with `NFTIdentifierMode` modality of `Hash`.
@@ -274,6 +291,7 @@ The following are the optional parameters that can be passed in at the time of i
 * `"holder_mode"`: The [`NFTHolderMode`](#nftholdermode) modality dictates which entities can hold NFTs. This is an optional parameter and will default to a mixed mode allowing either `Accounts` or `Contracts` to hold NFTs. This parameter cannot be changed once the contract has been installed.
 * `"contract_whitelist"`: The contract whitelist is a list of contract hashes that specifies which contracts can call the `mint()` entrypoint to mint NFTs. This is an optional parameter which will default to an empty whitelist. This value can be changed via the `set_variables` post installation. If the whitelist mode is set to locked, a non-empty whitelist must be passed; else, installation of the contract will fail.
 * `"burn_mode"`: The [`BurnMode`](#burnmode) modality dictates whether minted NFTs can be burnt. This is an optional parameter and will allow tokens to be burnt by default. This parameter cannot be changed once the contract has been installed.
+* `"owner_reverse_lookup_mode"`: The [`OwnerReverseLookupMode`](#reportingmode) modality dictates whether the lookup for owners to token identifiers is available. This is an optional parameter and will not provide the lookup by default. This parameter cannot be changed once the contract has been installed.
 
 ##### Example deploy
 

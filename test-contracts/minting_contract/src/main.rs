@@ -9,7 +9,7 @@ extern crate alloc;
 use alloc::{vec, string::{String, ToString}, format};
 
 use casper_contract::contract_api::{runtime, storage};
-use casper_types::{CLType, ContractHash, ContractVersion, EntryPoint, EntryPointAccess, EntryPoints, EntryPointType, Key, Parameter, runtime_args, RuntimeArgs};
+use casper_types::{CLType, ContractHash, ContractVersion, EntryPoint, EntryPointAccess, EntryPoints, EntryPointType, Key, Parameter, runtime_args, RuntimeArgs, URef};
 use casper_types::contracts::NamedKeys;
 
 const CONTRACT_NAME: &str = "minting_contract_hash";
@@ -22,6 +22,7 @@ const ENTRY_POINT_MINT: &str = "mint";
 const ENTRY_POINT_TRANSFER: &str = "transfer";
 const ENTRY_POINT_BURN: &str = "burn";
 const ENTRY_POINT_METADATA: &str = "metadata";
+const ENTRY_POINT_REGISTER_OWNER: &str = "register_owner";
 
 const ARG_NFT_CONTRACT_HASH: &str = "nft_contract_hash";
 const ARG_TOKEN_OWNER: &str = "token_owner";
@@ -29,6 +30,7 @@ const ARG_TOKEN_META_DATA: &str = "token_meta_data";
 const ARG_TARGET_KEY: &str = "target_key";
 const ARG_SOURCE_KEY: &str = "source_key";
 const ARG_TOKEN_ID: &str = "token_id";
+const ARG_REVERSE_LOOKUP: &str = "reverse_lookup";
 
 
 #[no_mangle]
@@ -40,17 +42,37 @@ pub extern "C" fn mint() {
 
     let token_owner = runtime::get_named_arg::<Key>(ARG_TOKEN_OWNER);
     let token_metadata: String = runtime::get_named_arg(ARG_TOKEN_META_DATA);
+    let reverse_lookup_enabled: bool = runtime::get_named_arg(ARG_REVERSE_LOOKUP);
 
-    let (collection_name, owned_tokens_dictionary_key,_token_id_string ) = runtime::call_contract::<(String, Key, String)>(
-        nft_contract_hash,
-        ENTRY_POINT_MINT,
-        runtime_args! {
+    if reverse_lookup_enabled {
+        runtime::call_contract::<(String, URef)>(
+            nft_contract_hash,
+            ENTRY_POINT_REGISTER_OWNER,
+            runtime_args! {
+            ARG_TOKEN_OWNER => token_owner,
+        }
+        );
+
+        let (collection_name, owned_tokens_dictionary_key,_token_id_string ) = runtime::call_contract::<(String, Key, String)>(
+            nft_contract_hash,
+            ENTRY_POINT_MINT,
+            runtime_args! {
             ARG_TOKEN_OWNER => token_owner,
             ARG_TOKEN_META_DATA => token_metadata,
         },
-    );
+        );
 
-    runtime::put_key(&collection_name, owned_tokens_dictionary_key)
+        runtime::put_key(&collection_name, owned_tokens_dictionary_key)
+    } else {
+        runtime::call_contract::<()>(
+            nft_contract_hash,
+            ENTRY_POINT_MINT,
+            runtime_args! {
+            ARG_TOKEN_OWNER => token_owner,
+            ARG_TOKEN_META_DATA => token_metadata,
+        },
+        );
+    }
 }
 
 #[no_mangle]
@@ -114,6 +136,24 @@ pub extern "C" fn metadata() {
     );
 
     runtime::put_key("metadata", storage::new_uref(metadata).into());
+}
+
+#[no_mangle]
+pub extern "C" fn register_contract() {
+    let nft_contract_hash: ContractHash = runtime::get_named_arg::<Key>(ARG_NFT_CONTRACT_HASH)
+        .into_hash()
+        .map(|hash| ContractHash::new(hash))
+        .unwrap();
+
+    let token_owner = runtime::get_named_arg::<Key>(ARG_TOKEN_OWNER);
+
+    runtime::call_contract::<(String, URef)>(
+        nft_contract_hash,
+        ENTRY_POINT_REGISTER_OWNER,
+        runtime_args! {
+            ARG_TOKEN_OWNER => token_owner
+        }
+    );
 }
 
 
