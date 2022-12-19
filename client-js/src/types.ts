@@ -136,7 +136,3 @@ export type ApproveAllArgs = {
   approveAll: boolean;
   tokenOwner: CLKeyParameters;
 }; 
-
-export type MigrateArgs = {
-  nftPackageHash: string
-}

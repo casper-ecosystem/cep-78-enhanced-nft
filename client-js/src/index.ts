@@ -25,7 +25,6 @@ import {
   ApproveAllArgs,
   TransferArgs,
   BurnMode,
-  MigrateArgs,
   WhitelistMode,
   NFTHolderMode,
   NFTIdentifierMode,
@@ -694,17 +693,14 @@ export class CEP78Client {
   }
 
   public migrate(
-    args: MigrateArgs,
     paymentAmount: string,
     deploySender: CLPublicKey,
     keys?: Keys.AsymmetricKey[]
   ) {
-    const runtimeArgs = RuntimeArgs.fromMap({
-      // nft_package_hash:
-    });
+    const runtimeArgs = RuntimeArgs.fromMap({});
 
     const preparedDeploy = this.contractClient.callEntrypoint(
-      "set_approval_for_all",
+      "migrate",
       runtimeArgs,
       deploySender,
       this.networkName,

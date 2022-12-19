@@ -30,6 +30,7 @@ import GET_APPROVED_DEPLOY_ARGS_JSON from "./jsons/get-approved-args.json";
 import OWNER_OF_DEPLOY_ARGS_JSON from "./jsons/owner-of-args.json";
 import REGISTER_ARGS_JSON from "./jsons/register-args.json";
 import UPDATED_RECEPIENT_ARGS_JSON from "./jsons/updated-reciepients-args.json";
+import MIGRATE_ARGS_JSON from "./jsons/migrate-args.json";
 
 describe("CEP78Client", () => {
   const MOCKED_OWNER_PUBKEY = CLPublicKey.fromHex(
@@ -314,6 +315,20 @@ describe("CEP78Client", () => {
     expect(ownerOfDeploy).toBeInstanceOf(DeployUtil.Deploy);
     expect(JSONDeploy.deploy.session.ModuleBytes.args).toEqual(
       OWNER_OF_DEPLOY_ARGS_JSON
+    );
+  });
+
+  it("Should correctly construct deploy for 'migrate'", async () => {
+    const ownerOfDeploy = await cc.migrate(
+      "1000000000",
+      keyPair.publicKey
+    );
+
+    const JSONDeploy = DeployUtil.deployToJson(ownerOfDeploy) as any;
+
+    expect(ownerOfDeploy).toBeInstanceOf(DeployUtil.Deploy);
+    expect(JSONDeploy.deploy.session.StoredContractByHash.args).toEqual(
+      MIGRATE_ARGS_JSON
     );
   });
 });
