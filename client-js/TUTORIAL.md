@@ -79,7 +79,7 @@ As every deploy created by the SDK you can send it using `.send(rpcUrl)` method 
 
 * `holdermode` - The `NFTHolderMode` modality dictates which entities can hold NFTs. This optional parameter will default to a mixed mode, allowing either `Accounts` or `Contracts` to hold NFTs. **This parameter cannot be changed once the contract has been installed**.
 
-* `burnMode` - The `BurnMode` modality dictates whether minted NFTs can be burnt. This optional parameter will allow tokens to be burnt by default. **This parameter cannot be changed once the contract has been installed**.
+* `burnMode` - The `BurnMode` modality dictates whether minted NFTs can be burned. This optional parameter will allow tokens to be burnt by default. **This parameter cannot be changed once the contract has been installed**.
 
 * `ownerReverseLookupMode` - The `OwnerReverseLookupMode` dictates whether the contract will index ownership of tokens as outlined [here](https://github.com/casper-ecosystem/cep-78-enhanced-nft#the-cep-78-page-system) to allow lookup of owned tokens by account. **This parameter cannot be changed once the contract has been installed**.
 
