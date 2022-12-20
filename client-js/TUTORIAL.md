@@ -132,7 +132,7 @@ After minting one or more tokens, you can then use the following code to transfe
     [FAUCET_KEYS]
   );
 
-  const transferDeployHash = await transferDeploy.send(http://localhost:11101/rpc);
+  const transferDeployHash = await transferDeploy.send("http://localhost:11101/rpc");
 
 ```
 
@@ -157,7 +157,7 @@ The following code shows how to burn a minted NFT that you hold and have access 
     [USER1_KEYS]
   );
 
-  const burnDeployHash = await burnDeploy.send(http://localhost:11101/rpc);
+  const burnDeployHash = await burnDeploy.send("http://localhost:11101/rpc");
 
 ```
 
