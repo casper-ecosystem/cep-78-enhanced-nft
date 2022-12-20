@@ -2,3 +2,4 @@ target
 Cargo.lock
 wasm
 .vscode/
+.DS_Store
