@@ -115,7 +115,23 @@ The arguments adhere to those provided in the original installation, with the `.
 In this example, the [`useSessionCode`](https://github.com/casper-ecosystem/cep-78-enhanced-nft/blob/dev/client-js/examples/usage.ts#L86-L88) variable decides if the user will call `mint` using session code, or not. It will be set to `true` if the `OwnerReverseLookupMode` is set to `Complete`. [It then registers the recipient with the contract](https://github.com/casper-ecosystem/cep-78-enhanced-nft/blob/dev/client-js/examples/usage.ts#L116-L130) and mints the token.
 
 If `OwnerReverseLookupMode` is set to `NoLookup`, `useSessionCode` will be set to `false` and it will simply mint the token as it does not need to register the recipient.
+## Register recipient 
 
+Now that we used `ownerReverseLookupMode: OwnerReverseLookupMode.Complete` in this contract installation, we need to register a recipient. To do this, let's construct a `register` deploy
+
+```js
+
+    const registerDeployTwo = cc.register(
+      {
+        tokenOwner: USER1_KEYS.publicKey,
+      },
+      "1000000000",
+      USER1_KEYS.publicKey,
+      [USER1_KEYS]
+    );
+
+    const registerDeployHash = await mintDeploy.send("http://localhost:11101/rpc");
+    
 ## Transferring a Token
 
 After minting one or more tokens, you can then use the following code to transfer the tokens between accounts:
