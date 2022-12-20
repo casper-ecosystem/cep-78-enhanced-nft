@@ -101,7 +101,7 @@ The CEP-78 JS Client includes code to construct a deploy that will `Mint` a toke
         condition: "Used",
       },
     },
-    { useSessionCode },
+    { useSessionCode: true },
     "2000000000",
     FAUCET_KEYS.publicKey,
     [FAUCET_KEYS]
@@ -128,7 +128,7 @@ After minting one or more tokens, you can then use the following code to transfe
       source: FAUCET_KEYS.publicKey,
       target: USER1_KEYS.publicKey,
     },
-    { useSessionCode },
+    { useSessionCode: true },
     "13000000000",
     FAUCET_KEYS.publicKey,
     [FAUCET_KEYS]
