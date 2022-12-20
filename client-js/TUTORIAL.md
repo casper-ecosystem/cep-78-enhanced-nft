@@ -107,7 +107,7 @@ The CEP-78 JS Client includes code to construct a deploy that will `Mint` a toke
     [FAUCET_KEYS]
   );
 
-  const mintDeployHash = await mintDeploy.send(http://localhost:11101/rpc);
+  const mintDeployHash = await mintDeploy.send("http://localhost:11101/rpc");
 
 ```
 The arguments adhere to those provided in the original installation, with the `.send()` pointing to a valid RPC URL on your target Casper network. In this instance, we are using an NCTL RPC URL.
