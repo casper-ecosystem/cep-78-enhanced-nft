@@ -101,7 +101,7 @@ The CEP-78 JS Client includes code to construct a deploy that will `Mint` a toke
         condition: "Used",
       },
     },
-    { useSessionCode: true },
+    { useSessionCode },
     "2000000000",
     FAUCET_KEYS.publicKey,
     [FAUCET_KEYS]
@@ -112,13 +112,9 @@ The CEP-78 JS Client includes code to construct a deploy that will `Mint` a toke
 ```
 The arguments adhere to those provided in the original installation, with the `.send()` pointing to a valid RPC URL on your target Casper network. In this instance, we are using an NCTL RPC URL.
 
-In this example, [`{ useSessionCode: true }`](https://github.com/casper-ecosystem/cep-78-enhanced-nft/blob/dev/client-js/examples/usage.ts#L86-L88) updates the `page_table` and `page` dictionaries as appropriate for `OwnerReverseLookupMode.Complete` functionality. If this modality is set to `OwnerReverseLookUpMode.NoLookup`, it should be set to `{ useSessionCode: false }`.
+In this example, the [`useSessionCode`](https://github.com/casper-ecosystem/cep-78-enhanced-nft/blob/dev/client-js/examples/usage.ts#L86-L88) variable decides if the user will call `mint` using session code, or not. It will be set to `true` if the `OwnerReverseLookupMode` is set to `Complete`. It then registers the recipient with the contract and mints the token.
 
-If you are not sure of your contract's setting, it can be checked using:
-
-```js
-const ownerReverseLookupModeSetting = await cc.getReportingModeConfig();
-```
+If `OwnerReverseLookupMode` is set to `NoLookup`, `useSessionCode` will be set to `false` and it will simply mint the token as it does not need to register the recipient.
 
 ## Transferring a Token
 
@@ -132,7 +128,7 @@ After minting one or more tokens, you can then use the following code to transfe
       source: FAUCET_KEYS.publicKey,
       target: USER1_KEYS.publicKey,
     },
-    { useSessionCode: true },
+    { useSessionCode },
     "13000000000",
     FAUCET_KEYS.publicKey,
     [FAUCET_KEYS]
@@ -149,6 +145,8 @@ Transferring accepts the following arguments:
 * `source` - The account sending the token in question.
 
 * `target` - The account receiving the transferred token.
+
+As above, the `useSessionCode` variable determines if the user will call `transfer` using session code based on the setting of `OwnerReverseLookupMode`.
 
 ## Burning a Token
 
