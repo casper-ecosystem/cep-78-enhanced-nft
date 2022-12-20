@@ -260,7 +260,7 @@ fn mint_should_return_dictionary_key_to_callers_owned_tokens() {
 
     let account_receipt = *account
         .named_keys()
-        .get(&format!("{}-m-{}-p-{}", nft_receipt, PAGE_SIZE, 0))
+        .get(&format!("{}_m_{}_p_{}", nft_receipt, PAGE_SIZE, 0))
         .expect("must have receipt");
 
     let actual_page = builder
