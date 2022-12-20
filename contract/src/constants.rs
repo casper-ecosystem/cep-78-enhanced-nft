@@ -22,7 +22,8 @@ pub const ARG_NFT_METADATA_KIND: &str = "nft_metadata_kind";
 pub const ARG_IDENTIFIER_MODE: &str = "identifier_mode";
 pub const ARG_METADATA_MUTABILITY: &str = "metadata_mutability";
 pub const ARG_BURN_MODE: &str = "burn_mode";
-
+pub const ARG_OWNER_LOOKUP_MODE: &str = "owner_reverse_lookup_mode";
+pub const ARG_NFT_PACKAGE_HASH: &str = "nft_package_hash";
 pub const OPERATOR: &str = "operator";
 pub const NUMBER_OF_MINTED_TOKENS: &str = "number_of_minted_tokens";
 pub const INSTALLER: &str = "installer";
@@ -55,6 +56,14 @@ pub const METADATA_CUSTOM_VALIDATED: &str = "metadata_custom_validated";
 pub const METADATA_CEP78: &str = "metadata_cep78";
 pub const METADATA_NFT721: &str = "metadata_nft721";
 pub const METADATA_RAW: &str = "metadata_raw";
+pub const PAGE_TABLE: &str = "page_table";
+pub const HASH_BY_INDEX: &str = "hash_by_index";
+pub const INDEX_BY_HASH: &str = "index_by_hash";
+pub const PAGE_DICTIONARY_PREFIX: &str = "page-";
+pub const PAGE_LIMIT: &str = "page_limit";
+pub const UNMATCHED_HASH_COUNT: &str = "unmatched_hash_count";
+pub const MIGRATION_FLAG: &str = "migration_flag";
+pub const REPORTING_MODE: &str = "reporting_mode";
 pub const ENTRY_POINT_INIT: &str = "init";
 pub const ENTRY_POINT_SET_VARIABLES: &str = "set_variables";
 pub const ENTRY_POINT_MINT: &str = "mint";
@@ -67,3 +76,9 @@ pub const ENTRY_POINT_GET_APPROVED: &str = "get_approved";
 pub const ENTRY_POINT_METADATA: &str = "metadata";
 pub const ENTRY_POINT_SET_APPROVE_FOR_ALL: &str = "set_approval_for_all";
 pub const ENTRY_POINT_SET_TOKEN_METADATA: &str = "set_token_metadata";
+pub const ENTRY_POINT_MIGRATE: &str = "migrate";
+pub const ENTRY_POINT_UPDATED_RECEIPTS: &str = "updated_receipts";
+pub const ENTRY_POINT_REGISTER_OWNER: &str = "register_owner";
+
+// The cap on the amount of tokens within a given CEP-78 collection.
+pub const MAX_TOTAL_TOKEN_SUPPLY: u64 = 1_000_000u64;

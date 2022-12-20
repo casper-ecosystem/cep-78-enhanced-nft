@@ -1,5 +1,6 @@
 use alloc::{
     borrow::ToOwned,
+    format,
     string::{String, ToString},
     vec,
     vec::Vec,
@@ -20,11 +21,21 @@ use casper_types::{
 };
 
 use crate::{
-    constants::{ARG_TOKEN_HASH, ARG_TOKEN_ID, HOLDER_MODE, OWNED_TOKENS, OWNERSHIP_MODE},
+    constants::{
+        ARG_TOKEN_HASH, ARG_TOKEN_ID, HOLDER_MODE, OWNERSHIP_MODE, PAGE_DICTIONARY_PREFIX,
+        PAGE_LIMIT, RECEIPT_NAME, REPORTING_MODE,
+    },
     error::NFTCoreError,
-    modalities::{NFTHolderMode, NFTIdentifierMode, OwnershipMode, TokenIdentifier},
-    BurnMode, BURNT_TOKENS, BURN_MODE,
+    modalities::{
+        NFTHolderMode, NFTIdentifierMode, OwnerReverseLookupMode, OwnershipMode, TokenIdentifier,
+    },
+    utils, BurnMode, BURNT_TOKENS, BURN_MODE, HASH_BY_INDEX, IDENTIFIER_MODE, INDEX_BY_HASH,
+    NUMBER_OF_MINTED_TOKENS, OWNED_TOKENS, PAGE_TABLE, TOKEN_OWNERS, UNMATCHED_HASH_COUNT,
 };
+
+// The size of a given page, it is currently set to 10
+// to ease the math around addressing newly minted tokens.
+pub const PAGE_SIZE: u64 = 1000;
 
 pub(crate) fn upsert_dictionary_value_from_key<T: CLTyped + FromBytes + ToBytes>(
     dictionary_name: &str,
@@ -342,39 +353,6 @@ pub(crate) fn get_token_identifiers_from_dictionary(
     }
 }
 
-pub(crate) fn upsert_token_identifiers(
-    identifier_mode: &NFTIdentifierMode,
-    owners_item_key: &str,
-    token_identifiers: Vec<TokenIdentifier>,
-) -> Result<(), NFTCoreError> {
-    match identifier_mode {
-        NFTIdentifierMode::Ordinal => {
-            let token_indices: Vec<u64> = token_identifiers
-                .into_iter()
-                .map(|token_identifier| {
-                    token_identifier
-                        .get_index()
-                        .unwrap_or_revert_with(NFTCoreError::InvalidIdentifierMode)
-                })
-                .collect();
-            upsert_dictionary_value_from_key(OWNED_TOKENS, owners_item_key, token_indices);
-            Ok(())
-        }
-        NFTIdentifierMode::Hash => {
-            let token_hashes: Vec<String> = token_identifiers
-                .into_iter()
-                .map(|token_identifier| {
-                    token_identifier
-                        .get_hash()
-                        .unwrap_or_revert_with(NFTCoreError::InvalidIdentifierMode)
-                })
-                .collect();
-            upsert_dictionary_value_from_key(OWNED_TOKENS, owners_item_key, token_hashes);
-            Ok(())
-        }
-    }
-}
-
 pub(crate) fn get_burn_mode() -> BurnMode {
     let burn_mode: BurnMode = get_stored_value_with_user_errors::<u8>(
         BURN_MODE,
@@ -389,4 +367,334 @@ pub(crate) fn get_burn_mode() -> BurnMode {
 pub(crate) fn is_token_burned(token_identifier: &TokenIdentifier) -> bool {
     get_dictionary_value_from_key::<()>(BURNT_TOKENS, &token_identifier.get_dictionary_item_key())
         .is_some()
+}
+
+pub(crate) fn max_number_of_pages(total_token_supply: u64) -> u64 {
+    if total_token_supply < PAGE_SIZE {
+        let dictionary_name = format!("{}{}", PAGE_DICTIONARY_PREFIX, 0);
+        storage::new_dictionary(&dictionary_name)
+            .unwrap_or_revert_with(NFTCoreError::FailedToCreateDictionary);
+        1
+    } else {
+        let max_number_of_pages = total_token_supply / PAGE_SIZE;
+        for page_number in 0..max_number_of_pages {
+            let dictionary_name = format!("{}{}", PAGE_DICTIONARY_PREFIX, page_number);
+            storage::new_dictionary(&dictionary_name)
+                .unwrap_or_revert_with(NFTCoreError::FailedToCreateDictionary);
+        }
+        max_number_of_pages
+    }
+}
+
+pub(crate) fn insert_hash_id_lookups(
+    current_number_of_minted_tokens: u64,
+    token_identifier: TokenIdentifier,
+) {
+    if token_identifier.get_index().is_some() {
+        return;
+    }
+    let hash_by_index_uref = get_uref(
+        HASH_BY_INDEX,
+        NFTCoreError::MissingHashByIndex,
+        NFTCoreError::InvalidHashByIndex,
+    );
+    let index_by_hash_uref = get_uref(
+        INDEX_BY_HASH,
+        NFTCoreError::MissingIndexByHash,
+        NFTCoreError::InvalidIndexByHash,
+    );
+    if storage::dictionary_get::<u64>(
+        index_by_hash_uref,
+        &token_identifier.get_dictionary_item_key(),
+    )
+    .unwrap_or_revert()
+    .is_some()
+    {
+        runtime::revert(NFTCoreError::InvalidNFTMetadataKind)
+    }
+    if storage::dictionary_get::<String>(
+        hash_by_index_uref,
+        &current_number_of_minted_tokens.to_string(),
+    )
+    .unwrap_or_revert()
+    .is_some()
+    {
+        runtime::revert(NFTCoreError::MissingNftKind)
+    }
+    storage::dictionary_put(
+        hash_by_index_uref,
+        &current_number_of_minted_tokens.to_string(),
+        token_identifier.clone().get_hash().unwrap_or_revert(),
+    );
+    storage::dictionary_put(
+        index_by_hash_uref,
+        &token_identifier.get_dictionary_item_key(),
+        current_number_of_minted_tokens,
+    );
+}
+
+// This function is used to create an hash string that
+// is meant to be used as the dictionary item key
+// for the page address dictionary.
+pub(crate) fn encode_page_address(token_owner_key: &Key, current_page_number: u64) -> String {
+    let mut preimage = Vec::new();
+    preimage.append(&mut token_owner_key.clone().to_bytes().unwrap_or_revert());
+    preimage.append(&mut current_page_number.to_bytes().unwrap_or_revert());
+
+    let key_bytes = runtime::blake2b(&preimage);
+    base16::encode_lower(&key_bytes)
+}
+
+pub(crate) fn get_token_index(token_identifier: &TokenIdentifier) -> u64 {
+    match token_identifier {
+        TokenIdentifier::Index(token_index) => *token_index,
+        TokenIdentifier::Hash(_) => {
+            let index_by_hash_uref = get_uref(
+                INDEX_BY_HASH,
+                NFTCoreError::MissingIndexByHash,
+                NFTCoreError::InvalidIndexByHash,
+            );
+            storage::dictionary_get::<u64>(
+                index_by_hash_uref,
+                &token_identifier.get_dictionary_item_key(),
+            )
+            .unwrap_or_revert()
+            .unwrap_or_revert_with(NFTCoreError::InvalidTokenIdentifier)
+        }
+    }
+}
+
+pub(crate) fn migrate_owned_tokens_in_ordinal_mode() {
+    let current_number_of_minted_tokens = utils::get_stored_value_with_user_errors::<u64>(
+        NUMBER_OF_MINTED_TOKENS,
+        NFTCoreError::MissingTotalTokenSupply,
+        NFTCoreError::InvalidTotalTokenSupply,
+    );
+    let page_table_uref = get_uref(
+        PAGE_TABLE,
+        NFTCoreError::MissingPageTableURef,
+        NFTCoreError::InvalidPageTableURef,
+    );
+    let page_table_width = get_stored_value_with_user_errors::<u64>(
+        PAGE_LIMIT,
+        NFTCoreError::MissingPageLimit,
+        NFTCoreError::InvalidPageLimit,
+    );
+    let mut searched_token_ids: Vec<u64> = vec![];
+    for token_id in 0..current_number_of_minted_tokens {
+        if !searched_token_ids.contains(&token_id) {
+            let token_identifier = TokenIdentifier::new_index(token_id);
+            let token_owner_key = get_dictionary_value_from_key::<Key>(
+                TOKEN_OWNERS,
+                &token_identifier.get_dictionary_item_key(),
+            )
+            .unwrap_or_revert_with(NFTCoreError::MissingNftKind);
+            let token_owner_item_key = get_owned_tokens_dictionary_item_key(token_owner_key);
+            let owned_tokens_list = get_token_identifiers_from_dictionary(
+                &NFTIdentifierMode::Ordinal,
+                &token_owner_item_key,
+            )
+            .unwrap_or_revert();
+            for token_identifier in owned_tokens_list.into_iter() {
+                let token_id = token_identifier.get_index().unwrap_or_revert();
+                let page_number = token_id / PAGE_SIZE;
+                let page_index = token_id % PAGE_SIZE;
+                let mut page_record = match storage::dictionary_get::<Vec<bool>>(
+                    page_table_uref,
+                    &token_owner_item_key,
+                )
+                .unwrap_or_revert()
+                {
+                    Some(page_record) => page_record,
+                    None => vec![false; page_table_width as usize],
+                };
+                let page_uref = get_uref(
+                    &format!("{}{}", PAGE_DICTIONARY_PREFIX, page_number),
+                    NFTCoreError::MissingStorageUref,
+                    NFTCoreError::InvalidStorageUref,
+                );
+                let page_item_key = encode_page_address(&token_owner_key, page_number);
+                let _ = core::mem::replace(&mut page_record[page_number as usize], true);
+                storage::dictionary_put(page_table_uref, &token_owner_item_key, page_record);
+                let mut page = match storage::dictionary_get::<Vec<bool>>(page_uref, &page_item_key)
+                    .unwrap_or_revert()
+                {
+                    None => vec![false; PAGE_SIZE as usize],
+                    Some(single_page) => single_page,
+                };
+                let is_already_marked_as_owned =
+                    core::mem::replace(&mut page[page_index as usize], true);
+                if is_already_marked_as_owned {
+                    runtime::revert(NFTCoreError::InvalidPageIndex)
+                }
+                storage::dictionary_put(page_uref, &page_item_key, page);
+                searched_token_ids.push(token_id)
+            }
+        }
+    }
+}
+
+pub(crate) fn should_migrate_token_hashes(token_owner: Key) -> bool {
+    if get_token_identifiers_from_dictionary(
+        &NFTIdentifierMode::Hash,
+        &get_owned_tokens_dictionary_item_key(token_owner),
+    )
+    .is_none()
+    {
+        return false;
+    }
+    let page_table_uref = get_uref(
+        PAGE_TABLE,
+        NFTCoreError::MissingPageTableURef,
+        NFTCoreError::InvalidPageTableURef,
+    );
+    // If the owner has registered, then they will have an page table entry
+    // but it will contain no bits set.
+    let page_table = storage::dictionary_get::<Vec<bool>>(
+        page_table_uref,
+        &get_owned_tokens_dictionary_item_key(token_owner),
+    )
+    .unwrap_or_revert()
+    .unwrap_or_revert_with(NFTCoreError::UnregisteredOwnerFromMigration);
+    if page_table.contains(&true) {
+        return false;
+    }
+    true
+}
+
+pub(crate) fn migrate_token_hashes(token_owner: Key) {
+    let mut unmatched_hash_count = get_stored_value_with_user_errors::<u64>(
+        UNMATCHED_HASH_COUNT,
+        NFTCoreError::MissingUnmatchedHashCount,
+        NFTCoreError::InvalidUnmatchedHashCount,
+    );
+
+    if unmatched_hash_count == 0 {
+        runtime::revert(NFTCoreError::InvalidNumberOfMintedTokens)
+    }
+
+    let token_owner_item_key = get_owned_tokens_dictionary_item_key(token_owner);
+    let owned_tokens_list =
+        get_token_identifiers_from_dictionary(&NFTIdentifierMode::Hash, &token_owner_item_key)
+            .unwrap_or_revert_with(NFTCoreError::InvalidTokenOwner);
+
+    let page_table_uref = get_uref(
+        PAGE_TABLE,
+        NFTCoreError::MissingPageTableURef,
+        NFTCoreError::InvalidPageTableURef,
+    );
+
+    let page_table_width = get_stored_value_with_user_errors::<u64>(
+        PAGE_LIMIT,
+        NFTCoreError::MissingPageLimit,
+        NFTCoreError::InvalidPageLimit,
+    );
+
+    for token_identifier in owned_tokens_list.into_iter() {
+        let token_address = unmatched_hash_count - 1;
+        let page_table_entry = token_address / PAGE_SIZE;
+        let page_address = token_address % PAGE_SIZE;
+        let mut page_table =
+            match storage::dictionary_get::<Vec<bool>>(page_table_uref, &token_owner_item_key)
+                .unwrap_or_revert()
+            {
+                Some(page_record) => page_record,
+                None => vec![false; page_table_width as usize],
+            };
+        let _ = core::mem::replace(&mut page_table[page_table_entry as usize], true);
+        storage::dictionary_put(page_table_uref, &token_owner_item_key, page_table);
+        let page_uref = get_uref(
+            &format!("{}{}", PAGE_DICTIONARY_PREFIX, page_table_entry),
+            NFTCoreError::MissingStorageUref,
+            NFTCoreError::InvalidStorageUref,
+        );
+        let page_item_key = encode_page_address(&token_owner, page_table_entry);
+        let mut page = match storage::dictionary_get::<Vec<bool>>(page_uref, &page_item_key)
+            .unwrap_or_revert()
+        {
+            Some(single_page) => single_page,
+            None => vec![false; PAGE_SIZE as usize],
+        };
+        let _ = core::mem::replace(&mut page[page_address as usize], true);
+        storage::dictionary_put(page_uref, &page_item_key, page);
+        insert_hash_id_lookups(unmatched_hash_count - 1, token_identifier);
+        unmatched_hash_count -= 1;
+    }
+
+    let unmatched_hash_count_uref = get_uref(
+        UNMATCHED_HASH_COUNT,
+        NFTCoreError::MissingUnmatchedHashCount,
+        NFTCoreError::InvalidUnmatchedHashCount,
+    );
+
+    storage::write(unmatched_hash_count_uref, unmatched_hash_count);
+}
+
+// This function is incredibly gas expensive
+// DO not use this function unless absolutely necessary.
+pub(crate) fn get_owned_token_ids() -> Vec<TokenIdentifier> {
+    let token_owner: Key = get_verified_caller().unwrap_or_revert();
+    let token_item_key = get_owned_tokens_dictionary_item_key(token_owner);
+    let page_table = get_dictionary_value_from_key::<Vec<bool>>(PAGE_TABLE, &token_item_key)
+        .unwrap_or_revert_with(NFTCoreError::InvalidTokenOwner);
+    let identifier_mode: NFTIdentifierMode = get_stored_value_with_user_errors::<u8>(
+        IDENTIFIER_MODE,
+        NFTCoreError::MissingIdentifierMode,
+        NFTCoreError::InvalidIdentifierMode,
+    )
+    .try_into()
+    .unwrap_or_revert();
+    let mut token_identifiers: Vec<TokenIdentifier> = vec![];
+    for (page_table_entry, allocated) in page_table.into_iter().enumerate() {
+        if !allocated {
+            continue;
+        }
+        let page_uref = get_uref(
+            &format!("{}{}", PAGE_DICTIONARY_PREFIX, page_table_entry),
+            NFTCoreError::MissingStorageUref,
+            NFTCoreError::InvalidStorageUref,
+        );
+
+        let page_item_key = encode_page_address(&token_owner, page_table_entry as u64);
+        let page = storage::dictionary_get::<Vec<bool>>(page_uref, &page_item_key)
+            .unwrap_or_revert()
+            .unwrap_or_revert();
+
+        for (page_address, is_token_owned) in page.into_iter().enumerate() {
+            if !is_token_owned {
+                continue;
+            }
+            let token_number = (page_table_entry as u64 * PAGE_SIZE) + (page_address as u64);
+            let token_identifier = match identifier_mode {
+                NFTIdentifierMode::Ordinal => TokenIdentifier::new_index(token_number),
+                NFTIdentifierMode::Hash => get_dictionary_value_from_key::<String>(
+                    HASH_BY_INDEX,
+                    &token_number.to_string(),
+                )
+                .map(TokenIdentifier::new_hash)
+                .unwrap_or_revert(),
+            };
+            token_identifiers.push(token_identifier)
+        }
+    }
+    token_identifiers
+}
+
+pub(crate) fn get_receipt_name(page_table_entry: u64) -> String {
+    let receipt = utils::get_stored_value_with_user_errors::<String>(
+        RECEIPT_NAME,
+        NFTCoreError::MissingReceiptName,
+        NFTCoreError::InvalidReceiptName,
+    );
+    format!("{}-m-{}-p-{}", receipt, PAGE_SIZE, page_table_entry)
+}
+
+pub(crate) fn get_reporting_mode() -> OwnerReverseLookupMode {
+    utils::get_stored_value_with_user_errors::<u8>(
+        REPORTING_MODE,
+        NFTCoreError::MissingReportingMode,
+        NFTCoreError::InvalidReportingMode,
+    )
+    .try_into()
+    .unwrap_or_revert()
 }

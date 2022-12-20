@@ -5,7 +5,7 @@ use core::convert::TryFrom;
 use crate::NFTCoreError;
 
 #[repr(u8)]
-#[derive(PartialEq)]
+#[derive(PartialEq, Eq)]
 pub enum WhitelistMode {
     Unlocked = 0,
     Locked = 1,
@@ -24,7 +24,7 @@ impl TryFrom<u8> for WhitelistMode {
 }
 
 #[repr(u8)]
-#[derive(PartialEq, Clone, Copy)]
+#[derive(PartialEq, Eq, Clone, Copy)]
 pub enum NFTHolderMode {
     Accounts = 0,
     Contracts = 1,
@@ -86,7 +86,7 @@ impl TryFrom<u8> for NFTKind {
             0 => Ok(NFTKind::Physical),
             1 => Ok(NFTKind::Digital),
             2 => Ok(NFTKind::Virtual),
-            _ => Err(NFTCoreError::InvalidOwnershipMode),
+            _ => Err(NFTCoreError::InvalidNftKind),
         }
     }
 }
@@ -137,6 +137,7 @@ impl TryFrom<u8> for OwnershipMode {
 }
 
 #[repr(u8)]
+#[derive(PartialEq, Eq)]
 pub enum NFTIdentifierMode {
     Ordinal = 0,
     Hash = 1,
@@ -172,7 +173,7 @@ impl TryFrom<u8> for MetadataMutability {
     }
 }
 
-#[derive(PartialEq, Clone)]
+#[derive(PartialEq, Eq, Clone)]
 pub(crate) enum TokenIdentifier {
     Index(u64),
     Hash(String),
@@ -223,6 +224,24 @@ impl TryFrom<u8> for BurnMode {
             0 => Ok(BurnMode::Burnable),
             1 => Ok(BurnMode::NonBurnable),
             _ => Err(NFTCoreError::InvalidBurnMode),
+        }
+    }
+}
+
+#[repr(u8)]
+pub enum OwnerReverseLookupMode {
+    NoLookUp = 0,
+    Complete = 1,
+}
+
+impl TryFrom<u8> for OwnerReverseLookupMode {
+    type Error = NFTCoreError;
+
+    fn try_from(value: u8) -> Result<Self, Self::Error> {
+        match value {
+            0 => Ok(OwnerReverseLookupMode::NoLookUp),
+            1 => Ok(OwnerReverseLookupMode::Complete),
+            _ => Err(NFTCoreError::InvalidReportingMode),
         }
     }
 }

@@ -1,8 +1,9 @@
-import { CEP78Client } from "../src/index";
+import { CEP78Client, OwnerReverseLookupMode } from "../src/index";
 
 import {
   FAUCET_KEYS,
   USER1_KEYS,
+  USER2_KEYS,
   getDeploy,
   getAccountInfo,
   getAccountNamedKeyValue,
@@ -12,6 +13,17 @@ import {
 import { DeployUtil, CLPublicKey } from "casper-js-sdk";
 
 const { NODE_URL } = process.env;
+
+const runDeployFlow = async (deploy: DeployUtil.Deploy) => {
+  const deployHash = await deploy.send(NODE_URL!);
+
+  console.log("...... Deploy hash: ", deployHash);
+  console.log("...... Waiting for the deploy...");
+
+  await getDeploy(NODE_URL!, deployHash);
+
+  console.log(`...... Deploy ${deployHash} succedeed`);
+};
 
 const run = async () => {
   const cc = new CEP78Client(process.env.NODE_URL!, process.env.NETWORK_NAME!);
@@ -27,7 +39,7 @@ const run = async () => {
     console.log(`> Token ${id} metadata`, metadataOfZero);
   };
 
-  const accountInfo = await getAccountInfo(NODE_URL!, FAUCET_KEYS.publicKey);
+  let accountInfo = await getAccountInfo(NODE_URL!, FAUCET_KEYS.publicKey);
 
   console.log(`\n=====================================\n`);
 
@@ -47,7 +59,7 @@ const run = async () => {
   console.log(`... Contract Hash: ${contractHash}`);
   console.log(`... Contract Package Hash: ${contractPackageHash}`);
 
-  await cc.setContractHash(contractHash, undefined, true);
+  await cc.setContractHash(contractHash, undefined);
 
   console.log(`\n=====================================\n`);
 
@@ -66,87 +78,113 @@ const run = async () => {
   const whitelistModeSetting = await cc.getWhitelistModeConfig();
   console.log(`WhitelistMode: ${whitelistModeSetting}`);
 
+  const ownerReverseLookupModeSetting = await cc.getReportingModeConfig();
+  console.log(
+    `OwnerReverseLookupMode: ${ownerReverseLookupModeSetting}`
+  );
+
+  const useSessionCode =
+    ownerReverseLookupModeSetting ===
+    OwnerReverseLookupMode[OwnerReverseLookupMode.Complete];
+
   const JSONSetting = await cc.getJSONSchemaConfig();
 
   /* Mint */
   printHeader("Mint");
 
-  const mintDeploy = await cc.mint(
+  const mintDeploy = cc.mint(
     {
       owner: FAUCET_KEYS.publicKey,
       meta: {
-        type: "vehicle",
-        make: "Audi",
-        model: "S3",
-        fuelType: "petrol",
-        engineCapacity: "2000",
-        vin: "4Y1SL65848Z411439",
-        registrationDate: "2019-10-01",
+        color: "Blue",
+        size: "Medium",
+        material: "Aluminum",
+        condition: "Used",
       },
     },
-    "1000000000",
+    { useSessionCode },
+    "2000000000",
     FAUCET_KEYS.publicKey,
     [FAUCET_KEYS]
   );
 
-  const mintDeployHash = await mintDeploy.send(NODE_URL!);
-
-  console.log("...... Deploy hash: ", mintDeployHash);
-  console.log("...... Waiting for the deploy...");
-
-  await getDeploy(NODE_URL!, mintDeployHash);
-
-  console.log("Deploy Succedeed");
+  await runDeployFlow(mintDeploy);
 
   /* Token details */
+  await printTokenDetails("0", FAUCET_KEYS.publicKey);
 
-  printTokenDetails("0", FAUCET_KEYS.publicKey);
+  if (useSessionCode) {
+    /* Register */
+    printHeader("Register");
+
+    const registerDeployTwo = cc.register(
+      {
+        tokenOwner: USER1_KEYS.publicKey,
+      },
+      "1000000000",
+      USER1_KEYS.publicKey,
+      [USER1_KEYS]
+    );
+
+    await runDeployFlow(registerDeployTwo);
+  }
 
   /* Transfer */
   printHeader("Transfer");
 
-  const transferDeploy = await cc.transfer(
+  const transferDeploy = cc.transfer(
     {
       tokenId: "0",
       source: FAUCET_KEYS.publicKey,
       target: USER1_KEYS.publicKey,
+    },
+    { useSessionCode },
+    "13000000000",
+    FAUCET_KEYS.publicKey,
+    [FAUCET_KEYS]
+  );
+
+  await runDeployFlow(transferDeploy);
+
+  /* Token details */
+  await printTokenDetails("0", USER1_KEYS.publicKey);
+
+  /* Store owner of at account named key */
+  printHeader("Store owner of");
+
+  const storeOwnerOfDeploy = cc.storeOwnerOf(
+    {
+      keyName: "stored_owner_of_token",
+      tokenId: "0",
     },
     "13000000000",
     FAUCET_KEYS.publicKey,
     [FAUCET_KEYS]
   );
 
-  const transferDeployHash = await transferDeploy.send(NODE_URL!);
+  await runDeployFlow(storeOwnerOfDeploy);
 
-  console.log("...... Deploy hash: ", transferDeployHash);
-  console.log("...... Waiting for the deploy...");
+  // Getting new account info to update namedKeys
+  accountInfo = await getAccountInfo(NODE_URL!, FAUCET_KEYS.publicKey);
 
-  await getDeploy(NODE_URL!, transferDeployHash);
+  const storedOwnerValue = await getAccountNamedKeyValue(
+    accountInfo,
+    `stored_owner_of_token`
+  );
 
-  console.log("Deploy Succedeed");
-
-  /* Token details */
-
-  printTokenDetails("0", USER1_KEYS.publicKey);
+  console.log(".. storedOwnerValue UREF: ", storedOwnerValue);
 
   /* Burn */
   printHeader("Burn");
 
-  const burnDeploy = await cc.burn(
+  const burnDeploy = cc.burn(
     { tokenId: "0" },
     "13000000000",
     USER1_KEYS.publicKey,
     [USER1_KEYS]
   );
 
-  const burnDeployHash = await burnDeploy.send(NODE_URL!);
-
-  console.log("...... Deploy hash: ", burnDeployHash);
-  console.log("...... Waiting for the deploy...");
-
-  await getDeploy(NODE_URL!, burnDeployHash);
-
-  console.log("Deploy Succedeed");
+  await runDeployFlow(burnDeploy);
 };
 
 run();

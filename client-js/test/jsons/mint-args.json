@@ -1,0 +1,23 @@
+[
+  [
+    "token_owner",
+    {
+      "bytes": "007894d8458c82388f6d276c07c1c52033ac37b175fa722b9cc40e7a0157ce17fc",
+      "cl_type": "Key"
+    }
+  ],
+  [
+    "token_meta_data",
+    {
+      "bytes": "490000007b22636f6c6f72223a22426c7565222c2273697a65223a224d656469756d222c226d6174657269616c223a22416c756d696e756d222c22636f6e646974696f6e223a2255736564227d",
+      "cl_type": "String"
+    }
+  ],
+  [
+    "nft_contract_hash",
+    {
+      "bytes": "010c0f9056626a55273bd8238f595908f2e4d78acc2546bf1f78f39f814bc60fe4",
+      "cl_type": "Key"
+    }
+  ]
+]

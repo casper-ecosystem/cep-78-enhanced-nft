@@ -5,6 +5,7 @@ import {
   NFTMetadataKind,
   NFTIdentifierMode,
   MetadataMutability,
+  OwnerReverseLookupMode,
   MintingMode,
 } from "../src/index";
 
@@ -21,40 +22,25 @@ const install = async () => {
   const installDeploy = await cc.install(
     {
       collectionName: "my-collection",
-      collectionSymbol: "AMAG-ASSETS",
-      totalTokenSupply: "10000",
+      collectionSymbol: "MY-NFTS",
+      totalTokenSupply: "1000",
       ownershipMode: NFTOwnershipMode.Transferable,
       nftKind: NFTKind.Physical,
       jsonSchema: {
         properties: {
-          type: { name: "type", description: "", required: true },
-          make: { name: "make", description: "", required: true },
-          model: { name: "model", description: "", required: true },
-          fuelType: { name: "fuelType", description: "", required: false },
-          engineCapacity: {
-            name: "engineCapacity",
-            description: "",
-            required: false,
-          },
-          vin: { name: "vin", description: "", required: true },
-          registrationDate: {
-            name: "registrationDate",
-            description: "",
-            required: true,
-          },
-          typeCertificate: {
-            name: "typeCertificate",
-            description: "",
-            required: false,
-          },
+          color: { name: "color", description: "", required: true },
+          size: { name: "size", description: "", required: true },
+          material: { name: "material", description: "", required: true },
+          condition: { name: "condition", description: "", required: false },
         },
       },
       nftMetadataKind: NFTMetadataKind.CustomValidated,
       identifierMode: NFTIdentifierMode.Ordinal,
       metadataMutability: MetadataMutability.Immutable,
       mintingMode: MintingMode.Installer,
+      ownerReverseLookupMode: OwnerReverseLookupMode.Complete
     },
-    "165000000000",
+    "250000000000",
     FAUCET_KEYS.publicKey,
     [FAUCET_KEYS]
   );

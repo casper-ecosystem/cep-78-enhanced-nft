@@ -1,5 +1,9 @@
 import { CLKeyParameters } from "casper-js-sdk";
 
+export interface CallConfig {
+  useSessionCode: boolean;
+}
+
 export enum NFTOwnershipMode {
   Minter,
   Assigned,
@@ -50,6 +54,11 @@ export enum WhitelistMode {
   Locked,
 }
 
+export enum OwnerReverseLookupMode {
+  NoLookup,
+  Complete,
+}
+
 export interface JSONSchemaEntry {
   name: string;
   description: string;
@@ -79,7 +88,12 @@ export type InstallArgs = {
   whitelistMode?: WhitelistMode;
   holderMode?: NFTHolderMode;
   burnMode?: BurnMode;
+  ownerReverseLookupMode?: OwnerReverseLookupMode;
 } & ConfigurableVariables;
+
+export interface RegisterArgs {
+  tokenOwner: CLKeyParameters;
+}
 
 export interface MintArgs {
   owner: CLKeyParameters;
@@ -97,3 +111,32 @@ export type TransferArgs = {
   target: CLKeyParameters;
   source: CLKeyParameters;
 } & TokenArgs;
+
+export type TokenMetadataArgs = {
+  tokenMetaData: Record<string, string>;
+};
+
+export type StoreBalanceOfArgs = {
+  tokenOwner: CLKeyParameters;
+  keyName: string;
+};
+
+export type StoreApprovedArgs = {
+  keyName: string;
+} & TokenArgs;
+
+export type StoreOwnerOfArgs = StoreApprovedArgs;
+
+export type ApproveArgs = {
+  operator: CLKeyParameters;
+} & TokenArgs;
+
+export type ApproveAllArgs = {
+  operator: CLKeyParameters;
+  approveAll: boolean;
+  tokenOwner: CLKeyParameters;
+};
+
+export type MigrateArgs = {
+  collectionName: string;
+};
