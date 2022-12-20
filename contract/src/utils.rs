@@ -726,7 +726,7 @@ pub(crate) fn get_receipt_name(page_table_entry: u64) -> String {
         NFTCoreError::MissingReceiptName,
         NFTCoreError::InvalidReceiptName,
     );
-    format!("{}-m-{}-p-{}", receipt, PAGE_SIZE, page_table_entry)
+    format!("{}_m_{}_p_{}", receipt, PAGE_SIZE, page_table_entry)
 }
 
 pub(crate) fn get_reporting_mode() -> OwnerReverseLookupMode {

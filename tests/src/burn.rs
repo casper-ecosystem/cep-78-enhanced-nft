@@ -459,30 +459,30 @@ fn should_allow_contract_to_burn_token() {
 
     assert_eq!(1u64, current_token_balance);
 
-    // let burn_via_contract_call = ExecuteRequestBuilder::contract_call_by_hash(
-    //     *DEFAULT_ACCOUNT_ADDR,
-    //     minting_contract_hash,
-    //     ENTRY_POINT_BURN,
-    //     runtime_args! {
-    //         ARG_NFT_CONTRACT_HASH => nft_contract_key,
-    //         ARG_TOKEN_ID => 0u64
-    //     },
-    // )
-    // .build();
-    //
-    // builder
-    //     .exec(burn_via_contract_call)
-    //     .expect_success()
-    //     .commit();
-    //
-    // let updated_token_balance = get_dictionary_value_from_key::<u64>(
-    //     &builder,
-    //     &nft_contract_key,
-    //     TOKEN_COUNTS,
-    //     &minting_contract_hash.to_string(),
-    // );
-    //
-    // assert_eq!(updated_token_balance, 0u64)
+    let burn_via_contract_call = ExecuteRequestBuilder::contract_call_by_hash(
+        *DEFAULT_ACCOUNT_ADDR,
+        minting_contract_hash,
+        ENTRY_POINT_BURN,
+        runtime_args! {
+            ARG_NFT_CONTRACT_HASH => nft_contract_key,
+            ARG_TOKEN_ID => 0u64
+        },
+    )
+    .build();
+
+    builder
+        .exec(burn_via_contract_call)
+        .expect_success()
+        .commit();
+
+    let updated_token_balance = get_dictionary_value_from_key::<u64>(
+        &builder,
+        &nft_contract_key,
+        TOKEN_COUNTS,
+        &minting_contract_hash.to_string(),
+    );
+
+    assert_eq!(updated_token_balance, 0u64)
 }
 
 #[test]
