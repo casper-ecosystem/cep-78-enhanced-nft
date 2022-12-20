@@ -122,7 +122,7 @@ As we used `ownerReverseLookupMode: OwnerReverseLookupMode.Complete` in this con
 
 ```js
 
-    const registerDeployTwo = cc.register(
+    const registerDeploy = cc.register(
       {
         tokenOwner: USER1_KEYS.publicKey,
       },
@@ -131,7 +131,9 @@ As we used `ownerReverseLookupMode: OwnerReverseLookupMode.Complete` in this con
       [USER1_KEYS]
     );
 
-    const registerDeployHash = await mintDeploy.send("http://localhost:11101/rpc");
+    const registerDeployHash = await registerDeploy.send("http://localhost:11101/rpc");
+    
+```
     
 ## Transferring a Token
 
