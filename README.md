@@ -292,7 +292,7 @@ If you are merging a contract from version 1.0 to 1.1, `OwnerReverseLookupMode` 
 
 The `MetadataMutability` option of `Mutable` cannot be used in conjunction with `NFTIdentifierMode` modality of `Hash`.
 
-If `ownership_mode` is set to `minter`, `OwnerReverseLookupMode` will be set to `NoLookup`, as all tokens are inherently owned by the single minting account or contract. This rule applies to newly installed contracts.
+If `ownership_mode` is set to `minter` and the minting mode is set to `Installer` only, `OwnerReverseLookupMode` will be set to `NoLookup`. This is due to ownership of all tokens inherently belonging to the single minting account or contract. This rule applies only to newly installed contracts.
 
 ### Usage
 
