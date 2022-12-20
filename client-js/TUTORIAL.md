@@ -4,12 +4,16 @@ This tutorial outlines the usage of the JavaScript client available for the CEP-
 
 Further information on the CEP-78 Enhanced NFT Standard can be found [here](https://github.com/casper-ecosystem/cep-78-enhanced-nft).
 
-## Installing Dependencies
+The client is available in the npm as [casper-cep78-js-client](https://www.npmjs.com/package/casper-cep78-js-client).
 
-Dependencies can be installed using the following command in the `client-js` directory:
+## Client Installation
+
+The client can be installed in a project you have built using TypeScript / Javascript.
+
+To install run:
 
 ```js
-npm i
+npm install casper-cep78-js-client
 ```
 
 ## Installing a CEP-78 Contract using the JavaScript Client
@@ -62,7 +66,7 @@ As every deploy created by the SDK you can send it using `.send(rpcUrl)` method 
 
 * `nftKind` - The `NFTKind` modality that specifies the off-chain items represented by the on-chain NFT data. This argument is passed in as a `u8` value and is required at the time of installation.
 
-* `jsonSchema` - The JSON schema for the NFT tokens that will be minted by the NFT contract passed in as a `String`. This parameter is required if the metadata kind is set to `CustomValidated(4)` and **cannot be changed post installation**.
+* `jsonSchema` - The JSON schema for the NFT tokens that will be minted by the NFT contract passed in as a `String`. More information on `NFTMetadataKind` can be found [here](https://github.com/casper-ecosystem/cep-78-enhanced-nft#nftmetadatakind). This parameter may be left empty if metadata kind is set to `Raw(3)`. If the metadata kind is set to `CustomValidated(4)`, it will require a specifically formatted custom schema. This parameter **cannot be changed post installation**.
 
 * `nftMetadataKind` - The metadata schema for the NFTs to be minted by the NFT contract. This argument is passed in as a `u8` value and is required at the time of installation.
 
@@ -150,17 +154,17 @@ The following code shows how to burn a minted NFT that you hold and have access 
 
 ```
 
-## Testing
+## Example Usages
 
-### Running an Install Test
+### Running an Install Example
 
-This repository includes a test script for installing a CEP-78 contract instance.
+This repository includes an example script for installing a CEP-78 contract instance.
 
 You will need to define the following variables in the `.env` file:
 
 * `NODE_URL` - The address of a node. If you are testing using [NCTL](https://docs.casperlabs.io/dapp-dev-guide/building-dapps/setup-nctl/), this will be `http://localhost:11101/rpc`.
 
-* `NETWORK_NAME` - The name of the Casper network you are testing on, `casper-net-1` when testing using a local network with NCTL.
+* `NETWORK_NAME` - The name of the Casper network you are operating on, `casper-net-1` when testing using a local network with NCTL.
 
 * `MASTER_KEY_PAIR_PATH` - The path to the key pair of the minting account.
 
@@ -172,31 +176,33 @@ You may also need to install associated dependencies using:
 npm i
 ```
 
-This test can be run using the following command:
+This example can be run using the following command:
 
 ```js
-npm run test:install
+npm run example:install
 ```
 
-The test will then return the installation's `deployHash`, and inform you when the installation is successful.
+The example will then return the installation's `deployHash`, and inform you when the installation is successful.
 
-The test will then provide the installing account's information, which will include the CEP-78 NFT contract's hash and package hash.
+The example will then provide the installing account's information, which will include the CEP-78 NFT contract's hash and package hash.
 
 
-### Running a Usage Test
+### Running a Usage Example
 
-A usage test uses the same variables as the Install test above, but tests the basic functionality of the contract after installation.
+A usage example uses the same variables as the Install example above, but tests the basic functionality of the contract after installation.
 
-The usage test can be run using the following command:
+The usage example can be run using the following command:
 
 ```js
-npm run test:usage
+npm run example:usage
 ```
 
-This test will acquire the contract's hash and package hash, prior to sending three separate deploys to perform several function tests as follows:
+This example will acquire the contract's hash and package hash, prior to sending three separate deploys to perform several function tests as follows:
 
-* `Mint` - The test will attempt to mint an NFT using the installation account.
+* `Mint` - The example will attempt to mint an NFT using the installation account.
 
-* `Transfer` - The test will transfer the previously minted NFT to a second account (USER1 as defined in the variables.)
+* `Transfer` - The example will transfer the previously minted NFT to a second account (USER1 as defined in the variables.)
 
-* `Burn` - The test will burn the minted NFT.
+* `Burn` - The example will burn the minted NFT.
+
+The associated code for these deploys may be found in the `client-js/examples` directory.
