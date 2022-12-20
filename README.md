@@ -21,7 +21,7 @@ The release of version 1.1 for the CEP-78 Enhanced NFT Standard includes the fol
 
     * The pros and cons of either approach should be considered when installing a new CEP-78 contract. By default, new CEP-78 contract instances will default to the `OwnerReverseLookupMode::NoLookup` option, which has the lowest operating costs and optimal scaling characteristics. However, the `OwnerReverseLookupMode::Complete` option can be chosen upon install, which will allow the contract to write the necessary additional data to allow a full lookup by owner.
 
-    * To allow isolation of the additional costs, or tracking individual owners, the reverse lookup mode supports a register entrypoint which is used to register owners prior to minting or receiving a transferred token. If `ownership_mode` is set to `Minter`, this gas cost must be paid by the minter. In either `Assigned` or `Transferable` mode, this register entrypoint can be called by any party on behalf of another party.
+    * To allow isolation of the additional costs, or tracking individual owners, the reverse lookup mode supports a register entrypoint which is used to register owners prior to minting or receiving a transferred token. In either `Assigned` or `Transferable` mode, this register entrypoint can be called by any party on behalf of another party.
 
 * A single instance of CEP-78 is limited to 1,000,000 tokens maximum.
 
