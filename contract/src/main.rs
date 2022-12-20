@@ -1340,48 +1340,48 @@ pub extern "C" fn migrate() {
 
 #[no_mangle]
 pub extern "C" fn updated_receipts() {
-    if let OwnerReverseLookupMode::NoLookUp = utils::get_reporting_mode() {
-        runtime::revert(NFTCoreError::InvalidReportingMode)
-    }
+    if let OwnerReverseLookupMode::Complete = utils::get_reporting_mode() {
+        let token_owner = utils::get_verified_caller().unwrap_or_revert();
 
-    let token_owner = utils::get_verified_caller().unwrap_or_revert();
+        let identifier_mode: NFTIdentifierMode = utils::get_stored_value_with_user_errors::<u8>(
+            IDENTIFIER_MODE,
+            NFTCoreError::MissingIdentifierMode,
+            NFTCoreError::InvalidIdentifierMode,
+        )
+        .try_into()
+        .unwrap_or_revert();
 
-    let identifier_mode: NFTIdentifierMode = utils::get_stored_value_with_user_errors::<u8>(
-        IDENTIFIER_MODE,
-        NFTCoreError::MissingIdentifierMode,
-        NFTCoreError::InvalidIdentifierMode,
-    )
-    .try_into()
-    .unwrap_or_revert();
-
-    if identifier_mode == NFTIdentifierMode::Hash && utils::should_migrate_token_hashes(token_owner)
-    {
-        utils::migrate_token_hashes(token_owner);
-    }
-
-    let token_owner_item_key = utils::get_owned_tokens_dictionary_item_key(token_owner);
-
-    let page_table =
-        utils::get_dictionary_value_from_key::<Vec<bool>>(PAGE_TABLE, &token_owner_item_key)
-            .unwrap_or_default();
-
-    let mut updated_receipts: Vec<(String, Key)> = vec![];
-
-    for (page_table_entry, allocated) in page_table.into_iter().enumerate() {
-        if !allocated {
-            continue;
+        if identifier_mode == NFTIdentifierMode::Hash
+            && utils::should_migrate_token_hashes(token_owner)
+        {
+            utils::migrate_token_hashes(token_owner);
         }
-        let page_uref = utils::get_uref(
-            &format!("{}{}", PAGE_DICTIONARY_PREFIX, page_table_entry),
-            NFTCoreError::MissingPageUref,
-            NFTCoreError::InvalidPageUref,
-        );
-        let page_dictionary_address = Key::dictionary(page_uref, token_owner_item_key.as_bytes());
-        let receipt_name = utils::get_receipt_name(page_table_entry as u64);
-        updated_receipts.push((receipt_name, page_dictionary_address))
-    }
 
-    runtime::ret(CLValue::from_t(updated_receipts).unwrap_or_revert())
+        let token_owner_item_key = utils::get_owned_tokens_dictionary_item_key(token_owner);
+
+        let page_table =
+            utils::get_dictionary_value_from_key::<Vec<bool>>(PAGE_TABLE, &token_owner_item_key)
+                .unwrap_or_default();
+
+        let mut updated_receipts: Vec<(String, Key)> = vec![];
+
+        for (page_table_entry, allocated) in page_table.into_iter().enumerate() {
+            if !allocated {
+                continue;
+            }
+            let page_uref = utils::get_uref(
+                &format!("{}{}", PAGE_DICTIONARY_PREFIX, page_table_entry),
+                NFTCoreError::MissingPageUref,
+                NFTCoreError::InvalidPageUref,
+            );
+            let page_dictionary_address =
+                Key::dictionary(page_uref, token_owner_item_key.as_bytes());
+            let receipt_name = utils::get_receipt_name(page_table_entry as u64);
+            updated_receipts.push((receipt_name, page_dictionary_address))
+        }
+
+        runtime::ret(CLValue::from_t(updated_receipts).unwrap_or_revert())
+    }
 }
 
 #[no_mangle]
