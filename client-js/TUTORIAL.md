@@ -101,7 +101,7 @@ The CEP-78 JS Client includes code to construct a deploy that will `Mint` a toke
         condition: "Used",
       },
     },
-    { useSessionCode },
+    { useSessionCode: true },
     "2000000000",
     FAUCET_KEYS.publicKey,
     [FAUCET_KEYS]
@@ -112,7 +112,13 @@ The CEP-78 JS Client includes code to construct a deploy that will `Mint` a toke
 ```
 The arguments adhere to those provided in the original installation, with the `.send()` pointing to a valid RPC URL on your target Casper network. In this instance, we are using an NCTL RPC URL.
 
-In this example, [`{ useSessionCode }`](https://github.com/casper-ecosystem/cep-78-enhanced-nft/blob/dev/client-js/examples/usage.ts#L86-L88) updates the `page_table` and `page` dictionaries as appropriate for `ownerReverseLookupMode` functionality.
+In this example, [`{ useSessionCode: true }`](https://github.com/casper-ecosystem/cep-78-enhanced-nft/blob/dev/client-js/examples/usage.ts#L86-L88) updates the `page_table` and `page` dictionaries as appropriate for `OwnerReverseLookupMode.Complete` functionality. If this modality is set to `OwnerReverseLookUpMode.NoLookup`, it should be set to `{ useSessionCode: false }`.
+
+If you are not sure of your contract's setting, it can be checked using:
+
+```js
+const ownerReverseLookupModeSetting = await cc.getReportingModeConfig();
+```
 
 ## Transferring a Token
 
@@ -126,7 +132,7 @@ After minting one or more tokens, you can then use the following code to transfe
       source: FAUCET_KEYS.publicKey,
       target: USER1_KEYS.publicKey,
     },
-    { useSessionCode },
+    { useSessionCode: true },
     "13000000000",
     FAUCET_KEYS.publicKey,
     [FAUCET_KEYS]
