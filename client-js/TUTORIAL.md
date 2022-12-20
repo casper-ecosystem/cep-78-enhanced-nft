@@ -116,7 +116,7 @@ In this example, the [`useSessionCode`](https://github.com/casper-ecosystem/cep-
 
 If `OwnerReverseLookupMode` is set to `NoLookup`, `useSessionCode` will be set to `false` and it will simply mint the token as it does not need to register the recipient.
 
-## Register recipient 
+## Register Recipient 
 
 As we used `ownerReverseLookupMode: OwnerReverseLookupMode.Complete` in this contract installation, we must register the recipient. To do this, we construct a `register` deploy:
 
