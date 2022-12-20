@@ -15,9 +15,9 @@
 
 The release of version 1.1 for the CEP-78 Enhanced NFT Standard includes the following:
 
-* [Gas stabilization through the use of of page dictionaries](#data-storage-and-gas-stabilization).
+* [Added the new `OwnerReverseLookupMode` Modality and underlying structure](#owner-reverse-lookup-functionality).
 
-* `OwnerReverseLookupMode` Modality - A modality that allows lookup of which NFTs are owned by a given account or contract. [More information is available here](#ownerreverselookupmode). If this modality is set to `NoLookup`, tokens will retain ownership data, but this data will not be natively indexed.
+* `OwnerReverseLookupMode` Modality - A modality that allows lookup of which NFTs are owned by a given account or contract. If this modality is set to `NoLookup`, tokens will retain ownership data, but this data will not be natively indexed.
 
 * Owners must be registered prior to minting **or receiving a transferred token** as an account must pay upfront for page allocation.
 
@@ -25,8 +25,8 @@ The release of version 1.1 for the CEP-78 Enhanced NFT Standard includes the fol
 
     * Multiple instances of CEP-78 installed from a single account/contract must differentiate their name.
 
-    * If you require multiple contracts for a CEP-78 implementation, we suggest differentiating the contracts by following this syntax: `<collection name>_series_1` and incrementing the number with each instance.
-    
+    * If an account installs more than one contract instance with the same collection name, it can lead to collision. It is recommended that all collection names be distinct or differentiated from each other via a suffix or sequence number as you prefer. Alternately, you may choose to not use the provided installation session logic and solve such a collision as you see fit.
+
     * **If an account attempts to install a second CEP-78 contract with the same name, it will overwrite the access rights and render the first instance unusable.**
 
 * New entry points related to the gas stabilization efforts.
@@ -37,7 +37,7 @@ The release of version 1.1 for the CEP-78 Enhanced NFT Standard includes the fol
 
   * `migrate` - An entrypoint used to update a CEP-78 version 1.0 contract to the new version. Sending a deploy with *contract.wasm* will initiate the migration process, adding the 1.1 contract version to the contract package and will invoke the `migrate` entry point in order to perform the necessary data migration.
 
-* Syntax for a CEP-78 contract package has changed from `nft_contract_package` to `cep78_contract_package`.
+* The naming convention for the default named key prefix of a given CEP-78 contract instance has been changed to `cep78_<collection_name>` with spaces and dashes within the collection name converted to underscores.
 
 ## Table of Contents
 
@@ -275,8 +275,8 @@ The `OwnerReverseLookupMode` modality dictates whether the contract supports ret
 Additionally, it also dictates whether receipts pointing to the various pages are also returned by the `mint` and `transfer`
 entrypoints. This modality provides two options:
 
-1. `NoLookup`: The reporting and receipt functionality is not supported.
-2. `Complete`: The reporting and receipt functionality is supported.
+1. `NoLookup`: The reporting and receipt functionality is not supported. In this option, the contract instance does not maintain a reverse lookup database of ownership and therefore has more predictable gas costs and greater scaling.
+2. `Complete`: The reporting and receipt functionality is supported. Token ownership will be tracked by the contract instance using the system described [here](#owner-reverse-lookup-functionality).
 
 | OwnerReverseLookupMode | u8  |
 |------------------------|-----|
@@ -544,9 +544,13 @@ ensures that as new modalities are added, and current modalities are extended, n
 The test suite also asserts the correct working behavior of the utility session code provided in the client folder. The tests can be run 
 by using the provided `Makefile` and running the `make test` command.
 
-## Data Storage and Gas Stabilization
+## Owner Reverse Lookup Functionality
 
 In version 1.0 of the CEP-78 Enhanced NFT Standard contract, tracking minted tokens consisted of a single, unbounded list that would grow in size with each additional token. As a result, gas costs would increase over time as the list must be overwritten with each new minting.
+
+Ownership of NFTs issued by a given CEP-78 contract instance are tracked by `token id`. The current owner of any given token by `token id` is available using the `owned_by` entry point. However, some use cases benefit from the ability to list all NFTs from a given CEP-78 contract instance owned by a specific owner. The CEP-78 Enhanced NFT Standard supports this reverse lookup option by requiring a contract instance to keep track of additional data. This additional data causes higher gas fees for all mints and transfers. The gas cost to lookup a given owner is also unpredictable due to variability in the size of different CEP-78 collections. A large collection will require an appropriately larger gas cost to read and return.
+
+The pros and cons of either approach should be considered when installing a new CEP-78 contract. New instance of the CEP-78 contract will default to the `NoLookup` option, which features the lowest operating costs and optimal scaling. However, the `Complete` option can be chosen, which will write the necessary additional data to allow a full lookup by owner.
 
 In an effort to stabilize the gas costs of larger NFT collections, version 1.1 of CEP-78 includes the use of a pre-allocated page system to track ownership of NFTs within the contract.
 
