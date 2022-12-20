@@ -1,0 +1,9 @@
+[
+   [
+      "allow_minting",
+      {
+         "bytes":"01",
+         "cl_type":"Bool"
+      }
+   ]
+]

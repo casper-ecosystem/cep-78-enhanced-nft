@@ -1,0 +1,37 @@
+[
+  [
+    "target_key",
+    {
+      "bytes": "0055e148e54479bbf8e38a10939b113d1cde7f558761022c32601684c5a00547ad",
+      "cl_type": "Key"
+    }
+  ],
+  [
+    "source_key",
+    {
+      "bytes": "007894d8458c82388f6d276c07c1c52033ac37b175fa722b9cc40e7a0157ce17fc",
+      "cl_type": "Key"
+    }
+  ],
+  [
+    "is_hash_identifier_mode",
+    {
+      "bytes": "00",
+      "cl_type": "Bool"
+    }
+  ],
+  [
+    "token_id",
+    {
+      "bytes": "0000000000000000",
+      "cl_type": "U64"
+    }
+  ],
+  [
+    "nft_contract_hash",
+    {
+      "bytes": "010c0f9056626a55273bd8238f595908f2e4d78acc2546bf1f78f39f814bc60fe4",
+      "cl_type": "Key"
+    }
+  ]
+]
