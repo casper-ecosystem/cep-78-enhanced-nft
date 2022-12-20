@@ -23,9 +23,9 @@ As every deploy created by the SDK you can send it using `.send(rpcUrl)` method 
 
 ```js
 
-  const contractClient  = new CEP78Client(process.env.NODE_URL!, process.env.NETWORK_NAME!);
+  const cc = new CEP78Client(process.env.NODE_URL!, process.env.NETWORK_NAME!);
 
-  const installDeploy = await contractClient.install(
+  const installDeploy = await cc.install(
     {
       collectionName: "my-collection",
       collectionSymbol: "MY-NFTS",
@@ -44,8 +44,9 @@ As every deploy created by the SDK you can send it using `.send(rpcUrl)` method 
       identifierMode: NFTIdentifierMode.Ordinal,
       metadataMutability: MetadataMutability.Immutable,
       mintingMode: MintingMode.Installer,
+      ownerReverseLookupMode: OwnerReverseLookupMode.Complete
     },
-    "165000000000",
+    "250000000000",
     FAUCET_KEYS.publicKey,
     [FAUCET_KEYS]
   );
@@ -80,6 +81,8 @@ As every deploy created by the SDK you can send it using `.send(rpcUrl)` method 
 
 * `burnMode` - The `BurnMode` modality dictates whether minted NFTs can be burnt. This optional parameter will allow tokens to be burnt by default. **This parameter cannot be changed once the contract has been installed**.
 
+* `ownerReverseLookupMode` - The `OwnerReverseLookupMode` dictates whether the contract will index ownership of tokens as outlined [here](https://github.com/casper-ecosystem/cep-78-enhanced-nft#the-cep-78-page-system) to allow lookup of owned tokens by account. **This parameter cannot be changed once the contract has been installed**.
+
 Further information on CEP-78 modality options can be found in the base [cep-78-enhanced-nft](https://github.com/ACStoneCL/cep-78-enhanced-nft) repository on GitHub.
 
 ## Minting a Token
@@ -88,7 +91,7 @@ The CEP-78 JS Client includes code to construct a deploy that will `Mint` a toke
 
 ```js
 
-  const mintDeploy = await contractClient.mint(
+  const mintDeploy = cc.mint(
     {
       owner: FAUCET_KEYS.publicKey,
       meta: {
@@ -98,15 +101,16 @@ The CEP-78 JS Client includes code to construct a deploy that will `Mint` a toke
         condition: "Used",
       },
     },
-    "1000000000",
+    { useSessionCode },
+    "2000000000",
     FAUCET_KEYS.publicKey,
     [FAUCET_KEYS]
   );
 
-  const mintDeployHash = await mintDeploy.send(NODE_URL!);
+  const mintDeployHash = await mintDeploy.send(http://localhost:11101/rpc);
 
 ```
-The arguments adhere to those provided in the original installation.
+The arguments adhere to those provided in the original installation, with the `.send()` pointing to a valid RPC URL on your target Casper network. In this instance, we are using an NCTL RPC URL.
 
 ## Transferring a Token
 
@@ -114,18 +118,19 @@ After minting one or more tokens, you can then use the following code to transfe
 
 ```js
 
-  const transferDeploy = await contractClient.transfer(
+  const transferDeploy = cc.transfer(
     {
       tokenId: "0",
       source: FAUCET_KEYS.publicKey,
       target: USER1_KEYS.publicKey,
     },
+    { useSessionCode },
     "13000000000",
     FAUCET_KEYS.publicKey,
     [FAUCET_KEYS]
   );
 
-  const transferDeployHash = await transferDeploy.send(NODE_URL!);
+  const transferDeployHash = await transferDeploy.send(http://localhost:11101/rpc);
 
 ```
 
@@ -150,7 +155,7 @@ The following code shows how to burn a minted NFT that you hold and have access 
     [USER1_KEYS]
   );
 
-  const burnDeployHash = await burnDeploy.send(NODE_URL!);
+  const burnDeployHash = await burnDeploy.send(http://localhost:11101/rpc);
 
 ```
 
