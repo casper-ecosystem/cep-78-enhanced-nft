@@ -112,6 +112,8 @@ The CEP-78 JS Client includes code to construct a deploy that will `Mint` a toke
 ```
 The arguments adhere to those provided in the original installation, with the `.send()` pointing to a valid RPC URL on your target Casper network. In this instance, we are using an NCTL RPC URL.
 
+In this example, [`{ useSessionCode }`](https://github.com/casper-ecosystem/cep-78-enhanced-nft/blob/dev/client-js/examples/usage.ts#L86-L88) updates the `page_table` and `page` dictionaries as appropriate for `ownerReverseLookupMode` functionality.
+
 ## Transferring a Token
 
 After minting one or more tokens, you can then use the following code to transfer the tokens between accounts:
