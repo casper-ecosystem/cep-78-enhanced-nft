@@ -112,7 +112,7 @@ The CEP-78 JS Client includes code to construct a deploy that will `Mint` a toke
 ```
 The arguments adhere to those provided in the original installation, with the `.send()` pointing to a valid RPC URL on your target Casper network. In this instance, we are using an NCTL RPC URL.
 
-In this example, the [`useSessionCode`](https://github.com/casper-ecosystem/cep-78-enhanced-nft/blob/dev/client-js/examples/usage.ts#L86-L88) variable decides if the user will call `mint` using session code, or not. It will be set to `true` if the `OwnerReverseLookupMode` is set to `Complete`. It then registers the recipient with the contract and mints the token.
+In this example, the [`useSessionCode`](https://github.com/casper-ecosystem/cep-78-enhanced-nft/blob/dev/client-js/examples/usage.ts#L86-L88) variable decides if the user will call `mint` using session code, or not. It will be set to `true` if the `OwnerReverseLookupMode` is set to `Complete`. [It then registers the recipient with the contract](https://github.com/casper-ecosystem/cep-78-enhanced-nft/blob/dev/client-js/examples/usage.ts#L116-L130) and mints the token.
 
 If `OwnerReverseLookupMode` is set to `NoLookup`, `useSessionCode` will be set to `false` and it will simply mint the token as it does not need to register the recipient.
 
