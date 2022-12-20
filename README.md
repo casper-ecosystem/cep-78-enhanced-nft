@@ -11,7 +11,7 @@
 - A NFT contract instance must validate provided metadata against the specified metadata schema for that contract.
 - Standardized session code to interact with an NFT contract instance must be usable as is, so that a given DApp developer doesn't have to write any Wasm producing logic for normal usage of NFT contract instances produced by this contract.
 
-## New in Version 1.1 {#new-version}
+## New in Version 1.1
 
 The release of version 1.1 for the CEP-78 Enhanced NFT Standard includes the following:
 
