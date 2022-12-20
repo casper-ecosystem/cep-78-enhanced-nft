@@ -115,9 +115,10 @@ The arguments adhere to those provided in the original installation, with the `.
 In this example, the [`useSessionCode`](https://github.com/casper-ecosystem/cep-78-enhanced-nft/blob/dev/client-js/examples/usage.ts#L86-L88) variable decides if the user will call `mint` using session code, or not. It will be set to `true` if the `OwnerReverseLookupMode` is set to `Complete`. [It then registers the recipient with the contract](https://github.com/casper-ecosystem/cep-78-enhanced-nft/blob/dev/client-js/examples/usage.ts#L116-L130) and mints the token.
 
 If `OwnerReverseLookupMode` is set to `NoLookup`, `useSessionCode` will be set to `false` and it will simply mint the token as it does not need to register the recipient.
+
 ## Register recipient 
 
-Now that we used `ownerReverseLookupMode: OwnerReverseLookupMode.Complete` in this contract installation, we need to register a recipient. To do this, let's construct a `register` deploy
+As we used `ownerReverseLookupMode: OwnerReverseLookupMode.Complete` in this contract installation, we must register the recipient. To do this, we construct a `register` deploy:
 
 ```js
 
