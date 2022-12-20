@@ -1386,56 +1386,54 @@ pub extern "C" fn updated_receipts() {
 
 #[no_mangle]
 pub extern "C" fn register_owner() {
-    if let OwnerReverseLookupMode::NoLookUp = utils::get_reporting_mode() {
-        runtime::revert(NFTCoreError::InvalidReportingMode)
-    }
+    if let OwnerReverseLookupMode::Complete = utils::get_reporting_mode() {
+        let owner_key = match utils::get_ownership_mode().unwrap_or_revert() {
+            OwnershipMode::Minter => utils::get_verified_caller().unwrap_or_revert(),
+            OwnershipMode::Assigned | OwnershipMode::Transferable => {
+                utils::get_named_arg_with_user_errors::<Key>(
+                    ARG_TOKEN_OWNER,
+                    NFTCoreError::MissingTokenOwner,
+                    NFTCoreError::InvalidTokenOwner,
+                )
+                .unwrap_or_revert()
+            }
+        };
 
-    let owner_key = match utils::get_ownership_mode().unwrap_or_revert() {
-        OwnershipMode::Minter => utils::get_verified_caller().unwrap_or_revert(),
-        OwnershipMode::Assigned | OwnershipMode::Transferable => {
-            utils::get_named_arg_with_user_errors::<Key>(
-                ARG_TOKEN_OWNER,
-                NFTCoreError::MissingTokenOwner,
-                NFTCoreError::InvalidTokenOwner,
-            )
+        let page_table_uref = utils::get_uref(
+            PAGE_TABLE,
+            NFTCoreError::MissingPageTableURef,
+            NFTCoreError::InvalidPageTableURef,
+        );
+
+        let owner_item_key = utils::get_owned_tokens_dictionary_item_key(owner_key);
+
+        if storage::dictionary_get::<Vec<bool>>(page_table_uref, &owner_item_key)
             .unwrap_or_revert()
+            .is_none()
+        {
+            let page_table_width = utils::get_stored_value_with_user_errors::<u64>(
+                PAGE_LIMIT,
+                NFTCoreError::MissingPageLimit,
+                NFTCoreError::InvalidPageLimit,
+            );
+            storage::dictionary_put(
+                page_table_uref,
+                &owner_item_key,
+                vec![false; page_table_width as usize],
+            );
         }
-    };
-
-    let page_table_uref = utils::get_uref(
-        PAGE_TABLE,
-        NFTCoreError::MissingPageTableURef,
-        NFTCoreError::InvalidPageTableURef,
-    );
-
-    let owner_item_key = utils::get_owned_tokens_dictionary_item_key(owner_key);
-
-    if storage::dictionary_get::<Vec<bool>>(page_table_uref, &owner_item_key)
-        .unwrap_or_revert()
-        .is_none()
-    {
-        let page_table_width = utils::get_stored_value_with_user_errors::<u64>(
-            PAGE_LIMIT,
-            NFTCoreError::MissingPageLimit,
-            NFTCoreError::InvalidPageLimit,
+        let collection_name = utils::get_stored_value_with_user_errors::<String>(
+            COLLECTION_NAME,
+            NFTCoreError::MissingCollectionName,
+            NFTCoreError::InvalidCollectionName,
         );
-        storage::dictionary_put(
-            page_table_uref,
-            &owner_item_key,
-            vec![false; page_table_width as usize],
-        );
+        let package_uref = storage::new_uref(utils::get_stored_value_with_user_errors::<String>(
+            &format!("cep78_{}", collection_name),
+            NFTCoreError::MissingCep78PackageHash,
+            NFTCoreError::InvalidCep78InvalidHash,
+        ));
+        runtime::ret(CLValue::from_t((collection_name, package_uref)).unwrap_or_revert())
     }
-    let collection_name = utils::get_stored_value_with_user_errors::<String>(
-        COLLECTION_NAME,
-        NFTCoreError::MissingCollectionName,
-        NFTCoreError::InvalidCollectionName,
-    );
-    let package_uref = storage::new_uref(utils::get_stored_value_with_user_errors::<String>(
-        &format!("cep78_{}", collection_name),
-        NFTCoreError::MissingCep78PackageHash,
-        NFTCoreError::InvalidCep78InvalidHash,
-    ));
-    runtime::ret(CLValue::from_t((collection_name, package_uref)).unwrap_or_revert())
 }
 
 fn generate_entry_points() -> EntryPoints {
