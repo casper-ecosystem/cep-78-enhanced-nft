@@ -55,7 +55,7 @@ use crate::{
         METADATA_NFT721, METADATA_RAW, MIGRATION_FLAG, MINTING_MODE, NFT_KIND, NFT_METADATA_KIND,
         NUMBER_OF_MINTED_TOKENS, OPERATOR, OWNED_TOKENS, OWNERSHIP_MODE, PAGE_DICTIONARY_PREFIX,
         PAGE_LIMIT, PAGE_TABLE, RECEIPT_NAME, REPORTING_MODE, TOKEN_COUNTS, TOKEN_ISSUERS,
-        TOKEN_OWNERS, TOTAL_TOKEN_SUPPLY, UNMATCHED_HASH_COUNT, WHITELIST_MODE,
+        TOKEN_OWNERS, TOTAL_TOKEN_SUPPLY, UNMATCHED_HASH_COUNT, WHITELIST_MODE, CEP78_PREFIX
     },
     error::NFTCoreError,
     metadata::CustomMetadataSchema,
@@ -287,7 +287,7 @@ pub extern "C" fn init() {
     );
     runtime::put_key(RECEIPT_NAME, storage::new_uref(receipt_name).into());
     runtime::put_key(
-        &format!("cep78_{}", collection_name),
+        &format!("{}{}", CEP78_PREFIX ,collection_name),
         storage::new_uref(package_hash).into(),
     );
     runtime::put_key(
@@ -1303,7 +1303,7 @@ pub extern "C" fn migrate() {
         NFTCoreError::InvalidReceiptName,
     );
 
-    let new_receipt_string_representation = format!("cep78_{}", collection_name,);
+    let new_receipt_string_representation = format!("{}{}", CEP78_PREFIX,collection_name);
     runtime::put_key(
         &new_receipt_string_representation,
         storage::new_uref(new_contract_package_hash_representation.to_formatted_string()).into(),
@@ -1428,7 +1428,7 @@ pub extern "C" fn register_owner() {
             NFTCoreError::InvalidCollectionName,
         );
         let package_uref = storage::new_uref(utils::get_stored_value_with_user_errors::<String>(
-            &format!("cep78_{}", collection_name),
+            &format!("{}{}", CEP78_PREFIX ,collection_name),
             NFTCoreError::MissingCep78PackageHash,
             NFTCoreError::InvalidCep78InvalidHash,
         ));
@@ -1894,7 +1894,7 @@ fn install_contract() {
     // of a read only reference to the NFTs owned by the calling `Account` or `Contract`
     // This allows for users to look up a set of named keys and correctly identify
     // the contract package from which the NFTs were obtained.
-    let receipt_name = format!("cep78-{}", collection_name);
+    let receipt_name = format!("{}{}", CEP78_PREFIX ,collection_name);
 
     // Call contract to initialize it
     runtime::call_contract::<()>(
