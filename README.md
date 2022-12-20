@@ -15,29 +15,21 @@
 
 The release of version 1.1 for the CEP-78 Enhanced NFT Standard includes the following:
 
-* [Added the new `OwnerReverseLookupMode` Modality and underlying structure](#owner-reverse-lookup-functionality).
+* Ownership of NFTs issued by a given CEP-78 contract instance are tracked by token id; thus the current owner of any given token by id is available using the owned_by entrypoint. However, some use cases benefit from the ability to ask the reverse question: list all the NFTs from a given contract instance owned by a specific owner.
 
-* `OwnerReverseLookupMode` Modality - A modality that allows lookup of which NFTs are owned by a given account or contract. If this modality is set to `NoLookup`, tokens will retain ownership data, but this data will not be natively indexed.
+    * To be able to support this reverse lookup option requires a contract instance to keep track of additional data, which causes higher gas fees for all mints and transfers. The gas cost to ask for any given owner is also unpredictable; as the asker is charged for the appropriate gas cost to read and return a collection that may be empty or may be quite large.
 
-* Owners must be registered prior to minting **or receiving a transferred token** as an account must pay upfront for page allocation.
+    * The pros and cons of either approach should be considered when installing a new CEP-78 contract. By default, new CEP-78 contract instances will default to the `OwnerReverseLookupMode::NoLookup` option, which has the lowest operating costs and optimal scaling characteristics. However, the `OwnerReverseLookupMode::Complete` option can be chosen upon install, which will allow the contract to write the necessary additional data to allow a full lookup by owner.
+
+    * To allow isolation of the additional costs, or tracking individual owners, the reverse lookup mode supports a register entrypoint which is used to register owners prior to minting or receiving a transferred token. This register entrypoint can be called by any party on behalf of another party.
 
 * A single instance of CEP-78 is limited to 1,000,000 tokens maximum.
 
-    * Multiple instances of CEP-78 installed from a single account/contract must differentiate their name.
+    * The naming convention for the default named key prefix of a given CEP-78 contract instance has been changed to `cep78_<collection_name>` with spaces and dashes within the collection name converted to underscores.
 
     * If an account installs more than one contract instance with the same collection name, it can lead to collision. It is recommended that all collection names be distinct or differentiated from each other via a suffix or sequence number as you prefer. Alternately, you may choose to not use the provided installation session logic and solve such a collision as you see fit.
 
     * **If an account attempts to install a second CEP-78 contract with the same name, it will overwrite the access rights and render the first instance unusable.**
-
-* New entry points related to the gas stabilization efforts.
-
-  * `register_owner` - Registers an owner with a given instance of CEP-78.
-
-  * `updated_receipts` - Allows an owner to [update their receipts](#updated-receipts) to the new CEP-78 1.1 receipt standard.
-
-  * `migrate` - An entrypoint used to update a CEP-78 version 1.0 contract to the new version. Sending a deploy with *contract.wasm* will initiate the migration process, adding the 1.1 contract version to the contract package and will invoke the `migrate` entry point in order to perform the necessary data migration.
-
-* The naming convention for the default named key prefix of a given CEP-78 contract instance has been changed to `cep78_<collection_name>` with spaces and dashes within the collection name converted to underscores.
 
 ## Table of Contents
 
@@ -157,8 +149,8 @@ This modality dictates the schema for the metadata for NFTs minted by a given in
 
 1. `CEP78`: This mode specifies that NFTs minted must have valid metadata conforming to the CEP-78 schema.
 2. `NFT721`: This mode specifies that NFTs minted must have valid metadata conforming to the NFT-721 metadata schema.
-3. `Raw`: This mode specifies that metadata validation will not occur and raw strings can be passed to `token_metadata` runtime argument as part of the call to `mint` entry point.
-4. `CustomValidated`: This mode specifies that a custom schema provided at the time of install will be used when validating the metadata as part of the call to `mint` entry point.
+3. `Raw`: This mode specifies that metadata validation will not occur and raw strings can be passed to `token_metadata` runtime argument as part of the call to `mint` entrypoint.
+4. `CustomValidated`: This mode specifies that a custom schema provided at the time of install will be used when validating the metadata as part of the call to `mint` entrypoint.
 
 ##### CEP-78 metadata example
 ```json
@@ -242,7 +234,7 @@ It is passed in as a `u8` value to the `identifier_mode` runtime argument.
 The metadata mutability mode governs the behavior around updates to a given NFTs metadata. This modality provides two options:
 
 1. `Immutable`: Metadata for NFTs minted in this mode cannot be updated once the NFT has been minted.
-2. `Mutable`: Metadata for NFTs minted in this mode can update the metadata via the `set_token_metadata` entry point.
+2. `Mutable`: Metadata for NFTs minted in this mode can update the metadata via the `set_token_metadata` entrypoint.
 
 The `Mutable` option cannot be used in conjunction with the `Hash` modality for the NFT identifier; attempting to install the contract with this configuration raises `InvalidMetadataMutability` error. 
 This modality is a required installation parameter and cannot be changed once the contract has been installed.
@@ -271,28 +263,33 @@ mode cannot be changed once the contract has been installed. The mode is set by 
 
 #### OwnerReverseLookupMode
 
-The `OwnerReverseLookupMode` modality dictates whether the contract supports retrieving token identifiers for a given token owner.
-Additionally, it also dictates whether receipts pointing to the various pages are also returned by the `mint` and `transfer`
-entrypoints. This modality provides two options:
+The `OwnerReverseLookupMode` modality is set at install and determines if a given contract instance writes necessary data to allow reverse lookup by owner in addition to by ID.
+
+This modality provides the following options:
 
 1. `NoLookup`: The reporting and receipt functionality is not supported. In this option, the contract instance does not maintain a reverse lookup database of ownership and therefore has more predictable gas costs and greater scaling.
 2. `Complete`: The reporting and receipt functionality is supported. Token ownership will be tracked by the contract instance using the system described [here](#owner-reverse-lookup-functionality).
+
+Additionally, when set to `Complete`, causes a receipt to be returned by the `mint` or `transfer` entrypoints, which the caller can store in their account or contract context for later reference.
+
+Further, two special entrypoints are enabled in `Complete` mode. First, `register_owner` which when called will allocate the necessary tracking record for the imputed entity. This allows isolation of the one time gas cost to do this per owner, which is convenient for accounting purposes. Second, `updated_receipts`, which allows an owner of one or more NFTs held by the contract instance to attain up to date receipt information for the NFTs they currently own.
 
 | OwnerReverseLookupMode | u8  |
 |------------------------|-----|
 | NoLookup               | 0   |
 | Complete               | 1   |
 
-This modality is an optional installation parameter and will default to the `NoLookup` mode if not provided. However, this
-mode cannot be changed once the contract has been installed. The mode is set by passing a `u8` value to the `owner_reverse_lookup_mode` runtime argument.
+This modality is an optional installation parameter and will default to the `NoLookup` mode if not provided. The mode is set by passing a `u8` value to the `owner_reverse_lookup_mode` runtime argument. This mode cannot be changed once the contract has been installed.
 
-If you are merging a contract from version 1.0 to 1.1, `OwnerReverseLookupMode` will be set to `1`.
+Note, if `ownership_mode` is set to `Minter` and the `minting_mode` is set to `Installer` only, `OwnerReverseLookupMode` will be set to `NoLookup`. This is because the minter, by definition, owns all of the tokens forever. Therefore, there is no reason to do a reverse lookup for that owner. This rule applies only to newly installed contract instances.
+
+If you are upgrading a contract from CEP-78 version 1.0 to 1.1, `OwnerReverseLookupMode` will be set to `Complete`, as this was the standard behavior of CEP-78 1.0. In addition to being set to `Complete`, existing records will be migrated into the CEP-78 1.1 format, which will impose a one-time gas cost to cover the migration.
+
+If you have an existing CEP-78 version 1.0 contract instance, and would prefer the newer functionality with no lookup, the only option is to install a separate, new contract instance and mint all of the NFTs anew in that instance and then burn the corresponding NFTs from the old instance. If you do not own all the NFTs held by the old contract instance, you do not have this option.
 
 #### Modality Conflicts
 
 The `MetadataMutability` option of `Mutable` cannot be used in conjunction with `NFTIdentifierMode` modality of `Hash`.
-
-If `ownership_mode` is set to `minter` and the minting mode is set to `Installer` only, `OwnerReverseLookupMode` will be set to `NoLookup`. This is due to ownership of all tokens inherently belonging to the single minting account or contract. This rule applies only to newly installed contracts.
 
 ### Usage
 
@@ -302,7 +299,7 @@ The `main.rs` file within the contract provides the installer for the NFT contra
 
 The pre-built Wasm for the contract and all other utility session code can be found as part of the most current release. Users wishing to build the Wasm themselves can pull the code and the `make build-contract` provided in the included Makefile. Please note, however, that as part of building the contract, you will need to install `wasm-strip`.
 
-The `call` method will install the contract with the necessary entry points and call `init()` entry point to allow the contract to self initialize and setup the necessary state to allow for operation,
+The `call` method will install the contract with the necessary entrypoints and call the `init()` entrypoint to allow the contract to self initialize and setup the necessary state to allow for operation,
 The following are the required runtime arguments that must be passed to the installer session code to correctly install the NFT contract.
 
 * `"collection_name":` The name of the NFT collection, passed in as a `String`. This parameter is required and cannot be changed post installation.
@@ -319,7 +316,7 @@ The following are the required runtime arguments that must be passed to the inst
 The following are the optional parameters that can be passed in at the time of installation.
 
 * `"minting_mode"`: The [`MintingMode`](#minting) modality that dictates the access to the `mint()` entry-point in the NFT contract. This is an optional parameter that will default to restricting access to the installer of the contract. This parameter cannot be changed once the contract has been installed.
-* `"allow_minting"`: The `"allow_minting"` flag allows the installer of the contract to pause the minting of new NFTs. The `allow_minting` is a boolean toggle that allows minting when `true`. If not provided at install the toggle will default to `true`. This value can be changed by the installer by calling the `set_variables()` entry point.
+* `"allow_minting"`: The `"allow_minting"` flag allows the installer of the contract to pause the minting of new NFTs. The `allow_minting` is a boolean toggle that allows minting when `true`. If not provided at install the toggle will default to `true`. This value can be changed by the installer by calling the `set_variables()` entrypoint.
 * `"whitelist_mode"`: The [`WhitelistMode`](#whitelistmode) modality dictates whether the contract whitelist can be updated. This optional parameter will default to an unlocked whitelist that can be updated post installation. This parameter cannot be changed once the contract has been installed.
 * `"holder_mode"`: The [`NFTHolderMode`](#nftholdermode) modality dictates which entities can hold NFTs. This is an optional parameter and will default to a mixed mode allowing either `Accounts` or `Contracts` to hold NFTs. This parameter cannot be changed once the contract has been installed.
 * `"contract_whitelist"`: The contract whitelist is a list of contract hashes that specifies which contracts can call the `mint()` entrypoint to mint NFTs. This is an optional parameter which will default to an empty whitelist. This value can be changed via the `set_variables` post installation. If the whitelist mode is set to locked, a non-empty whitelist must be passed; else, installation of the contract will fail.
@@ -343,12 +340,12 @@ casper-client put-deploy -n http://localhost:11101/rpc --chain-name "casper-net-
 
 #### Utility session code
 
-Specific entry points in use by the current implementation of the NFT contract require session code to accept return values passed by the contract over the Wasm boundary.
-In order to help with the installation and use of the NFT contract, session code for such entry points has been provided. It is recommended that
+Specific entrypoints in use by the current implementation of the NFT contract require session code to accept return values passed by the contract over the Wasm boundary.
+In order to help with the installation and use of the NFT contract, session code for such entrypoints has been provided. It is recommended that
 users and DApp developers attempting to engage with the NFT contract do so with the help of the provided utility session code. The session code can be found in the `client`
 folder within the project folder.
 
-| Entry point name | Session code                  |
+| Entrypoint name | Session code                  |
 |------------------|-------------------------------|
 | `"mint"`         | `client/mint_session`         |
 | `"balance_of"`   | `client/balance_of_session`   |
@@ -515,7 +512,7 @@ Below is an example of a `casper-client` command that uses the `burn` function t
 
 2) `--session-entry-point "burn"`
 
-    The entry point corresponding to the `burn` function.
+    The entrypoint corresponding to the `burn` function.
 
 3) `--session-arg "token_id:u64='1'"`
 
@@ -548,10 +545,6 @@ by using the provided `Makefile` and running the `make test` command.
 
 In version 1.0 of the CEP-78 Enhanced NFT Standard contract, tracking minted tokens consisted of a single, unbounded list that would grow in size with each additional token. As a result, gas costs would increase over time as the list must be overwritten with each new minting.
 
-Ownership of NFTs issued by a given CEP-78 contract instance are tracked by `token id`. The current owner of any given token by `token id` is available using the `owned_by` entry point. However, some use cases benefit from the ability to list all NFTs from a given CEP-78 contract instance owned by a specific owner. The CEP-78 Enhanced NFT Standard supports this reverse lookup option by requiring a contract instance to keep track of additional data. This additional data causes higher gas fees for all mints and transfers. The gas cost to lookup a given owner is also unpredictable due to variability in the size of different CEP-78 collections. A large collection will require an appropriately larger gas cost to read and return.
-
-The pros and cons of either approach should be considered when installing a new CEP-78 contract. New instance of the CEP-78 contract will default to the `NoLookup` option, which features the lowest operating costs and optimal scaling. However, the `Complete` option can be chosen, which will write the necessary additional data to allow a full lookup by owner.
-
 In an effort to stabilize the gas costs of larger NFT collections, version 1.1 of CEP-78 includes the use of a pre-allocated page system to track ownership of NFTs within the contract.
 
 This system stabilizes the cost for interacting with the contract, but not the mint price itself. The size of metadata for a collection, and any differences in that metadata, will still result in some fluctuation in the price for the NFT itself. However, the cost of engaging the system itself will remain stable. Users can expect to pay a higher upfront price for page allocation, but will not need to pay this cost again for any NFTs minted within that given page.
@@ -560,7 +553,7 @@ This system stabilizes the cost for interacting with the contract, but not the m
 
 Ownership of NFTs within a CEP-78 contract is now tracked with a series of `pages`, with each page tracking a range of 1,000 tokens each. When installing an instance of the CEP-78 contract, the user determines the total token supply. This, in turn, determines the maximum number of pages, i.e., for a 10,000 token collection, each account could have up to 10 pages numbering from 0-9 tracking ownership of NFTs.
 
-A `page_table` tracks which pages within a range have been allocated and set for a certain user. The size of the page table directly correlates to the total token supply, i.e. for a CEP-78 instance tracking 10,000 tokens, the page table would be 10 bits wide. For a total of 20,000 it would be 20 bits wide. The cost of the initial page table allocation depends on the overall total size of a collection, with larger collections possessing correspondingly greater gas costs. To make initial minting costs more stable across contracts, the process of allocating a page table has been shifted to the `register_owner` entry point.
+A `page_table` tracks which pages within a range have been allocated and set for a certain user. The size of the page table directly correlates to the total token supply, i.e. for a CEP-78 instance tracking 10,000 tokens, the page table would be 10 bits wide. For a total of 20,000 it would be 20 bits wide. The cost of the initial page table allocation depends on the overall total size of a collection, with larger collections possessing correspondingly greater gas costs. To make initial minting costs more stable across contracts, the process of allocating a page table has been shifted to the `register_owner` entrypoint.
 
 After registering as an owner, the contract creates an entry within the `page_table` dictionary for the minting account or contract. This dictionary entry consists of a series of `boolean` values amounting to the total number of pages in the collection. In our 10,000 token example, this would be 10 bits set to false.
 
@@ -582,7 +575,7 @@ This system binds the data writing costs to a maximum size of any given page dic
 
 ### Updated Receipts
 
-If the contract enables `OwnerReverseLookupMode`, calling the `updated_receipts` entry point will return a list of receipt names alongside the dictionary addressed to the relevant pages.
+If the contract enables `OwnerReverseLookupMode`, calling the `updated_receipts` entrypoint will return a list of receipt names alongside the dictionary addressed to the relevant pages.
 
 Updated receipts come in the format of "{<collection name>}_m{modulo}_p{<page number>}". Once again using the 2,350th token as an example, the receipt would read:
 
