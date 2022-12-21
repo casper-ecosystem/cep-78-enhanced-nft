@@ -15,7 +15,7 @@ It can be treated as a deploy builder for all of the possible interactions:
 
 ## Usage
 
-1. To install, run `npm i -S capser-cep78-js-client`. 
+1. To install, run `npm i -S casper-cep78-js-client`. 
 2. Import the contract in your code `import { CEP78Client } from 'capser-cep78-js-client'`
 3. If you want to install it, look at the `install` method and all of the possible configuration options (`InstallArgs`).
 4. If you want to start working with a previously installed contract, use the `setContractHash(contractHash)` method.
