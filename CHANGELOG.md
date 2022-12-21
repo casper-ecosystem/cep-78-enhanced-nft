@@ -30,3 +30,5 @@ All notable changes to this project will be documented in this file.  The format
     * If an account installs more than one contract instance with the same collection name, it can lead to collision. It is recommended that all collection names be distinct or differentiated from each other via a suffix or sequence number as you prefer. Alternately, you may choose to not use the provided installation session logic and solve such a collision as you see fit.
 
     * **If an account attempts to install a second CEP-78 contract with the same name, it will overwrite the access rights and render the first instance unusable.**
+    
+[Keep a Changelog]: https://keepachangelog.com/en/1.0.0
