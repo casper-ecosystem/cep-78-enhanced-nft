@@ -28,8 +28,3 @@ jobs:
       run: npm publish --access public
       env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
-    - uses: meeDamian/github-release@7ae19492500104f636b3fee4d8103af0fed36c8e #v2.0.3
-      with:
-        token: ${{ secrets.GITHUB_TOKEN }}
-        files: casper-js-sdk.v${{ steps.get_version.outputs.version }}.js
-        allow_override: true
