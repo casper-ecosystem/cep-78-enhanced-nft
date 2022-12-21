@@ -41,7 +41,7 @@ jobs:
         run: npm audit
 
       - name: Lints
-        run: npm run lint:ci
+        run: npm run lint
 
       - name: Test
         run: npm test
