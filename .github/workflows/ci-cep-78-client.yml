@@ -15,6 +15,7 @@ on:
 
 jobs:
   build:
+    working-directory: ./client-js
     runs-on: ubuntu-22.04
     strategy:
       fail-fast: false
