@@ -39,11 +39,11 @@ jobs:
 
       - name: Use Node.js ${{ matrix.node-version }}
         uses: actions/setup-node@5b949b50c3461bbcd5a540b150c368278160234a #v3.4.0
-        working-directory: ./client-js
         with:
           node-version: ${{ matrix.node-version }}
 
       - name: Copy WASMs
+        working-directory: ./client-js
         run: ./copy-wasms.sh
 
       - name: Install
