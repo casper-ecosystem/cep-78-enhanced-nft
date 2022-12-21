@@ -42,10 +42,6 @@ jobs:
         with:
           node-version: ${{ matrix.node-version }}
 
-      - name: check WASMs
-        working-directory: ./client-js
-        run: ls wasm
-
       - name: Copy WASMs
         working-directory: ./client-js
         run: ./copy-wasms.sh

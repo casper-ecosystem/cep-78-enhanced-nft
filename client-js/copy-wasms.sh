@@ -1,5 +1,6 @@
 #!/bin/bash
-rm -rf wasm/*
+rm -rf wasm/
+mkdir wasm/
 cp ../tests/wasm/contract.wasm ./wasm
 cp ../tests/wasm/mint_call.wasm ./wasm
 cp ../tests/wasm/balance_of_call.wasm ./wasm
