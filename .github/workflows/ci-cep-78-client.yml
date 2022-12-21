@@ -46,10 +46,6 @@ jobs:
         working-directory: ./client-js
         run: ./copy-wasms.sh
 
-      - name: check WASMs
-        working-directory: ./client-js
-        run: ls wasm
-
       - name: Install
         working-directory: ./client-js
         run: npm install
