@@ -10,7 +10,9 @@ on:
 jobs:
   publish:
     runs-on: ubuntu-22.04
-
+    defaults: 
+      run: 
+        working-directory: ./client-js
     strategy:
       matrix:
         # See supported Node.js release schedule at https://nodejs.org/en/about/releases/
