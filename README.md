@@ -569,13 +569,13 @@ As an example, consider a new user minting their first NFT with a given CEP-78 c
 
 3) The account pays for allocation of page 2, creating an entry in the `Page 2` dictionary for that account. Within that entry, there are 1,000 boolean values set to false. Minting the 2,350th token in the collection sets the corresponding `page_address` boolean for 350 as `True`.
 
-4) Any further tokens minted by this account prior to the 3,000th token being minted will not have to pay for additional page allocations. If the account mints a token beyond 2,999, they must pay for the corresponding page allocation. For example, if they decided to mint the 5,125th token in the collection, they would need to pay for `page 5` to be allocated to them. They would then be added to the `page 5` dictionary with the `page_address` boolean for 125 set as `True`.
+4) Any further tokens minted by this account prior to the 3,000th token being minted will not have to pay for additional page allocations. If the account mints a token at or beyond 3,000, they must pay for the corresponding page allocation. For example, if they decided to mint the 5,125th token in the collection, they would need to pay for `page 5` to be allocated to them. They would then be added to the `page 5` dictionary with the `page_address` boolean for 125 set as `True`.
 
 This system binds the data writing costs to a maximum size of any given page dictionary.
 
 ### Updated Receipts
 
-If the contract enables `OwnerReverseLookupMode`, calling the `updated_receipts` entrypoint will return a list of receipt names alongside the dictionary addressed to the relevant pages.
+If the contract enables `OwnerReverseLookupMode`, calling the `updated_receipts` entrypoint will return a list of receipt names alongside the dictionary for the relevant pages.
 
 Updated receipts come in the format of "{<collection name>}_m{modulo}_p{<page number>}". Once again using the 2,350th token as an example, the receipt would read:
 
@@ -583,7 +583,7 @@ Updated receipts come in the format of "{<collection name>}_m{modulo}_p{<page nu
 cep78_collection_m_350_p_2
 ```
 
-You can determine the token number by multiplying the `page_number` by the `page_size` and adding the `modulo`.
+You can determine the token number by multiplying the `page_number` by the `page_size`(1,000) and adding the `modulo`.
 
 If the `NFTIdentifierMode` is set to `Ordinal`, this number corresponds directly to the token ID.
 
