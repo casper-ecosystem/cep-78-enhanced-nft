@@ -4,7 +4,7 @@ This tutorial outlines the usage of the JavaScript client available for the CEP-
 
 Further information on the CEP-78 Enhanced NFT Standard can be found [here](https://github.com/casper-ecosystem/cep-78-enhanced-nft).
 
-The client is available in the npm as [casper-cep78-js-client](https://www.npmjs.com/package/casper-cep78-js-client).
+The client is available in *npm* as [casper-cep78-js-client](https://www.npmjs.com/package/casper-cep78-js-client).
 
 ## Client Installation
 
@@ -19,7 +19,7 @@ npm install casper-cep78-js-client
 ## Installing a CEP-78 Contract using the JavaScript Client
 
 The `install` method crafts a [Deploy](https://docs.casperlabs.io/design/casper-design/#execution-semantics-deploys) using `InstallArgs`.
-As every deploy created by the SDK you can send it using `.send(rpcUrl)` method providing the RPC URL that you want to use. It will return deployHash. 
+As with every deploy created by the SDK, you can send it using the `.send(rpcUrl)` method providing the RPC URL that you want to use. It will return deployHash. 
 
 ```js
 
@@ -55,7 +55,7 @@ As every deploy created by the SDK you can send it using `.send(rpcUrl)` method 
 
 ```
 
-`InstallArgs` are specified sd follows:
+`InstallArgs` are specified as follows:
 
 * `collectionName` - The name of the NFT collection, passed in as a `String`. **This parameter is required and cannot be changed post installation**.
 
