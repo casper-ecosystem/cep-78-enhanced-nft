@@ -1,6 +1,6 @@
 {
   "name": "cep78-js-client",
-  "version": "0.1.0",
+  "version": "1.0.0",
   "description": "CEP78 Enhanced NFT JS Client",
   "main": "dist/index.js",
   "scripts": {
