@@ -1,6 +1,6 @@
 ## casper-cep78-js-client
 
-This package was created to help JS/TS users dealing with [cep-78-enhanced-nft](https://github.com/casper-ecosystem/cep-78-enhanced-nft). It was built on top of [casper-js-sdk](https://github.com/casper-ecosystem/casper-js-sdk)
+This package was created to help JS/TS users dealing with [cep-78-enhanced-nft](https://github.com/casper-ecosystem/cep-78-enhanced-nft) and is published in npm as [casper-cep78-js-client](https://www.npmjs.com/package/casper-cep78-js-client). It was built on top of [casper-js-sdk](https://github.com/casper-ecosystem/casper-js-sdk)
 
 It can be treated as a deploy builder for all of the possible interactions:
 
@@ -15,8 +15,8 @@ It can be treated as a deploy builder for all of the possible interactions:
 
 ## Usage
 
-1. To install, run `npm i -S capser-cep78-js-client`. 
-2. Import the contract in your code `import { CEP78Client } from 'capser-cep78-js-client'`
+1. To install, run `npm i -S casper-cep78-js-client`. 
+2. Import the contract in your code `import { CEP78Client } from 'casper-cep78-js-client'`
 3. If you want to install it, look at the `install` method and all of the possible configuration options (`InstallArgs`).
 4. If you want to start working with a previously installed contract, use the `setContractHash(contractHash)` method.
 
