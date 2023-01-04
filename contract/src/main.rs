@@ -305,7 +305,7 @@ pub extern "C" fn init() {
     runtime::put_key(BURN_MODE, storage::new_uref(burn_mode as u8).into());
     runtime::put_key(
         REPORTING_MODE,
-        storage::new_uref(reporting_mode as u8).into(),
+        storage::new_uref(reporting_mode.clone() as u8).into(),
     );
 
     // Initialize contract with variables which must be present but maybe set to
@@ -341,8 +341,10 @@ pub extern "C" fn init() {
         .unwrap_or_revert_with(NFTCoreError::FailedToCreateDictionary);
     storage::new_dictionary(PAGE_TABLE)
         .unwrap_or_revert_with(NFTCoreError::FailedToCreateDictionary);
-    let page_table_width = utils::max_number_of_pages(total_token_supply);
-    runtime::put_key(PAGE_LIMIT, storage::new_uref(page_table_width).into());
+    if reporting_mode == OwnerReverseLookupMode::Complete {
+        let page_table_width = utils::max_number_of_pages(total_token_supply);
+        runtime::put_key(PAGE_LIMIT, storage::new_uref(page_table_width).into());
+    }
     runtime::put_key(MIGRATION_FLAG, storage::new_uref(true).into());
 }
 

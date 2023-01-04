@@ -12,7 +12,8 @@ use crate::utility::{
         NFT_TEST_SYMBOL, TRANSFER_SESSION_WASM,
     },
     installer_request_builder::{
-        InstallerRequestBuilder, NFTIdentifierMode, NFTMetadataKind, OwnershipMode,
+        InstallerRequestBuilder, NFTIdentifierMode, NFTMetadataKind, OwnerReverseLookupMode,
+        OwnershipMode,
     },
     support,
 };
@@ -197,4 +198,52 @@ fn transfer_costs_should_remain_stable() {
     let third_transfer_gas_cost = builder.last_exec_gas_cost();
 
     assert_eq!(second_transfer_gas_cost, third_transfer_gas_cost);
+}
+
+#[test]
+fn should_cost_less_when_installing_without_reverse_lookup() {
+    let mut builder = InMemoryWasmTestBuilder::default();
+    builder.run_genesis(&DEFAULT_RUN_GENESIS_REQUEST).commit();
+
+    let install_request = InstallerRequestBuilder::new(*DEFAULT_ACCOUNT_ADDR, NFT_CONTRACT_WASM)
+        .with_collection_name(NFT_TEST_COLLECTION.to_string())
+        .with_collection_symbol(NFT_TEST_SYMBOL.to_string())
+        .with_total_token_supply(5000u64)
+        .with_ownership_mode(OwnershipMode::Transferable)
+        .with_identifier_mode(NFTIdentifierMode::Ordinal)
+        .with_nft_metadata_kind(NFTMetadataKind::Raw)
+        .with_reporting_mode(OwnerReverseLookupMode::Complete)
+        .build();
+
+    builder.exec(install_request).expect_success().commit();
+
+    let reverse_lookup_gas_cost = builder.last_exec_gas_cost();
+
+    let reverse_lookup_hash: Key = support::get_nft_contract_hash(&builder).into();
+
+    let page_dictionary_lookup = builder.query(None, reverse_lookup_hash, &["page_0".to_string()]);
+
+    assert!(page_dictionary_lookup.is_ok());
+
+    let install_request = InstallerRequestBuilder::new(*DEFAULT_ACCOUNT_ADDR, NFT_CONTRACT_WASM)
+        .with_collection_name(NFT_TEST_COLLECTION.to_string())
+        .with_collection_symbol(NFT_TEST_SYMBOL.to_string())
+        .with_total_token_supply(5000u64)
+        .with_ownership_mode(OwnershipMode::Transferable)
+        .with_identifier_mode(NFTIdentifierMode::Ordinal)
+        .with_nft_metadata_kind(NFTMetadataKind::Raw)
+        .with_reporting_mode(OwnerReverseLookupMode::NoLookUp)
+        .build();
+
+    builder.exec(install_request).expect_success().commit();
+
+    let no_lookup_gas_cost = builder.last_exec_gas_cost();
+
+    let no_lookup_hash: Key = support::get_nft_contract_hash(&builder).into();
+
+    let page_dictionary_lookup = builder.query(None, no_lookup_hash, &["page_0".to_string()]);
+
+    assert!(page_dictionary_lookup.is_err());
+
+    assert!(no_lookup_gas_cost < reverse_lookup_gas_cost);
 }

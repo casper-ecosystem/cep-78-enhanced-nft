@@ -229,6 +229,7 @@ impl TryFrom<u8> for BurnMode {
 }
 
 #[repr(u8)]
+#[derive(Clone, PartialEq, Eq)]
 pub enum OwnerReverseLookupMode {
     NoLookUp = 0,
     Complete = 1,
