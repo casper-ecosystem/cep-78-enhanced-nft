@@ -11,7 +11,8 @@ use crate::utility::{
         ARG_TOKEN_HASH, ARG_TOKEN_META_DATA, ARG_TOKEN_OWNER, CONTRACT_1_0_0_WASM,
         ENTRY_POINT_REGISTER_OWNER, MINT_1_0_0_WASM, MINT_SESSION_WASM, NFT_CONTRACT_WASM,
         NFT_TEST_COLLECTION, NFT_TEST_SYMBOL, PAGE_LIMIT, PAGE_SIZE, RECEIPT_NAME,
-        TRANSFER_SESSION_WASM, UNMATCHED_HASH_COUNT, UPDATED_RECEIPTS_WASM,
+        TRANSFER_SESSION_WASM, UNMATCHED_HASH_COUNT, UPDATED_RECEIPTS_WASM, ARG_CHECK_FOR_UPGRADE,
+        ARG_ACCESS_KEY_NAME_1_0_0
     },
     installer_request_builder::{
         InstallerRequestBuilder, MetadataMutability, NFTIdentifierMode, NFTMetadataKind,
@@ -21,6 +22,7 @@ use crate::utility::{
 };
 
 const OWNED_TOKENS: &str = "owned_tokens";
+const ACCESS_KEY_NAME_1_0_0: &str = "nft_contract_package_access";
 
 #[test]
 fn should_safely_upgrade_in_ordinal_identifier_mode() {
@@ -85,7 +87,9 @@ fn should_safely_upgrade_in_ordinal_identifier_mode() {
         NFT_CONTRACT_WASM,
         runtime_args! {
             ARG_NFT_PACKAGE_HASH => package_hash,
-            ARG_COLLECTION_NAME => NFT_TEST_COLLECTION.to_string()
+            ARG_COLLECTION_NAME => NFT_TEST_COLLECTION.to_string(),
+            ARG_CHECK_FOR_UPGRADE => true,
+            ARG_ACCESS_KEY_NAME_1_0_0 => ACCESS_KEY_NAME_1_0_0.to_string()
         },
     )
     .build();
@@ -215,7 +219,9 @@ fn should_safely_upgrade_in_hash_identifier_mode() {
         NFT_CONTRACT_WASM,
         runtime_args! {
             ARG_NFT_PACKAGE_HASH => support::get_nft_contract_package_hash(&builder),
-            ARG_COLLECTION_NAME => NFT_TEST_COLLECTION.to_string()
+            ARG_COLLECTION_NAME => NFT_TEST_COLLECTION.to_string(),
+            ARG_CHECK_FOR_UPGRADE => true,
+            ARG_ACCESS_KEY_NAME_1_0_0 => ACCESS_KEY_NAME_1_0_0.to_string()
         },
     )
     .build();
@@ -360,7 +366,9 @@ fn should_update_receipts_post_upgrade_paged() {
         NFT_CONTRACT_WASM,
         runtime_args! {
             ARG_NFT_PACKAGE_HASH => nft_contract_package_hash,
-            ARG_COLLECTION_NAME => NFT_TEST_COLLECTION.to_string()
+            ARG_COLLECTION_NAME => NFT_TEST_COLLECTION.to_string(),
+            ARG_CHECK_FOR_UPGRADE => true,
+            ARG_ACCESS_KEY_NAME_1_0_0 => ACCESS_KEY_NAME_1_0_0.to_string()
         },
     )
     .build();
@@ -431,7 +439,9 @@ fn should_not_be_able_to_reinvoke_migrate_entrypoint() {
         NFT_CONTRACT_WASM,
         runtime_args! {
             ARG_NFT_PACKAGE_HASH => support::get_nft_contract_package_hash(&builder),
-            ARG_COLLECTION_NAME => NFT_TEST_COLLECTION.to_string()
+            ARG_COLLECTION_NAME => NFT_TEST_COLLECTION.to_string(),
+            ARG_CHECK_FOR_UPGRADE => true,
+            ARG_ACCESS_KEY_NAME_1_0_0 => ACCESS_KEY_NAME_1_0_0.to_string()
         },
     )
     .build();
@@ -445,7 +455,9 @@ fn should_not_be_able_to_reinvoke_migrate_entrypoint() {
         NFT_CONTRACT_WASM,
         runtime_args! {
             ARG_NFT_PACKAGE_HASH => support::get_nft_contract_package_hash(&builder),
-            ARG_COLLECTION_NAME => NFT_TEST_COLLECTION.to_string()
+            ARG_COLLECTION_NAME => NFT_TEST_COLLECTION.to_string(),
+            ARG_CHECK_FOR_UPGRADE => true,
+            ARG_ACCESS_KEY_NAME_1_0_0 => ACCESS_KEY_NAME_1_0_0.to_string()
         },
     )
     .build();
@@ -477,7 +489,9 @@ fn should_not_migrate_contracts_with_zero_token_issuance() {
         NFT_CONTRACT_WASM,
         runtime_args! {
             ARG_NFT_PACKAGE_HASH => support::get_nft_contract_package_hash(&builder),
-            ARG_COLLECTION_NAME => NFT_TEST_COLLECTION.to_string()
+            ARG_COLLECTION_NAME => NFT_TEST_COLLECTION.to_string(),
+            ARG_CHECK_FOR_UPGRADE => true,
+            ARG_ACCESS_KEY_NAME_1_0_0 => ACCESS_KEY_NAME_1_0_0.to_string()
         },
     )
     .build();

@@ -65,6 +65,7 @@ use crate::{
     },
     utils::PAGE_SIZE,
 };
+use crate::constants::{ARG_ACCESS_KEY_NAME_1_0_0, ARG_CHECK_FOR_UPGRADE};
 
 #[no_mangle]
 pub extern "C" fn init() {
@@ -1978,8 +1979,18 @@ fn migrate_contract() {
 
 #[no_mangle]
 pub extern "C" fn call() {
-    match runtime::get_key(ACCESS_KEY_NAME_1_0_0) {
-        Some(_access_key_uref) => migrate_contract(),
-        None => install_contract(),
+    let check_for_upgrade = utils::get_optional_named_arg_with_user_errors::<bool>(
+        ARG_CHECK_FOR_UPGRADE,
+        NFTCoreError::InvalidCheckForUpgrade
+    ).unwrap_or(false);
+
+    if check_for_upgrade {
+        let access_key_name = runtime::get_named_arg::<String>(ARG_ACCESS_KEY_NAME_1_0_0);
+        match runtime::get_key(&access_key_name) {
+            Some(_access_key_uref) => migrate_contract(),
+            None => install_contract(),
+        }
+    } else {
+        install_contract()
     }
 }
