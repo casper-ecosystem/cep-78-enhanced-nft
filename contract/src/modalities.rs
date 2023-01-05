@@ -250,8 +250,8 @@ impl TryFrom<u8> for OwnerReverseLookupMode {
 #[repr(u8)]
 pub enum NamedKeyConventionMode {
     DerivedFromCollectionName = 0,
-    V10Standard = 1,
-    V10Custom = 2,
+    V1_0Standard = 1,
+    V1_0Custom = 2,
 }
 
 impl TryFrom<u8> for NamedKeyConventionMode {
@@ -260,8 +260,8 @@ impl TryFrom<u8> for NamedKeyConventionMode {
     fn try_from(value: u8) -> Result<Self, Self::Error> {
         match value {
             0 => Ok(NamedKeyConventionMode::DerivedFromCollectionName),
-            1 => Ok(NamedKeyConventionMode::V10Standard),
-            2 => Ok(NamedKeyConventionMode::V10Custom),
+            1 => Ok(NamedKeyConventionMode::V1_0Standard),
+            2 => Ok(NamedKeyConventionMode::V1_0Custom),
             _ => Err(NFTCoreError::InvalidNamedKeyConvention),
         }
     }

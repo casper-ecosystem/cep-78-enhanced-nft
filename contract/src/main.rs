@@ -45,7 +45,7 @@ use crate::{
         ARG_OPERATOR, ARG_OWNERSHIP_MODE, ARG_OWNER_LOOKUP_MODE, ARG_RECEIPT_NAME, ARG_SOURCE_KEY,
         ARG_TARGET_KEY, ARG_TOKEN_META_DATA, ARG_TOKEN_OWNER, ARG_TOTAL_TOKEN_SUPPLY,
         ARG_WHITELIST_MODE, BURNT_TOKENS, BURN_MODE, CEP78_PREFIX, COLLECTION_NAME,
-        COLLECTION_SYMBOL, CONTRACT_NAME, CONTRACT_VERSION, CONTRACT_WHITELIST,
+        COLLECTION_SYMBOL, CONTRACT_NAME_PREFIX, CONTRACT_VERSION_PREFIX, CONTRACT_WHITELIST,
         ENTRY_POINT_APPROVE, ENTRY_POINT_BALANCE_OF, ENTRY_POINT_BURN, ENTRY_POINT_GET_APPROVED,
         ENTRY_POINT_INIT, ENTRY_POINT_METADATA, ENTRY_POINT_MIGRATE, ENTRY_POINT_MINT,
         ENTRY_POINT_OWNER_OF, ENTRY_POINT_REGISTER_OWNER, ENTRY_POINT_SET_APPROVE_FOR_ALL,
@@ -1885,8 +1885,14 @@ fn install_contract() {
     );
 
     // Store contract_hash and contract_version under the keys CONTRACT_NAME and CONTRACT_VERSION
-    runtime::put_key(CONTRACT_NAME, contract_hash.into());
-    runtime::put_key(CONTRACT_VERSION, storage::new_uref(contract_version).into());
+    runtime::put_key(
+        &format!("{}{}", CONTRACT_NAME_PREFIX, collection_name),
+        contract_hash.into(),
+    );
+    runtime::put_key(
+        &format!("{}{}", CONTRACT_VERSION_PREFIX, collection_name),
+        storage::new_uref(contract_version).into(),
+    );
 
     let package_hash: ContractPackageHash = runtime::get_key(&hash_key_name)
         .unwrap_or_revert()
@@ -1960,14 +1966,14 @@ fn migrate_contract(access_key_name: String, package_key_name: String) {
     );
 
     // Store contract_hash and contract_version under the keys CONTRACT_NAME and CONTRACT_VERSION
-    runtime::put_key(CONTRACT_NAME, contract_hash.into());
-
-    let version_uref = runtime::get_key(CONTRACT_VERSION)
-        .unwrap_or_revert()
-        .into_uref()
-        .unwrap_or_revert_with(NFTCoreError::InvalidKey);
-
-    storage::write(version_uref, contract_version);
+    runtime::put_key(
+        &format!("{}{}", CONTRACT_NAME_PREFIX, collection_name),
+        contract_hash.into(),
+    );
+    runtime::put_key(
+        &format!("{}{}", CONTRACT_VERSION_PREFIX, collection_name),
+        storage::new_uref(contract_version).into(),
+    );
 
     runtime::call_contract::<()>(
         contract_hash,
@@ -1991,11 +1997,11 @@ pub extern "C" fn call() {
 
     match convention_mode {
         NamedKeyConventionMode::DerivedFromCollectionName => install_contract(),
-        NamedKeyConventionMode::V10Standard => migrate_contract(
+        NamedKeyConventionMode::V1_0Standard => migrate_contract(
             ACCESS_KEY_NAME_1_0_0.to_string(),
             HASH_KEY_NAME_1_0_0.to_string(),
         ),
-        NamedKeyConventionMode::V10Custom => migrate_contract(
+        NamedKeyConventionMode::V1_0Custom => migrate_contract(
             runtime::get_named_arg(ARG_ACCESS_KEY_NAME_1_0_0),
             runtime::get_named_arg(ARG_HASH_KEY_NAME_1_0_0),
         ),

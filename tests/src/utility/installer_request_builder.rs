@@ -144,8 +144,8 @@ pub enum OwnerReverseLookupMode {
 #[repr(u8)]
 pub enum NamedKeyConventionMode {
     DerivedFromCollectionName = 0,
-    V10Standard = 1,
-    V10Custom = 2,
+    V1_0Standard = 1,
+    V1_0Custom = 2,
 }
 
 #[derive(Debug)]

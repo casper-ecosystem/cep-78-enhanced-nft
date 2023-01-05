@@ -1,8 +1,9 @@
 use casper_engine_test_support::{
-    ExecuteRequestBuilder, InMemoryWasmTestBuilder, DEFAULT_ACCOUNT_ADDR,
+    ExecuteRequestBuilder, InMemoryWasmTestBuilder, WasmTestBuilder, DEFAULT_ACCOUNT_ADDR,
     DEFAULT_RUN_GENESIS_REQUEST,
 };
-use casper_types::{account::AccountHash, runtime_args, CLValue, Key, RuntimeArgs};
+use casper_execution_engine::storage::global_state::in_memory::InMemoryGlobalState;
+use casper_types::{account::AccountHash, runtime_args, CLValue, ContractHash, Key, RuntimeArgs};
 
 use crate::utility::{
     constants::{
@@ -25,6 +26,18 @@ const OWNED_TOKENS: &str = "owned_tokens";
 const MANGLED_ACCESS_KEY_NAME: &str = "mangled_access_key";
 const MANGLED_HASH_KEY_NAME: &str = "mangled_hash_key";
 
+fn get_nft_contract_hash_1_0_0(builder: &WasmTestBuilder<InMemoryGlobalState>) -> ContractHash {
+    let nft_hash_addr = builder
+        .get_expected_account(*DEFAULT_ACCOUNT_ADDR)
+        .named_keys()
+        .get("nft_contract")
+        .expect("must have this entry in named keys")
+        .into_hash()
+        .expect("must get hash_addr");
+
+    ContractHash::new(nft_hash_addr)
+}
+
 #[test]
 fn should_safely_upgrade_in_ordinal_identifier_mode() {
     let mut builder = InMemoryWasmTestBuilder::default();
@@ -41,7 +54,7 @@ fn should_safely_upgrade_in_ordinal_identifier_mode() {
 
     builder.exec(install_request).expect_success().commit();
 
-    let nft_contract_hash_1_0_0 = support::get_nft_contract_hash(&builder);
+    let nft_contract_hash_1_0_0 = get_nft_contract_hash_1_0_0(&builder);
     let nft_contract_key_1_0_0: Key = nft_contract_hash_1_0_0.into();
 
     let number_of_tokens_pre_migration = 3usize;
@@ -89,7 +102,7 @@ fn should_safely_upgrade_in_ordinal_identifier_mode() {
         runtime_args! {
             ARG_NFT_PACKAGE_HASH => package_hash,
             ARG_COLLECTION_NAME => NFT_TEST_COLLECTION.to_string(),
-            ARG_NAMED_KEY_CONVENTION => NamedKeyConventionMode::V10Standard as u8,
+            ARG_NAMED_KEY_CONVENTION => NamedKeyConventionMode::V1_0Standard as u8,
             ARG_ACCESS_KEY_NAME_1_0_0 => ACCESS_KEY_NAME_1_0_0.to_string()
         },
     )
@@ -160,7 +173,7 @@ fn should_safely_upgrade_in_hash_identifier_mode() {
 
     builder.exec(install_request).expect_success().commit();
 
-    let nft_contract_hash_1_0_0 = support::get_nft_contract_hash(&builder);
+    let nft_contract_hash_1_0_0 = get_nft_contract_hash_1_0_0(&builder);
     let nft_contract_key_1_0_0: Key = nft_contract_hash_1_0_0.into();
 
     let mut expected_metadata: Vec<String> = vec![];
@@ -221,7 +234,7 @@ fn should_safely_upgrade_in_hash_identifier_mode() {
         runtime_args! {
             ARG_NFT_PACKAGE_HASH => support::get_nft_contract_package_hash(&builder),
             ARG_COLLECTION_NAME => NFT_TEST_COLLECTION.to_string(),
-            ARG_NAMED_KEY_CONVENTION => NamedKeyConventionMode::V10Standard as u8,
+            ARG_NAMED_KEY_CONVENTION => NamedKeyConventionMode::V1_0Standard as u8,
             ARG_ACCESS_KEY_NAME_1_0_0 => ACCESS_KEY_NAME_1_0_0.to_string()
         },
     )
@@ -340,7 +353,7 @@ fn should_update_receipts_post_upgrade_paged() {
 
     builder.exec(install_request).expect_success().commit();
 
-    let nft_contract_hash_1_0_0 = support::get_nft_contract_hash(&builder);
+    let nft_contract_hash_1_0_0 = get_nft_contract_hash_1_0_0(&builder);
     let nft_contract_key_1_0_0: Key = nft_contract_hash_1_0_0.into();
 
     let number_of_tokens_pre_migration = 20usize;
@@ -368,7 +381,7 @@ fn should_update_receipts_post_upgrade_paged() {
         runtime_args! {
             ARG_NFT_PACKAGE_HASH => nft_contract_package_hash,
             ARG_COLLECTION_NAME => NFT_TEST_COLLECTION.to_string(),
-            ARG_NAMED_KEY_CONVENTION => NamedKeyConventionMode::V10Standard as u8,
+            ARG_NAMED_KEY_CONVENTION => NamedKeyConventionMode::V1_0Standard as u8,
             ARG_ACCESS_KEY_NAME_1_0_0 => ACCESS_KEY_NAME_1_0_0.to_string()
         },
     )
@@ -441,7 +454,7 @@ fn should_not_be_able_to_reinvoke_migrate_entrypoint() {
         runtime_args! {
             ARG_NFT_PACKAGE_HASH => support::get_nft_contract_package_hash(&builder),
             ARG_COLLECTION_NAME => NFT_TEST_COLLECTION.to_string(),
-            ARG_NAMED_KEY_CONVENTION => NamedKeyConventionMode::V10Standard as u8,
+            ARG_NAMED_KEY_CONVENTION => NamedKeyConventionMode::V1_0Standard as u8,
             ARG_ACCESS_KEY_NAME_1_0_0 => ACCESS_KEY_NAME_1_0_0.to_string()
         },
     )
@@ -457,7 +470,7 @@ fn should_not_be_able_to_reinvoke_migrate_entrypoint() {
         runtime_args! {
             ARG_NFT_PACKAGE_HASH => support::get_nft_contract_package_hash(&builder),
             ARG_COLLECTION_NAME => NFT_TEST_COLLECTION.to_string(),
-            ARG_NAMED_KEY_CONVENTION => NamedKeyConventionMode::V10Standard as u8,
+            ARG_NAMED_KEY_CONVENTION => NamedKeyConventionMode::V1_0Standard as u8,
             ARG_ACCESS_KEY_NAME_1_0_0 => ACCESS_KEY_NAME_1_0_0.to_string()
         },
     )
@@ -491,7 +504,7 @@ fn should_not_migrate_contracts_with_zero_token_issuance() {
         runtime_args! {
             ARG_NFT_PACKAGE_HASH => support::get_nft_contract_package_hash(&builder),
             ARG_COLLECTION_NAME => NFT_TEST_COLLECTION.to_string(),
-            ARG_NAMED_KEY_CONVENTION => NamedKeyConventionMode::V10Standard as u8,
+            ARG_NAMED_KEY_CONVENTION => NamedKeyConventionMode::V1_0Standard as u8,
             ARG_ACCESS_KEY_NAME_1_0_0 => ACCESS_KEY_NAME_1_0_0.to_string()
         },
     )
@@ -519,7 +532,7 @@ fn should_upgrade_with_custom_named_keys() {
 
     builder.exec(install_request).expect_success().commit();
 
-    let nft_contract_hash_1_0_0 = support::get_nft_contract_hash(&builder);
+    let nft_contract_hash_1_0_0 = get_nft_contract_hash_1_0_0(&builder);
     let nft_contract_key_1_0_0: Key = nft_contract_hash_1_0_0.into();
 
     let number_of_tokens_pre_migration = 3usize;
@@ -584,7 +597,7 @@ fn should_upgrade_with_custom_named_keys() {
         NFT_CONTRACT_WASM,
         runtime_args! {
             ARG_COLLECTION_NAME => NFT_TEST_COLLECTION.to_string(),
-            ARG_NAMED_KEY_CONVENTION => NamedKeyConventionMode::V10Standard as u8,
+            ARG_NAMED_KEY_CONVENTION => NamedKeyConventionMode::V1_0Standard as u8,
         },
     )
     .build();
@@ -596,7 +609,7 @@ fn should_upgrade_with_custom_named_keys() {
         NFT_CONTRACT_WASM,
         runtime_args! {
             ARG_COLLECTION_NAME => NFT_TEST_COLLECTION.to_string(),
-            ARG_NAMED_KEY_CONVENTION => NamedKeyConventionMode::V10Custom as u8,
+            ARG_NAMED_KEY_CONVENTION => NamedKeyConventionMode::V1_0Custom as u8,
             ARG_ACCESS_KEY_NAME_1_0_0 => MANGLED_ACCESS_KEY_NAME.to_string(),
             ARG_HASH_KEY_NAME_1_0_0 => MANGLED_HASH_KEY_NAME.to_string(),
         },
