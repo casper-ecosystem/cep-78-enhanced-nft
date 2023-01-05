@@ -1985,7 +1985,7 @@ pub extern "C" fn call() {
             ARG_NAMED_KEY_CONVENTION,
             NFTCoreError::InvalidNamedKeyConvention,
         )
-        .unwrap_or(NamedKeyConventionMode::V10Custom as u8)
+        .unwrap_or(NamedKeyConventionMode::DerivedFromCollectionName as u8)
         .try_into()
         .unwrap_or_revert();
 
