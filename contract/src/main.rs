@@ -38,11 +38,11 @@ use casper_contract::{
 use crate::{
     constants::{
         ACCESS_KEY_NAME_1_0_0, ACCESS_KEY_NAME_PREFIX, ALLOW_MINTING, ARG_ACCESS_KEY_NAME_1_0_0,
-        ARG_ALLOW_MINTING, ARG_APPROVE_ALL, ARG_BURN_MODE, ARG_CHECK_FOR_UPGRADE,
-        ARG_COLLECTION_NAME, ARG_COLLECTION_SYMBOL, ARG_CONTRACT_WHITELIST, ARG_HOLDER_MODE,
+        ARG_ALLOW_MINTING, ARG_APPROVE_ALL, ARG_BURN_MODE, ARG_COLLECTION_NAME,
+        ARG_COLLECTION_SYMBOL, ARG_CONTRACT_WHITELIST, ARG_HASH_KEY_NAME_1_0_0, ARG_HOLDER_MODE,
         ARG_IDENTIFIER_MODE, ARG_JSON_SCHEMA, ARG_METADATA_MUTABILITY, ARG_MINTING_MODE,
-        ARG_NFT_KIND, ARG_NFT_METADATA_KIND, ARG_NFT_PACKAGE_HASH, ARG_OPERATOR,
-        ARG_OWNERSHIP_MODE, ARG_OWNER_LOOKUP_MODE, ARG_RECEIPT_NAME, ARG_SOURCE_KEY,
+        ARG_NAMED_KEY_CONVENTION, ARG_NFT_KIND, ARG_NFT_METADATA_KIND, ARG_NFT_PACKAGE_HASH,
+        ARG_OPERATOR, ARG_OWNERSHIP_MODE, ARG_OWNER_LOOKUP_MODE, ARG_RECEIPT_NAME, ARG_SOURCE_KEY,
         ARG_TARGET_KEY, ARG_TOKEN_META_DATA, ARG_TOKEN_OWNER, ARG_TOTAL_TOKEN_SUPPLY,
         ARG_WHITELIST_MODE, BURNT_TOKENS, BURN_MODE, CEP78_PREFIX, COLLECTION_NAME,
         COLLECTION_SYMBOL, CONTRACT_NAME, CONTRACT_VERSION, CONTRACT_WHITELIST,
@@ -62,7 +62,8 @@ use crate::{
     metadata::CustomMetadataSchema,
     modalities::{
         BurnMode, MetadataMutability, MintingMode, NFTHolderMode, NFTIdentifierMode, NFTKind,
-        NFTMetadataKind, OwnerReverseLookupMode, OwnershipMode, TokenIdentifier, WhitelistMode,
+        NFTMetadataKind, NamedKeyConventionMode, OwnerReverseLookupMode, OwnershipMode,
+        TokenIdentifier, WhitelistMode,
     },
     utils::PAGE_SIZE,
 };
@@ -1926,8 +1927,8 @@ fn install_contract() {
     );
 }
 
-fn migrate_contract() {
-    let nft_contact_package_hash = runtime::get_key(HASH_KEY_NAME_1_0_0)
+fn migrate_contract(access_key_name: String, package_key_name: String) {
+    let nft_contact_package_hash = runtime::get_key(&package_key_name)
         .unwrap_or_revert()
         .into_hash()
         .map(ContractPackageHash::new)
@@ -1945,7 +1946,7 @@ fn migrate_contract() {
         nft_contact_package_hash.into(),
     );
 
-    if let Some(access_key) = runtime::get_key(ACCESS_KEY_NAME_1_0_0) {
+    if let Some(access_key) = runtime::get_key(&access_key_name) {
         runtime::put_key(
             &format!("{}{}", ACCESS_KEY_NAME_PREFIX, collection_name),
             access_key,
@@ -1979,19 +1980,24 @@ fn migrate_contract() {
 
 #[no_mangle]
 pub extern "C" fn call() {
-    let check_for_upgrade = utils::get_optional_named_arg_with_user_errors::<bool>(
-        ARG_CHECK_FOR_UPGRADE,
-        NFTCoreError::InvalidCheckForUpgrade,
-    )
-    .unwrap_or(false);
+    let convention_mode: NamedKeyConventionMode =
+        utils::get_optional_named_arg_with_user_errors::<u8>(
+            ARG_NAMED_KEY_CONVENTION,
+            NFTCoreError::InvalidNamedKeyConvention,
+        )
+        .unwrap_or(NamedKeyConventionMode::V10Custom as u8)
+        .try_into()
+        .unwrap_or_revert();
 
-    if check_for_upgrade {
-        let access_key_name = runtime::get_named_arg::<String>(ARG_ACCESS_KEY_NAME_1_0_0);
-        match runtime::get_key(&access_key_name) {
-            Some(_access_key_uref) => migrate_contract(),
-            None => install_contract(),
-        }
-    } else {
-        install_contract()
+    match convention_mode {
+        NamedKeyConventionMode::DerivedFromCollectionName => install_contract(),
+        NamedKeyConventionMode::V10Standard => migrate_contract(
+            ACCESS_KEY_NAME_1_0_0.to_string(),
+            HASH_KEY_NAME_1_0_0.to_string(),
+        ),
+        NamedKeyConventionMode::V10Custom => migrate_contract(
+            runtime::get_named_arg(ARG_ACCESS_KEY_NAME_1_0_0),
+            runtime::get_named_arg(ARG_HASH_KEY_NAME_1_0_0),
+        ),
     }
 }

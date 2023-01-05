@@ -141,6 +141,7 @@ pub enum NFTCoreError {
     InvalidPackageHashName = 136,
     InvalidAccessKeyName = 137,
     InvalidCheckForUpgrade = 138,
+    InvalidNamedKeyConvention = 139,
 }
 
 impl From<NFTCoreError> for ApiError {
