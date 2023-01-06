@@ -27,7 +27,9 @@ The release of version 1.1 for the CEP-78 Enhanced NFT Standard includes the fol
 
     * The naming convention for the default named key prefix of a given CEP-78 contract instance has been changed to `cep78_<collection_name>` with spaces and dashes within the collection name converted to underscores.
 
-    * If an account installs more than one contract instance with the same collection name, it can lead to collision. It is recommended that all collection names be distinct or differentiated from each other via a suffix or sequence number as you prefer. Alternately, you may choose to not use the provided installation session logic and solve such a collision as you see fit.
+    * When installing or upgrading, there is an optional `NamedArg` called `named_key_convention`. If this argument is not provided, the contract assumes you are trying to install a new instance of the version 1.1 CEP-78 contract. In contrast, if you are upgrading your contract from a version 1.0 instance:
+        * `V1_0Standard` assumes that the `NamedKeys` associated with a previously installed instance of the CEP-78 contract are in the standard location and acts accordingly.
+        * `V1_0Custom` takes in the arguments `package_key_name` and `access_key_name` if your previous contract used a non-standard location for the associated `NamedKeys`
 
     * **If an account attempts to install a second CEP-78 contract with the same name, it will overwrite the access rights and render the first instance unusable.**
 
@@ -424,6 +426,44 @@ casper-client put-deploy -n http://localhost:11101/rpc --chain-name "casper-net-
 
 </details>
 
+#### Directly Invoking Endpoints
+
+With the release of CEP-78 version 1.1, users that are interacting with a CEP-78 contract that does not use `ReverseLookupMode` may opt out of using the client Wasms provided as part of the release. Opting out in this situation is recommended, as directly invoking the endpoints incurs a lower gas cost compared against the provided client Wasm.
+
+You may invoke the `mint`, `transfer` or `burn` endpoints directly through either the contract package hash or the contract hash directly.
+
+<details>
+<summary><b>Example Mint using StoredVersionByHash</b></summary>
+
+```bash
+
+casper-client put-deploy -n http://localhost:11101/rpc --chain-name "casper-net-1" \ --payment-amount 7500000000 \ -k ~/secret_key.pem \
+--session-package-hash hash-b3b7a74ae9ef2ea8afc06d6a0830961259605e417e95a53c0cb1ca9737bb0ec7 \
+--session-entry-point "mint" \
+--session-arg "token_owner:key='account-hash-4b13fd260760ca9639f9d1f4a8d5ecafaa1b93b150ca5909eecf317556795da9'" \
+--session-arg "token_meta_data:string='{\"id\": \"US-20040060474-A1\",\"ipfs\": \"Qme7ss3ARVgxv6rXqVPiikMJ8u2NLgmgszg13pYrDKEoiu\",\"prvhsh\":\"940bffb3f2bba35f84313aa26da09ece3ad47045c6a1292c2bbd2df4ab1a55fb\"}'"
+
+```
+
+</details>
+
+<details>
+<summary><b>Example Transfer using StoredContractByHash</b></summary>
+
+```bash
+
+casper-client put-deploy -n http://localhost:11101/rpc --chain-name "casper-net-1" \ --payment-amount 7500000000 \ -k ~/secret_key.pem \
+--session-hash hash-b3b7a74ae9ef2ea8afc06d6a0830961259605e417e95a53c0cb1ca9737bb0ec7 \
+--session-entry-point "transfer" \
+--session-arg "source_key:key='account-hash-e9ff87766a1d2bab2565bfd5799054946200b51b20c3ca7e54a9269e00fe7cfb'" \
+--session-arg "target_key:key='account-hash-b4772e7c47e4deca5bd90b7adb2d6e884f2d331825d5419d6cbfb59e17642aab'" \
+--session-arg "is_hash_identifier_mode:bool='false'" \
+--session-arg "token_id:u64='0'" 
+
+```
+
+</details>
+
 #### Minting an NFT
 
 Below is an example of a `casper-client` command that uses the `mint` function of the contract to mint an NFT for the user associated with `node-1` in an [NCTL environment](https://docs.casperlabs.io/dapp-dev-guide/building-dapps/nctl-test/).
@@ -434,11 +474,15 @@ Below is an example of a `casper-client` command that uses the `mint` function o
 
     The contract hash of the previously installed CEP-78 NFT contract from which we will be minting.
 
-2) `--session-arg "token_owner:key='account-hash-e9ff87766a1d2bab2565bfd5799054946200b51b20c3ca7e54a9269e00fe7cfb'"`
+2) `--session-arg "collection_name:string='cep78_<collection_name>'"`
 
-    The account hash of the account receiving the minted token.
+    The collection name of the previously installed CEP-78 NFT contract from which we will be minting.
 
-3) `--session-arg "token_meta_data:string='{\"name\": \"John Doe\",\"token_uri\": \"https:\/\/www.barfoo.com\",\"checksum\": \"940bffb3f2bba35f84313aa26da09ece3ad47045c6a1292c2bbd2df4ab1a55fb\"}'"`
+3) `--session-arg "token_owner:key='account-hash-e9ff87766a1d2bab2565bfd5799054946200b51b20c3ca7e54a9269e00fe7cfb'"`
+
+    The collection name of the NFT to be minted.
+
+4) `--session-arg "token_meta_data:string='{\"name\": \"John Doe\",\"token_uri\": \"https:\/\/www.barfoo.com\",\"checksum\": \"940bffb3f2bba35f84313aa26da09ece3ad47045c6a1292c2bbd2df4ab1a55fb\"}'"`
 
     Metadata describing the NFT to be minted, passed in as a `string`.
 
@@ -451,6 +495,7 @@ Below is an example of a `casper-client` command that uses the `mint` function o
 
 casper-client put-deploy -n http://localhost:11101/rpc --chain-name "casper-net-1" --payment-amount 5000000000 -k ~/casper/casper-node/utils/nctl/assets/net-1/nodes/node-1/keys/secret_key.pem --session-path ~/casper/enhanced-nft/client/mint_session/target/wasm32-unknown-unknown/release/mint_call.wasm \
 --session-arg "nft_contract_hash:key='hash-206339c3deb8e6146974125bb271eb510795be6f250c21b1bd4b698956669f95'" \
+`--session-arg "collection_name:string='cep78_<collection_name>'"` \
 --session-arg "token_owner:key='account-hash-e9ff87766a1d2bab2565bfd5799054946200b51b20c3ca7e54a9269e00fe7cfb'"  \
 --session-arg "token_meta_data:string='{\"name\": \"John Doe\",\"token_uri\": \"https:\/\/www.barfoo.com\",\"checksum\": \"940bffb3f2bba35f84313aa26da09ece3ad47045c6a1292c2bbd2df4ab1a55fb\"}'"
 
@@ -730,3 +775,5 @@ If it is set to `Hash`, you will need to reference the `HASH_BY_INDEX` dictionar
 |  135  | InvalidCep78InvalidHash           |
 |  136  | InvalidPackageHashName            |
 |  137  | InvalidAccessKeyName              |
+|  138  | InvalidCheckForUpgrade            |
+|  139  | InvalidNamedKeyConvention         |
