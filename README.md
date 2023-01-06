@@ -28,8 +28,8 @@ The release of version 1.1 for the CEP-78 Enhanced NFT Standard includes the fol
     * The naming convention for the default named key prefix of a given CEP-78 contract instance has been changed to `cep78_<collection_name>` with spaces and dashes within the collection name converted to underscores.
 
     * When installing or upgrading, there is an optional `NamedArg` called `named_key_convention`. If this argument is not provided, the contract assumes you are trying to install a new instance of the version 1.1 CEP-78 contract. In contrast, if you are upgrading your contract from a version 1.0 instance:
-        * `V1_0Standard` assumes that the `NamedKeys` associated with a previously installed instance of the CEP-78 contract are in the standard location and acts accordingly.
-        * `V1_0Custom` takes in the arguments `package_key_name` and `access_key_name` if your previous contract used a non-standard location for the associated `NamedKeys`
+        * `V_1_0_Standard` assumes that the `NamedKeys` associated with a previously installed instance of the CEP-78 contract are in the standard location and acts accordingly.
+        * `V_1_0_Custom` takes in the arguments `package_key_name` and `access_key_name` if your previous contract used a non-standard location for the associated `NamedKeys`
 
     * **If an account attempts to install a second CEP-78 contract with the same name, it will overwrite the access rights and render the first instance unusable.**
 
