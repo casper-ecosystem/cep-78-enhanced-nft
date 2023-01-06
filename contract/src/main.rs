@@ -175,7 +175,7 @@ pub extern "C" fn init() {
     .try_into()
     .unwrap_or_revert();
 
-    let contract_whitelist = utils::get_named_arg_with_user_errors::<Vec<ContractHash>>(
+    let contract_whitelist = utils::get_named_arg_with_user_errors::<Vec<Key>>(
         ARG_CONTRACT_WHITELIST,
         NFTCoreError::MissingContractWhiteList,
         NFTCoreError::InvalidContractWhitelist,
@@ -410,12 +410,10 @@ pub extern "C" fn set_variables() {
         storage::write(allow_minting_uref, allow_minting);
     }
 
-    if let Some(new_contract_whitelist) =
-        utils::get_optional_named_arg_with_user_errors::<Vec<ContractHash>>(
-            ARG_CONTRACT_WHITELIST,
-            NFTCoreError::MissingContractWhiteList,
-        )
-    {
+    if let Some(new_contract_whitelist) = utils::get_optional_named_arg_with_user_errors::<Vec<Key>>(
+        ARG_CONTRACT_WHITELIST,
+        NFTCoreError::MissingContractWhiteList,
+    ) {
         let whitelist_mode: WhitelistMode = utils::get_stored_value_with_user_errors::<u8>(
             WHITELIST_MODE,
             NFTCoreError::MissingWhitelistMode,
@@ -484,14 +482,13 @@ pub extern "C" fn mint() {
         let caller = utils::get_verified_caller().unwrap_or_revert();
         match caller {
             Caller::StoredCaller(calling_contract, _) => {
-                let contract_whitelist =
-                    utils::get_stored_value_with_user_errors::<Vec<ContractHash>>(
-                        CONTRACT_WHITELIST,
-                        NFTCoreError::MissingWhitelistMode,
-                        NFTCoreError::InvalidWhitelistMode,
-                    );
+                let contract_whitelist = utils::get_stored_value_with_user_errors::<Vec<Key>>(
+                    CONTRACT_WHITELIST,
+                    NFTCoreError::MissingWhitelistMode,
+                    NFTCoreError::InvalidWhitelistMode,
+                );
                 // Revert if the calling contract is not in the whitelist.
-                if !contract_whitelist.contains(&calling_contract) {
+                if !contract_whitelist.contains(&calling_contract.into()) {
                     runtime::revert(NFTCoreError::UnlistedContractHash)
                 }
             }
@@ -1901,7 +1898,7 @@ fn install_contract() {
     // NFTs in the contract holder mode with restricted minting.
     // This value can only be modified if the whitelist lock is
     // set to be unlocked.
-    let contract_white_list: Vec<ContractHash> = utils::get_optional_named_arg_with_user_errors(
+    let contract_white_list: Vec<Key> = utils::get_optional_named_arg_with_user_errors(
         ARG_CONTRACT_WHITELIST,
         NFTCoreError::InvalidContractWhitelist,
     )

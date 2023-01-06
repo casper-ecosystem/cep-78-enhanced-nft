@@ -2,7 +2,7 @@ use casper_engine_test_support::{
     ExecuteRequestBuilder, InMemoryWasmTestBuilder, DEFAULT_ACCOUNT_ADDR,
     DEFAULT_RUN_GENESIS_REQUEST,
 };
-use casper_types::{account::AccountHash, runtime_args, ContractHash, Key, RuntimeArgs};
+use casper_types::{account::AccountHash, runtime_args, Key, RuntimeArgs};
 
 use crate::utility::{
     constants::{
@@ -391,7 +391,7 @@ fn should_get_metadata_using_token_id() {
     let minting_contract_hash = get_minting_contract_hash(&builder);
     let minting_contract_key: Key = minting_contract_hash.into();
 
-    let contract_whitelist = vec![minting_contract_hash];
+    let contract_whitelist = vec![minting_contract_hash.into()];
 
     let install_request = InstallerRequestBuilder::new(*DEFAULT_ACCOUNT_ADDR, NFT_CONTRACT_WASM)
         .with_total_token_supply(100u64)
@@ -407,7 +407,7 @@ fn should_get_metadata_using_token_id() {
 
     let nft_contract_key: Key = get_nft_contract_hash(&builder).into();
 
-    let actual_contract_whitelist: Vec<ContractHash> = query_stored_value(
+    let actual_contract_whitelist: Vec<Key> = query_stored_value(
         &mut builder,
         nft_contract_key,
         vec![ARG_CONTRACT_WHITELIST.to_string()],

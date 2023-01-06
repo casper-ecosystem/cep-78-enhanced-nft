@@ -2,7 +2,7 @@ use casper_engine_test_support::{
     ExecuteRequestBuilder, InMemoryWasmTestBuilder, DEFAULT_ACCOUNT_ADDR,
     DEFAULT_RUN_GENESIS_REQUEST,
 };
-use casper_types::{runtime_args, CLValue, ContractHash, RuntimeArgs};
+use casper_types::{runtime_args, CLValue, ContractHash, Key, RuntimeArgs};
 
 use crate::utility::{
     constants::{
@@ -245,7 +245,7 @@ fn should_install_with_contract_holder_mode() {
         "whitelist mode is not set to unlocked"
     );
 
-    let actual_contract_whitelist: Vec<ContractHash> = support::query_stored_value(
+    let actual_contract_whitelist: Vec<Key> = support::query_stored_value(
         &mut builder,
         *nft_contract_key,
         vec![ARG_CONTRACT_WHITELIST.to_string()],
@@ -253,7 +253,7 @@ fn should_install_with_contract_holder_mode() {
 
     assert_eq!(
         actual_contract_whitelist,
-        vec![ContractHash::default()],
+        vec![ContractHash::default().into()],
         "contract whitelist is incorrectly set"
     );
 }

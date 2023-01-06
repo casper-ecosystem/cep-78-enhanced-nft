@@ -5,7 +5,7 @@ use serde::{Deserialize, Serialize};
 
 use casper_engine_test_support::ExecuteRequestBuilder;
 use casper_execution_engine::core::engine_state::ExecuteRequest;
-use casper_types::{account::AccountHash, CLValue, ContractHash, RuntimeArgs};
+use casper_types::{account::AccountHash, CLValue, ContractHash, Key, RuntimeArgs};
 
 use crate::utility::constants::{
     ARG_ALLOW_MINTING, ARG_BURN_MODE, ARG_COLLECTION_NAME, ARG_COLLECTION_SYMBOL,
@@ -289,7 +289,7 @@ impl InstallerRequestBuilder {
         self
     }
 
-    pub(crate) fn with_contract_whitelist(mut self, contract_whitelist: Vec<ContractHash>) -> Self {
+    pub(crate) fn with_contract_whitelist(mut self, contract_whitelist: Vec<Key>) -> Self {
         self.contract_whitelist = CLValue::from_t(contract_whitelist).unwrap();
         self
     }

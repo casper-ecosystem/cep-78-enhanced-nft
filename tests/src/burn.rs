@@ -441,7 +441,7 @@ fn should_allow_contract_to_burn_token() {
 
     let minting_contract_hash = get_minting_contract_hash(&builder);
 
-    let contract_whitelist = vec![minting_contract_hash];
+    let contract_whitelist: Vec<Key> = vec![minting_contract_hash.into()];
 
     let install_request = InstallerRequestBuilder::new(*DEFAULT_ACCOUNT_ADDR, NFT_CONTRACT_WASM)
         .with_total_token_supply(100u64)

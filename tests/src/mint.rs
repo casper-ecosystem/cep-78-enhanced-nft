@@ -5,9 +5,7 @@ use casper_engine_test_support::{
     DEFAULT_RUN_GENESIS_REQUEST,
 };
 use casper_execution_engine::storage::global_state::in_memory::InMemoryGlobalState;
-use casper_types::{
-    account::AccountHash, runtime_args, system::mint, CLValue, ContractHash, Key, RuntimeArgs,
-};
+use casper_types::{account::AccountHash, runtime_args, system::mint, CLValue, Key, RuntimeArgs};
 
 use crate::utility::{
     constants::{
@@ -847,7 +845,7 @@ fn should_allow_whitelisted_contract_to_mint() {
 
     let minting_contract_hash = get_minting_contract_hash(&builder);
 
-    let contract_whitelist = vec![minting_contract_hash];
+    let contract_whitelist = vec![minting_contract_hash.into()];
 
     let install_request = InstallerRequestBuilder::new(*DEFAULT_ACCOUNT_ADDR, NFT_CONTRACT_WASM)
         .with_total_token_supply(100u64)
@@ -863,7 +861,7 @@ fn should_allow_whitelisted_contract_to_mint() {
 
     let nft_contract_key: Key = get_nft_contract_hash(&builder).into();
 
-    let actual_contract_whitelist: Vec<ContractHash> = query_stored_value(
+    let actual_contract_whitelist: Vec<Key> = query_stored_value(
         &mut builder,
         nft_contract_key,
         vec![ARG_CONTRACT_WHITELIST.to_string()],
@@ -920,9 +918,9 @@ fn should_disallow_unlisted_contract_from_minting() {
 
     let minting_contract_hash = get_minting_contract_hash(&builder);
     let contract_whitelist = vec![
-        ContractHash::from([1u8; 32]),
-        ContractHash::from([2u8; 32]),
-        ContractHash::from([3u8; 32]),
+        Key::Hash([1u8; 32]),
+        Key::Hash([2u8; 32]),
+        Key::Hash([3u8; 32]),
     ];
 
     let install_request = InstallerRequestBuilder::new(*DEFAULT_ACCOUNT_ADDR, NFT_CONTRACT_WASM)
@@ -998,7 +996,7 @@ fn should_be_able_to_update_whitelist_for_minting() {
     let nft_contract_hash = get_nft_contract_hash(&builder);
     let nft_contract_key = nft_contract_hash.into();
 
-    let current_contract_whitelist: Vec<ContractHash> = query_stored_value(
+    let current_contract_whitelist: Vec<Key> = query_stored_value(
         &mut builder,
         nft_contract_key,
         vec![ARG_CONTRACT_WHITELIST.to_string()],
@@ -1034,7 +1032,7 @@ fn should_be_able_to_update_whitelist_for_minting() {
         nft_contract_hash,
         ENTRY_POINT_SET_VARIABLES,
         runtime_args! {
-            ARG_CONTRACT_WHITELIST => vec![minting_contract_hash]
+            ARG_CONTRACT_WHITELIST => vec![Key::from(minting_contract_hash)]
         },
     )
     .build();
@@ -1044,13 +1042,16 @@ fn should_be_able_to_update_whitelist_for_minting() {
         .expect_success()
         .commit();
 
-    let updated_contract_whitelist: Vec<ContractHash> = query_stored_value(
+    let updated_contract_whitelist: Vec<Key> = query_stored_value(
         &mut builder,
         nft_contract_key,
         vec![ARG_CONTRACT_WHITELIST.to_string()],
     );
 
-    assert_eq!(vec![minting_contract_hash], updated_contract_whitelist);
+    assert_eq!(
+        updated_contract_whitelist,
+        vec![minting_contract_hash.into()]
+    );
 
     let mint_via_contract_call = ExecuteRequestBuilder::contract_call_by_hash(
         *DEFAULT_ACCOUNT_ADDR,
