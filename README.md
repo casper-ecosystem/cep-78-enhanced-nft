@@ -27,11 +27,9 @@ The release of version 1.1 for the CEP-78 Enhanced NFT Standard includes the fol
 
     * The naming convention for the default named key prefix of a given CEP-78 contract instance has been changed to `cep78_<collection_name>` with spaces and dashes within the collection name converted to underscores.
 
-    * When installing or upgrading, there is an optional `NamedArg` called `named_key_convention`. If this argument is not provided, the contract assumes you are trying to install a new instance of the version 1.1 CEP-78 contract. In contrast, if you are upgrading your contract from a version 1.0 instance:
-        * `V_1_0_Standard` assumes that the `NamedKeys` associated with a previously installed instance of the CEP-78 contract are in the standard location and acts accordingly.
-        * `V_1_0_Custom` takes in the arguments `package_key_name` and `access_key_name` if your previous contract used a non-standard location for the associated `NamedKeys`
+    * Added a new modality named `NamedKeyConventionMode` that dictates the upgrading and installation process, with further information [here](#namedkeyconventionmode)
 
-    * **If an account attempts to install a second CEP-78 contract with the same name, it will overwrite the access rights and render the first instance unusable.**
+    * **If an account attempts to install a second CEP-78 contract instance with the same collection name, it will overwrite the `NamedKey` entry under which the access URef is written. Losing the access URef will prevent the account from adding newer versions, i.e., upgrading that particular instance of CEP-78.**
 
 ## Table of Contents
 
@@ -289,6 +287,22 @@ If you are upgrading a contract from CEP-78 version 1.0 to 1.1, `OwnerReverseLoo
 
 If you have an existing CEP-78 version 1.0 contract instance, and would prefer the newer functionality with no lookup, the only option is to install a separate, new contract instance and mint all of the NFTs anew in that instance and then burn the corresponding NFTs from the old instance. If you do not own all the NFTs held by the old contract instance, you do not have this option.
 
+#### NamedKeyConventionMode
+
+The `NamedKeyConvention` modality dictates whether the Wasm passed will attempt to install a version 1.1 instance of CEP-78 or attempt to migrate a version 1.0 CEP-78 instance to version 1.1.
+
+This modality provides three options:
+
+1. `DerivedFromCollectionName`: This modality will signal the contract to attempt to install a new version 1.1 instance of the CEP-78 contract. The contract package hash and the access URef will be saved in the installing account's `NamedKeys` as `cep78_contract_package_<collection_name>` and `cep78_contract_package_access_<collection_name>`.
+2. `V_1_0_standard`: This modality will signal the contract to attempt to upgrade from version 1.0 to version 1.1. In this scenario, the contract will retrieve the package hash and the access URef from the `NamedKey` entries originally created during the 1.0 installation.
+3. `V_1_0_custom`: This modality will signal the contract to attempt to upgrade from version 1.0 to version 1.1. In this scenario, the calling account must provide the `NamedKey` entries under which the package hash and the access URef are saved. Additionally, this requires the passing of the runtime arguments `access_key_name` and `hash_key_name` for the access URef and package hash, respectively. In this modality, these arguments are required and must be passed in.
+
+| NamedKeyConvention               | u8  |
+|----------------------------------|-----|
+| DerivedFromCollectionName        | 0   |
+| V_1_0_standard                   | 1   |
+| V_1_0_custom                     | 2   |
+
 #### Modality Conflicts
 
 The `MetadataMutability` option of `Mutable` cannot be used in conjunction with `NFTIdentifierMode` modality of `Hash`.
@@ -426,11 +440,13 @@ casper-client put-deploy -n http://localhost:11101/rpc --chain-name "casper-net-
 
 </details>
 
-#### Directly Invoking Endpoints
+#### Directly Invoking Entrypoints
 
-With the release of CEP-78 version 1.1, users that are interacting with a CEP-78 contract that does not use `ReverseLookupMode` may opt out of using the client Wasms provided as part of the release. Opting out in this situation is recommended, as directly invoking the endpoints incurs a lower gas cost compared against the provided client Wasm.
+With the release of CEP-78 version 1.1, users that are interacting with a CEP-78 contract that does not use `ReverseLookupMode` should opt out of using the client Wasms provided as part of the release. Opting out in this situation is recommended, as directly invoking the entrypoints incurs a lower gas cost compared against using the provided client Wasm to invoke the entrypoint.
 
-You may invoke the `mint`, `transfer` or `burn` endpoints directly through either the contract package hash or the contract hash directly.
+You may invoke the `mint`, `transfer` or `burn` entrypoints directly through either the contract package hash or the contract hash directly.
+
+Specifically in the case of `mint`, there are fewer runtime arguments that must be provided, thereby reducing the total gas cost of minting an NFT.
 
 <details>
 <summary><b>Example Mint using StoredVersionByHash</b></summary>
@@ -440,8 +456,8 @@ You may invoke the `mint`, `transfer` or `burn` endpoints directly through eithe
 casper-client put-deploy -n http://localhost:11101/rpc --chain-name "casper-net-1" \ --payment-amount 7500000000 \ -k ~/secret_key.pem \
 --session-package-hash hash-b3b7a74ae9ef2ea8afc06d6a0830961259605e417e95a53c0cb1ca9737bb0ec7 \
 --session-entry-point "mint" \
---session-arg "token_owner:key='account-hash-4b13fd260760ca9639f9d1f4a8d5ecafaa1b93b150ca5909eecf317556795da9'" \
---session-arg "token_meta_data:string='{\"id\": \"US-20040060474-A1\",\"ipfs\": \"Qme7ss3ARVgxv6rXqVPiikMJ8u2NLgmgszg13pYrDKEoiu\",\"prvhsh\":\"940bffb3f2bba35f84313aa26da09ece3ad47045c6a1292c2bbd2df4ab1a55fb\"}'"
+--session-arg "token_owner:key='account-hash-e9ff87766a1d2bab2565bfd5799054946200b51b20c3ca7e54a9269e00fe7cfb'" \
+--session-arg "token_meta_data:string='{\"name\": \"John Doe\",\"token_uri\": \"https:\/\/www.barfoo.com\",\"checksum\": \"940bffb3f2bba35f84313aa26da09ece3ad47045c6a1292c2bbd2df4ab1a55fb\"}'"
 
 ```
 
@@ -450,14 +466,15 @@ casper-client put-deploy -n http://localhost:11101/rpc --chain-name "casper-net-
 <details>
 <summary><b>Example Transfer using StoredContractByHash</b></summary>
 
+Based on the identifier mode for the given contract instance, either the `token_id` runtime argument must be passed in or in the case of the hash identifier mode, the `token_hash` runtime argument.
+
 ```bash
 
 casper-client put-deploy -n http://localhost:11101/rpc --chain-name "casper-net-1" \ --payment-amount 7500000000 \ -k ~/secret_key.pem \
 --session-hash hash-b3b7a74ae9ef2ea8afc06d6a0830961259605e417e95a53c0cb1ca9737bb0ec7 \
 --session-entry-point "transfer" \
 --session-arg "source_key:key='account-hash-e9ff87766a1d2bab2565bfd5799054946200b51b20c3ca7e54a9269e00fe7cfb'" \
---session-arg "target_key:key='account-hash-b4772e7c47e4deca5bd90b7adb2d6e884f2d331825d5419d6cbfb59e17642aab'" \
---session-arg "is_hash_identifier_mode:bool='false'" \
+--session-arg "target_key:key='account-hash-b4782e7c47e4deca5bd90b7adb2d6e884f2d331825d5419d6cbfb59e17642aab'" \
 --session-arg "token_id:u64='0'" 
 
 ```
