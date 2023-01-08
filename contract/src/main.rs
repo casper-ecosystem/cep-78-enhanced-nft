@@ -1431,6 +1431,10 @@ pub extern "C" fn migrate() {
             storage::new_uref(EventsMode::NoEvents as u8).into(),
         );
     }
+    
+    if let Some(contract_whitelist) = utils::should_migrate_contract_whitelist() {
+        utils::migrate_contract_whitelist(contract_whitelist);
+    }
 }
 
 #[no_mangle]
