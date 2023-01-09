@@ -33,7 +33,7 @@ use crate::{
     NUMBER_OF_MINTED_TOKENS, OWNED_TOKENS, PAGE_TABLE, TOKEN_OWNERS, UNMATCHED_HASH_COUNT,
 };
 
-// The size of a given page, it is currently set to 10
+// The size of a given page, it is currently set to 1000
 // to ease the math around addressing newly minted tokens.
 pub const PAGE_SIZE: u64 = 1000;
 
