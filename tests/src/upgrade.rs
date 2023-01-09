@@ -517,6 +517,67 @@ fn should_not_migrate_contracts_with_zero_token_issuance() {
 }
 
 #[test]
+fn should_safely_upgrade_contract_whitelist() {
+    let mut builder = InMemoryWasmTestBuilder::default();
+    builder.run_genesis(&DEFAULT_RUN_GENESIS_REQUEST).commit();
+
+    let whitelisted_contract_hash = ContractHash::from([1_u8; 32]);
+
+    let install_request = InstallerRequestBuilder::new(*DEFAULT_ACCOUNT_ADDR, CONTRACT_1_0_0_WASM)
+        .with_collection_name(NFT_TEST_COLLECTION.to_string())
+        .with_collection_symbol(NFT_TEST_SYMBOL.to_string())
+        .with_total_token_supply(1u64)
+        .with_ownership_mode(OwnershipMode::Minter)
+        .with_identifier_mode(NFTIdentifierMode::Ordinal)
+        .with_nft_metadata_kind(NFTMetadataKind::Raw)
+        .with_contract_whitelist_1_0_0(vec![whitelisted_contract_hash])
+        .build();
+
+    builder.exec(install_request).expect_success().commit();
+
+    let account = builder.get_expected_account(*DEFAULT_ACCOUNT_ADDR);
+    let nft_contract_key = account
+        .named_keys()
+        .get(CONTRACT_NAME)
+        .expect("must have key in named keys");
+
+    let contract_whitelist_pre_upgrade: Vec<ContractHash> = support::query_stored_value(
+        &mut builder,
+        *nft_contract_key,
+        vec![ARG_CONTRACT_WHITELIST.to_string()],
+    );
+
+    assert_eq!(
+        contract_whitelist_pre_upgrade,
+        vec![whitelisted_contract_hash],
+        "contract whitelist is incorrectly set"
+    );
+
+    let upgrade_request = ExecuteRequestBuilder::standard(
+        *DEFAULT_ACCOUNT_ADDR,
+        NFT_CONTRACT_WASM,
+        runtime_args! {
+            ARG_NFT_PACKAGE_HASH => support::get_nft_contract_package_hash(&builder),
+        },
+    )
+    .build();
+
+    builder.exec(upgrade_request).expect_success().commit();
+
+    let post_upgrade_contract_whitelist: Vec<Key> = support::query_stored_value(
+        &mut builder,
+        *nft_contract_key,
+        vec![ARG_CONTRACT_WHITELIST.to_string()],
+    );
+
+    assert_eq!(
+        post_upgrade_contract_whitelist,
+        vec![whitelisted_contract_hash.into()],
+        "contract whitelist is incorrectly set"
+    );
+}
+
+#[test]
 fn should_upgrade_with_custom_named_keys() {
     let mut builder = InMemoryWasmTestBuilder::default();
     builder.run_genesis(&DEFAULT_RUN_GENESIS_REQUEST).commit();
@@ -528,10 +589,9 @@ fn should_upgrade_with_custom_named_keys() {
         .with_ownership_mode(OwnershipMode::Minter)
         .with_identifier_mode(NFTIdentifierMode::Ordinal)
         .with_nft_metadata_kind(NFTMetadataKind::Raw)
-        .build();
+    .build();
 
     builder.exec(install_request).expect_success().commit();
-
     let nft_contract_hash_1_0_0 = get_nft_contract_hash_1_0_0(&builder);
     let nft_contract_key_1_0_0: Key = nft_contract_hash_1_0_0.into();
 
@@ -601,7 +661,6 @@ fn should_upgrade_with_custom_named_keys() {
         },
     )
     .build();
-
     builder.exec(improper_upgrade_request).expect_failure();
 
     let proper_upgrade_request = ExecuteRequestBuilder::standard(

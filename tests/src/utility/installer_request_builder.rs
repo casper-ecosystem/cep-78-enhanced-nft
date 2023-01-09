@@ -294,6 +294,14 @@ impl InstallerRequestBuilder {
         self
     }
 
+    pub(crate) fn with_contract_whitelist_1_0_0(
+        mut self,
+        contract_whitelist: Vec<ContractHash>,
+    ) -> Self {
+        self.contract_whitelist = CLValue::from_t(contract_whitelist).unwrap();
+        self
+    }
+
     pub(crate) fn with_nft_metadata_kind(mut self, nft_metadata_kind: NFTMetadataKind) -> Self {
         self.nft_metadata_kind = CLValue::from_t(nft_metadata_kind as u8).unwrap();
         self
