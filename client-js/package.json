@@ -1,9 +1,12 @@
 {
-  "name": "cep78-js-client",
-  "version": "1.0.0",
+
+  "name": "casper-cep78-js-client",
+  "version": "1.0.1",
   "description": "CEP78 Enhanced NFT JS Client",
   "main": "dist/index.js",
+  "types": "dist/index.d.ts",
   "scripts": {
+    "prepublishOnly": "npm run build && npm run test",
     "dev": "tsc --watch",
     "build": "tsc",
     "test": "jest",
