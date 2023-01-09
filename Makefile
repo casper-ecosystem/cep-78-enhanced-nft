@@ -14,6 +14,7 @@ build-contract:
 	cd client/transfer_session && cargo build --release --target wasm32-unknown-unknown
 	cd client/updated_receipts && cargo build --release --target wasm32-unknown-unknown
 	cd test-contracts/minting_contract && cargo build --release --target wasm32-unknown-unknown
+	cd test-contracts/mangle_named_keys && cargo build --release --target wasm32-unknown-unknown
 	wasm-strip contract/target/wasm32-unknown-unknown/release/contract.wasm
 	wasm-strip client/mint_session/target/wasm32-unknown-unknown/release/mint_call.wasm
 	wasm-strip client/balance_of_session/target/wasm32-unknown-unknown/release/balance_of_call.wasm
@@ -34,7 +35,7 @@ setup-test: build-contract
 	cp client/transfer_session/target/wasm32-unknown-unknown/release/transfer_call.wasm tests/wasm
 	cp client/updated_receipts/target/wasm32-unknown-unknown/release/updated_receipts.wasm tests/wasm
 	cp test-contracts/minting_contract/target/wasm32-unknown-unknown/release/minting_contract.wasm tests/wasm
-
+	cp test-contracts/mangle_named_keys/target/wasm32-unknown-unknown/release/mangle_named_keys.wasm tests/wasm
 
 test: setup-test
 	cd tests && cargo test

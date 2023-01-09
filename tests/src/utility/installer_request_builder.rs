@@ -10,9 +10,9 @@ use casper_types::{account::AccountHash, CLValue, ContractHash, RuntimeArgs};
 use crate::utility::constants::{
     ARG_ALLOW_MINTING, ARG_BURN_MODE, ARG_COLLECTION_NAME, ARG_COLLECTION_SYMBOL,
     ARG_CONTRACT_WHITELIST, ARG_HOLDER_MODE, ARG_IDENTIFIER_MODE, ARG_JSON_SCHEMA,
-    ARG_METADATA_MUTABILITY, ARG_MINTING_MODE, ARG_NFT_KIND, ARG_NFT_METADATA_KIND,
-    ARG_OWNERSHIP_MODE, ARG_OWNER_LOOKUP_MODE, ARG_TOTAL_TOKEN_SUPPLY, ARG_WHITELIST_MODE,
-    NFT_TEST_COLLECTION, NFT_TEST_SYMBOL,
+    ARG_METADATA_MUTABILITY, ARG_MINTING_MODE, ARG_NAMED_KEY_CONVENTION, ARG_NFT_KIND,
+    ARG_NFT_METADATA_KIND, ARG_OWNERSHIP_MODE, ARG_OWNER_LOOKUP_MODE, ARG_TOTAL_TOKEN_SUPPLY,
+    ARG_WHITELIST_MODE, NFT_TEST_COLLECTION, NFT_TEST_SYMBOL,
 };
 
 pub(crate) static TEST_CUSTOM_METADATA_SCHEMA: Lazy<CustomMetadataSchema> = Lazy::new(|| {
@@ -141,6 +141,13 @@ pub enum OwnerReverseLookupMode {
     Complete = 1,
 }
 
+#[repr(u8)]
+pub enum NamedKeyConventionMode {
+    DerivedFromCollectionName = 0,
+    V1_0Standard = 1,
+    V1_0Custom = 2,
+}
+
 #[derive(Debug)]
 pub(crate) struct InstallerRequestBuilder {
     account_hash: AccountHash,
@@ -161,6 +168,7 @@ pub(crate) struct InstallerRequestBuilder {
     metadata_mutability: CLValue,
     burn_mode: CLValue,
     reporting_mode: CLValue,
+    named_key_convention: CLValue,
 }
 
 impl InstallerRequestBuilder {
@@ -193,6 +201,10 @@ impl InstallerRequestBuilder {
             metadata_mutability: CLValue::from_t(MetadataMutability::Mutable as u8).unwrap(),
             burn_mode: CLValue::from_t(BurnMode::Burnable as u8).unwrap(),
             reporting_mode: CLValue::from_t(OwnerReverseLookupMode::Complete as u8).unwrap(),
+            named_key_convention: CLValue::from_t(
+                NamedKeyConventionMode::DerivedFromCollectionName as u8,
+            )
+            .unwrap(),
         }
     }
 
@@ -322,6 +334,7 @@ impl InstallerRequestBuilder {
         runtime_args.insert_cl_value(ARG_METADATA_MUTABILITY, self.metadata_mutability);
         runtime_args.insert_cl_value(ARG_BURN_MODE, self.burn_mode);
         runtime_args.insert_cl_value(ARG_OWNER_LOOKUP_MODE, self.reporting_mode);
+        runtime_args.insert_cl_value(ARG_NAMED_KEY_CONVENTION, self.named_key_convention);
         ExecuteRequestBuilder::standard(self.account_hash, &self.session_file, runtime_args).build()
     }
 }

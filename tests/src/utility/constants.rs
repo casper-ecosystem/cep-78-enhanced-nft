@@ -6,7 +6,8 @@ pub(crate) const BALANCE_OF_SESSION_WASM: &str = "balance_of_call.wasm";
 pub(crate) const OWNER_OF_SESSION_WASM: &str = "owner_of_call.wasm";
 pub(crate) const GET_APPROVED_WASM: &str = "get_approved_call.wasm";
 pub(crate) const UPDATED_RECEIPTS_WASM: &str = "updated_receipts.wasm";
-pub(crate) const CONTRACT_NAME: &str = "nft_contract";
+pub(crate) const MANGLE_NAMED_KEYS: &str = "mangle_named_keys.wasm";
+pub(crate) const CONTRACT_NAME: &str = "cep78_contract_hash_nft-test";
 pub(crate) const MINTING_CONTRACT_NAME: &str = "minting_contract_hash";
 pub(crate) const NFT_TEST_COLLECTION: &str = "nft-test";
 pub(crate) const NFT_TEST_SYMBOL: &str = "TEST";
@@ -59,6 +60,9 @@ pub(crate) const ARG_TOKEN_ID: &str = "token_id";
 pub(crate) const ARG_TOKEN_HASH: &str = "token_hash";
 pub(crate) const ARG_KEY_NAME: &str = "key_name";
 pub(crate) const ARG_IS_HASH_IDENTIFIER_MODE: &str = "is_hash_identifier_mode";
+pub(crate) const ARG_NAMED_KEY_CONVENTION: &str = "named_key_convention";
+pub(crate) const ARG_ACCESS_KEY_NAME_1_0_0: &str = "access_key_name";
+pub(crate) const ARG_HASH_KEY_NAME_1_0_0: &str = "hash_key_name";
 pub(crate) const ACCOUNT_USER_1: [u8; 32] = [1u8; 32];
 pub(crate) const ACCOUNT_USER_2: [u8; 32] = [2u8; 32];
 pub(crate) const ACCOUNT_USER_3: [u8; 32] = [2u8; 32];
@@ -89,7 +93,7 @@ pub(crate) const MALFORMED_META_DATA: &str = r#"{
   "symbol": abc,
   "token_uri": "https://www.barfoo.com"
 }"#;
-pub(crate) const ACCESS_KEY_NAME: &str = "nft_contract_package_access";
+pub(crate) const ACCESS_KEY_NAME_1_0_0: &str = "nft_contract_package_access";
 pub(crate) const CONTRACT_1_0_0_WASM: &str = "1_0_0/contract.wasm";
 pub(crate) const MINT_1_0_0_WASM: &str = "1_0_0/mint_call.wasm";
 pub(crate) const PAGE_SIZE: u64 = 1000;

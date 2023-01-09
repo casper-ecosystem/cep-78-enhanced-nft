@@ -51,7 +51,7 @@ fn setup_nft_contract(
 
     let mut install_request_builder =
         InstallerRequestBuilder::new(*DEFAULT_ACCOUNT_ADDR, NFT_CONTRACT_WASM)
-            .with_collection_name("nft_collection".to_string())
+            .with_collection_name(NFT_TEST_COLLECTION.to_string())
             .with_reporting_mode(OwnerReverseLookupMode::NoLookUp)
             .with_allowing_minting(allowing_minting);
 

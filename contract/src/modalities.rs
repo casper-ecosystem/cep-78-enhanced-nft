@@ -229,6 +229,7 @@ impl TryFrom<u8> for BurnMode {
 }
 
 #[repr(u8)]
+#[derive(Clone, PartialEq, Eq)]
 pub enum OwnerReverseLookupMode {
     NoLookUp = 0,
     Complete = 1,
@@ -242,6 +243,26 @@ impl TryFrom<u8> for OwnerReverseLookupMode {
             0 => Ok(OwnerReverseLookupMode::NoLookUp),
             1 => Ok(OwnerReverseLookupMode::Complete),
             _ => Err(NFTCoreError::InvalidReportingMode),
+        }
+    }
+}
+
+#[repr(u8)]
+pub enum NamedKeyConventionMode {
+    DerivedFromCollectionName = 0,
+    V1_0Standard = 1,
+    V1_0Custom = 2,
+}
+
+impl TryFrom<u8> for NamedKeyConventionMode {
+    type Error = NFTCoreError;
+
+    fn try_from(value: u8) -> Result<Self, Self::Error> {
+        match value {
+            0 => Ok(NamedKeyConventionMode::DerivedFromCollectionName),
+            1 => Ok(NamedKeyConventionMode::V1_0Standard),
+            2 => Ok(NamedKeyConventionMode::V1_0Custom),
+            _ => Err(NFTCoreError::InvalidNamedKeyConvention),
         }
     }
 }
