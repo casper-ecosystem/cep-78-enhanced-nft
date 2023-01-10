@@ -258,7 +258,7 @@ pub extern "C" fn init() {
     .try_into()
     .unwrap_or_revert();
 
-    let event_mode: EventsMode = utils::get_named_arg_with_user_errors::<u8>(
+    let events_mode: EventsMode = utils::get_named_arg_with_user_errors::<u8>(
         ARG_EVENTS_MODE,
         NFTCoreError::MissingEventMode,
         NFTCoreError::InvalidEventMode,
@@ -321,7 +321,7 @@ pub extern "C" fn init() {
         REPORTING_MODE,
         storage::new_uref(reporting_mode.clone() as u8).into(),
     );
-    runtime::put_key(EVENTS_MODE, storage::new_uref(event_mode as u8).into());
+    runtime::put_key(EVENTS_MODE, storage::new_uref(events_mode as u8).into());
 
     // Initialize contract with variables which must be present but maybe set to
     // different values after initialization.
@@ -637,14 +637,14 @@ pub extern "C" fn mint() {
 
         let receipt_string = utils::get_receipt_name(page_table_entry);
 
-        let event_mode: u8 = get_stored_value_with_user_errors(
+        let events_mode: u8 = get_stored_value_with_user_errors(
             crate::constants::EVENTS_MODE,
             NFTCoreError::MissingEventMode,
             NFTCoreError::InvalidEventMode,
         );
 
-        if event_mode != 0 {
-            events::record_event(match event_mode {
+        if events_mode != 0 {
+            events::record_event(match events_mode {
                 1 => Event::Cep47(CEP47Event::Mint {
                     recipient: token_owner_key,
                     token_id: token_identifier,
@@ -727,14 +727,14 @@ pub extern "C" fn burn() {
 
     utils::upsert_dictionary_value_from_key(TOKEN_COUNTS, &owned_tokens_item_key, updated_balance);
 
-    let event_mode: u8 = get_stored_value_with_user_errors(
+    let events_mode: u8 = get_stored_value_with_user_errors(
         crate::constants::EVENTS_MODE,
         NFTCoreError::MissingEventMode,
         NFTCoreError::InvalidEventMode,
     );
 
-    if event_mode != 0 {
-        events::record_event(match event_mode {
+    if events_mode != 0 {
+        events::record_event(match events_mode {
             1 => Event::Cep47(CEP47Event::Burn {
                 owner: token_owner,
                 token_id: token_identifier,
@@ -826,14 +826,14 @@ pub extern "C" fn approve() {
         Some(operator),
     );
 
-    let event_mode: u8 = get_stored_value_with_user_errors(
+    let events_mode: u8 = get_stored_value_with_user_errors(
         crate::constants::EVENTS_MODE,
         NFTCoreError::MissingEventMode,
         NFTCoreError::InvalidEventMode,
     );
 
-    if event_mode != 0 {
-        events::record_event(match event_mode {
+    if events_mode != 0 {
+        events::record_event(match events_mode {
             1 => Event::Cep47(CEP47Event::Approve {
                 owner: token_owner_key,
                 spender: operator,
@@ -896,10 +896,10 @@ pub extern "C" fn set_approval_for_all() {
 
     // TODO : figure this out
     /*
-    let event_mode: u8 = get_stored_value_with_user_errors(crate::constants::EVENTS_MODE, NFTCoreError::MissingEventMode, NFTCoreError::InvalidEventMode);
+    let events_mode: u8 = get_stored_value_with_user_errors(crate::constants::EVENTS_MODE, NFTCoreError::MissingEventMode, NFTCoreError::InvalidEventMode);
 
-    if event_mode != 0{
-        events::record_event(match event_mode{
+    if events_mode != 0{
+        events::record_event(match events_mode{
             1 => Event::Cep47(CEP47Event::ApproveAll{ owner: token_owner, spender :operator }),
             2 => Event::Cep78,
             _ => revert(NFTCoreError::InvalidEventMode)
@@ -1115,14 +1115,14 @@ pub extern "C" fn transfer() {
         runtime::ret(receipt)
     }
 
-    let event_mode: u8 = get_stored_value_with_user_errors(
+    let events_mode: u8 = get_stored_value_with_user_errors(
         crate::constants::EVENTS_MODE,
         NFTCoreError::MissingEventMode,
         NFTCoreError::InvalidEventMode,
     );
 
-    if event_mode != 0 {
-        events::record_event(match event_mode {
+    if events_mode != 0 {
+        events::record_event(match events_mode {
             1 => Event::Cep47(CEP47Event::Transfer {
                 sender: token_owner_key,
                 recipient: target_owner_key,
@@ -1351,14 +1351,14 @@ pub extern "C" fn set_token_metadata() {
         updated_metadata,
     );
 
-    let event_mode: u8 = get_stored_value_with_user_errors(
+    let events_mode: u8 = get_stored_value_with_user_errors(
         crate::constants::EVENTS_MODE,
         NFTCoreError::MissingEventMode,
         NFTCoreError::InvalidEventMode,
     );
 
-    if event_mode != 0 {
-        events::record_event(match event_mode {
+    if events_mode != 0 {
+        events::record_event(match events_mode {
             1 => Event::Cep47(CEP47Event::MetadataUpdate {
                 token_id: token_identifier,
             }),
@@ -1453,7 +1453,7 @@ pub extern "C" fn migrate() {
         }
     }
 
-    if let None = runtime::get_key(EVENTS_MODE){
+    if runtime::get_key(EVENTS_MODE).is_none(){
         runtime::put_key(EVENTS_MODE, storage::new_uref(EventsMode::NoEvents as u8).into());
     }
 }
@@ -1978,7 +1978,7 @@ fn install_contract() {
     )
     .unwrap_or(0u8);
 
-    let event_mode: u8 = utils::get_optional_named_arg_with_user_errors(
+    let events_mode: u8 = utils::get_optional_named_arg_with_user_errors(
         ARG_EVENTS_MODE,
         NFTCoreError::InvalidEventMode,
     )
@@ -2051,7 +2051,7 @@ fn install_contract() {
              ARG_BURN_MODE => burn_mode,
              ARG_OWNER_LOOKUP_MODE => reporting_mode,
              ARG_NFT_PACKAGE_HASH => package_hash.to_formatted_string(),
-             ARG_EVENTS_MODE => event_mode
+             ARG_EVENTS_MODE => events_mode
         },
     );
 }
