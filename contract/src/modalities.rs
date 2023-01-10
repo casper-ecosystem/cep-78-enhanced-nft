@@ -266,3 +266,23 @@ impl TryFrom<u8> for NamedKeyConventionMode {
         }
     }
 }
+
+#[repr(u8)]
+pub enum EventsMode {
+    NoEvents = 0,
+    CEP78 = 1,
+    CEP47 = 2,
+}
+
+impl TryFrom<u8> for EventsMode {
+    type Error = NFTCoreError;
+
+    fn try_from(value: u8) -> Result<Self, Self::Error> {
+        match value {
+            0 => Ok(EventsMode::NoEvents),
+            1 => Ok(EventsMode::CEP78),
+            2 => Ok(EventsMode::CEP47),
+            _ => Err(NFTCoreError::InvalidEventMode),
+        }
+    }
+}
