@@ -210,6 +210,15 @@ impl TokenIdentifier {
     }
 }
 
+impl ToString for TokenIdentifier {
+    fn to_string(&self) -> String {
+        match self {
+            TokenIdentifier::Index(i) => i.to_string(),
+            TokenIdentifier::Hash(h) => h.to_string(),
+        }
+    }
+}
+
 #[repr(u8)]
 pub enum BurnMode {
     Burnable = 0,

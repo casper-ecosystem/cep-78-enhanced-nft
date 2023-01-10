@@ -15,6 +15,8 @@ use crate::utility::constants::{
     ARG_WHITELIST_MODE, NFT_TEST_COLLECTION, NFT_TEST_SYMBOL,
 };
 
+use super::constants::ARG_EVENTS_MODE;
+
 pub(crate) static TEST_CUSTOM_METADATA_SCHEMA: Lazy<CustomMetadataSchema> = Lazy::new(|| {
     let mut properties = BTreeMap::new();
     properties.insert(
@@ -148,6 +150,13 @@ pub enum NamedKeyConventionMode {
     V1_0Custom = 2,
 }
 
+#[repr(u8)]
+pub enum EventsMode {
+    NoEvents = 0,
+    CEP78 = 1,
+    CEP47 = 2,
+}
+
 #[derive(Debug)]
 pub(crate) struct InstallerRequestBuilder {
     account_hash: AccountHash,
@@ -169,6 +178,7 @@ pub(crate) struct InstallerRequestBuilder {
     burn_mode: CLValue,
     reporting_mode: CLValue,
     named_key_convention: CLValue,
+    events_mode: CLValue,
 }
 
 impl InstallerRequestBuilder {
@@ -205,6 +215,7 @@ impl InstallerRequestBuilder {
                 NamedKeyConventionMode::DerivedFromCollectionName as u8,
             )
             .unwrap(),
+            events_mode: CLValue::from_t(EventsMode::NoEvents as u8).unwrap(),
         }
     }
 
@@ -335,6 +346,7 @@ impl InstallerRequestBuilder {
         runtime_args.insert_cl_value(ARG_BURN_MODE, self.burn_mode);
         runtime_args.insert_cl_value(ARG_OWNER_LOOKUP_MODE, self.reporting_mode);
         runtime_args.insert_cl_value(ARG_NAMED_KEY_CONVENTION, self.named_key_convention);
+        runtime_args.insert_cl_value(ARG_EVENTS_MODE, self.events_mode);
         ExecuteRequestBuilder::standard(self.account_hash, &self.session_file, runtime_args).build()
     }
 }
