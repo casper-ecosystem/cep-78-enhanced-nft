@@ -29,6 +29,7 @@ pub const ARG_ACCESS_KEY_NAME_1_0_0: &str = "access_key_name";
 pub const ARG_HASH_KEY_NAME_1_0_0: &str = "hash_key_name";
 pub const ARG_STARTING_EVENT_ID: &str = "starting_event_id";
 pub const ARG_LAST_EVENT_ID: &str = "last_event_id";
+pub const ARG_EVENTS_MODE: &str = "events_mode";
 
 pub const OPERATOR: &str = "operator";
 pub const NUMBER_OF_MINTED_TOKENS: &str = "number_of_minted_tokens";
@@ -75,6 +76,7 @@ pub const MIGRATION_FLAG: &str = "migration_flag";
 pub const REPORTING_MODE: &str = "reporting_mode";
 pub const EVENTS: &str = "events";
 pub const EVENT_ID_TRACKER: &str = "id_tracker";
+pub const EVENTS_MODE: &str = "events_mode";
 
 pub const ENTRY_POINT_INIT: &str = "init";
 pub const ENTRY_POINT_SET_VARIABLES: &str = "set_variables";

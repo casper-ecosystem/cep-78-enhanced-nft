@@ -73,6 +73,8 @@ use crate::{
     },
     utils::PAGE_SIZE,
 };
+use crate::constants::{ARG_EVENTS_MODE, EVENTS_MODE};
+use crate::modalities::EventsMode;
 
 #[no_mangle]
 pub extern "C" fn init() {
@@ -261,6 +263,13 @@ pub extern "C" fn init() {
     .try_into()
     .unwrap_or_revert();
 
+    let event_mode: EventsMode = utils::get_named_arg_with_user_errors::<u8>(
+        ARG_EVENTS_MODE,
+        NFTCoreError::MissingEventMode,
+        NFTCoreError::InvalidEventMode
+    ).unwrap_or_revert()
+        .try_into().unwrap_or_revert();
+
     // Put all created URefs into the contract's context (necessary to retain access rights,
     // for future use).
     //
@@ -314,6 +323,10 @@ pub extern "C" fn init() {
     runtime::put_key(
         REPORTING_MODE,
         storage::new_uref(reporting_mode.clone() as u8).into(),
+    );
+    runtime::put_key(
+        EVENTS_MODE,
+        storage::new_uref(event_mode as u8).into()
     );
 
     // Initialize contract with variables which must be present but maybe set to
@@ -1955,6 +1968,11 @@ fn install_contract() {
         NFTCoreError::InvalidReportingMode,
     )
     .unwrap_or(0u8);
+
+    let event_mode: u8 = utils::get_optional_named_arg_with_user_errors(
+        ARG_EVENTS_MODE,
+        NFTCoreError::InvalidEventMode
+    ).unwrap_or(0u8);
 
     if ownership_mode == 0 && minting_mode == 0 && reporting_mode == 1 {
         runtime::revert(NFTCoreError::InvalidReportingMode)
