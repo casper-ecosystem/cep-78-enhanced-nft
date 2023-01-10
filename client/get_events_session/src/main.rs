@@ -3,13 +3,16 @@
 
 extern crate alloc;
 
-use alloc::format;
-use alloc::string::{String, ToString};
-use alloc::vec::Vec;
+use alloc::{
+    string::{String, ToString},
+    vec::Vec,
+};
 
-use casper_contract::contract_api::{runtime, storage};
-use casper_contract::unwrap_or_revert::UnwrapOrRevert;
-use casper_types::{ContractHash, Key, runtime_args, RuntimeArgs};
+use casper_contract::{
+    contract_api::{runtime, storage},
+    unwrap_or_revert::UnwrapOrRevert,
+};
+use casper_types::{runtime_args, ContractHash, Key, RuntimeArgs};
 
 const ENTRY_POINT_GET_TOKEN_EVENTS: &str = "get_token_events";
 
@@ -35,7 +38,6 @@ fn get_token_identifier_runtime_args() -> RuntimeArgs {
     }
 }
 
-
 #[no_mangle]
 pub extern "C" fn call() {
     let nft_contract_hash: ContractHash = runtime::get_named_arg::<Key>(ARG_NFT_CONTRACT_HASH)
@@ -47,18 +49,21 @@ pub extern "C" fn call() {
     let starting_event_index = runtime::get_named_arg::<u64>(ARG_STARTING_EVENT_ID);
 
     let mut get_token_events_args = get_token_identifier_runtime_args();
-    get_token_events_args.insert(ARG_STARTING_EVENT_ID.to_string(), starting_event_index)
+    get_token_events_args
+        .insert(ARG_STARTING_EVENT_ID.to_string(), starting_event_index)
         .unwrap_or_revert();
     if !all_events {
         let last_event_index = runtime::get_named_arg::<u64>(ARG_LAST_EVENT_ID);
-        get_token_events_args.insert(ARG_LAST_EVENT_ID.to_string(), last_event_index)
+        get_token_events_args
+            .insert(ARG_LAST_EVENT_ID.to_string(), last_event_index)
             .unwrap_or_revert();
     }
 
-    let (receipt_name,events): (String,Vec<String>) = runtime::call_contract(nft_contract_hash, ENTRY_POINT_GET_TOKEN_EVENTS, get_token_events_args);
-    let events_uref = storage::new_uref(events);
-    runtime::put_key(
-        &receipt_name,
-        events_uref.into()
+    let (receipt_name, events): (String, Vec<String>) = runtime::call_contract(
+        nft_contract_hash,
+        ENTRY_POINT_GET_TOKEN_EVENTS,
+        get_token_events_args,
     );
+    let events_uref = storage::new_uref(events);
+    runtime::put_key(&receipt_name, events_uref.into());
 }

@@ -4,12 +4,11 @@
 // nft_status_row_idx_tracker -> token_idx => rox_idx
 
 use alloc::{
-    format,
     string::{String, ToString},
     vec::Vec,
 };
-use core::convert::{TryFrom, TryInto};
 use casper_contract::contract_api::runtime;
+use core::convert::{TryFrom, TryInto};
 
 use casper_contract::unwrap_or_revert::UnwrapOrRevert;
 use casper_types::bytesrepr::ToBytes;
@@ -20,7 +19,7 @@ use crate::{
 };
 
 #[repr(u8)]
-#[derive(PartialEq)]
+#[derive(PartialEq, Eq)]
 pub(crate) enum TokenEvent {
     Minted = 0,
     Transferred = 1,
@@ -71,11 +70,7 @@ pub(crate) fn emit_minted_event(token_identifier: TokenIdentifier) -> Result<(),
         0u64,
     );
     let event_item_key = get_event_item_key(&token_identifier, 0u64);
-    utils::upsert_dictionary_value_from_key(
-        EVENTS,
-        &event_item_key,
-        TokenEvent::Minted as u8,
-    );
+    utils::upsert_dictionary_value_from_key(EVENTS, &event_item_key, TokenEvent::Minted as u8);
     Ok(())
 }
 
@@ -120,7 +115,12 @@ fn emit_event(
 
 fn get_event_item_key(token_identifier: &TokenIdentifier, event_id: u64) -> String {
     let mut preimage = Vec::new();
-    preimage.append(&mut token_identifier.get_dictionary_item_key().to_bytes().unwrap_or_revert());
+    preimage.append(
+        &mut token_identifier
+            .get_dictionary_item_key()
+            .to_bytes()
+            .unwrap_or_revert(),
+    );
     preimage.append(&mut event_id.to_bytes().unwrap_or_revert());
     base16::encode_lower(&runtime::blake2b(&preimage))
 }
