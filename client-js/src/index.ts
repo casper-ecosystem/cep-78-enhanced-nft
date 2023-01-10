@@ -725,7 +725,7 @@ export class CEP78Client {
     keys?: Keys.AsymmetricKey[]
   ) {
     const runtimeArgs = RuntimeArgs.fromMap({
-      collection_name: CLValueBuilder.string(args.collectionName),
+      cep78_package_key: CLValueBuilder.byteArray(convertHashStrToHashBuff(args.contractPackageHash))
     });
 
     const preparedDeploy = this.contractClient.callEntrypoint(

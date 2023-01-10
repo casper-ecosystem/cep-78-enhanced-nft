@@ -390,7 +390,7 @@ describe("CEP78Client", () => {
 
   it("Should correctly construct deploy for 'migrate'", async () => {
     const ownerOfDeploy = await cc.migrate(
-      { collectionName: "my-collection" },
+      { contractPackageHash: "hash-0101010101010101010101010101010101010101010101010101010101010101" },
       "1000000000",
       keyPair.publicKey
     );
