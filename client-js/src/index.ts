@@ -17,6 +17,7 @@ import {
 import {
   CallConfig,
   InstallArgs,
+  NamedKeyConventionMode,
   ConfigurableVariables,
   MintArgs,
   RegisterArgs,
@@ -144,6 +145,29 @@ export class CEP78Client {
       runtimeArgs.insert(
         "owner_reverse_lookup_mode",
         CLValueBuilder.u8(args.ownerReverseLookupMode)
+      );
+    }
+
+    if (args.namedKeyConventionMode !== undefined) {
+      runtimeArgs.insert(
+        "named_key_convention",
+        CLValueBuilder.u8(args.namedKeyConventionMode)
+      );
+    }
+
+    if (args.namedKeyConventionMode === NamedKeyConventionMode.V1_0Custom) {
+      if (!args.accessKeyName || !args.hashKeyName) {
+        throw new Error(
+          "You need to provide 'accessKeyName' and 'hashKeyName' if you want to use NamedKeyConventionMode.V1_0Custom"
+        );
+      }
+      runtimeArgs.insert(
+        "access_key_name",
+        CLValueBuilder.string(args.accessKeyName)
+      );
+      runtimeArgs.insert(
+        "hash_key_name",
+        CLValueBuilder.string(args.hashKeyName)
       );
     }
 
@@ -403,7 +427,8 @@ export class CEP78Client {
     keys?: Keys.AsymmetricKey[],
     wasm?: Uint8Array
   ) {
-    if (config.useSessionCode === false && !!wasm) throw new Error(ERRORS.CONFLICT_CONFIG);
+    if (config.useSessionCode === false && !!wasm)
+      throw new Error(ERRORS.CONFLICT_CONFIG);
 
     const runtimeArgs = RuntimeArgs.fromMap({
       target_key: CLValueBuilder.key(args.target),
@@ -700,7 +725,7 @@ export class CEP78Client {
     keys?: Keys.AsymmetricKey[]
   ) {
     const runtimeArgs = RuntimeArgs.fromMap({
-      collection_name: CLValueBuilder.string(args.collectionName)
+      cep78_package_key: CLValueBuilder.byteArray(convertHashStrToHashBuff(args.contractPackageHash))
     });
 
     const preparedDeploy = this.contractClient.callEntrypoint(
