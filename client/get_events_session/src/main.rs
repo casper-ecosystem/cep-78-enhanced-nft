@@ -15,6 +15,7 @@ use casper_contract::{
 use casper_types::{runtime_args, ContractHash, Key, RuntimeArgs};
 
 const ENTRY_POINT_GET_TOKEN_EVENTS: &str = "get_token_events";
+const ENTRY_POINT_GET_LATEST_TOKEN_EVENT: &str = "get_latest_token_event";
 
 const ARG_NFT_CONTRACT_HASH: &str = "nft_contract_hash";
 const ARG_IS_HASH_IDENTIFIER_MODE: &str = "is_hash_identifier_mode";
@@ -23,6 +24,7 @@ const ARG_TOKEN_HASH: &str = "token_hash";
 const ARG_STARTING_EVENT_ID: &str = "starting_event_id";
 const ARG_LAST_EVENT_ID: &str = "last_event_id";
 const ARG_ALL_EVENTS: &str = "all_events";
+const ARG_GET_LATEST_ONLY: &str = "get_latest_event_only";
 
 fn get_token_identifier_runtime_args() -> RuntimeArgs {
     if runtime::get_named_arg::<bool>(ARG_IS_HASH_IDENTIFIER_MODE) {
@@ -38,13 +40,7 @@ fn get_token_identifier_runtime_args() -> RuntimeArgs {
     }
 }
 
-#[no_mangle]
-pub extern "C" fn call() {
-    let nft_contract_hash: ContractHash = runtime::get_named_arg::<Key>(ARG_NFT_CONTRACT_HASH)
-        .into_hash()
-        .map(|hash| ContractHash::new(hash))
-        .unwrap();
-
+fn get_token_events(nft_contract_hash: ContractHash) {
     let all_events = runtime::get_named_arg::<bool>(ARG_ALL_EVENTS);
     let starting_event_index = runtime::get_named_arg::<u64>(ARG_STARTING_EVENT_ID);
 
@@ -66,4 +62,29 @@ pub extern "C" fn call() {
     );
     let events_uref = storage::new_uref(events);
     runtime::put_key(&receipt_name, events_uref.into());
+}
+
+fn get_latest_token_event(nft_contract_hash: ContractHash) {
+    let token_identifier_runtime_args = get_token_identifier_runtime_args();
+    let (receipt_name, latest_token_event): (String, String) = runtime::call_contract(
+        nft_contract_hash,
+        ENTRY_POINT_GET_LATEST_TOKEN_EVENT,
+        token_identifier_runtime_args,
+    );
+    let events_uref = storage::new_uref(latest_token_event);
+    runtime::put_key(&receipt_name, events_uref.into());
+}
+
+#[no_mangle]
+pub extern "C" fn call() {
+    let nft_contract_hash: ContractHash = runtime::get_named_arg::<Key>(ARG_NFT_CONTRACT_HASH)
+        .into_hash()
+        .map(|hash| ContractHash::new(hash))
+        .unwrap();
+
+    if runtime::get_named_arg::<bool>(ARG_GET_LATEST_ONLY) {
+        get_latest_token_event(nft_contract_hash)
+    } else {
+        get_token_events(nft_contract_hash)
+    }
 }

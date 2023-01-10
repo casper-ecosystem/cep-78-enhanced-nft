@@ -52,11 +52,12 @@ use crate::{
         BURNT_TOKENS, BURN_MODE, CEP78_PREFIX, COLLECTION_NAME, COLLECTION_SYMBOL,
         CONTRACT_NAME_PREFIX, CONTRACT_VERSION_PREFIX, CONTRACT_WHITELIST, ENTRY_POINT_APPROVE,
         ENTRY_POINT_BALANCE_OF, ENTRY_POINT_BURN, ENTRY_POINT_GET_APPROVED,
-        ENTRY_POINT_GET_TOKEN_EVENTS, ENTRY_POINT_INIT, ENTRY_POINT_METADATA, ENTRY_POINT_MIGRATE,
-        ENTRY_POINT_MINT, ENTRY_POINT_OWNER_OF, ENTRY_POINT_REGISTER_OWNER,
-        ENTRY_POINT_SET_APPROVE_FOR_ALL, ENTRY_POINT_SET_TOKEN_METADATA, ENTRY_POINT_SET_VARIABLES,
-        ENTRY_POINT_TRANSFER, ENTRY_POINT_UPDATED_RECEIPTS, HASH_BY_INDEX, HASH_KEY_NAME_1_0_0,
-        HASH_KEY_NAME_PREFIX, HOLDER_MODE, IDENTIFIER_MODE, INDEX_BY_HASH, INSTALLER, JSON_SCHEMA,
+        ENTRY_POINT_GET_LATEST_TOKEN_EVENT, ENTRY_POINT_GET_TOKEN_EVENTS, ENTRY_POINT_INIT,
+        ENTRY_POINT_METADATA, ENTRY_POINT_MIGRATE, ENTRY_POINT_MINT, ENTRY_POINT_OWNER_OF,
+        ENTRY_POINT_REGISTER_OWNER, ENTRY_POINT_SET_APPROVE_FOR_ALL,
+        ENTRY_POINT_SET_TOKEN_METADATA, ENTRY_POINT_SET_VARIABLES, ENTRY_POINT_TRANSFER,
+        ENTRY_POINT_UPDATED_RECEIPTS, HASH_BY_INDEX, HASH_KEY_NAME_1_0_0, HASH_KEY_NAME_PREFIX,
+        HOLDER_MODE, IDENTIFIER_MODE, INDEX_BY_HASH, INSTALLER, JSON_SCHEMA,
         MAX_TOTAL_TOKEN_SUPPLY, METADATA_CEP78, METADATA_CUSTOM_VALIDATED, METADATA_MUTABILITY,
         METADATA_NFT721, METADATA_RAW, MIGRATION_FLAG, MINTING_MODE, NFT_KIND, NFT_METADATA_KIND,
         NUMBER_OF_MINTED_TOKENS, OPERATOR, OWNED_TOKENS, OWNERSHIP_MODE, PAGE_DICTIONARY_PREFIX,
@@ -1491,6 +1492,28 @@ pub extern "C" fn register_owner() {
     }
 }
 
+#[no_mangle]
+pub extern "C" fn get_latest_token_event() {
+    let identifier_mode: NFTIdentifierMode = utils::get_stored_value_with_user_errors::<u8>(
+        IDENTIFIER_MODE,
+        NFTCoreError::MissingIdentifierMode,
+        NFTCoreError::InvalidIdentifierMode,
+    )
+    .try_into()
+    .unwrap_or_revert();
+    let token_identifier = utils::get_token_identifier_from_runtime_args(&identifier_mode);
+    let latest_event = events::get_latest_token_event(token_identifier);
+    let receipt_name = utils::get_stored_value_with_user_errors::<String>(
+        RECEIPT_NAME,
+        NFTCoreError::MissingReceiptName,
+        NFTCoreError::InvalidReceiptName,
+    );
+    runtime::ret(
+        CLValue::from_t((format!("events-{}", receipt_name), latest_event))
+            .unwrap_or_revert_with(NFTCoreError::FailedToConvertToCLValue),
+    )
+}
+
 fn generate_entry_points() -> EntryPoints {
     let mut entry_points = EntryPoints::new();
 
@@ -1655,6 +1678,15 @@ fn generate_entry_points() -> EntryPoints {
         EntryPointType::Contract,
     );
 
+    // This entrypoint returns the latest event for a token
+    let get_latest_token_event = EntryPoint::new(
+        ENTRY_POINT_GET_LATEST_TOKEN_EVENT,
+        vec![],
+        CLType::String,
+        EntryPointAccess::Public,
+        EntryPointType::Contract,
+    );
+
     // This entrypoint returns number of owned tokens associated with the provided token holder
     let balance_of = EntryPoint::new(
         ENTRY_POINT_BALANCE_OF,
@@ -1749,6 +1781,7 @@ fn generate_entry_points() -> EntryPoints {
     entry_points.add_entry_point(updated_receipts);
     entry_points.add_entry_point(register_owner);
     entry_points.add_entry_point(get_token_events);
+    entry_points.add_entry_point(get_latest_token_event);
     entry_points
 }
 

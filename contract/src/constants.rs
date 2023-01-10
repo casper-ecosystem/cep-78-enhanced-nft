@@ -92,6 +92,7 @@ pub const ENTRY_POINT_MIGRATE: &str = "migrate";
 pub const ENTRY_POINT_UPDATED_RECEIPTS: &str = "updated_receipts";
 pub const ENTRY_POINT_REGISTER_OWNER: &str = "register_owner";
 pub const ENTRY_POINT_GET_TOKEN_EVENTS: &str = "get_token_events";
+pub const ENTRY_POINT_GET_LATEST_TOKEN_EVENT: &str = "get_latest_token_event";
 
 // The cap on the amount of tokens within a given CEP-78 collection.
 pub const MAX_TOTAL_TOKEN_SUPPLY: u64 = 1_000_000u64;

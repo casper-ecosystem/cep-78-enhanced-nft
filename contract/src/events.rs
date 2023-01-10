@@ -14,7 +14,7 @@ use casper_contract::unwrap_or_revert::UnwrapOrRevert;
 use casper_types::bytesrepr::ToBytes;
 
 use crate::{
-    utils, NFTCoreError, NFTCoreError::MissingTokenEventId, TokenIdentifier, EVENTS,
+    utils, NFTCoreError, TokenIdentifier, EVENTS,
     EVENT_ID_TRACKER,
 };
 
@@ -147,7 +147,7 @@ pub(crate) fn get_events(
             EVENT_ID_TRACKER,
             &token_identifier.get_dictionary_item_key(),
         )
-        .unwrap_or_revert_with(MissingTokenEventId),
+        .unwrap_or_revert_with(NFTCoreError::MissingTokenEventId),
         Some(last_event_index) => last_event_index,
     };
     for event_index in starting_index..=last_index {
@@ -161,4 +161,17 @@ pub(crate) fn get_events(
         events.push(event.to_string())
     }
     events
+}
+
+pub(crate) fn get_latest_token_event(token_identifier: TokenIdentifier) -> String {
+    let latest_event_index = utils::get_dictionary_value_from_key(EVENT_ID_TRACKER,
+    &token_identifier.get_dictionary_item_key())
+        .unwrap_or_revert_with(NFTCoreError::MissingTokenEventId);
+    let latest_event : TokenEvent= utils::get_dictionary_value_from_key::<u8>(
+        EVENTS,
+        &get_event_item_key(&token_identifier, latest_event_index)
+    )   .unwrap_or_revert_with(NFTCoreError::MissingTokenEventId)
+        .try_into()
+        .unwrap_or_revert();
+    latest_event.to_string()
 }

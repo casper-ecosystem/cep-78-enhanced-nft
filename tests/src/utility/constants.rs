@@ -69,6 +69,7 @@ pub(crate) const ARG_HASH_KEY_NAME_1_0_0: &str = "hash_key_name";
 pub(crate) const ARG_STARTING_EVENT_ID: &str = "starting_event_id";
 pub(crate) const ARG_ALL_EVENTS: &str = "all_events";
 pub(crate) const ARG_LAST_EVENT_ID: &str = "last_event_id";
+pub(crate) const ARG_GET_LATEST_ONLY: &str = "get_latest_event_only";
 pub(crate) const ACCOUNT_USER_1: [u8; 32] = [1u8; 32];
 pub(crate) const ACCOUNT_USER_2: [u8; 32] = [2u8; 32];
 pub(crate) const ACCOUNT_USER_3: [u8; 32] = [3u8; 32];
