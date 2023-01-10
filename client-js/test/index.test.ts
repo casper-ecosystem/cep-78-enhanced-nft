@@ -19,7 +19,8 @@ import {
 } from "casper-js-sdk";
 
 import INSTALL_ARGS_JSON from "./jsons/install-args.json";
-import INSTALL_ARGS_V1_0_STANDARD_JSON from "./jsons/install-args-v1.json";
+import INSTALL_ARGS_V1_0_STANDARD_JSON from "./jsons/install-args-v1-standard.json";
+import INSTALL_ARGS_V1_0_CUSTOM_JSON from "./jsons/install-args-v1-custom.json";
 import SET_VARIABLES_ARGS_JSON from "./jsons/set-variables-args.json";
 import MINT_DEPLOY_ARGS_JSON from "./jsons/mint-args.json";
 import BURN_DEPLOY_ARGS_JSON from "./jsons/burn-args.json";
@@ -98,7 +99,7 @@ describe("CEP78Client", () => {
         identifierMode: NFTIdentifierMode.Ordinal,
         metadataMutability: MetadataMutability.Immutable,
         mintingMode: MintingMode.Installer,
-        namedKeyConventionMode: NamedKeyConventionMode.V1_0Standard
+        namedKeyConventionMode: NamedKeyConventionMode.V1_0Standard,
       },
       "250000000000",
       keyPair.publicKey
@@ -106,11 +107,45 @@ describe("CEP78Client", () => {
 
     const JSONDeploy = DeployUtil.deployToJson(installDeploy) as any;
 
-    console.log(JSONDeploy.deploy.session.ModuleBytes.args);
-
     expect(installDeploy).toBeInstanceOf(DeployUtil.Deploy);
     expect(JSONDeploy.deploy.session.ModuleBytes.args).toEqual(
       INSTALL_ARGS_V1_0_STANDARD_JSON
+    );
+  });
+
+  it("Should correctly construct contract install deploy for V1_0Custom", async () => {
+    const installDeploy = await cc.install(
+      {
+        collectionName: "my-collection",
+        collectionSymbol: "MY-NFTS",
+        totalTokenSupply: "1000",
+        ownershipMode: NFTOwnershipMode.Transferable,
+        nftKind: NFTKind.Physical,
+        jsonSchema: {
+          properties: {
+            color: { name: "color", description: "", required: true },
+            size: { name: "size", description: "", required: true },
+            material: { name: "material", description: "", required: true },
+            condition: { name: "condition", description: "", required: false },
+          },
+        },
+        nftMetadataKind: NFTMetadataKind.CustomValidated,
+        identifierMode: NFTIdentifierMode.Ordinal,
+        metadataMutability: MetadataMutability.Immutable,
+        mintingMode: MintingMode.Installer,
+        namedKeyConventionMode: NamedKeyConventionMode.V1_0Custom,
+        accessKeyName: 'customName',
+        hashKeyName: 'customHash'
+      },
+      "250000000000",
+      keyPair.publicKey
+    );
+
+    const JSONDeploy = DeployUtil.deployToJson(installDeploy) as any;
+
+    expect(installDeploy).toBeInstanceOf(DeployUtil.Deploy);
+    expect(JSONDeploy.deploy.session.ModuleBytes.args).toEqual(
+      INSTALL_ARGS_V1_0_CUSTOM_JSON
     );
   });
 
