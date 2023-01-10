@@ -261,7 +261,7 @@ pub extern "C" fn init() {
     .try_into()
     .unwrap_or_revert();
 
-    let event_mode: EventsMode = utils::get_named_arg_with_user_errors::<u8>(
+    let events_mode: EventsMode = utils::get_named_arg_with_user_errors::<u8>(
         ARG_EVENTS_MODE,
         NFTCoreError::MissingEventMode,
         NFTCoreError::InvalidEventMode,
@@ -324,7 +324,7 @@ pub extern "C" fn init() {
         REPORTING_MODE,
         storage::new_uref(reporting_mode.clone() as u8).into(),
     );
-    runtime::put_key(EVENTS_MODE, storage::new_uref(event_mode as u8).into());
+    runtime::put_key(EVENTS_MODE, storage::new_uref(events_mode as u8).into());
 
     // Initialize contract with variables which must be present but maybe set to
     // different values after initialization.
@@ -1967,7 +1967,7 @@ fn install_contract() {
     )
     .unwrap_or(0u8);
 
-    let _event_mode: u8 = utils::get_optional_named_arg_with_user_errors(
+    let events_mode: u8 = utils::get_optional_named_arg_with_user_errors(
         ARG_EVENTS_MODE,
         NFTCoreError::InvalidEventMode,
     )
@@ -2040,6 +2040,7 @@ fn install_contract() {
             ARG_BURN_MODE => burn_mode,
             ARG_OWNER_LOOKUP_MODE => reporting_mode,
             ARG_NFT_PACKAGE_HASH => package_hash.to_formatted_string(),
+            ARG_EVENTS_MODE => events_mode
         },
     );
 }
