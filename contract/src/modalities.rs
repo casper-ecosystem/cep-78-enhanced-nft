@@ -267,14 +267,12 @@ impl TryFrom<u8> for NamedKeyConventionMode {
     }
 }
 
-
 #[repr(u8)]
 pub enum EventsMode {
     NoEvents = 0,
     CEP78 = 1,
     CEP47 = 2,
 }
-
 
 impl TryFrom<u8> for EventsMode {
     type Error = NFTCoreError;
