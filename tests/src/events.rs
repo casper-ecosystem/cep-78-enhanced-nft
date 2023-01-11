@@ -3,7 +3,8 @@ use casper_engine_test_support::{
     DEFAULT_RUN_GENESIS_REQUEST,
 };
 use casper_types::{
-    account::AccountHash, bytesrepr::ToBytes, runtime_args, system::mint, Key, RuntimeArgs,
+    account::AccountHash, bytesrepr::ToBytes, runtime_args, system::mint, ContractHash, Key,
+    RuntimeArgs,
 };
 
 use crate::utility::{
@@ -23,7 +24,7 @@ use crate::utility::{
 };
 
 #[repr(u8)]
-#[derive(PartialEq)]
+#[derive(PartialEq, Eq)]
 pub(crate) enum TokenEvent {
     Minted = 0,
     Transferred = 1,
@@ -712,3 +713,5 @@ fn should_get_latest_token_event_by_token_id() {
 fn should_get_latest_token_even_by_token_hash() {
     should_get_latest_token_event_by_token_identifier(NFTIdentifierMode::Hash)
 }
+
+fn should_record_cep47_style_mint_event() {}
