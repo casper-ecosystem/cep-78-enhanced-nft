@@ -136,7 +136,19 @@ fn is_last_event_Burn(token_identifier: &TokenIdentifier, event_id: u64) -> bool
     last_event == CEP78Event::Burn
 }
 
-pub(crate) fn record_event(token_identifier: TokenIdentifier, token_event: CEP78Event) {}
+pub(crate) fn record_event(token_identifier: TokenIdentifier, event: CEP78Event) {
+    match event {
+        CEP78Event::Mint => record_mint_event(token_identifier)
+            .unwrap_or_revert_with(NFTCoreError::FailedToRecordMintEvent),
+        CEP78Event::Transfer => record_transfer_event(token_identifier)
+            .unwrap_or_revert_with(NFTCoreError::FailedToRecordTransferEvent),
+        CEP78Event::Burn => record_burn_event(token_identifier)
+            .unwrap_or_revert_with(NFTCoreError::FailedToRecordBurnedEvent),
+        CEP78Event::Approve => record_approve_event(token_identifier)
+            .unwrap_or_revert_with(NFTCoreError::FailedToRecordApproveEvent),
+        CEP78Event::MetadataUpdate => todo!(),
+    }
+}
 
 pub(crate) fn get_events(
     token_identifier: TokenIdentifier,

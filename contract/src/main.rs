@@ -908,7 +908,7 @@ pub extern "C" fn set_approval_for_all() {
         // TODO
         // if approve_all {
         //     events::events_cep78::emit_approve_event(token_id)
-        //         .unwrap_or_revert_with(NFTCoreError::FailedToEmitApproveEvent);
+        //         .unwrap_or_revert_with(NFTCoreError::FailedToRecordApproveEvent);
         // }
     }
 
