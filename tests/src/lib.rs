@@ -30,3 +30,6 @@ mod upgrade;
 // A collection of helper methods and constants.
 #[cfg(test)]
 mod utility;
+
+#[cfg(test)]
+mod events;

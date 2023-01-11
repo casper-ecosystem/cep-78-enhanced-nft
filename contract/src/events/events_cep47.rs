@@ -3,17 +3,14 @@ use alloc::{
     format,
     string::{String, ToString},
 };
-use casper_contract::{
-    contract_api::{runtime, storage},
-    unwrap_or_revert::UnwrapOrRevert,
-};
-use casper_types::{ContractPackageHash, Key, URef};
+use casper_contract::contract_api::{runtime::put_key, storage};
+use casper_types::{Key, URef};
 
 use crate::{
     constants::{CEP78_PREFIX, HASH_KEY_NAME_1_0_0},
     error::NFTCoreError,
     modalities::TokenIdentifier,
-    utils::get_stored_value_with_user_errors,
+    utils::{self, get_stored_value_with_user_errors},
 };
 
 pub(crate) enum CEP47Event {
@@ -51,12 +48,11 @@ pub(crate) fn record_event(event: &CEP47Event) {
         NFTCoreError::InvalidCollectionName,
     );
 
-    let package: ContractPackageHash =
-        runtime::get_key(&format!("{}{}", CEP78_PREFIX, collection_name))
-            .unwrap_or_revert()
-            .into_hash()
-            .map(ContractPackageHash::new)
-            .unwrap();
+    let package = utils::get_stored_value_with_user_errors::<String>(
+        &format!("{}{}", CEP78_PREFIX, collection_name),
+        NFTCoreError::MissingCep78PackageHash,
+        NFTCoreError::InvalidCep78InvalidHash,
+    );
 
     let event: BTreeMap<&str, String> = match event {
         CEP47Event::Mint {
@@ -64,7 +60,7 @@ pub(crate) fn record_event(event: &CEP47Event) {
             token_id,
         } => {
                 let mut event = BTreeMap::new();
-                event.insert(HASH_KEY_NAME_1_0_0, package.to_string());
+                event.insert(HASH_KEY_NAME_1_0_0, package);
                 event.insert("event_type", "Mint".to_string());
                 event.insert("recipient", recipient.to_string());
                 event.insert("token_id", token_id.to_string());
@@ -72,7 +68,7 @@ pub(crate) fn record_event(event: &CEP47Event) {
         }
         CEP47Event::Burn { owner, token_id } => {
                 let mut event = BTreeMap::new();
-                event.insert(HASH_KEY_NAME_1_0_0, package.to_string());
+                event.insert(HASH_KEY_NAME_1_0_0, package);
                 event.insert("event_type", "Burn".to_string());
                 event.insert("owner", owner.to_string());
                 event.insert("token_id", token_id.to_string());
@@ -84,7 +80,7 @@ pub(crate) fn record_event(event: &CEP47Event) {
             token_id,
         } => {
                 let mut event = BTreeMap::new();
-                event.insert(HASH_KEY_NAME_1_0_0, package.to_string());
+                event.insert(HASH_KEY_NAME_1_0_0, package);
                 event.insert("event_type", "Approve".to_string());
                 event.insert("owner", owner.to_string());
                 event.insert("spender", spender.to_string());
@@ -97,7 +93,7 @@ pub(crate) fn record_event(event: &CEP47Event) {
             token_id,
         } => {
                 let mut event = BTreeMap::new();
-                event.insert(HASH_KEY_NAME_1_0_0, package.to_string());
+                event.insert(HASH_KEY_NAME_1_0_0, package);
                 event.insert("event_type", "Transfer".to_string());
                 event.insert("sender", sender.to_string());
                 event.insert("recipient", recipient.to_string());
@@ -106,7 +102,7 @@ pub(crate) fn record_event(event: &CEP47Event) {
         }
         CEP47Event::MetadataUpdate { token_id } => {
             let mut event = BTreeMap::new();
-            event.insert(HASH_KEY_NAME_1_0_0, package.to_string());
+            event.insert(HASH_KEY_NAME_1_0_0, package);
             event.insert("event_type", "MetadataUpdate".to_string());
             event.insert("token_id", token_id.to_string());
             event
@@ -120,5 +116,9 @@ pub(crate) fn record_event(event: &CEP47Event) {
         //     event
         // },
     };
-    let _: URef = storage::new_uref(event);
+    let event_uref: URef = storage::new_uref(event);
+    // The event is produced in the previous line, the following line is for ease of access.
+    // If there are multiple event causing effects in the same block for the same contract,
+    //you will miss events using this "latest_event" key.
+    put_key("latest_event", event_uref.into())
 }

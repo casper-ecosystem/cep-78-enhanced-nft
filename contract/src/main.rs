@@ -645,11 +645,11 @@ pub extern "C" fn mint() {
 
         if events_mode != 0 {
             events::record_event(match events_mode {
-                1 => Event::Cep47(CEP47Event::Mint {
+                2 => Event::Cep47(CEP47Event::Mint {
                     recipient: token_owner_key,
                     token_id: token_identifier,
                 }),
-                2 => Event::Cep78,
+                1 => Event::Cep78,
                 _ => revert(NFTCoreError::InvalidEventMode),
             });
         }
@@ -735,11 +735,11 @@ pub extern "C" fn burn() {
 
     if events_mode != 0 {
         events::record_event(match events_mode {
-            1 => Event::Cep47(CEP47Event::Burn {
+            2 => Event::Cep47(CEP47Event::Burn {
                 owner: token_owner,
                 token_id: token_identifier,
             }),
-            2 => Event::Cep78,
+            1 => Event::Cep78,
             _ => revert(NFTCoreError::InvalidEventMode),
         });
     }
@@ -834,12 +834,12 @@ pub extern "C" fn approve() {
 
     if events_mode != 0 {
         events::record_event(match events_mode {
-            1 => Event::Cep47(CEP47Event::Approve {
+            2 => Event::Cep47(CEP47Event::Approve {
                 owner: token_owner_key,
                 spender: operator,
                 token_id: token_identifier,
             }),
-            2 => Event::Cep78,
+            1 => Event::Cep78,
             _ => revert(NFTCoreError::InvalidEventMode),
         });
     }
@@ -1123,12 +1123,12 @@ pub extern "C" fn transfer() {
 
     if events_mode != 0 {
         events::record_event(match events_mode {
-            1 => Event::Cep47(CEP47Event::Transfer {
+            2 => Event::Cep47(CEP47Event::Transfer {
                 sender: token_owner_key,
                 recipient: target_owner_key,
                 token_id: token_identifier,
             }),
-            2 => Event::Cep78,
+            1 => Event::Cep78,
             _ => revert(NFTCoreError::InvalidEventMode),
         });
     }
@@ -1453,8 +1453,11 @@ pub extern "C" fn migrate() {
         }
     }
 
-    if runtime::get_key(EVENTS_MODE).is_none(){
-        runtime::put_key(EVENTS_MODE, storage::new_uref(EventsMode::NoEvents as u8).into());
+    if runtime::get_key(EVENTS_MODE).is_none() {
+        runtime::put_key(
+            EVENTS_MODE,
+            storage::new_uref(EventsMode::NoEvents as u8).into(),
+        );
     }
 }
 
