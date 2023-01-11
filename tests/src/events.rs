@@ -3,8 +3,7 @@ use casper_engine_test_support::{
     DEFAULT_RUN_GENESIS_REQUEST,
 };
 use casper_types::{
-    account::AccountHash, bytesrepr::ToBytes, runtime_args, system::mint, ContractHash, Key,
-    RuntimeArgs,
+    account::AccountHash, bytesrepr::ToBytes, runtime_args, system::mint, Key, RuntimeArgs,
 };
 
 use crate::utility::{
@@ -26,19 +25,19 @@ use crate::utility::{
 #[repr(u8)]
 #[derive(PartialEq, Eq)]
 pub(crate) enum TokenEvent {
-    Minted = 0,
-    Transferred = 1,
-    Burned = 2,
-    Approved = 3,
+    Mint = 0,
+    Transfer = 1,
+    Burn = 2,
+    Approve = 3,
 }
 
 impl ToString for TokenEvent {
     fn to_string(&self) -> String {
         match self {
-            TokenEvent::Minted => "Minted".to_string(),
-            TokenEvent::Transferred => "Transferred".to_string(),
-            TokenEvent::Burned => "Burned".to_string(),
-            TokenEvent::Approved => "Approved".to_string(),
+            TokenEvent::Mint => "Mint".to_string(),
+            TokenEvent::Transfer => "Transfer".to_string(),
+            TokenEvent::Burn => "Burn".to_string(),
+            TokenEvent::Approve => "Approve".to_string(),
         }
     }
 }
@@ -136,7 +135,7 @@ fn should_get_single_events_by_identifier(identifier_mode: NFTIdentifierMode) {
         EVENTS,
         &event_dictionary_item_key,
     );
-    assert_eq!(TokenEvent::Minted as u8, latest_event);
+    assert_eq!(TokenEvent::Mint as u8, latest_event);
 
     let nft_reciept: String = support::query_stored_value(
         &mut builder,
@@ -186,7 +185,7 @@ fn should_get_single_events_by_identifier(identifier_mode: NFTIdentifierMode) {
         Key::Account(*DEFAULT_ACCOUNT_ADDR),
         vec![format!("events-{}", nft_reciept)],
     );
-    let expected_string_events: Vec<String> = vec![TokenEvent::Minted.to_string()];
+    let expected_string_events: Vec<String> = vec![TokenEvent::Mint.to_string()];
     assert_eq!(actual_string_events, expected_string_events)
 }
 
@@ -356,9 +355,9 @@ fn should_get_multiple_events_by_token_identifier(identifier_mode: NFTIdentifier
         vec![format!("events-{}", nft_reciept)],
     );
     let expected_string_events: Vec<String> = vec![
-        TokenEvent::Minted.to_string(),
-        TokenEvent::Transferred.to_string(),
-        TokenEvent::Burned.to_string(),
+        TokenEvent::Mint.to_string(),
+        TokenEvent::Transfer.to_string(),
+        TokenEvent::Burn.to_string(),
     ];
     assert_eq!(actual_string_events, expected_string_events)
 }
@@ -587,8 +586,8 @@ fn should_get_range_of_events_using_token_identifier(identifier_mode: NFTIdentif
         vec![format!("{EVENTS}-{nft_receipt}")],
     );
     let expected_string_events: Vec<String> = vec![
-        TokenEvent::Transferred.to_string(),
-        TokenEvent::Transferred.to_string(),
+        TokenEvent::Transfer.to_string(),
+        TokenEvent::Transfer.to_string(),
     ];
     assert_eq!(actual_string_events, expected_string_events)
 }
@@ -701,7 +700,7 @@ fn should_get_latest_token_event_by_token_identifier(identifier_mode: NFTIdentif
         vec![format!("{EVENTS}-{nft_receipt}")],
     );
 
-    assert_eq!(actual_string_event, TokenEvent::Burned.to_string())
+    assert_eq!(actual_string_event, TokenEvent::Burn.to_string())
 }
 
 #[test]

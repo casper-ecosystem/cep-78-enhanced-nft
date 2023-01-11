@@ -25,7 +25,7 @@ use constants::{ARG_EVENTS_MODE, EVENTS, EVENTS_MODE, EVENT_ID_TRACKER};
 use modalities::EventsMode;
 
 use core::convert::{TryFrom, TryInto};
-use events::{events_cep47::CEP47Event, events_cep78::CEP78Event, Event, EventsMode};
+use events::{events_cep47::CEP47Event, events_cep78::CEP78Event, Event};
 use utils::get_stored_value_with_user_errors;
 
 use casper_types::{
@@ -70,8 +70,8 @@ use crate::{
     error::NFTCoreError,
     metadata::CustomMetadataSchema,
     modalities::{
-        BurnMode, EventsMode, MetadataMutability, MintingMode, NFTHolderMode, NFTIdentifierMode,
-        NFTKind, NFTMetadataKind, NamedKeyConventionMode, OwnerReverseLookupMode, OwnershipMode,
+        BurnMode, MetadataMutability, MintingMode, NFTHolderMode, NFTIdentifierMode, NFTKind,
+        NFTMetadataKind, NamedKeyConventionMode, OwnerReverseLookupMode, OwnershipMode,
         TokenIdentifier, WhitelistMode,
     },
     utils::PAGE_SIZE,

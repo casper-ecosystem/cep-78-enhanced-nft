@@ -97,7 +97,7 @@ fn store_event(
     .unwrap_or_revert_with(NFTCoreError::MissingTokenEventId);
     // The Burn event represents the end of the token life cycle, so further
     // updates to the event must be invalid
-    if is_last_event_Burn(&token_identifier, current_event_id) {
+    if is_last_event_burn(&token_identifier, current_event_id) {
         return Err(NFTCoreError::InvalidTokenEventOrder);
     }
     utils::upsert_dictionary_value_from_key(
@@ -125,7 +125,7 @@ fn get_event_item_key(token_identifier: &TokenIdentifier, event_id: u64) -> Stri
     base16::encode_lower(&runtime::blake2b(&preimage))
 }
 
-fn is_last_event_Burn(token_identifier: &TokenIdentifier, event_id: u64) -> bool {
+fn is_last_event_burn(token_identifier: &TokenIdentifier, event_id: u64) -> bool {
     let last_event: CEP78Event = utils::get_dictionary_value_from_key::<u8>(
         EVENTS,
         &get_event_item_key(token_identifier, event_id),
