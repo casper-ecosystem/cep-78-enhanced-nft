@@ -277,6 +277,7 @@ impl TryFrom<u8> for NamedKeyConventionMode {
 }
 
 #[repr(u8)]
+#[derive(PartialEq)]
 pub enum EventsMode {
     NoEvents = 0,
     CEP78 = 1,
@@ -291,7 +292,7 @@ impl TryFrom<u8> for EventsMode {
             0 => Ok(EventsMode::NoEvents),
             1 => Ok(EventsMode::CEP78),
             2 => Ok(EventsMode::CEP47),
-            _ => Err(NFTCoreError::InvalidEventMode),
+            _ => Err(NFTCoreError::InvalidEventsMode),
         }
     }
 }

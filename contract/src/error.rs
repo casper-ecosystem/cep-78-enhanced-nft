@@ -152,8 +152,8 @@ pub enum NFTCoreError {
     FailedToEmitTransferEvent = 147,
     InvalidStartingEventId = 148,
     InvalidLastEventId = 149,
-    MissingEventMode = 150,
-    InvalidEventMode = 151,
+    MissingEventsMode = 150,
+    InvalidEventsMode = 151,
 }
 
 impl From<NFTCoreError> for ApiError {
