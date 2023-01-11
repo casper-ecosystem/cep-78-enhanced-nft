@@ -602,6 +602,7 @@ fn should_get_range_of_events_by_token_hash() {
     should_get_range_of_events_using_token_identifier(NFTIdentifierMode::Hash)
 }
 
+#[test]
 fn should_get_latest_token_event_by_token_identifier(identifier_mode: NFTIdentifierMode) {
     let mut builder = InMemoryWasmTestBuilder::default();
     builder.run_genesis(&DEFAULT_RUN_GENESIS_REQUEST).commit();
@@ -713,4 +714,5 @@ fn should_get_latest_token_even_by_token_hash() {
     should_get_latest_token_event_by_token_identifier(NFTIdentifierMode::Hash)
 }
 
+#[test]
 fn should_record_cep47_style_mint_event() {}
