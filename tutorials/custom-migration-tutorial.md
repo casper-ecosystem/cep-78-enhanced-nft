@@ -1,0 +1,109 @@
+# Upgrading to v1.1.1 using a Custom NamedKey Convention
+
+This tutorial uses the Casper command-line client to upgrade *and* migrate from an NFT contract installed using release [v1.0.0](https://github.com/casper-ecosystem/cep-78-enhanced-nft/releases/tag/v1.0.0) and customized NamedKeys. The outcome of the upgrade will be a [v1.1.1](https://github.com/casper-ecosystem/cep-78-enhanced-nft/releases/tag/v1.1.1) NFT contract with its storage structure migrated to the new format.
+
+## Prerequisites
+
+- You have previously installed a CEP-78 contract using release v1.0.0 on a Casper network. Thus, you have experience with: the [Casper CEP-78 NFT Standard](https://github.com/casper-ecosystem/cep-78-enhanced-nft/), the Casper command-line client, and interacting with a Casper network.
+- The v1.0.0 NFT contract uses custom NamedKeys for the contract package hash and contract package access URef. An example of how the NamedKeys could have been customized is found [here](https://github.com/casper-ecosystem/cep-78-enhanced-nft/blob/dev/test-contracts/mangle_named_keys/src/main.rs).
+- You have the v1.0.0 contract package hash stored under a custom NamedKey in the account that installed the contract.
+- You have the v1.0.0 contract package access URef stored under a custom NamedKey in the account that installed the contract.
+- You understand what is [New in Version 1.1](https://github.com/casper-ecosystem/cep-78-enhanced-nft/#new-in-version-11) of the CEP-78 Enhanced NFT Standard.
+
+## Upgrading and Migrating Terminology
+
+The upgrade to version 1.1.1 involves a data migration to a new [page system](https://github.com/casper-ecosystem/cep-78-enhanced-nft#the-cep-78-page-system) tracking token ownership. The usual [upgrade](https://docs.casperlabs.io/dapp-dev-guide/writing-contracts/upgrading-contracts/) process triggers the data migration. For more information, see [Standard Migration Tutorial](standard-migration-tutorial.md#upgrading-and-migrating-terminology).
+
+## Steps to Upgrade to Version 1.1.1
+
+Navigate to the [v1.1.1 release](https://github.com/casper-ecosystem/cep-78-enhanced-nft/releases/tag/v1.1.1) and download the [cep-78-wasm.tar.gz](https://github.com/casper-ecosystem/cep-78-enhanced-nft/releases/download/v1.1.1/cep-78-wasm.tar.gz) file. Unarchive it to have access to the Wasm files provided. The Rust source code is also available if you would like to build and test the contract according to the Makefile provided. 
+
+The `cep-78-wasm` folder contains the `contract.wasm` to send to the network to upgrade the NFT contract to version 1.1.1. In addition, you will see other useful Wasm files to interact with the contract once it is stored on-chain.
+
+### Initiating the Upgrade
+
+When upgrading using the `casper-client`, you must provide four runtime arguments:
+
+- `named_key_convention`: The [NamedKeyConvention](https://github.com/casper-ecosystem/cep-78-enhanced-nft#namedkeyconventionmode) runtime argument as a u8 value equal to 2: `--session-arg "named_key_convention:u8='2'"`. See the [ARG_NAMED_KEY_CONVENTION](https://github.com/casper-ecosystem/cep-78-enhanced-nft/blob/408db77c3b9ca22752c7f877ea99a01dfca03a7b/contract/src/main.rs#L1991).
+- `collection_name`: The collection name specified when the contract was [installed](https://github.com/casper-ecosystem/cep-78-enhanced-nft#installing-the-contract) using the `collection_name` option. See the [contract code](https://github.com/casper-ecosystem/cep-78-enhanced-nft/blob/408db77c3b9ca22752c7f877ea99a01dfca03a7b/contract/src/main.rs#L93) for details. 
+- `hash_key_name`: The custom contract package hash NamedKey as a String. See the [ARG_HASH_KEY_NAME_1_0_0](https://github.com/casper-ecosystem/cep-78-enhanced-nft/blob/408db77c3b9ca22752c7f877ea99a01dfca03a7b/contract/src/main.rs#L2006).
+- `access_key_name`: The custom contract package access NamedKey as a String. See the [ARG_ACCESS_KEY_NAME_1_0_0](https://github.com/casper-ecosystem/cep-78-enhanced-nft/blob/408db77c3b9ca22752c7f877ea99a01dfca03a7b/contract/src/main.rs#L2005).
+
+Here is the `casper-client` command to upgrade and migrate to version 1.1.1 when custom NamedKeys are used:
+
+```bash
+casper-client put-deploy \
+--node-address [NODE_SERVER_ADDRESS] \
+--chain-name [CHAIN_NAME] \
+--secret-key [KEY_PATH]/secret_key.pem \
+--payment-amount [PAYMENT_AMOUNT_IN_MOTES] \
+--session-path [PATH]/contract.wasm \
+--session-arg "named_key_convention:u8='1'" \
+--session-arg "collection_name:string='[COLLECTION_NAME]'" \
+--session-arg "hash_key_name:string='[ARG_HASH_KEY_NAME_1_0_0]'" \
+--session-arg "access_key_name:string='[ARG_ACCESS_KEY_NAME_1_0_0]'" 
+```
+
+Here is the full list of required arguments:
+- `node-address`: An IP address of a peer on the network. The default port for JSON-RPC servers on Mainnet and Testnet is 7777.
+- `chain-name`: The chain name of the network where you wish to send the deploy. For Mainnet, use *casper*. For Testnet, use *casper-test*.
+- `secret-key`: The file name containing the secret key of the account paying for the deploy.
+- `payment-amount`: The payment for the deploy in motes.
+- `session-path`: The path to the compiled Wasm on your computer. When using the [cep-78-wasm.tar.gz](https://github.com/casper-ecosystem/cep-78-enhanced-nft/releases/download/v1.1.1/cep-78-wasm.tar.gz) provided, this would be the path to the `contract.wasm` file.
+- `named_key_convention`: Argument that specifies the use of the `V_1_0_standard` [NamedKeyConvention](../README.md#namedkeyconventionmode).
+- `collection_name`: Argument that specifies the collection name as a String.
+- `hash_key_name`: The custom contract package hash NamedKey as a String.
+- `access_key_name`: The custom contract package access NamedKey as a String.
+
+The command returns the deploy hash that you can use to verify whether or not the deploy succeeded.
+
+**Important Notes**: 
+
+- Suppose an account attempts to install a second CEP-78 contract instance with the same collection name, but a custom contract package access NamedKey is used. In this case, the installation will not overwrite the NamedKey entry under which the access URef is written.
+- When installing a new version of the CEP-78 contract, you do not need to specify all the runtime arguments needed during the initial installation of version 1.0.0, such as `total_token_supply`, `ownership_mode`, etc. 
+
+**Example command to upgrade to v1.1.1:**
+
+The following is an example of upgrading and migrating to version 1.1.1 of a previously installed NFT collection using version 1.0.0 and with custom NamedKeys.
+
+```bash
+casper-client put-deploy \
+--node-addres http://65.21.235.219:7777 \
+--chain-name "casper-test" \
+--secret-key ~/KEYS/secret_key.pem \
+--payment-amount 300000000000 \
+--session-path contract.wasm \
+--session-arg "named_key_convention:u8='2'" \
+--session-arg "collection_name:string='CEP-78-collection'" \
+--session-arg "hash_key_name:string='mangled_hash_key'" \
+--session-arg "access_key_name:string='mangled_access_key'"
+```
+
+**Other Examples:**
+
+- A [Testnet account](https://testnet.cspr.live/account/013060d19fa5d5e471c2bbe88f35871454d2e162c444100eaca34671339c78ced4) that uses the custom NamedKeys "mangled_hash_key" and "mangled_access_key".
+- An example [Testnet deploy](https://testnet.cspr.live/deploy/59a785471600e183718b790fb19b3dec7242fde105928b9f90f01347b3c65f46) that specified the custom NamedKey convention.
+
+### Custom NamedKeys after Migration
+
+As part of the migration, the contract's NamedKeys will be renamed using a new naming convention, which includes the collection name and a `cep78_contract_` prefix.
+
+| Old NamedKey| New NamedKey | Explanation |
+|-------------|--------------|-------------|
+| nft_contract | cep78_contract_hash_[COLLECTION_NAME] | The hash identifying the NFT contract |
+| A user-specified String | cep78_contract_package_[COLLECTION_NAME] | The hash identifying the contract package containing the NFT contract. In this example, it is "mangled_hash_key" | 
+| A user-specified String | cep78_contract_package_access_[COLLECTION_NAME] | The URef used as an access token or reference to the contract package. In this example, it is "mangled_access_key" | 
+| contract_version | cep78_contract_version_[COLLECTION_NAME] | The value tracking the latest contract version in the contract package | 
+
+![Account Custom Named Keys](../assets/custom-namedkeys-post-migration.png)  
+
+Notice that the original NamedKeys are still on the list, but the new contract will not use them. Also, starting with version 1.1.0, all named keys will follow the new naming convention containing the collection name. 
+
+## Minting after Migration
+
+This workflow is the same as in the [Standard Migration Tutorial](standard-migration-tutorial#minting-after-migration).
+
+
+## Retrieving the Balance of NFTs after Minting
+
+This workflow is the same as in the [Standard Migration Tutorial](standard-migration-tutorial#retrieving-the-balance-of-nfts-after-minting).
