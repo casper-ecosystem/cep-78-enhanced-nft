@@ -277,7 +277,7 @@ impl TryFrom<u8> for NamedKeyConventionMode {
 }
 
 #[repr(u8)]
-#[derive(PartialEq)]
+#[derive(PartialEq, Eq)]
 pub enum EventsMode {
     NoEvents = 0,
     CEP78 = 1,
