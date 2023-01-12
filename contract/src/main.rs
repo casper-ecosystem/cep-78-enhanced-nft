@@ -645,6 +645,10 @@ pub extern "C" fn mint() {
 
         if events_mode != 0 {
             events::record_event(match events_mode {
+                3 => Event::Cep47Dict(CEP47Event::Mint {
+                    recipient: token_owner_key,
+                    token_id: token_identifier,
+                }),
                 2 => Event::Cep47(CEP47Event::Mint {
                     recipient: token_owner_key,
                     token_id: token_identifier,
@@ -735,6 +739,10 @@ pub extern "C" fn burn() {
 
     if events_mode != 0 {
         events::record_event(match events_mode {
+            3 => Event::Cep47Dict(CEP47Event::Burn {
+                owner: token_owner,
+                token_id: token_identifier,
+            }),
             2 => Event::Cep47(CEP47Event::Burn {
                 owner: token_owner,
                 token_id: token_identifier,
@@ -834,6 +842,11 @@ pub extern "C" fn approve() {
 
     if events_mode != 0 {
         events::record_event(match events_mode {
+            3 => Event::Cep47Dict(CEP47Event::Approve {
+                owner: token_owner_key,
+                spender: operator,
+                token_id: token_identifier,
+            }),
             2 => Event::Cep47(CEP47Event::Approve {
                 owner: token_owner_key,
                 spender: operator,
@@ -900,6 +913,7 @@ pub extern "C" fn set_approval_for_all() {
 
     if events_mode != 0{
         events::record_event(match events_mode{
+            1 => Event::Cep47Dict(CEP47Event::ApproveAll{ owner: token_owner, spender :operator }),
             1 => Event::Cep47(CEP47Event::ApproveAll{ owner: token_owner, spender :operator }),
             2 => Event::Cep78,
             _ => revert(NFTCoreError::InvalidEventMode)
@@ -1062,6 +1076,11 @@ pub extern "C" fn transfer() {
 
     if events_mode != 0 {
         events::record_event(match events_mode {
+            3 => Event::Cep47Dict(CEP47Event::Transfer {
+                sender: token_owner_key,
+                recipient: target_owner_key,
+                token_id: token_identifier.clone(),
+            }),
             2 => Event::Cep47(CEP47Event::Transfer {
                 sender: token_owner_key,
                 recipient: target_owner_key,
@@ -1360,6 +1379,9 @@ pub extern "C" fn set_token_metadata() {
 
     if events_mode != 0 {
         events::record_event(match events_mode {
+            3 => Event::Cep47Dict(CEP47Event::MetadataUpdate {
+                token_id: token_identifier,
+            }),
             2 => Event::Cep47(CEP47Event::MetadataUpdate {
                 token_id: token_identifier,
             }),
