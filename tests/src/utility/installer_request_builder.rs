@@ -153,6 +153,7 @@ pub enum EventsMode {
     NoEvents = 0,
     CEP78 = 1,
     CEP47 = 2,
+    CEP47Dict = 3,
 }
 
 #[derive(Debug)]
@@ -277,11 +278,6 @@ impl InstallerRequestBuilder {
         self
     }
 
-    pub(crate) fn with_events_mode(mut self, events_mode: EventsMode) -> Self {
-        self.events_mode = CLValue::from_t(events_mode as u8).unwrap();
-        self
-    }
-
     pub(crate) fn with_holder_mode(mut self, holder_mode: NFTHolderMode) -> Self {
         self.holder_mode = CLValue::from_t(holder_mode as u8).unwrap();
         self
@@ -327,6 +323,11 @@ impl InstallerRequestBuilder {
 
     pub(crate) fn with_reporting_mode(mut self, reporting_mode: OwnerReverseLookupMode) -> Self {
         self.reporting_mode = CLValue::from_t(reporting_mode as u8).unwrap();
+        self
+    }
+
+    pub(crate) fn with_events_mode(mut self, events_mode: EventsMode) -> Self {
+        self.events_mode = CLValue::from_t(events_mode as u8).unwrap();
         self
     }
 
