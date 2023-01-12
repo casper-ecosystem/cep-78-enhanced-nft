@@ -90,7 +90,8 @@ As part of the migration, the contract's NamedKeys will be renamed using a new n
 | nft_contract_package_access | cep78_contract_package_access_[COLLECTION_NAME] | The URef used as an access token or reference to the contract package | 
 | contract_version | cep78_contract_version_[COLLECTION_NAME] | The value tracking the latest contract version in the contract package | 
 
-![Account Named Keys](../assets/namedkeys-post-migration.png)  
+
+![Account Named Keys](../assets/standard-namedkeys-post-migration.png)  
 
 Notice that the original NamedKeys are still on the list, but the new contract will not use them. Also, starting with version 1.1.0, all named keys will follow the new naming convention containing the collection name. 
 
