@@ -282,6 +282,7 @@ pub enum EventsMode {
     NoEvents = 0,
     CEP78 = 1,
     CEP47 = 2,
+    CEP47Dict = 3,
 }
 
 impl TryFrom<u8> for EventsMode {
@@ -292,6 +293,7 @@ impl TryFrom<u8> for EventsMode {
             0 => Ok(EventsMode::NoEvents),
             1 => Ok(EventsMode::CEP78),
             2 => Ok(EventsMode::CEP47),
+            3 => Ok(EventsMode::CEP47Dict),
             _ => Err(NFTCoreError::InvalidEventsMode),
         }
     }

@@ -21,7 +21,10 @@ use alloc::{
     vec::Vec,
 };
 
-use constants::{ARG_EVENTS_MODE, EVENTS, EVENTS_MODE, EVENT_ID_TRACKER};
+use constants::{
+    ARG_EVENTS_MODE, ARG_LAST_EVENT_ID, ARG_STARTING_EVENT_ID, ENTRY_POINT_GET_LATEST_TOKEN_EVENT,
+    ENTRY_POINT_GET_TOKEN_EVENTS, EVENTS, EVENTS_MODE, EVENT_ID_TRACKER,
+};
 use modalities::EventsMode;
 
 use core::convert::{TryFrom, TryInto};
@@ -51,17 +54,15 @@ use crate::{
         ACCESS_KEY_NAME_1_0_0, ACCESS_KEY_NAME_PREFIX, ALLOW_MINTING, ARG_ACCESS_KEY_NAME_1_0_0,
         ARG_ALLOW_MINTING, ARG_APPROVE_ALL, ARG_BURN_MODE, ARG_COLLECTION_NAME,
         ARG_COLLECTION_SYMBOL, ARG_CONTRACT_WHITELIST, ARG_HASH_KEY_NAME_1_0_0, ARG_HOLDER_MODE,
-        ARG_IDENTIFIER_MODE, ARG_JSON_SCHEMA, ARG_LAST_EVENT_ID, ARG_METADATA_MUTABILITY,
-        ARG_MINTING_MODE, ARG_NAMED_KEY_CONVENTION, ARG_NFT_KIND, ARG_NFT_METADATA_KIND,
-        ARG_NFT_PACKAGE_HASH, ARG_OPERATOR, ARG_OWNERSHIP_MODE, ARG_OWNER_LOOKUP_MODE,
-        ARG_RECEIPT_NAME, ARG_SOURCE_KEY, ARG_STARTING_EVENT_ID, ARG_TARGET_KEY,
-        ARG_TOKEN_META_DATA, ARG_TOKEN_OWNER, ARG_TOTAL_TOKEN_SUPPLY, ARG_WHITELIST_MODE,
-        BURNT_TOKENS, BURN_MODE, CEP78_PREFIX, COLLECTION_NAME, COLLECTION_SYMBOL,
-        CONTRACT_NAME_PREFIX, CONTRACT_VERSION_PREFIX, CONTRACT_WHITELIST, ENTRY_POINT_APPROVE,
-        ENTRY_POINT_BALANCE_OF, ENTRY_POINT_BURN, ENTRY_POINT_GET_APPROVED,
-        ENTRY_POINT_GET_LATEST_TOKEN_EVENT, ENTRY_POINT_GET_TOKEN_EVENTS, ENTRY_POINT_INIT,
-        ENTRY_POINT_METADATA, ENTRY_POINT_MIGRATE, ENTRY_POINT_MINT, ENTRY_POINT_OWNER_OF,
-        ENTRY_POINT_REGISTER_OWNER, ENTRY_POINT_SET_APPROVE_FOR_ALL,
+        ARG_IDENTIFIER_MODE, ARG_JSON_SCHEMA, ARG_METADATA_MUTABILITY, ARG_MINTING_MODE,
+        ARG_NAMED_KEY_CONVENTION, ARG_NFT_KIND, ARG_NFT_METADATA_KIND, ARG_NFT_PACKAGE_HASH,
+        ARG_OPERATOR, ARG_OWNERSHIP_MODE, ARG_OWNER_LOOKUP_MODE, ARG_RECEIPT_NAME, ARG_SOURCE_KEY,
+        ARG_TARGET_KEY, ARG_TOKEN_META_DATA, ARG_TOKEN_OWNER, ARG_TOTAL_TOKEN_SUPPLY,
+        ARG_WHITELIST_MODE, BURNT_TOKENS, BURN_MODE, CEP78_PREFIX, COLLECTION_NAME,
+        COLLECTION_SYMBOL, CONTRACT_NAME_PREFIX, CONTRACT_VERSION_PREFIX, CONTRACT_WHITELIST,
+        ENTRY_POINT_APPROVE, ENTRY_POINT_BALANCE_OF, ENTRY_POINT_BURN, ENTRY_POINT_GET_APPROVED,
+        ENTRY_POINT_INIT, ENTRY_POINT_METADATA, ENTRY_POINT_MIGRATE, ENTRY_POINT_MINT,
+        ENTRY_POINT_OWNER_OF, ENTRY_POINT_REGISTER_OWNER, ENTRY_POINT_SET_APPROVE_FOR_ALL,
         ENTRY_POINT_SET_TOKEN_METADATA, ENTRY_POINT_SET_VARIABLES, ENTRY_POINT_TRANSFER,
         ENTRY_POINT_UPDATED_RECEIPTS, HASH_BY_INDEX, HASH_KEY_NAME_1_0_0, HASH_KEY_NAME_PREFIX,
         HOLDER_MODE, IDENTIFIER_MODE, INDEX_BY_HASH, INSTALLER, JSON_SCHEMA,
@@ -604,6 +605,10 @@ pub extern "C" fn mint() {
 
     if events_mode != EventsMode::NoEvents {
         events::record_event(match events_mode {
+            EventsMode::CEP47Dict => Event::Cep47Dict(CEP47Event::Mint {
+                recipient: token_owner_key,
+                token_id: token_identifier.clone(),
+            }),
             EventsMode::CEP47 => Event::Cep47(CEP47Event::Mint {
                 recipient: token_owner_key,
                 token_id: token_identifier.clone(),
@@ -750,6 +755,10 @@ pub extern "C" fn burn() {
 
     if events_mode != EventsMode::NoEvents {
         events::record_event(match events_mode {
+            EventsMode::CEP47Dict => Event::Cep47Dict(CEP47Event::Burn {
+                owner: token_owner,
+                token_id: token_identifier,
+            }),
             EventsMode::CEP47 => Event::Cep47(CEP47Event::Burn {
                 owner: token_owner,
                 token_id: token_identifier,
@@ -850,6 +859,11 @@ pub extern "C" fn approve() {
 
     if events_mode != EventsMode::NoEvents {
         events::record_event(match events_mode {
+            EventsMode::CEP47Dict => Event::Cep47Dict(CEP47Event::Approve {
+                owner: token_owner_key,
+                spender: operator,
+                token_id: token_identifier,
+            }),
             EventsMode::CEP47 => Event::Cep47(CEP47Event::Approve {
                 owner: token_owner_key,
                 spender: operator,
@@ -908,19 +922,14 @@ pub extern "C" fn set_approval_for_all() {
         }
         let operator = if approve_all { Some(operator) } else { None };
         storage::dictionary_put(operator_uref, &token_id.get_dictionary_item_key(), operator);
-        // TODO
-        // if approve_all {
-        //     events::events_cep78::emit_approve_event(token_id)
-        //         .unwrap_or_revert_with(NFTCoreError::FailedToRecordApproveEvent);
-        // }
     }
-
     // TODO : figure this out
     /*
     let events_mode: u8 = get_stored_value_with_user_errors(crate::constants::EVENTS_MODE, NFTCoreError::MissingEventsMode, NFTCoreError::InvalidEventsMode);
     let events_mode = EventsMode::try_from(events_mode).unwrap_or_revert();
     if events_mode != EventsMode::NoEvents {
         events::record_event(match events_mode{
+            EventsMode::CEP47Dict => Event::Cep47Dict(CEP47Event::ApproveAll{ owner: token_owner, spender :operator }),
             EventsMode::CEP47 => Event::Cep47(CEP47Event::ApproveAll{ owner: token_owner, spender :operator }),
             EventsMode::CEP78 => Event::Cep78,
             _ => revert(NFTCoreError::InvalidEventsMode)
@@ -1084,6 +1093,11 @@ pub extern "C" fn transfer() {
 
     if events_mode != EventsMode::NoEvents {
         events::record_event(match events_mode {
+            EventsMode::CEP47Dict => Event::Cep47Dict(CEP47Event::Transfer {
+                sender: token_owner_key,
+                recipient: target_owner_key,
+                token_id: token_identifier.clone(),
+            }),
             EventsMode::CEP47 => Event::Cep47(CEP47Event::Transfer {
                 sender: token_owner_key,
                 recipient: target_owner_key,
@@ -1152,6 +1166,7 @@ pub extern "C" fn transfer() {
 
         let receipt = CLValue::from_t((receipt_string, owned_tokens_actual_key))
             .unwrap_or_revert_with(NFTCoreError::FailedToConvertToCLValue);
+
         runtime::ret(receipt)
     }
 }
@@ -1382,6 +1397,9 @@ pub extern "C" fn set_token_metadata() {
 
     if events_mode != EventsMode::NoEvents {
         events::record_event(match events_mode {
+            EventsMode::CEP47Dict => Event::Cep47Dict(CEP47Event::MetadataUpdate {
+                token_id: token_identifier,
+            }),
             EventsMode::CEP47 => Event::Cep47(CEP47Event::MetadataUpdate {
                 token_id: token_identifier,
             }),

@@ -15,6 +15,8 @@ use crate::utility::constants::{
     ARG_WHITELIST_MODE, NFT_TEST_COLLECTION, NFT_TEST_SYMBOL,
 };
 
+use super::constants::ARG_EVENTS_MODE;
+
 pub(crate) static TEST_CUSTOM_METADATA_SCHEMA: Lazy<CustomMetadataSchema> = Lazy::new(|| {
     let mut properties = BTreeMap::new();
     properties.insert(
@@ -153,6 +155,7 @@ pub enum EventsMode {
     NoEvents = 0,
     CEP78 = 1,
     CEP47 = 2,
+    CEP47Dict = 3,
 }
 
 #[derive(Debug)]
@@ -327,6 +330,11 @@ impl InstallerRequestBuilder {
 
     pub(crate) fn with_reporting_mode(mut self, reporting_mode: OwnerReverseLookupMode) -> Self {
         self.reporting_mode = CLValue::from_t(reporting_mode as u8).unwrap();
+        self
+    }
+
+    pub(crate) fn with_events_mode(mut self, events_mode: EventsMode) -> Self {
+        self.events_mode = CLValue::from_t(events_mode as u8).unwrap();
         self
     }
 
