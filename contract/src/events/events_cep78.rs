@@ -17,40 +17,43 @@ use crate::{utils, NFTCoreError, TokenIdentifier, EVENTS, EVENT_ID_TRACKER};
 
 #[repr(u8)]
 #[derive(PartialEq, Eq)]
-pub(crate) enum TokenEvent {
-    Minted = 0,
-    Transferred = 1,
-    Burned = 2,
-    Approved = 3,
+pub(crate) enum CEP78Event {
+    Mint = 0,
+    Transfer = 1,
+    Burn = 2,
+    Approve = 3,
+    MetadataUpdate = 4,
 }
 
-impl TryFrom<u8> for TokenEvent {
+impl TryFrom<u8> for CEP78Event {
     type Error = NFTCoreError;
 
     fn try_from(value: u8) -> Result<Self, Self::Error> {
         match value {
-            0 => Ok(TokenEvent::Minted),
-            1 => Ok(TokenEvent::Transferred),
-            2 => Ok(TokenEvent::Burned),
-            3 => Ok(TokenEvent::Approved),
+            0 => Ok(CEP78Event::Mint),
+            1 => Ok(CEP78Event::Transfer),
+            2 => Ok(CEP78Event::Burn),
+            3 => Ok(CEP78Event::Approve),
+            4 => Ok(CEP78Event::MetadataUpdate),
             _ => Err(NFTCoreError::InvalidTokenEvent),
         }
     }
 }
 
-impl ToString for TokenEvent {
+impl ToString for CEP78Event {
     fn to_string(&self) -> String {
         match self {
-            TokenEvent::Minted => "Minted".to_string(),
-            TokenEvent::Transferred => "Transferred".to_string(),
-            TokenEvent::Burned => "Burned".to_string(),
-            TokenEvent::Approved => "Approved".to_string(),
+            CEP78Event::Mint => "Mint".to_string(),
+            CEP78Event::Transfer => "Transfer".to_string(),
+            CEP78Event::Burn => "Burn".to_string(),
+            CEP78Event::Approve => "Approve".to_string(),
+            CEP78Event::MetadataUpdate => "MetadataUpdate".to_string(),
         }
     }
 }
 
-pub(crate) fn emit_minted_event(token_identifier: TokenIdentifier) -> Result<(), NFTCoreError> {
-    // Since mint is the first event to be "emitted" there should be no value present
+fn record_mint_event(token_identifier: TokenIdentifier) -> Result<(), NFTCoreError> {
+    // Since mint is the first event to be "recorded" there should be no value present
     // for the event id tracker.
     if utils::get_dictionary_value_from_key::<u64>(
         EVENT_ID_TRACKER,
@@ -67,25 +70,25 @@ pub(crate) fn emit_minted_event(token_identifier: TokenIdentifier) -> Result<(),
         0u64,
     );
     let event_item_key = get_event_item_key(&token_identifier, 0u64);
-    utils::upsert_dictionary_value_from_key(EVENTS, &event_item_key, TokenEvent::Minted as u8);
+    utils::upsert_dictionary_value_from_key(EVENTS, &event_item_key, CEP78Event::Mint as u8);
     Ok(())
 }
 
-pub(crate) fn emit_transfer_event(token_identifier: TokenIdentifier) -> Result<(), NFTCoreError> {
-    emit_event(token_identifier, TokenEvent::Transferred)
+fn record_transfer_event(token_identifier: TokenIdentifier) -> Result<(), NFTCoreError> {
+    store_event(token_identifier, CEP78Event::Transfer)
 }
 
-pub(crate) fn emit_burn_event(token_identifier: TokenIdentifier) -> Result<(), NFTCoreError> {
-    emit_event(token_identifier, TokenEvent::Burned)
+fn record_burn_event(token_identifier: TokenIdentifier) -> Result<(), NFTCoreError> {
+    store_event(token_identifier, CEP78Event::Burn)
 }
 
-pub(crate) fn emit_approve_event(token_identifier: TokenIdentifier) -> Result<(), NFTCoreError> {
-    emit_event(token_identifier, TokenEvent::Approved)
+fn record_approve_event(token_identifier: TokenIdentifier) -> Result<(), NFTCoreError> {
+    store_event(token_identifier, CEP78Event::Approve)
 }
 
-fn emit_event(
+fn store_event(
     token_identifier: TokenIdentifier,
-    token_event: TokenEvent,
+    token_event: CEP78Event,
 ) -> Result<(), NFTCoreError> {
     let current_event_id = utils::get_dictionary_value_from_key::<u64>(
         EVENT_ID_TRACKER,
@@ -94,7 +97,7 @@ fn emit_event(
     .unwrap_or_revert_with(NFTCoreError::MissingTokenEventId);
     // The Burn event represents the end of the token life cycle, so further
     // updates to the event must be invalid
-    if is_last_event_burned(&token_identifier, current_event_id) {
+    if is_last_event_burn(&token_identifier, current_event_id) {
         return Err(NFTCoreError::InvalidTokenEventOrder);
     }
     utils::upsert_dictionary_value_from_key(
@@ -122,15 +125,29 @@ fn get_event_item_key(token_identifier: &TokenIdentifier, event_id: u64) -> Stri
     base16::encode_lower(&runtime::blake2b(&preimage))
 }
 
-fn is_last_event_burned(token_identifier: &TokenIdentifier, event_id: u64) -> bool {
-    let last_event: TokenEvent = utils::get_dictionary_value_from_key::<u8>(
+fn is_last_event_burn(token_identifier: &TokenIdentifier, event_id: u64) -> bool {
+    let last_event: CEP78Event = utils::get_dictionary_value_from_key::<u8>(
         EVENTS,
         &get_event_item_key(token_identifier, event_id),
     )
     .unwrap_or_revert()
     .try_into()
     .unwrap_or_revert_with(NFTCoreError::InvalidTokenEvent);
-    last_event == TokenEvent::Burned
+    last_event == CEP78Event::Burn
+}
+
+pub(crate) fn record_event(token_identifier: TokenIdentifier, event: CEP78Event) {
+    match event {
+        CEP78Event::Mint => record_mint_event(token_identifier)
+            .unwrap_or_revert_with(NFTCoreError::FailedToRecordMintEvent),
+        CEP78Event::Transfer => record_transfer_event(token_identifier)
+            .unwrap_or_revert_with(NFTCoreError::FailedToRecordTransferEvent),
+        CEP78Event::Burn => record_burn_event(token_identifier)
+            .unwrap_or_revert_with(NFTCoreError::FailedToRecordBurnedEvent),
+        CEP78Event::Approve => record_approve_event(token_identifier)
+            .unwrap_or_revert_with(NFTCoreError::FailedToRecordApproveEvent),
+        CEP78Event::MetadataUpdate => todo!(),
+    }
 }
 
 pub(crate) fn get_events(
@@ -148,7 +165,7 @@ pub(crate) fn get_events(
         Some(last_event_index) => last_event_index,
     };
     for event_index in starting_index..=last_index {
-        let event: TokenEvent = utils::get_dictionary_value_from_key::<u8>(
+        let event: CEP78Event = utils::get_dictionary_value_from_key::<u8>(
             EVENTS,
             &get_event_item_key(&token_identifier, event_index),
         )
@@ -166,7 +183,7 @@ pub(crate) fn get_latest_token_event(token_identifier: TokenIdentifier) -> Strin
         &token_identifier.get_dictionary_item_key(),
     )
     .unwrap_or_revert_with(NFTCoreError::MissingTokenEventId);
-    let latest_event: TokenEvent = utils::get_dictionary_value_from_key::<u8>(
+    let latest_event: CEP78Event = utils::get_dictionary_value_from_key::<u8>(
         EVENTS,
         &get_event_item_key(&token_identifier, latest_event_index),
     )

@@ -146,14 +146,14 @@ pub enum NFTCoreError {
     MissingTokenEventId = 141,
     InvalidTokenEventId = 142,
     InvalidTokenEventOrder = 143,
-    FailedToEmitMintEvent = 144,
-    FailedToEmitBurnedEvent = 145,
-    FailedToEmitApproveEvent = 146,
-    FailedToEmitTransferEvent = 147,
+    FailedToRecordMintEvent = 144,
+    FailedToRecordBurnedEvent = 145,
+    FailedToRecordApproveEvent = 146,
+    FailedToRecordTransferEvent = 147,
     InvalidStartingEventId = 148,
     InvalidLastEventId = 149,
-    MissingEventMode = 150,
-    InvalidEventMode = 151,
+    MissingEventsMode = 150,
+    InvalidEventsMode = 151,
 }
 
 impl From<NFTCoreError> for ApiError {
