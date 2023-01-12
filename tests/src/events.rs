@@ -172,16 +172,19 @@ fn should_record_cep47_style_transfer_token_event_in_hash_identifier_mode() {
     expected_event.insert("event_type".to_string(), "Transfer".to_string());
     expected_event.insert("nft_contract_package".to_string(), package);
     expected_event.insert(
-        "owner".to_string(),
+        "recipient".to_string(),
+        "Key::Account(0303030303030303030303030303030303030303030303030303030303030303)"
+            .to_string(),
+    );
+    expected_event.insert(
+        "sender".to_string(),
         "Key::Account(58b891759929bd4ed5a9cce20b9d6e3c96a66c21386bed96040e17dd07b79fa7)"
             .to_string(),
     );
     expected_event.insert(
-        "recipient".to_string(),
-        "Key::Account(58b891759929bd4ed5a9cce20b9d6e3c96a66c21386bed96040e17dd07b79fa7)"
-            .to_string(),
+        "token_id".to_string(),
+        "69fe422f3b0d0ba4d911323451a490bdd679c437e889127700b7bf83123b2d0c".to_string(),
     );
-    expected_event.insert("token_id".to_string(), "0".to_string());
     assert_eq!(event, expected_event);
 }
 

@@ -1054,6 +1054,24 @@ pub extern "C" fn transfer() {
         Option::<Key>::None,
     );
 
+    let events_mode: u8 = get_stored_value_with_user_errors(
+        crate::constants::EVENTS_MODE,
+        NFTCoreError::MissingEventMode,
+        NFTCoreError::InvalidEventMode,
+    );
+
+    if events_mode != 0 {
+        events::record_event(match events_mode {
+            2 => Event::Cep47(CEP47Event::Transfer {
+                sender: token_owner_key,
+                recipient: target_owner_key,
+                token_id: token_identifier.clone(),
+            }),
+            1 => Event::Cep78,
+            _ => revert(NFTCoreError::InvalidEventMode),
+        });
+    }
+
     if let OwnerReverseLookupMode::Complete = utils::get_reporting_mode() {
         // Update to_account owned_tokens. Revert if owned_tokens list is not found
         let token_number = utils::get_token_index(&token_identifier);
@@ -1112,25 +1130,8 @@ pub extern "C" fn transfer() {
 
         let receipt = CLValue::from_t((receipt_string, owned_tokens_actual_key))
             .unwrap_or_revert_with(NFTCoreError::FailedToConvertToCLValue);
+
         runtime::ret(receipt)
-    }
-
-    let events_mode: u8 = get_stored_value_with_user_errors(
-        crate::constants::EVENTS_MODE,
-        NFTCoreError::MissingEventMode,
-        NFTCoreError::InvalidEventMode,
-    );
-
-    if events_mode != 0 {
-        events::record_event(match events_mode {
-            2 => Event::Cep47(CEP47Event::Transfer {
-                sender: token_owner_key,
-                recipient: target_owner_key,
-                token_id: token_identifier,
-            }),
-            1 => Event::Cep78,
-            _ => revert(NFTCoreError::InvalidEventMode),
-        });
     }
 }
 
@@ -1359,10 +1360,10 @@ pub extern "C" fn set_token_metadata() {
 
     if events_mode != 0 {
         events::record_event(match events_mode {
-            1 => Event::Cep47(CEP47Event::MetadataUpdate {
+            2 => Event::Cep47(CEP47Event::MetadataUpdate {
                 token_id: token_identifier,
             }),
-            2 => Event::Cep78,
+            1 => Event::Cep78,
             _ => revert(NFTCoreError::InvalidEventMode),
         });
     }
