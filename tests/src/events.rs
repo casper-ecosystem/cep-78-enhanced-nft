@@ -8,16 +8,16 @@ use casper_types::{
 
 use crate::utility::{
     constants::{
-        ACCOUNT_USER_2, ACCOUNT_USER_3, ARG_ALL_EVENTS, ARG_GET_LATEST_ONLY,
+        ACCOUNT_USER_2, ACCOUNT_USER_3, ARG_ALL_EVENTS, ARG_COLLECTION_NAME, ARG_GET_LATEST_ONLY,
         ARG_IS_HASH_IDENTIFIER_MODE, ARG_LAST_EVENT_ID, ARG_NFT_CONTRACT_HASH, ARG_SOURCE_KEY,
         ARG_STARTING_EVENT_ID, ARG_TARGET_KEY, ARG_TOKEN_HASH, ARG_TOKEN_ID, ARG_TOKEN_META_DATA,
-        ARG_TOKEN_OWNER, ENTRY_POINT_BURN, EVENTS, EVENT_ID_TRACKER, GET_TOKEN_EVENTS_WASM,
-        MINT_SESSION_WASM, NFT_CONTRACT_WASM, RECEIPT_NAME, TEST_PRETTY_CEP78_METADATA,
-        TRANSFER_SESSION_WASM,
+        ARG_TOKEN_OWNER, ENTRY_POINT_BURN, ENTRY_POINT_REGISTER_OWNER, EVENTS, EVENT_ID_TRACKER,
+        GET_TOKEN_EVENTS_WASM, MINT_SESSION_WASM, NFT_CONTRACT_WASM, NFT_TEST_COLLECTION,
+        RECEIPT_NAME, TEST_PRETTY_CEP78_METADATA, TRANSFER_SESSION_WASM,
     },
     installer_request_builder::{
-        InstallerRequestBuilder, MetadataMutability, NFTIdentifierMode, NFTMetadataKind,
-        OwnershipMode,
+        EventsMode, InstallerRequestBuilder, MetadataMutability, NFTIdentifierMode,
+        NFTMetadataKind, OwnerReverseLookupMode, OwnershipMode,
     },
     support,
 };
@@ -84,6 +84,7 @@ fn should_get_single_events_by_identifier(identifier_mode: NFTIdentifierMode) {
         .with_metadata_mutability(MetadataMutability::Immutable)
         .with_nft_metadata_kind(NFTMetadataKind::CEP78)
         .with_ownership_mode(OwnershipMode::Transferable)
+        .with_events_mode(EventsMode::CEP78)
         .build();
 
     builder.exec(install_request).expect_success().commit();
@@ -97,7 +98,8 @@ fn should_get_single_events_by_identifier(identifier_mode: NFTIdentifierMode) {
         runtime_args! {
             ARG_NFT_CONTRACT_HASH => nft_contract_key,
             ARG_TOKEN_OWNER => Key::Account(*DEFAULT_ACCOUNT_ADDR),
-            ARG_TOKEN_META_DATA => TEST_PRETTY_CEP78_METADATA ,
+            ARG_TOKEN_META_DATA => TEST_PRETTY_CEP78_METADATA,
+            ARG_COLLECTION_NAME => NFT_TEST_COLLECTION.to_string()
         },
     )
     .build();
@@ -137,7 +139,7 @@ fn should_get_single_events_by_identifier(identifier_mode: NFTIdentifierMode) {
     );
     assert_eq!(TokenEvent::Mint as u8, latest_event);
 
-    let nft_reciept: String = support::query_stored_value(
+    let nft_receipt: String = support::query_stored_value(
         &mut builder,
         nft_contract_key,
         vec![RECEIPT_NAME.to_string()],
@@ -183,7 +185,7 @@ fn should_get_single_events_by_identifier(identifier_mode: NFTIdentifierMode) {
     let actual_string_events: Vec<String> = support::query_stored_value(
         &mut builder,
         Key::Account(*DEFAULT_ACCOUNT_ADDR),
-        vec![format!("events-{}", nft_reciept)],
+        vec![format!("{EVENTS}-{nft_receipt}")],
     );
     let expected_string_events: Vec<String> = vec![TokenEvent::Mint.to_string()];
     assert_eq!(actual_string_events, expected_string_events)
@@ -224,6 +226,7 @@ fn should_get_multiple_events_by_token_identifier(identifier_mode: NFTIdentifier
         .with_metadata_mutability(MetadataMutability::Immutable)
         .with_nft_metadata_kind(NFTMetadataKind::CEP78)
         .with_ownership_mode(OwnershipMode::Transferable)
+        .with_events_mode(EventsMode::CEP78)
         .build();
 
     builder.exec(install_request).expect_success().commit();
@@ -237,16 +240,31 @@ fn should_get_multiple_events_by_token_identifier(identifier_mode: NFTIdentifier
         runtime_args! {
             ARG_NFT_CONTRACT_HASH => nft_contract_key,
             ARG_TOKEN_OWNER => Key::Account(*DEFAULT_ACCOUNT_ADDR),
-            ARG_TOKEN_META_DATA => TEST_PRETTY_CEP78_METADATA ,
+            ARG_TOKEN_META_DATA => TEST_PRETTY_CEP78_METADATA,
+            ARG_COLLECTION_NAME => NFT_TEST_COLLECTION.to_string()
         },
     )
     .build();
 
     builder.exec(mint_session_call).expect_success().commit();
 
+    let token_receiver_key = Key::Account(AccountHash::new(ACCOUNT_USER_2));
+
+    let register_request = ExecuteRequestBuilder::contract_call_by_hash(
+        AccountHash::new(ACCOUNT_USER_2),
+        nft_contract_hash,
+        ENTRY_POINT_REGISTER_OWNER,
+        runtime_args! {
+            ARG_TOKEN_OWNER => token_receiver_key
+        },
+    )
+    .build();
+
+    builder.exec(register_request).expect_success().commit();
+
     let mut nft_transfer_args = runtime_args! {
         ARG_NFT_CONTRACT_HASH => nft_contract_key,
-        ARG_TARGET_KEY => Key::Account(AccountHash::new(ACCOUNT_USER_2)),
+        ARG_TARGET_KEY => token_receiver_key,
         ARG_SOURCE_KEY => Key::Account(*DEFAULT_ACCOUNT_ADDR)
     };
 
@@ -288,8 +306,9 @@ fn should_get_multiple_events_by_token_identifier(identifier_mode: NFTIdentifier
         }
         NFTIdentifierMode::Hash => {
             runtime_args! {
-                ARG_TOKEN_HASH => base16::encode_lower(&support::create_blake2b_hash(&TEST_PRETTY_CEP78_METADATA))
-            }
+                        ARG_TOKEN_HASH =>
+            base16::encode_lower(&support::create_blake2b_hash(&TEST_PRETTY_CEP78_METADATA))
+                    }
         }
     };
 
@@ -343,7 +362,7 @@ fn should_get_multiple_events_by_token_identifier(identifier_mode: NFTIdentifier
 
     builder.exec(get_events_request).expect_success().commit();
 
-    let nft_reciept: String = support::query_stored_value(
+    let nft_receipt: String = support::query_stored_value(
         &mut builder,
         nft_contract_key,
         vec![RECEIPT_NAME.to_string()],
@@ -352,7 +371,7 @@ fn should_get_multiple_events_by_token_identifier(identifier_mode: NFTIdentifier
     let actual_string_events: Vec<String> = support::query_stored_value(
         &mut builder,
         Key::Account(*DEFAULT_ACCOUNT_ADDR),
-        vec![format!("events-{}", nft_reciept)],
+        vec![format!("{EVENTS}-{nft_receipt}")],
     );
     let expected_string_events: Vec<String> = vec![
         TokenEvent::Mint.to_string(),
@@ -412,6 +431,7 @@ fn should_get_range_of_events_using_token_identifier(identifier_mode: NFTIdentif
         .with_metadata_mutability(MetadataMutability::Immutable)
         .with_nft_metadata_kind(NFTMetadataKind::CEP78)
         .with_ownership_mode(OwnershipMode::Transferable)
+        .with_events_mode(EventsMode::CEP78)
         .build();
 
     builder.exec(install_request).expect_success().commit();
@@ -425,16 +445,31 @@ fn should_get_range_of_events_using_token_identifier(identifier_mode: NFTIdentif
         runtime_args! {
             ARG_NFT_CONTRACT_HASH => nft_contract_key,
             ARG_TOKEN_OWNER => Key::Account(*DEFAULT_ACCOUNT_ADDR),
-            ARG_TOKEN_META_DATA => TEST_PRETTY_CEP78_METADATA ,
+            ARG_TOKEN_META_DATA => TEST_PRETTY_CEP78_METADATA,
+            ARG_COLLECTION_NAME => NFT_TEST_COLLECTION.to_string()
         },
     )
     .build();
 
     builder.exec(mint_session_call).expect_success().commit();
 
+    let token_receiver_key = Key::Account(AccountHash::new(ACCOUNT_USER_2));
+
+    let register_request = ExecuteRequestBuilder::contract_call_by_hash(
+        *DEFAULT_ACCOUNT_ADDR,
+        nft_contract_hash,
+        ENTRY_POINT_REGISTER_OWNER,
+        runtime_args! {
+            ARG_TOKEN_OWNER => token_receiver_key
+        },
+    )
+    .build();
+
+    builder.exec(register_request).expect_success().commit();
+
     let mut nft_transfer_args_1 = runtime_args! {
         ARG_NFT_CONTRACT_HASH => nft_contract_key,
-        ARG_TARGET_KEY => Key::Account(AccountHash::new(ACCOUNT_USER_2)),
+        ARG_TARGET_KEY => token_receiver_key,
         ARG_SOURCE_KEY => Key::Account(*DEFAULT_ACCOUNT_ADDR)
     };
 
@@ -471,9 +506,23 @@ fn should_get_range_of_events_using_token_identifier(identifier_mode: NFTIdentif
         .expect_success()
         .commit();
 
+    let token_receiver_key = Key::Account(AccountHash::new(ACCOUNT_USER_3));
+
+    let register_request = ExecuteRequestBuilder::contract_call_by_hash(
+        AccountHash::new(ACCOUNT_USER_2),
+        nft_contract_hash,
+        ENTRY_POINT_REGISTER_OWNER,
+        runtime_args! {
+            ARG_TOKEN_OWNER => token_receiver_key
+        },
+    )
+    .build();
+
+    builder.exec(register_request).expect_success().commit();
+
     let mut nft_transfer_args_2 = runtime_args! {
         ARG_NFT_CONTRACT_HASH => nft_contract_key,
-        ARG_TARGET_KEY => Key::Account(AccountHash::new(ACCOUNT_USER_3)),
+        ARG_TARGET_KEY => token_receiver_key,
         ARG_SOURCE_KEY => Key::Account(AccountHash::new(ACCOUNT_USER_2))
     };
 
@@ -518,8 +567,9 @@ fn should_get_range_of_events_using_token_identifier(identifier_mode: NFTIdentif
         }
         NFTIdentifierMode::Hash => {
             runtime_args! {
-                ARG_TOKEN_HASH => base16::encode_lower(&support::create_blake2b_hash(&TEST_PRETTY_CEP78_METADATA))
-            }
+                ARG_TOKEN_HASH =>
+            base16::encode_lower(&support::create_blake2b_hash(&TEST_PRETTY_CEP78_METADATA))
+                    }
         }
     };
 
@@ -612,6 +662,7 @@ fn should_get_latest_token_event_by_token_identifier(identifier_mode: NFTIdentif
         .with_metadata_mutability(MetadataMutability::Immutable)
         .with_nft_metadata_kind(NFTMetadataKind::CEP78)
         .with_ownership_mode(OwnershipMode::Transferable)
+        .with_events_mode(EventsMode::CEP78)
         .build();
 
     builder.exec(install_request).expect_success().commit();
@@ -626,6 +677,7 @@ fn should_get_latest_token_event_by_token_identifier(identifier_mode: NFTIdentif
             ARG_NFT_CONTRACT_HASH => nft_contract_key,
             ARG_TOKEN_OWNER => Key::Account(*DEFAULT_ACCOUNT_ADDR),
             ARG_TOKEN_META_DATA => TEST_PRETTY_CEP78_METADATA ,
+            ARG_COLLECTION_NAME => NFT_TEST_COLLECTION.to_string()
         },
     )
     .build();
@@ -640,8 +692,9 @@ fn should_get_latest_token_event_by_token_identifier(identifier_mode: NFTIdentif
         }
         NFTIdentifierMode::Hash => {
             runtime_args! {
-                ARG_TOKEN_HASH => base16::encode_lower(&support::create_blake2b_hash(&TEST_PRETTY_CEP78_METADATA))
-            }
+                        ARG_TOKEN_HASH =>
+            base16::encode_lower(&support::create_blake2b_hash(&TEST_PRETTY_CEP78_METADATA))
+                    }
         }
     };
 
@@ -656,31 +709,28 @@ fn should_get_latest_token_event_by_token_identifier(identifier_mode: NFTIdentif
     builder.exec(nft_burn_request).expect_success().commit();
 
     let get_latest_token_event_request = match identifier_mode {
-        NFTIdentifierMode::Ordinal => {
-            ExecuteRequestBuilder::standard(
-                *DEFAULT_ACCOUNT_ADDR,
-                GET_TOKEN_EVENTS_WASM,
-                runtime_args! {
-            ARG_NFT_CONTRACT_HASH => nft_contract_key,
-            ARG_IS_HASH_IDENTIFIER_MODE => false,
-            ARG_GET_LATEST_ONLY => true,
-            ARG_TOKEN_ID => 0u64,
-        }
-                ,
-            ).build()
-        }
-        NFTIdentifierMode::Hash => {
-            ExecuteRequestBuilder::standard(
-                *DEFAULT_ACCOUNT_ADDR,
-                GET_TOKEN_EVENTS_WASM,
-                runtime_args! {
-            ARG_NFT_CONTRACT_HASH => nft_contract_key,
-            ARG_IS_HASH_IDENTIFIER_MODE => true,
-            ARG_GET_LATEST_ONLY => true,
-            ARG_TOKEN_HASH => base16::encode_lower(&support::create_blake2b_hash(&TEST_PRETTY_CEP78_METADATA))
-        }
-            ).build()
-        }
+        NFTIdentifierMode::Ordinal => ExecuteRequestBuilder::standard(
+            *DEFAULT_ACCOUNT_ADDR,
+            GET_TOKEN_EVENTS_WASM,
+            runtime_args! {
+                ARG_NFT_CONTRACT_HASH => nft_contract_key,
+                ARG_IS_HASH_IDENTIFIER_MODE => false,
+                ARG_GET_LATEST_ONLY => true,
+                ARG_TOKEN_ID => 0u64,
+            },
+        )
+        .build(),
+        NFTIdentifierMode::Hash => ExecuteRequestBuilder::standard(
+            *DEFAULT_ACCOUNT_ADDR,
+            GET_TOKEN_EVENTS_WASM,
+            runtime_args! {
+                    ARG_NFT_CONTRACT_HASH => nft_contract_key,
+                    ARG_IS_HASH_IDENTIFIER_MODE => true,
+                    ARG_GET_LATEST_ONLY => true,
+                    ARG_TOKEN_HASH =>
+            base16::encode_lower(&support::create_blake2b_hash(&TEST_PRETTY_CEP78_METADATA))},
+        )
+        .build(),
     };
 
     builder

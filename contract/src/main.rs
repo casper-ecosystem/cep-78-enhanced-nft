@@ -25,7 +25,11 @@ use constants::{ARG_EVENTS_MODE, EVENTS, EVENTS_MODE, EVENT_ID_TRACKER};
 use modalities::EventsMode;
 
 use core::convert::{TryFrom, TryInto};
-use events::{events_cep47::CEP47Event, events_cep78::CEP78Event, Event};
+use events::{
+    events_cep47::CEP47Event,
+    events_cep78::{self, CEP78Event},
+    Event,
+};
 use utils::get_stored_value_with_user_errors;
 
 use casper_types::{
@@ -660,7 +664,7 @@ pub extern "C" fn mint() {
                     recipient: token_owner_key,
                     token_id: token_identifier,
                 }),
-                EventsMode::CEP78 => Event::Cep78(token_identifier, CEP78Event::Mint),
+                EventsMode::CEP78 => Event::Cep78(&token_identifier, CEP78Event::Mint),
                 _ => revert(NFTCoreError::InvalidEventsMode),
             });
         }
@@ -751,7 +755,7 @@ pub extern "C" fn burn() {
                 owner: token_owner,
                 token_id: token_identifier,
             }),
-            EventsMode::CEP78 => Event::Cep78(token_identifier, CEP78Event::Burn),
+            EventsMode::CEP78 => Event::Cep78(&token_identifier, CEP78Event::Burn),
             _ => revert(NFTCoreError::InvalidEventsMode),
         });
     }
@@ -852,7 +856,7 @@ pub extern "C" fn approve() {
                 spender: operator,
                 token_id: token_identifier,
             }),
-            EventsMode::CEP78 => Event::Cep78(token_identifier, CEP78Event::Approve),
+            EventsMode::CEP78 => Event::Cep78(&token_identifier, CEP78Event::Approve),
             _ => revert(NFTCoreError::InvalidEventsMode),
         });
     }
@@ -1130,11 +1134,15 @@ pub extern "C" fn transfer() {
 
         let receipt = CLValue::from_t((receipt_string, owned_tokens_actual_key))
             .unwrap_or_revert_with(NFTCoreError::FailedToConvertToCLValue);
+        record_transfer_event(token_owner_key, target_owner_key, token_identifier);
         runtime::ret(receipt)
     }
+    record_transfer_event(token_owner_key, target_owner_key, token_identifier);
+}
 
+fn record_transfer_event(sender: Key, recipient: Key, token_id: TokenIdentifier) {
     let events_mode = EventsMode::try_from(get_stored_value_with_user_errors::<u8>(
-        crate::constants::EVENTS_MODE,
+        EVENTS_MODE,
         NFTCoreError::MissingEventsMode,
         NFTCoreError::InvalidEventsMode,
     ))
@@ -1143,11 +1151,11 @@ pub extern "C" fn transfer() {
     if events_mode != EventsMode::NoEvents {
         events::record_event(match events_mode {
             EventsMode::CEP47 => Event::Cep47(CEP47Event::Transfer {
-                sender: token_owner_key,
-                recipient: target_owner_key,
-                token_id: token_identifier,
+                sender,
+                recipient,
+                token_id,
             }),
-            EventsMode::CEP78 => Event::Cep78(token_identifier, CEP78Event::Transfer),
+            EventsMode::CEP78 => Event::Cep78(&token_id, CEP78Event::Transfer),
             _ => revert(NFTCoreError::InvalidEventsMode),
         });
     }
@@ -1382,7 +1390,7 @@ pub extern "C" fn set_token_metadata() {
             EventsMode::CEP47 => Event::Cep47(CEP47Event::MetadataUpdate {
                 token_id: token_identifier,
             }),
-            EventsMode::CEP78 => Event::Cep78(token_identifier, CEP78Event::MetadataUpdate),
+            EventsMode::CEP78 => Event::Cep78(&token_identifier, CEP78Event::MetadataUpdate),
             _ => revert(NFTCoreError::InvalidEventsMode),
         });
     }
@@ -1546,15 +1554,29 @@ pub extern "C" fn get_token_events() {
         ARG_LAST_EVENT_ID,
         NFTCoreError::InvalidLastEventId,
     );
-    let events =
-        events::events_cep78::get_events(token_identifier, starting_event_id, maybe_final_event_id);
+
+    let events_mode = EventsMode::try_from(get_stored_value_with_user_errors::<u8>(
+        EVENTS_MODE,
+        NFTCoreError::MissingEventsMode,
+        NFTCoreError::InvalidEventsMode,
+    ))
+    .unwrap_or_revert();
+
+    let events = match events_mode {
+        EventsMode::CEP47 => todo!(),
+        EventsMode::CEP78 => {
+            events_cep78::get_events(token_identifier, starting_event_id, maybe_final_event_id)
+        }
+        _ => revert(NFTCoreError::InvalidEventsMode),
+    };
+
     let receipt_name = utils::get_stored_value_with_user_errors::<String>(
         RECEIPT_NAME,
         NFTCoreError::MissingReceiptName,
         NFTCoreError::InvalidReceiptName,
     );
     runtime::ret(
-        CLValue::from_t((format!("events-{}", receipt_name), events))
+        CLValue::from_t((format!("{EVENTS}-{receipt_name}"), events))
             .unwrap_or_revert_with(NFTCoreError::FailedToConvertToCLValue),
     )
 }
@@ -1621,14 +1643,27 @@ pub extern "C" fn get_latest_token_event() {
     .try_into()
     .unwrap_or_revert();
     let token_identifier = utils::get_token_identifier_from_runtime_args(&identifier_mode);
-    let latest_event = events::events_cep78::get_latest_token_event(token_identifier);
+
+    let events_mode = EventsMode::try_from(get_stored_value_with_user_errors::<u8>(
+        EVENTS_MODE,
+        NFTCoreError::MissingEventsMode,
+        NFTCoreError::InvalidEventsMode,
+    ))
+    .unwrap_or_revert();
+
+    let latest_event = match events_mode {
+        EventsMode::CEP47 => todo!(),
+        EventsMode::CEP78 => events_cep78::get_latest_token_event(token_identifier),
+        _ => revert(NFTCoreError::InvalidEventsMode),
+    };
+
     let receipt_name = utils::get_stored_value_with_user_errors::<String>(
         RECEIPT_NAME,
         NFTCoreError::MissingReceiptName,
         NFTCoreError::InvalidReceiptName,
     );
     runtime::ret(
-        CLValue::from_t((format!("events-{}", receipt_name), latest_event))
+        CLValue::from_t((format!("{EVENTS}-{receipt_name}"), latest_event))
             .unwrap_or_revert_with(NFTCoreError::FailedToConvertToCLValue),
     )
 }

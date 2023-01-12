@@ -53,7 +53,7 @@ impl ToString for CEP78Event {
 }
 
 fn record_mint_event(token_identifier: TokenIdentifier) -> Result<(), NFTCoreError> {
-    // Since mint is the first event to be "recordted" there should be no value present
+    // Since mint is the first event to be "recorded" there should be no value present
     // for the event id tracker.
     if utils::get_dictionary_value_from_key::<u64>(
         EVENT_ID_TRACKER,
