@@ -17,7 +17,7 @@ use crate::utility::{
     },
     installer_request_builder::{
         EventsMode, InstallerRequestBuilder, MetadataMutability, NFTIdentifierMode,
-        NFTMetadataKind, OwnerReverseLookupMode, OwnershipMode,
+        NFTMetadataKind, OwnershipMode,
     },
     support,
 };
