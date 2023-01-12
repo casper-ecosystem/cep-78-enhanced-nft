@@ -1,6 +1,6 @@
-# Standard upgrade and migration to CEP-78 version 1.1.1
+# Upgrading to v1.1.1 using a Standard NamedKey Convention
 
-This tutorial uses the Casper command-line client to upgrade *and* migrate from an NFT contract installed using release [v1.0.0](https://github.com/casper-ecosystem/cep-78-enhanced-nft/releases/tag/v1.0.0). The outcome of the upgrade will be a [v1.1.1](https://github.com/casper-ecosystem/cep-78-enhanced-nft/releases/tag/v1.1.1) NFT contract with its storage structure migrated to a new format.
+This tutorial uses the Casper command-line client to upgrade *and* migrate from an NFT contract installed using release [v1.0.0](https://github.com/casper-ecosystem/cep-78-enhanced-nft/releases/tag/v1.0.0) and standard NamedKeys. The outcome of the upgrade will be a [v1.1.1](https://github.com/casper-ecosystem/cep-78-enhanced-nft/releases/tag/v1.1.1) NFT contract with its storage structure migrated to the new format.
 
 ## Prerequisites
 
@@ -28,10 +28,10 @@ The `cep-78-wasm` folder contains the `contract.wasm` to send to the network to 
 
 ### Initiating the Upgrade
 
-When upgrading using the `casper-client`, we must provide two required arguments:
+When upgrading using the `casper-client`, you must provide two runtime arguments:
 
-- The [NamedKeyConvention](https://github.com/casper-ecosystem/cep-78-enhanced-nft#namedkeyconventionmode) runtime argument as a u8 value equal to 1: `--session-arg "named_key_convention:u8='1'"`. See the [contract code](https://github.com/casper-ecosystem/cep-78-enhanced-nft/blob/408db77c3b9ca22752c7f877ea99a01dfca03a7b/contract/src/main.rs#L1991) as well.
-- The collection name specified when the contract was [installed](https://github.com/casper-ecosystem/cep-78-enhanced-nft#installing-the-contract) using the `collection_name` option. See the [contract code](https://github.com/casper-ecosystem/cep-78-enhanced-nft/blob/408db77c3b9ca22752c7f877ea99a01dfca03a7b/contract/src/main.rs#L93) as well. 
+- `named_key_convention`: The [NamedKeyConvention](https://github.com/casper-ecosystem/cep-78-enhanced-nft#namedkeyconventionmode) runtime argument as a u8 value equal to 1: `--session-arg "named_key_convention:u8='1'"`. See the [ARG_NAMED_KEY_CONVENTION](https://github.com/casper-ecosystem/cep-78-enhanced-nft/blob/408db77c3b9ca22752c7f877ea99a01dfca03a7b/contract/src/main.rs#L1991).
+- `collection_name`: The collection name specified when the contract was [installed](https://github.com/casper-ecosystem/cep-78-enhanced-nft#installing-the-contract) using the `collection_name` option. See the [contract code](https://github.com/casper-ecosystem/cep-78-enhanced-nft/blob/408db77c3b9ca22752c7f877ea99a01dfca03a7b/contract/src/main.rs#L93) for details. 
 
 Here is the `casper-client` command to upgrade and migrate to version 1.1.1 of the NFT collection specified:
 
@@ -46,7 +46,7 @@ casper-client put-deploy \
 --session-arg "collection_name:string='[COLLECTION_NAME]'"
 ```
 
-The necessary arguments are:
+Here is the full list of required arguments:
 - `node-address`: An IP address of a peer on the network. The default port for JSON-RPC servers on Mainnet and Testnet is 7777.
 - `chain-name`: The chain name of the network where you wish to send the deploy. For Mainnet, use *casper*. For Testnet, use *casper-test*.
 - `secret-key`: The file name containing the secret key of the account paying for the deploy.
@@ -64,7 +64,7 @@ The command returns the deploy hash that you can use to verify whether or not th
 
 **Example command to upgrade to v1.1.1:**
 
-The following is an example of upgrading and migrating to version 1.1.1 of a previously installed NFT collection using version 1.0.0.
+The following is an example of upgrading and migrating to version 1.1.1 of a previously installed NFT collection using version 1.0.0 with standard NamedKeys.
 
 ```bash
 casper-client put-deploy \
@@ -79,7 +79,7 @@ casper-client put-deploy \
 
 Here is the corresponding example [deploy](https://testnet.cspr.live/deploy/59a785471600e183718b790fb19b3dec7242fde105928b9f90f01347b3c65f46) on Testnet.
 
-### NamedKeys after Migrating
+### Standard NamedKeys after Migration
 
 As part of the migration, the contract's NamedKeys will be renamed using a new naming convention, which includes the collection name and a `cep78_contract_` prefix.
 
@@ -105,13 +105,13 @@ casper-client put-deploy \
 --secret-key [KEY_PATH]/secret_key.pem \
 --payment-amount [PAYMENT_AMOUNT_IN_MOTES] \
 --session-path [PATH]/mint_call.wasm \
---session-arg "nft_contract_hash:key='CONTRACT_HASH_HEX_STRING'" \
+--session-arg "nft_contract_hash:key='[CONTRACT_HASH_HEX_STRING]'" \
 --session-arg "collection_name:string='[COLLECTION_NAME]'" \
 --session-arg "token_owner:key='[TOKEN_OWNER]'" \
 --session-arg "token_meta_data:string='[TOKEN_METADATA]'"
 ```
 
-The necessary arguments are:
+The required arguments are:
 - `node-address`: An IP address of a peer on the network. The default port for JSON-RPC servers on Mainnet and Testnet is 7777.
 - `chain-name`: The chain name of the network where you wish to send the deploy. For Mainnet, use *casper*. For Testnet, use *casper-test*.
 - `secret-key`: The file name containing the secret key of the account paying for the deploy.
@@ -141,7 +141,7 @@ casper-client put-deploy \
 --session-arg "token_meta_data:string='{\"name\": \"NFT V1.1.1\",\"token_uri\": \"https:\/\/www.casperlabs.io\",\"checksum\": \"940bffb3f2bba35f84313aa26da09ece3ad47045c6a1292c2bbd2df4ab1a55fb\"}'"
 ```
 
-### Retrieving the Balance of NFTs after Minting
+## Retrieving the Balance of NFTs after Minting
 
 The `balance_of_call.wasm` is available to retrieve and save the number of NFTs owned by either an Account or Contract to the NamedKeys of the Account executing the Wasm.
 
@@ -152,12 +152,12 @@ casper-client put-deploy \
 --secret-key [KEY_PATH]/secret_key.pem \
 --payment-amount [PAYMENT_AMOUNT_IN_MOTES] \
 --session-path [PATH]/balance_of_call.wasm \
---session-arg "nft_contract_hash:key='CONTRACT_HASH_HEX_STRING'" \
+--session-arg "nft_contract_hash:key='[CONTRACT_HASH_HEX_STRING]'" \
 --session-arg "token_owner:key='[TOKEN_OWNER]'" \
 --session-arg "key_name:string='[KEY_NAME]'"
 ```
 
-The necessary arguments are:
+The required arguments are:
 - `node-address`: An IP address of a peer on the network. The default port for JSON-RPC servers on Mainnet and Testnet is 7777.
 - `chain-name`: The chain name of the network where you wish to send the deploy. For Mainnet, use *casper*. For Testnet, use *casper-test*.
 - `secret-key`: The file name containing the secret key of the account paying for the deploy.
