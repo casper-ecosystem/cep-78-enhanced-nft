@@ -35,7 +35,8 @@ pub(crate) enum TokenEvent {
     Mint = 0,
     Transfer = 1,
     Burn = 2,
-    Approve = 3,
+    // TODO
+    // Approve = 3,
 }
 
 impl ToString for TokenEvent {
@@ -44,7 +45,8 @@ impl ToString for TokenEvent {
             TokenEvent::Mint => "Mint".to_string(),
             TokenEvent::Transfer => "Transfer".to_string(),
             TokenEvent::Burn => "Burn".to_string(),
-            TokenEvent::Approve => "Approve".to_string(),
+            // TODO
+            // TokenEvent::Approve => "Approve".to_string(),
         }
     }
 }
@@ -64,7 +66,8 @@ fn get_event_item_key_from_token_hash(token_hash: String, event_id: u64) -> Stri
     base16::encode_lower(&support::create_blake2b_hash(&preimage))
 }
 
-fn get_events_token_identifier_args(identifier_mode: NFTIdentifierMode) -> RuntimeArgs {
+// TODO Check usage or destination of that function
+fn _get_events_token_identifier_args(identifier_mode: NFTIdentifierMode) -> RuntimeArgs {
     match identifier_mode {
         NFTIdentifierMode::Ordinal => {
             runtime_args! {
