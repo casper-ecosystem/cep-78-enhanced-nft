@@ -28,7 +28,7 @@ The custom migration path assumes that the contract has modified the NamedKey en
 |-------------|-------------|
 | nft_contract | The hash identifying the NFT contract |
 | A user-specified String | The hash identifying the contract package containing the NFT contract. In this example, it is "mangled_hash_key" | 
-| A user-specified String | The URef used as an access token or reference to the contract package. In this example, it is "mangled_access_key" | 
+| A user-specified String | The URef used as an access token to the contract package. In this example, it is "mangled_access_key" | 
 | contract_version | The value tracking the latest contract version in the contract package | 
 | nft-CEP-78-collection-contract-package-wasm... | A dictionary tracking the NFTs minted in v1.0.0 |
 
