@@ -30,7 +30,7 @@ The `cep-78-wasm` folder contains the `contract.wasm` to send to the network to 
 
 The standard migration path assumes that the contract uses the NamedKey entries created during the v1.0.0 installation without any modifications. See the example below as well as the [NamedKeyConvention](https://github.com/casper-ecosystem/cep-78-enhanced-nft#namedkeyconventionmode) modality.
 
-| NamedKey Pre Migration | Explanation |
+| NamedKey Pre-Migration | Explanation |
 |-------------|-------------|
 | nft_contract | The hash identifying the NFT contract |
 | nft_contract_package | The hash identifying the contract package containing the NFT contract | 
