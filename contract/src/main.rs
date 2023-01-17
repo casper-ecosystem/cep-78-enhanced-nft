@@ -604,16 +604,17 @@ pub extern "C" fn mint() {
     .unwrap_or_revert();
 
     if events_mode != EventsMode::NoEvents {
+        let token_id = token_identifier.clone();
         events::record_event(match events_mode {
             EventsMode::CEP47Dict => Event::Cep47Dict(CEP47Event::Mint {
                 recipient: token_owner_key,
-                token_id: token_identifier.clone(),
+                token_id,
             }),
             EventsMode::CEP47 => Event::Cep47(CEP47Event::Mint {
                 recipient: token_owner_key,
-                token_id: token_identifier.clone(),
+                token_id,
             }),
-            EventsMode::CEP78 => Event::Cep78(&token_identifier, CEP78Event::Mint),
+            EventsMode::CEP78 => Event::Cep78(token_id, CEP78Event::Mint),
             _ => revert(NFTCoreError::InvalidEventsMode),
         });
     }
@@ -763,7 +764,7 @@ pub extern "C" fn burn() {
                 owner: token_owner,
                 token_id: token_identifier,
             }),
-            EventsMode::CEP78 => Event::Cep78(&token_identifier, CEP78Event::Burn),
+            EventsMode::CEP78 => Event::Cep78(token_identifier, CEP78Event::Burn),
             _ => revert(NFTCoreError::InvalidEventsMode),
         });
     }
@@ -869,7 +870,7 @@ pub extern "C" fn approve() {
                 spender: operator,
                 token_id: token_identifier,
             }),
-            EventsMode::CEP78 => Event::Cep78(&token_identifier, CEP78Event::Approve),
+            EventsMode::CEP78 => Event::Cep78(token_identifier, CEP78Event::Approve),
             _ => revert(NFTCoreError::InvalidEventsMode),
         });
     }
@@ -1092,18 +1093,19 @@ pub extern "C" fn transfer() {
     .unwrap_or_revert();
 
     if events_mode != EventsMode::NoEvents {
+        let token_id = token_identifier.clone();
         events::record_event(match events_mode {
             EventsMode::CEP47Dict => Event::Cep47Dict(CEP47Event::Transfer {
                 sender: token_owner_key,
                 recipient: target_owner_key,
-                token_id: token_identifier.clone(),
+                token_id,
             }),
             EventsMode::CEP47 => Event::Cep47(CEP47Event::Transfer {
                 sender: token_owner_key,
                 recipient: target_owner_key,
-                token_id: token_identifier.clone(),
+                token_id,
             }),
-            EventsMode::CEP78 => Event::Cep78(&token_identifier, CEP78Event::Transfer),
+            EventsMode::CEP78 => Event::Cep78(token_id, CEP78Event::Transfer),
             _ => revert(NFTCoreError::InvalidEventsMode),
         });
     }
@@ -1403,7 +1405,7 @@ pub extern "C" fn set_token_metadata() {
             EventsMode::CEP47 => Event::Cep47(CEP47Event::MetadataUpdate {
                 token_id: token_identifier,
             }),
-            EventsMode::CEP78 => Event::Cep78(&token_identifier, CEP78Event::MetadataUpdate),
+            EventsMode::CEP78 => Event::Cep78(token_identifier, CEP78Event::MetadataUpdate),
             _ => revert(NFTCoreError::InvalidEventsMode),
         });
     }
