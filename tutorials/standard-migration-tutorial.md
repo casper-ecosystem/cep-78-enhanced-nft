@@ -156,48 +156,5 @@ casper-client put-deploy \
 --session-arg "token_meta_data:string='{\"name\": \"NFT V1.1.1\",\"token_uri\": \"https:\/\/www.casperlabs.io\",\"checksum\": \"940bffb3f2bba35f84313aa26da09ece3ad47045c6a1292c2bbd2df4ab1a55fb\"}'"
 ```
 
-## Retrieving the Balance of NFTs after Minting
-
-The `balance_of_call.wasm` is available to retrieve and save the number of NFTs owned by either an Account or Contract to the NamedKeys of the Account executing the Wasm.
-
-```bash
-casper-client put-deploy \
---node-address [NODE_SERVER_ADDRESS] \
---chain-name [CHAIN_NAME] \
---secret-key [KEY_PATH]/secret_key.pem \
---payment-amount [PAYMENT_AMOUNT_IN_MOTES] \
---session-path [PATH]/balance_of_call.wasm \
---session-arg "nft_contract_hash:key='[CONTRACT_HASH_HEX_STRING]'" \
---session-arg "token_owner:key='[TOKEN_OWNER]'" \
---session-arg "key_name:string='[KEY_NAME]'"
-```
-
-The required arguments are:
-- `node-address`: An IP address of a peer on the network. The default port for JSON-RPC servers on Mainnet and Testnet is 7777.
-- `chain-name`: The chain name of the network where you wish to send the deploy. For Mainnet, use *casper*. For Testnet, use *casper-test*.
-- `secret-key`: The file name containing the secret key of the account paying for the deploy.
-- `payment-amount`: The payment for the deploy in motes.
-- `session-path`- The path to the compiled Wasm on your computer. When using the [cep-78-wasm.tar.gz](https://github.com/casper-ecosystem/cep-78-enhanced-nft/releases/download/v1.1.1/cep-78-wasm.tar.gz) provided, this would be the path to the `balance_of_call.wasm` file.
-- `nft_contract_hash`: The hash of a given Enhanced NFT contract passed in as a Key.
-- `token_owner`: The Key of either the Account or Contract whose balance is being queried.
-- `key_name`: The NamedKey under which the token amount will be stored, passed in as a String.
-
-The command returns the deploy hash that you can use to verify whether or not the deploy succeeded. For more information, see the [balance_of_call](https://github.com/casper-ecosystem/cep-78-enhanced-nft/tree/dev/client/balance_of_session) usage.
-
-**Example command to save the number of NFTs:**
-
-The following is an example that saves the number of NFTs using the Rust `casper-client`.
-
-```bash
-casper-client put-deploy \
---node-address http://65.21.235.219:7777 \
---chain-name "casper-test" \
---payment-amount 2000000000 \
---secret-key ~/KEYS/secret_key.pem \
---session-path balance_of_call.wasm \
---session-arg "nft_contract_hash:key='hash-42aace53c55fb3a386c36a66bebf3900169a402169b7b59fc7ef159dba28f516'" \
---session-arg "token_owner:key='account-hash-5cb74580bcf97d0a7fa034e60b3d2952e0b170ea5162153b1570e8b1ee4ec3f5'" \
---session-arg "key_name:string='balance'"
-```
 
 

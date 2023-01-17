@@ -115,8 +115,3 @@ Notice that the original NamedKeys are still on the list, but the new contract w
 ## Minting after Migration
 
 This workflow is the same as in the [Standard Migration Tutorial](standard-migration-tutorial#minting-after-migration).
-
-
-## Retrieving the Balance of NFTs after Minting
-
-This workflow is the same as in the [Standard Migration Tutorial](standard-migration-tutorial#retrieving-the-balance-of-nfts-after-minting).
