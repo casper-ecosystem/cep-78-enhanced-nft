@@ -9,6 +9,13 @@ All notable changes to this project will be documented in this file.  The format
 [comment]: <> (Fixed:      any bug fixes)
 [comment]: <> (Security:   in case of vulnerabilities)
 
+## Release 1.1.1
+
+### Added 
+
+* Added a new modality named `NamedKeyConventionMode` that dictates the upgrading and installation process. Refer to the README for further details.
+
+
 ## Release 1.1.0 
 
 ### Added
