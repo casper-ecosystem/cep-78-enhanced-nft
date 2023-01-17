@@ -22,8 +22,8 @@ use alloc::{
 };
 
 use constants::{
-    ARG_EVENTS_MODE, ARG_LAST_EVENT_ID, ARG_STARTING_EVENT_ID, ENTRY_POINT_GET_LATEST_TOKEN_EVENT,
-    ENTRY_POINT_GET_TOKEN_EVENTS, EVENTS, EVENTS_MODE, EVENT_ID_TRACKER,
+    ARG_EVENTS_MODE, ARG_LAST_EVENT_ID, ARG_STARTING_EVENT_ID, ENTRY_POINT_GET_CEP_78_EVENTS,
+    ENTRY_POINT_GET_LATEST_CEP_78_EVENT, EVENTS, EVENTS_MODE, EVENT_ID_TRACKER,
 };
 use modalities::EventsMode;
 
@@ -1668,7 +1668,7 @@ pub extern "C" fn get_latest_token_event() {
 
     let latest_event = match events_mode {
         EventsMode::CEP47 => todo!(),
-        EventsMode::CEP78 => events_cep78::get_latest_token_event(token_identifier),
+        EventsMode::CEP78 => events_cep78::get_latest_cep_78_event(token_identifier),
         _ => revert(NFTCoreError::InvalidEventsMode),
     };
 
@@ -1849,7 +1849,7 @@ fn generate_entry_points() -> EntryPoints {
 
     // This entrypoint returns the latest event for a token
     let get_latest_token_event = EntryPoint::new(
-        ENTRY_POINT_GET_LATEST_TOKEN_EVENT,
+        ENTRY_POINT_GET_LATEST_CEP_78_EVENT,
         vec![],
         CLType::String,
         EntryPointAccess::Public,
@@ -1927,7 +1927,7 @@ fn generate_entry_points() -> EntryPoints {
 
     // This entrypoint allows to retrieve token events.
     let get_token_events = EntryPoint::new(
-        ENTRY_POINT_GET_TOKEN_EVENTS,
+        ENTRY_POINT_GET_CEP_78_EVENTS,
         vec![],
         CLType::List(Box::new(CLType::String)),
         EntryPointAccess::Public,

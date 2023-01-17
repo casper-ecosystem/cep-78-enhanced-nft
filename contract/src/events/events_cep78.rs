@@ -88,7 +88,7 @@ fn record_approve_event(token_identifier: TokenIdentifier) -> Result<(), NFTCore
 
 fn store_event(
     token_identifier: TokenIdentifier,
-    token_event: CEP78Event,
+    cep_78_event: CEP78Event,
 ) -> Result<(), NFTCoreError> {
     let current_event_id = utils::get_dictionary_value_from_key::<u64>(
         EVENT_ID_TRACKER,
@@ -108,7 +108,7 @@ fn store_event(
     utils::upsert_dictionary_value_from_key(
         EVENTS,
         &get_event_item_key(&token_identifier, current_event_id + 1),
-        token_event as u8,
+        cep_78_event as u8,
     );
     Ok(())
 }
@@ -177,7 +177,7 @@ pub(crate) fn get_events(
     events
 }
 
-pub(crate) fn get_latest_token_event(token_identifier: TokenIdentifier) -> String {
+pub(crate) fn get_latest_cep_78_event(token_identifier: TokenIdentifier) -> String {
     let latest_event_index = utils::get_dictionary_value_from_key(
         EVENT_ID_TRACKER,
         &token_identifier.get_dictionary_item_key(),

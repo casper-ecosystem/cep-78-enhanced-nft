@@ -14,8 +14,8 @@ use casper_contract::{
 };
 use casper_types::{runtime_args, ContractHash, Key, RuntimeArgs};
 
-const ENTRY_POINT_GET_TOKEN_EVENTS: &str = "get_token_events";
-const ENTRY_POINT_GET_LATEST_TOKEN_EVENT: &str = "get_latest_token_event";
+const ENTRY_POINT_GET_CEP_78_EVENTS: &str = "get_token_events";
+const ENTRY_POINT_GET_LATEST_CEP_78_EVENT: &str = "get_latest_token_event";
 
 const ARG_NFT_CONTRACT_HASH: &str = "nft_contract_hash";
 const ARG_IS_HASH_IDENTIFIER_MODE: &str = "is_hash_identifier_mode";
@@ -57,7 +57,7 @@ fn get_token_events(nft_contract_hash: ContractHash) {
 
     let (receipt_name, events): (String, Vec<String>) = runtime::call_contract(
         nft_contract_hash,
-        ENTRY_POINT_GET_TOKEN_EVENTS,
+        ENTRY_POINT_GET_CEP_78_EVENTS,
         get_token_events_args,
     );
     let events_uref = storage::new_uref(events);
@@ -68,7 +68,7 @@ fn get_latest_token_event(nft_contract_hash: ContractHash) {
     let token_identifier_runtime_args = get_token_identifier_runtime_args();
     let (receipt_name, latest_token_event): (String, String) = runtime::call_contract(
         nft_contract_hash,
-        ENTRY_POINT_GET_LATEST_TOKEN_EVENT,
+        ENTRY_POINT_GET_LATEST_CEP_78_EVENT,
         token_identifier_runtime_args,
     );
     let events_uref = storage::new_uref(latest_token_event);

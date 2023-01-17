@@ -15,7 +15,7 @@ use crate::utility::{
         ARG_SOURCE_KEY, ARG_STARTING_EVENT_ID, ARG_TARGET_KEY, ARG_TOKEN_HASH, ARG_TOKEN_ID,
         ARG_TOKEN_META_DATA, ARG_TOKEN_OWNER, BALANCES, BURNT_TOKENS, CONTRACT_NAME,
         ENTRY_POINT_APPROVE, ENTRY_POINT_BURN, ENTRY_POINT_REGISTER_OWNER,
-        ENTRY_POINT_SET_TOKEN_METADATA, EVENTS, EVENT_ID_TRACKER, GET_TOKEN_EVENTS_WASM,
+        ENTRY_POINT_SET_TOKEN_METADATA, EVENTS, EVENT_ID_TRACKER, GET_CEP_78_EVENTS_WASM,
         METADATA_CEP78, METADATA_CUSTOM_VALIDATED, METADATA_NFT721, METADATA_RAW,
         MINT_SESSION_WASM, NFT_CONTRACT_WASM, NFT_TEST_COLLECTION, OPERATOR, RECEIPT_NAME,
         TEST_PRETTY_721_META_DATA, TEST_PRETTY_CEP78_METADATA, TEST_PRETTY_UPDATED_721_META_DATA,
@@ -185,7 +185,7 @@ fn should_get_single_events_by_identifier(identifier_mode: NFTIdentifierMode) {
 
     let get_events_call = ExecuteRequestBuilder::standard(
         *DEFAULT_ACCOUNT_ADDR,
-        GET_TOKEN_EVENTS_WASM,
+        GET_CEP_78_EVENTS_WASM,
         get_events_runtime_args,
     )
     .build();
@@ -365,7 +365,7 @@ fn should_get_multiple_events_by_token_identifier(identifier_mode: NFTIdentifier
 
     let get_events_request = ExecuteRequestBuilder::standard(
         *DEFAULT_ACCOUNT_ADDR,
-        GET_TOKEN_EVENTS_WASM,
+        GET_CEP_78_EVENTS_WASM,
         get_event_runtime_args,
     )
     .build();
@@ -627,7 +627,7 @@ fn should_get_range_of_events_using_token_identifier(identifier_mode: NFTIdentif
 
     let get_events_request = ExecuteRequestBuilder::standard(
         *DEFAULT_ACCOUNT_ADDR,
-        GET_TOKEN_EVENTS_WASM,
+        GET_CEP_78_EVENTS_WASM,
         get_event_runtime_args,
     )
     .build();
@@ -721,7 +721,7 @@ fn should_get_latest_token_event_by_token_identifier(identifier_mode: NFTIdentif
     let get_latest_token_event_request = match identifier_mode {
         NFTIdentifierMode::Ordinal => ExecuteRequestBuilder::standard(
             *DEFAULT_ACCOUNT_ADDR,
-            GET_TOKEN_EVENTS_WASM,
+            GET_CEP_78_EVENTS_WASM,
             runtime_args! {
                 ARG_NFT_CONTRACT_HASH => nft_contract_key,
                 ARG_IS_HASH_IDENTIFIER_MODE => false,
@@ -732,7 +732,7 @@ fn should_get_latest_token_event_by_token_identifier(identifier_mode: NFTIdentif
         .build(),
         NFTIdentifierMode::Hash => ExecuteRequestBuilder::standard(
             *DEFAULT_ACCOUNT_ADDR,
-            GET_TOKEN_EVENTS_WASM,
+            GET_CEP_78_EVENTS_WASM,
             runtime_args! {
                     ARG_NFT_CONTRACT_HASH => nft_contract_key,
                     ARG_IS_HASH_IDENTIFIER_MODE => true,
