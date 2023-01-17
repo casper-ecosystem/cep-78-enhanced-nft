@@ -4,7 +4,7 @@ This tutorial uses the Casper command-line client to upgrade *and* migrate from 
 
 ## Prerequisites
 
-- You have previously installed a CEP-78 contract using release v1.0.0, in a standard way, on a Casper network. Thus, you have experience with: the [Casper CEP-78 NFT Standard](https://github.com/casper-ecosystem/cep-78-enhanced-nft/), the Casper command-line client, and interacting with a Casper network.
+- You have previously installed a CEP-78 contract using release v1.0.0, in a standard way, on a Casper network. Thus, you have experience with the [Casper CEP-78 NFT Standard](https://github.com/casper-ecosystem/cep-78-enhanced-nft/), the Casper command-line client, and interacting with a Casper network.
 - The v1.0.0 NFT contract uses the contract package hash and contract package access URef created during installation in a **standard way**, without using other NamedKeys to manage the contract package.
 - You have the v1.0.0 contract package hash stored under the `nft_contract_package` NamedKey in the account that installed the contract.
 - You have the v1.0.0 contract package access URef stored under the `nft_contract_package_access` NamedKey in the account that installed the contract.
@@ -25,6 +25,21 @@ Future upgrades may not involve data migration, but the data migration is necess
 Navigate to the [v1.1.1 release](https://github.com/casper-ecosystem/cep-78-enhanced-nft/releases/tag/v1.1.1) and download the [cep-78-wasm.tar.gz](https://github.com/casper-ecosystem/cep-78-enhanced-nft/releases/download/v1.1.1/cep-78-wasm.tar.gz) file. Unarchive it to have access to the Wasm files provided. The Rust source code is also available if you would like to build and test the contract according to the Makefile provided. 
 
 The `cep-78-wasm` folder contains the `contract.wasm` to send to the network to upgrade the NFT contract to version 1.1.1. In addition, you will see other useful Wasm files to interact with the contract once it is stored on-chain: `balance_of_call.wasm`, `get_approved_call.wasm`, `mint_call.wasm`, `owner_of_call.wasm`, `transfer_call.wasm`, and `updated_receipts.wasm`.
+
+### Standard NamedKeys before Migration
+
+The standard migration path assumes that the contract uses the NamedKey entries created during the v1.0.0 installation without any modifications. See the example below as well as the [NamedKeyConvention](https://github.com/casper-ecosystem/cep-78-enhanced-nft#namedkeyconventionmode) modality.
+
+| NamedKey Pre Migration | Explanation |
+|-------------|-------------|
+| nft_contract | The hash identifying the NFT contract |
+| nft_contract_package | The hash identifying the contract package containing the NFT contract | 
+| nft_contract_package_access | The URef used as an access token or reference to the contract package | 
+| contract_version | The value tracking the latest contract version in the contract package | 
+| nft-CEP-78-collection-contract-package-wasm... | A dictionary tracking the NFTs minted in v1.0.0 |
+
+
+![Account Named Keys pre Migration](../assets/standard-namedkeys-pre-migration.png)  
 
 ### Initiating the Upgrade
 
@@ -59,8 +74,7 @@ The command returns the deploy hash that you can use to verify whether or not th
 
 **Important Notes**: 
 
-- If an account attempts to install a second CEP-78 contract instance with the same collection name, it will overwrite the NamedKey entry under which the access URef is written. Losing the access URef will prevent the account from adding newer versions, i.e., upgrading that particular instance of CEP-78. For more details, see the [README](../README.md#new-in-version-11).
-- When installing a new version of the CEP-78 contract, you do not need to specify all the runtime arguments needed during the initial installation of version 1.0.0, such as `total_token_supply`, `ownership_mode`, etc. 
+- When upgrading by installing a new version of the CEP-78 contract, you do not need to specify all the runtime arguments needed during the initial installation of version 1.0.0, such as `total_token_supply`, `ownership_mode`, etc.
 
 **Example command to upgrade to v1.1.1:**
 
