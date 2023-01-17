@@ -12,7 +12,7 @@ pub(crate) enum Event<'token_id> {
 pub(crate) fn record_event(event_enum: Event) {
     match event_enum {
         Event::Cep47(event) => events_cep47::record_event(&event),
-        Event::Cep47Dict(cep47_style) => events_cep47::record_event_dictionary(&cep47_style),
+        Event::Cep47Dict(event) => events_cep47::record_event_dictionary(&event),
         Event::Cep78(token_identifier, event) => {
             events_cep78::record_event(token_identifier.clone(), event)
         }
