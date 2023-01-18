@@ -1,9 +1,11 @@
 [
   [
-    "collection_name",
+    "cep78_package_key",
     {
-      "bytes": "0d0000006d792d636f6c6c656374696f6e",
-      "cl_type": "String"
+      "bytes": "0101010101010101010101010101010101010101010101010101010101010101",
+      "cl_type": {
+        "ByteArray": 32
+      }
     }
   ]
 ]

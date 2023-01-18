@@ -9,13 +9,11 @@ use casper_types::{account::AccountHash, CLValue, ContractHash, RuntimeArgs};
 
 use crate::utility::constants::{
     ARG_ALLOW_MINTING, ARG_BURN_MODE, ARG_COLLECTION_NAME, ARG_COLLECTION_SYMBOL,
-    ARG_CONTRACT_WHITELIST, ARG_HOLDER_MODE, ARG_IDENTIFIER_MODE, ARG_JSON_SCHEMA,
+    ARG_CONTRACT_WHITELIST, ARG_EVENTS_MODE, ARG_HOLDER_MODE, ARG_IDENTIFIER_MODE, ARG_JSON_SCHEMA,
     ARG_METADATA_MUTABILITY, ARG_MINTING_MODE, ARG_NAMED_KEY_CONVENTION, ARG_NFT_KIND,
     ARG_NFT_METADATA_KIND, ARG_OWNERSHIP_MODE, ARG_OWNER_LOOKUP_MODE, ARG_TOTAL_TOKEN_SUPPLY,
     ARG_WHITELIST_MODE, NFT_TEST_COLLECTION, NFT_TEST_SYMBOL,
 };
-
-use super::constants::ARG_EVENTS_MODE;
 
 pub(crate) static TEST_CUSTOM_METADATA_SCHEMA: Lazy<CustomMetadataSchema> = Lazy::new(|| {
     let mut properties = BTreeMap::new();
@@ -153,7 +151,7 @@ pub enum NamedKeyConventionMode {
 #[repr(u8)]
 pub enum EventsMode {
     NoEvents = 0,
-    _CEP78 = 1,
+    CEP78 = 1,
     CEP47 = 2,
     CEP47Dict = 3,
 }

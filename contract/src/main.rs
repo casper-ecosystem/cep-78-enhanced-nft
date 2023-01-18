@@ -20,8 +20,13 @@ use alloc::{
     vec,
     vec::Vec,
 };
-use core::convert::TryInto;
-use events::{events_cep47::CEP47Event, Event};
+
+use core::convert::{TryFrom, TryInto};
+use events::{
+    events_cep47::CEP47Event,
+    events_cep78::{self, CEP78Event},
+    Event,
+};
 use utils::get_stored_value_with_user_errors;
 
 use casper_types::{
@@ -43,17 +48,19 @@ use crate::{
         ACCESS_KEY_NAME_1_0_0, ACCESS_KEY_NAME_PREFIX, ALLOW_MINTING, ARG_ACCESS_KEY_NAME_1_0_0,
         ARG_ALLOW_MINTING, ARG_APPROVE_ALL, ARG_BURN_MODE, ARG_COLLECTION_NAME,
         ARG_COLLECTION_SYMBOL, ARG_CONTRACT_WHITELIST, ARG_EVENTS_MODE, ARG_HASH_KEY_NAME_1_0_0,
-        ARG_HOLDER_MODE, ARG_IDENTIFIER_MODE, ARG_JSON_SCHEMA, ARG_METADATA_MUTABILITY,
-        ARG_MINTING_MODE, ARG_NAMED_KEY_CONVENTION, ARG_NFT_KIND, ARG_NFT_METADATA_KIND,
-        ARG_NFT_PACKAGE_HASH, ARG_OPERATOR, ARG_OWNERSHIP_MODE, ARG_OWNER_LOOKUP_MODE,
-        ARG_RECEIPT_NAME, ARG_SOURCE_KEY, ARG_TARGET_KEY, ARG_TOKEN_META_DATA, ARG_TOKEN_OWNER,
-        ARG_TOTAL_TOKEN_SUPPLY, ARG_WHITELIST_MODE, BURNT_TOKENS, BURN_MODE, CEP78_PREFIX,
-        COLLECTION_NAME, COLLECTION_SYMBOL, CONTRACT_NAME_PREFIX, CONTRACT_VERSION_PREFIX,
-        CONTRACT_WHITELIST, ENTRY_POINT_APPROVE, ENTRY_POINT_BALANCE_OF, ENTRY_POINT_BURN,
-        ENTRY_POINT_GET_APPROVED, ENTRY_POINT_INIT, ENTRY_POINT_METADATA, ENTRY_POINT_MIGRATE,
-        ENTRY_POINT_MINT, ENTRY_POINT_OWNER_OF, ENTRY_POINT_REGISTER_OWNER,
-        ENTRY_POINT_SET_APPROVE_FOR_ALL, ENTRY_POINT_SET_TOKEN_METADATA, ENTRY_POINT_SET_VARIABLES,
-        ENTRY_POINT_TRANSFER, ENTRY_POINT_UPDATED_RECEIPTS, EVENTS_MODE, HASH_BY_INDEX,
+        ARG_HOLDER_MODE, ARG_IDENTIFIER_MODE, ARG_JSON_SCHEMA, ARG_LAST_EVENT_ID,
+        ARG_METADATA_MUTABILITY, ARG_MINTING_MODE, ARG_NAMED_KEY_CONVENTION, ARG_NFT_KIND,
+        ARG_NFT_METADATA_KIND, ARG_NFT_PACKAGE_HASH, ARG_OPERATOR, ARG_OWNERSHIP_MODE,
+        ARG_OWNER_LOOKUP_MODE, ARG_RECEIPT_NAME, ARG_SOURCE_KEY, ARG_STARTING_EVENT_ID,
+        ARG_TARGET_KEY, ARG_TOKEN_META_DATA, ARG_TOKEN_OWNER, ARG_TOTAL_TOKEN_SUPPLY,
+        ARG_WHITELIST_MODE, BURNT_TOKENS, BURN_MODE, CEP78_PREFIX, COLLECTION_NAME,
+        COLLECTION_SYMBOL, CONTRACT_NAME_PREFIX, CONTRACT_VERSION_PREFIX, CONTRACT_WHITELIST,
+        ENTRY_POINT_APPROVE, ENTRY_POINT_BALANCE_OF, ENTRY_POINT_BURN, ENTRY_POINT_GET_APPROVED,
+        ENTRY_POINT_GET_LATEST_TOKEN_EVENT, ENTRY_POINT_GET_TOKEN_EVENTS, ENTRY_POINT_INIT,
+        ENTRY_POINT_METADATA, ENTRY_POINT_MIGRATE, ENTRY_POINT_MINT, ENTRY_POINT_OWNER_OF,
+        ENTRY_POINT_REGISTER_OWNER, ENTRY_POINT_SET_APPROVE_FOR_ALL,
+        ENTRY_POINT_SET_TOKEN_METADATA, ENTRY_POINT_SET_VARIABLES, ENTRY_POINT_TRANSFER,
+        ENTRY_POINT_UPDATED_RECEIPTS, EVENTS, EVENTS_MODE, EVENT_ID_TRACKER, HASH_BY_INDEX,
         HASH_KEY_NAME_1_0_0, HASH_KEY_NAME_PREFIX, HOLDER_MODE, IDENTIFIER_MODE, INDEX_BY_HASH,
         INSTALLER, JSON_SCHEMA, MAX_TOTAL_TOKEN_SUPPLY, METADATA_CEP78, METADATA_CUSTOM_VALIDATED,
         METADATA_MUTABILITY, METADATA_NFT721, METADATA_RAW, MIGRATION_FLAG, MINTING_MODE, NFT_KIND,
@@ -260,8 +267,8 @@ pub extern "C" fn init() {
 
     let events_mode: EventsMode = utils::get_named_arg_with_user_errors::<u8>(
         ARG_EVENTS_MODE,
-        NFTCoreError::MissingEventMode,
-        NFTCoreError::InvalidEventMode,
+        NFTCoreError::MissingEventsMode,
+        NFTCoreError::InvalidEventsMode,
     )
     .unwrap_or_revert()
     .try_into()
@@ -355,6 +362,9 @@ pub extern "C" fn init() {
     storage::new_dictionary(INDEX_BY_HASH)
         .unwrap_or_revert_with(NFTCoreError::FailedToCreateDictionary);
     storage::new_dictionary(PAGE_TABLE)
+        .unwrap_or_revert_with(NFTCoreError::FailedToCreateDictionary);
+    storage::new_dictionary(EVENTS).unwrap_or_revert_with(NFTCoreError::FailedToCreateDictionary);
+    storage::new_dictionary(EVENT_ID_TRACKER)
         .unwrap_or_revert_with(NFTCoreError::FailedToCreateDictionary);
     if reporting_mode == OwnerReverseLookupMode::Complete {
         let page_table_width = utils::max_number_of_pages(total_token_supply);
@@ -582,6 +592,28 @@ pub extern "C" fn mint() {
     );
     storage::write(number_of_minted_tokens_uref, minted_tokens_count + 1u64);
 
+    let events_mode: EventsMode = EventsMode::try_from(get_stored_value_with_user_errors::<u8>(
+        crate::constants::EVENTS_MODE,
+        NFTCoreError::MissingEventsMode,
+        NFTCoreError::InvalidEventsMode,
+    ))
+    .unwrap_or_revert();
+
+    if events_mode != EventsMode::NoEvents {
+        events::record_event(match events_mode {
+            EventsMode::CEP47Dict => Event::Cep47Dict(CEP47Event::Mint {
+                recipient: token_owner_key,
+                token_id: token_identifier.clone(),
+            }),
+            EventsMode::CEP47 => Event::Cep47(CEP47Event::Mint {
+                recipient: token_owner_key,
+                token_id: token_identifier.clone(),
+            }),
+            EventsMode::CEP78 => Event::Cep78(&token_identifier, CEP78Event::Mint),
+            _ => revert(NFTCoreError::InvalidEventsMode),
+        });
+    }
+
     if let OwnerReverseLookupMode::Complete = utils::get_reporting_mode() {
         if (NFTIdentifierMode::Hash == identifier_mode)
             && utils::should_migrate_token_hashes(token_owner_key)
@@ -636,27 +668,6 @@ pub extern "C" fn mint() {
         let receipt_address = Key::dictionary(page_uref, owned_tokens_item_key.as_bytes());
 
         let receipt_string = utils::get_receipt_name(page_table_entry);
-
-        let events_mode: u8 = get_stored_value_with_user_errors(
-            crate::constants::EVENTS_MODE,
-            NFTCoreError::MissingEventMode,
-            NFTCoreError::InvalidEventMode,
-        );
-
-        if events_mode != 0 {
-            events::record_event(match events_mode {
-                3 => Event::Cep47Dict(CEP47Event::Mint {
-                    recipient: token_owner_key,
-                    token_id: token_identifier,
-                }),
-                2 => Event::Cep47(CEP47Event::Mint {
-                    recipient: token_owner_key,
-                    token_id: token_identifier,
-                }),
-                1 => Event::Cep78,
-                _ => revert(NFTCoreError::InvalidEventMode),
-            });
-        }
 
         let receipt = CLValue::from_t((receipt_string, receipt_address, token_identifier_string))
             .unwrap_or_revert_with(NFTCoreError::FailedToConvertToCLValue);
@@ -731,24 +742,25 @@ pub extern "C" fn burn() {
 
     utils::upsert_dictionary_value_from_key(TOKEN_COUNTS, &owned_tokens_item_key, updated_balance);
 
-    let events_mode: u8 = get_stored_value_with_user_errors(
+    let events_mode = EventsMode::try_from(get_stored_value_with_user_errors::<u8>(
         crate::constants::EVENTS_MODE,
-        NFTCoreError::MissingEventMode,
-        NFTCoreError::InvalidEventMode,
-    );
+        NFTCoreError::MissingEventsMode,
+        NFTCoreError::InvalidEventsMode,
+    ))
+    .unwrap_or_revert();
 
-    if events_mode != 0 {
+    if events_mode != EventsMode::NoEvents {
         events::record_event(match events_mode {
-            3 => Event::Cep47Dict(CEP47Event::Burn {
+            EventsMode::CEP47Dict => Event::Cep47Dict(CEP47Event::Burn {
                 owner: token_owner,
                 token_id: token_identifier,
             }),
-            2 => Event::Cep47(CEP47Event::Burn {
+            EventsMode::CEP47 => Event::Cep47(CEP47Event::Burn {
                 owner: token_owner,
                 token_id: token_identifier,
             }),
-            1 => Event::Cep78,
-            _ => revert(NFTCoreError::InvalidEventMode),
+            EventsMode::CEP78 => Event::Cep78(&token_identifier, CEP78Event::Burn),
+            _ => revert(NFTCoreError::InvalidEventsMode),
         });
     }
 }
@@ -834,26 +846,27 @@ pub extern "C" fn approve() {
         Some(operator),
     );
 
-    let events_mode: u8 = get_stored_value_with_user_errors(
+    let events_mode = EventsMode::try_from(get_stored_value_with_user_errors::<u8>(
         crate::constants::EVENTS_MODE,
-        NFTCoreError::MissingEventMode,
-        NFTCoreError::InvalidEventMode,
-    );
+        NFTCoreError::MissingEventsMode,
+        NFTCoreError::InvalidEventsMode,
+    ))
+    .unwrap_or_revert();
 
-    if events_mode != 0 {
+    if events_mode != EventsMode::NoEvents {
         events::record_event(match events_mode {
-            3 => Event::Cep47Dict(CEP47Event::Approve {
+            EventsMode::CEP47Dict => Event::Cep47Dict(CEP47Event::Approve {
                 owner: token_owner_key,
                 spender: operator,
                 token_id: token_identifier,
             }),
-            2 => Event::Cep47(CEP47Event::Approve {
+            EventsMode::CEP47 => Event::Cep47(CEP47Event::Approve {
                 owner: token_owner_key,
                 spender: operator,
                 token_id: token_identifier,
             }),
-            1 => Event::Cep78,
-            _ => revert(NFTCoreError::InvalidEventMode),
+            EventsMode::CEP78 => Event::Cep78(&token_identifier, CEP78Event::Approve),
+            _ => revert(NFTCoreError::InvalidEventsMode),
         });
     }
 }
@@ -906,17 +919,16 @@ pub extern "C" fn set_approval_for_all() {
         let operator = if approve_all { Some(operator) } else { None };
         storage::dictionary_put(operator_uref, &token_id.get_dictionary_item_key(), operator);
     }
-
     // TODO : figure this out
     /*
-    let events_mode: u8 = get_stored_value_with_user_errors(crate::constants::EVENTS_MODE, NFTCoreError::MissingEventMode, NFTCoreError::InvalidEventMode);
-
-    if events_mode != 0{
+    let events_mode: u8 = get_stored_value_with_user_errors(crate::constants::EVENTS_MODE, NFTCoreError::MissingEventsMode, NFTCoreError::InvalidEventsMode);
+    let events_mode = EventsMode::try_from(events_mode).unwrap_or_revert();
+    if events_mode != EventsMode::NoEvents {
         events::record_event(match events_mode{
-            1 => Event::Cep47Dict(CEP47Event::ApproveAll{ owner: token_owner, spender :operator }),
-            1 => Event::Cep47(CEP47Event::ApproveAll{ owner: token_owner, spender :operator }),
-            2 => Event::Cep78,
-            _ => revert(NFTCoreError::InvalidEventMode)
+            EventsMode::CEP47Dict => Event::Cep47Dict(CEP47Event::ApproveAll{ owner: token_owner, spender :operator }),
+            EventsMode::CEP47 => Event::Cep47(CEP47Event::ApproveAll{ owner: token_owner, spender :operator }),
+            EventsMode::CEP78 => Event::Cep78,
+            _ => revert(NFTCoreError::InvalidEventsMode)
         });
     }
     */
@@ -1068,26 +1080,27 @@ pub extern "C" fn transfer() {
         Option::<Key>::None,
     );
 
-    let events_mode: u8 = get_stored_value_with_user_errors(
-        crate::constants::EVENTS_MODE,
-        NFTCoreError::MissingEventMode,
-        NFTCoreError::InvalidEventMode,
-    );
+    let events_mode = EventsMode::try_from(get_stored_value_with_user_errors::<u8>(
+        EVENTS_MODE,
+        NFTCoreError::MissingEventsMode,
+        NFTCoreError::InvalidEventsMode,
+    ))
+    .unwrap_or_revert();
 
-    if events_mode != 0 {
+    if events_mode != EventsMode::NoEvents {
         events::record_event(match events_mode {
-            3 => Event::Cep47Dict(CEP47Event::Transfer {
+            EventsMode::CEP47Dict => Event::Cep47Dict(CEP47Event::Transfer {
                 sender: token_owner_key,
                 recipient: target_owner_key,
                 token_id: token_identifier.clone(),
             }),
-            2 => Event::Cep47(CEP47Event::Transfer {
+            EventsMode::CEP47 => Event::Cep47(CEP47Event::Transfer {
                 sender: token_owner_key,
                 recipient: target_owner_key,
                 token_id: token_identifier.clone(),
             }),
-            1 => Event::Cep78,
-            _ => revert(NFTCoreError::InvalidEventMode),
+            EventsMode::CEP78 => Event::Cep78(&token_identifier, CEP78Event::Transfer),
+            _ => revert(NFTCoreError::InvalidEventsMode),
         });
     }
 
@@ -1371,22 +1384,23 @@ pub extern "C" fn set_token_metadata() {
         updated_metadata,
     );
 
-    let events_mode: u8 = get_stored_value_with_user_errors(
+    let events_mode = EventsMode::try_from(get_stored_value_with_user_errors::<u8>(
         crate::constants::EVENTS_MODE,
-        NFTCoreError::MissingEventMode,
-        NFTCoreError::InvalidEventMode,
-    );
+        NFTCoreError::MissingEventsMode,
+        NFTCoreError::InvalidEventsMode,
+    ))
+    .unwrap_or_revert();
 
-    if events_mode != 0 {
+    if events_mode != EventsMode::NoEvents {
         events::record_event(match events_mode {
-            3 => Event::Cep47Dict(CEP47Event::MetadataUpdate {
+            EventsMode::CEP47Dict => Event::Cep47Dict(CEP47Event::MetadataUpdate {
                 token_id: token_identifier,
             }),
-            2 => Event::Cep47(CEP47Event::MetadataUpdate {
+            EventsMode::CEP47 => Event::Cep47(CEP47Event::MetadataUpdate {
                 token_id: token_identifier,
             }),
-            1 => Event::Cep78,
-            _ => revert(NFTCoreError::InvalidEventMode),
+            EventsMode::CEP78 => Event::Cep78(&token_identifier, CEP78Event::MetadataUpdate),
+            _ => revert(NFTCoreError::InvalidEventsMode),
         });
     }
 }
@@ -1531,6 +1545,52 @@ pub extern "C" fn updated_receipts() {
 }
 
 #[no_mangle]
+pub extern "C" fn get_token_events() {
+    let identifier_mode: NFTIdentifierMode = utils::get_stored_value_with_user_errors::<u8>(
+        IDENTIFIER_MODE,
+        NFTCoreError::MissingIdentifierMode,
+        NFTCoreError::InvalidIdentifierMode,
+    )
+    .try_into()
+    .unwrap_or_revert();
+    let token_identifier = utils::get_token_identifier_from_runtime_args(&identifier_mode);
+    let starting_event_id = utils::get_optional_named_arg_with_user_errors::<u64>(
+        ARG_STARTING_EVENT_ID,
+        NFTCoreError::InvalidStartingEventId,
+    )
+    .unwrap_or(0u64);
+    let maybe_final_event_id = utils::get_optional_named_arg_with_user_errors::<u64>(
+        ARG_LAST_EVENT_ID,
+        NFTCoreError::InvalidLastEventId,
+    );
+
+    let events_mode = EventsMode::try_from(get_stored_value_with_user_errors::<u8>(
+        EVENTS_MODE,
+        NFTCoreError::MissingEventsMode,
+        NFTCoreError::InvalidEventsMode,
+    ))
+    .unwrap_or_revert();
+
+    let events = match events_mode {
+        EventsMode::CEP47 => todo!(),
+        EventsMode::CEP78 => {
+            events_cep78::get_events(token_identifier, starting_event_id, maybe_final_event_id)
+        }
+        _ => revert(NFTCoreError::InvalidEventsMode),
+    };
+
+    let receipt_name = utils::get_stored_value_with_user_errors::<String>(
+        RECEIPT_NAME,
+        NFTCoreError::MissingReceiptName,
+        NFTCoreError::InvalidReceiptName,
+    );
+    runtime::ret(
+        CLValue::from_t((format!("{EVENTS}-{receipt_name}"), events))
+            .unwrap_or_revert_with(NFTCoreError::FailedToConvertToCLValue),
+    )
+}
+
+#[no_mangle]
 pub extern "C" fn register_owner() {
     if let OwnerReverseLookupMode::Complete = utils::get_reporting_mode() {
         let owner_key = match utils::get_ownership_mode().unwrap_or_revert() {
@@ -1580,6 +1640,41 @@ pub extern "C" fn register_owner() {
         ));
         runtime::ret(CLValue::from_t((collection_name, package_uref)).unwrap_or_revert())
     }
+}
+
+#[no_mangle]
+pub extern "C" fn get_latest_token_event() {
+    let identifier_mode: NFTIdentifierMode = utils::get_stored_value_with_user_errors::<u8>(
+        IDENTIFIER_MODE,
+        NFTCoreError::MissingIdentifierMode,
+        NFTCoreError::InvalidIdentifierMode,
+    )
+    .try_into()
+    .unwrap_or_revert();
+    let token_identifier = utils::get_token_identifier_from_runtime_args(&identifier_mode);
+
+    let events_mode = EventsMode::try_from(get_stored_value_with_user_errors::<u8>(
+        EVENTS_MODE,
+        NFTCoreError::MissingEventsMode,
+        NFTCoreError::InvalidEventsMode,
+    ))
+    .unwrap_or_revert();
+
+    let latest_event = match events_mode {
+        EventsMode::CEP47 => todo!(),
+        EventsMode::CEP78 => events_cep78::get_latest_token_event(token_identifier),
+        _ => revert(NFTCoreError::InvalidEventsMode),
+    };
+
+    let receipt_name = utils::get_stored_value_with_user_errors::<String>(
+        RECEIPT_NAME,
+        NFTCoreError::MissingReceiptName,
+        NFTCoreError::InvalidReceiptName,
+    );
+    runtime::ret(
+        CLValue::from_t((format!("{EVENTS}-{receipt_name}"), latest_event))
+            .unwrap_or_revert_with(NFTCoreError::FailedToConvertToCLValue),
+    )
 }
 
 fn generate_entry_points() -> EntryPoints {
@@ -1746,6 +1841,15 @@ fn generate_entry_points() -> EntryPoints {
         EntryPointType::Contract,
     );
 
+    // This entrypoint returns the latest event for a token
+    let get_latest_token_event = EntryPoint::new(
+        ENTRY_POINT_GET_LATEST_TOKEN_EVENT,
+        vec![],
+        CLType::String,
+        EntryPointAccess::Public,
+        EntryPointType::Contract,
+    );
+
     // This entrypoint returns number of owned tokens associated with the provided token holder
     let balance_of = EntryPoint::new(
         ENTRY_POINT_BALANCE_OF,
@@ -1815,6 +1919,15 @@ fn generate_entry_points() -> EntryPoints {
         EntryPointType::Contract,
     );
 
+    // This entrypoint allows to retrieve token events.
+    let get_token_events = EntryPoint::new(
+        ENTRY_POINT_GET_TOKEN_EVENTS,
+        vec![],
+        CLType::List(Box::new(CLType::String)),
+        EntryPointAccess::Public,
+        EntryPointType::Contract,
+    );
+
     entry_points.add_entry_point(init_contract);
     entry_points.add_entry_point(set_variables);
     entry_points.add_entry_point(mint);
@@ -1830,6 +1943,8 @@ fn generate_entry_points() -> EntryPoints {
     entry_points.add_entry_point(migrate);
     entry_points.add_entry_point(updated_receipts);
     entry_points.add_entry_point(register_owner);
+    entry_points.add_entry_point(get_token_events);
+    entry_points.add_entry_point(get_latest_token_event);
     entry_points
 }
 
@@ -2006,7 +2121,7 @@ fn install_contract() {
 
     let events_mode: u8 = utils::get_optional_named_arg_with_user_errors(
         ARG_EVENTS_MODE,
-        NFTCoreError::InvalidEventMode,
+        NFTCoreError::InvalidEventsMode,
     )
     .unwrap_or(0u8);
 
@@ -2059,25 +2174,25 @@ fn install_contract() {
         contract_hash,
         ENTRY_POINT_INIT,
         runtime_args! {
-             ARG_COLLECTION_NAME => collection_name,
-             ARG_COLLECTION_SYMBOL => collection_symbol,
-             ARG_TOTAL_TOKEN_SUPPLY => total_token_supply,
-             ARG_ALLOW_MINTING => allow_minting,
-             ARG_OWNERSHIP_MODE => ownership_mode,
-             ARG_NFT_KIND => nft_kind,
-             ARG_MINTING_MODE => minting_mode,
-             ARG_HOLDER_MODE => holder_mode,
-             ARG_WHITELIST_MODE => whitelist_lock,
-             ARG_CONTRACT_WHITELIST => contract_white_list,
-             ARG_JSON_SCHEMA => json_schema,
-             ARG_RECEIPT_NAME => receipt_name,
-             ARG_NFT_METADATA_KIND => nft_metadata_kind,
-             ARG_IDENTIFIER_MODE => identifier_mode,
-             ARG_METADATA_MUTABILITY => metadata_mutability,
-             ARG_BURN_MODE => burn_mode,
-             ARG_OWNER_LOOKUP_MODE => reporting_mode,
-             ARG_NFT_PACKAGE_HASH => package_hash.to_formatted_string(),
-             ARG_EVENTS_MODE => events_mode
+            ARG_COLLECTION_NAME => collection_name,
+            ARG_COLLECTION_SYMBOL => collection_symbol,
+            ARG_TOTAL_TOKEN_SUPPLY => total_token_supply,
+            ARG_ALLOW_MINTING => allow_minting,
+            ARG_OWNERSHIP_MODE => ownership_mode,
+            ARG_NFT_KIND => nft_kind,
+            ARG_MINTING_MODE => minting_mode,
+            ARG_HOLDER_MODE => holder_mode,
+            ARG_WHITELIST_MODE => whitelist_lock,
+            ARG_CONTRACT_WHITELIST => contract_white_list,
+            ARG_JSON_SCHEMA => json_schema,
+            ARG_RECEIPT_NAME => receipt_name,
+            ARG_NFT_METADATA_KIND => nft_metadata_kind,
+            ARG_IDENTIFIER_MODE => identifier_mode,
+            ARG_METADATA_MUTABILITY => metadata_mutability,
+            ARG_BURN_MODE => burn_mode,
+            ARG_OWNER_LOOKUP_MODE => reporting_mode,
+            ARG_NFT_PACKAGE_HASH => package_hash.to_formatted_string(),
+            ARG_EVENTS_MODE => events_mode
         },
     );
 }
