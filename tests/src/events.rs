@@ -142,7 +142,7 @@ fn should_get_single_events_by_identifier(identifier_mode: NFTIdentifierMode) {
                 &builder,
                 &nft_contract_key,
                 EVENT_ID_TRACKER,
-                &token_hash.clone(),
+                &token_hash,
             );
             assert_eq!(event_id, latest_event_id);
             get_event_item_key_from_token_hash(token_hash.clone(), event_id)
@@ -314,7 +314,7 @@ fn should_get_multiple_events_by_token_identifier(identifier_mode: NFTIdentifier
             &builder,
             &nft_contract_key,
             EVENT_ID_TRACKER,
-            &token_hash.clone(),
+            &token_hash,
         ),
     };
 
