@@ -111,7 +111,3 @@ As part of the migration, the contract's NamedKeys will be renamed using a new n
 ![Account Custom Named Keys](../assets/custom-namedkeys-post-migration.png)  
 
 Notice that the original NamedKeys are still on the list, but the new contract will not use them. Also, starting with version 1.1.0, all named keys will follow the new naming convention containing the collection name. 
-
-## Minting after Migration
-
-This workflow is the same as in the [Standard Migration Tutorial](standard-migration-tutorial#minting-after-migration).

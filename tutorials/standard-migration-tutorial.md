@@ -109,52 +109,5 @@ As part of the migration, the contract's NamedKeys will be renamed using a new n
 
 Notice that the original NamedKeys are still on the list, but the new contract will not use them. Also, starting with version 1.1.0, all named keys will follow the new naming convention containing the collection name. 
 
-## Minting after Migration
-
-After the upgrade and migration, you can use the `mint_call.wasm` to mint additional NFTs. You will need the contract hash of the upgraded contract, stored under the `cep78_contract_hash_CEP-78-collection` NamedKey.
-
-```bash
-casper-client put-deploy \
---node-address [NODE_SERVER_ADDRESS] \
---chain-name [CHAIN_NAME] \
---secret-key [KEY_PATH]/secret_key.pem \
---payment-amount [PAYMENT_AMOUNT_IN_MOTES] \
---session-path [PATH]/mint_call.wasm \
---session-arg "nft_contract_hash:key='[CONTRACT_HASH_HEX_STRING]'" \
---session-arg "collection_name:string='[COLLECTION_NAME]'" \
---session-arg "token_owner:key='[TOKEN_OWNER]'" \
---session-arg "token_meta_data:string='[TOKEN_METADATA]'"
-```
-
-The required arguments are:
-- `node-address`: An IP address of a peer on the network. The default port for JSON-RPC servers on Mainnet and Testnet is 7777.
-- `chain-name`: The chain name of the network where you wish to send the deploy. For Mainnet, use *casper*. For Testnet, use *casper-test*.
-- `secret-key`: The file name containing the secret key of the account paying for the deploy.
-- `payment-amount`: The payment for the deploy in motes.
-- `session-path`- The path to the compiled Wasm on your computer. When using the [cep-78-wasm.tar.gz](https://github.com/casper-ecosystem/cep-78-enhanced-nft/releases/download/v1.1.1/cep-78-wasm.tar.gz) provided, this would be the path to the `mint_call.wasm` file.
-- `nft_contract_hash`: The hash of a given Enhanced NFT contract passed in as a Key.
-- `collection_name`: The name of the NFT collection to which the minted token belongs.
-- `token_owner`: The Key of the owner for the NFT to be minted. Note, this argument is ignored in the Ownership::Minter mode.
-- `token_meta_data`: The metadata describing the NFT to be minted, passed in as a String.
-
-The command returns the deploy hash that you can use to verify whether or not the deploy succeeded. For more information, see the [mint_call](https://github.com/casper-ecosystem/cep-78-enhanced-nft/tree/dev/client/mint_session) usage.
-
-**Example command to mint NFTs:**
-
-The following is an example of minting v1.1.1 NFTs using the Rust `casper-client`. 
-
-```bash
-casper-client put-deploy \
---node-address http://65.21.235.219:7777 \
---chain-name "casper-test" \
---secret-key ~/KEYS/secret_key.pem \
---payment-amount 40000000000 \
---session-path mint_call.wasm \
---session-arg "nft_contract_hash:key='hash-42aace53c55fb3a386c36a66bebf3900169a402169b7b59fc7ef159dba28f516'" \
---session-arg "collection_name:string='CEP-78-collection'" \
---session-arg "token_owner:key='account-hash-5cb74580bcf97d0a7fa034e60b3d2952e0b170ea5162153b1570e8b1ee4ec3f5'" \
---session-arg "token_meta_data:string='{\"name\": \"NFT V1.1.1\",\"token_uri\": \"https:\/\/www.casperlabs.io\",\"checksum\": \"940bffb3f2bba35f84313aa26da09ece3ad47045c6a1292c2bbd2df4ab1a55fb\"}'"
-```
-
 
 
