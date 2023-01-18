@@ -27,8 +27,6 @@ pub const ARG_NFT_PACKAGE_HASH: &str = "cep78_package_key";
 pub const ARG_NAMED_KEY_CONVENTION: &str = "named_key_convention";
 pub const ARG_ACCESS_KEY_NAME_1_0_0: &str = "access_key_name";
 pub const ARG_HASH_KEY_NAME_1_0_0: &str = "hash_key_name";
-pub const ARG_STARTING_EVENT_ID: &str = "starting_event_id";
-pub const ARG_LAST_EVENT_ID: &str = "last_event_id";
 pub const ARG_EVENTS_MODE: &str = "events_mode";
 
 pub const OPERATOR: &str = "operator";
@@ -93,8 +91,6 @@ pub const ENTRY_POINT_SET_TOKEN_METADATA: &str = "set_token_metadata";
 pub const ENTRY_POINT_MIGRATE: &str = "migrate";
 pub const ENTRY_POINT_UPDATED_RECEIPTS: &str = "updated_receipts";
 pub const ENTRY_POINT_REGISTER_OWNER: &str = "register_owner";
-pub const ENTRY_POINT_GET_CEP_78_EVENTS: &str = "get_token_events";
-pub const ENTRY_POINT_GET_LATEST_CEP_78_EVENT: &str = "get_latest_token_event";
 
 // The cap on the amount of tokens within a given CEP-78 collection.
 pub const MAX_TOTAL_TOKEN_SUPPLY: u64 = 1_000_000u64;

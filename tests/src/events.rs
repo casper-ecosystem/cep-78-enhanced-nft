@@ -5,20 +5,20 @@ use casper_engine_test_support::{
     DEFAULT_RUN_GENESIS_REQUEST,
 };
 use casper_types::{
-    account::AccountHash, bytesrepr::ToBytes, runtime_args, system::mint, Key, RuntimeArgs,
+    account::AccountHash, bytesrepr::ToBytes, runtime_args, system::mint, CLValueError, Key,
+    RuntimeArgs,
 };
 
 use crate::utility::{
     constants::{
-        ACCOUNT_USER_2, ACCOUNT_USER_3, ARG_ALL_EVENTS, ARG_COLLECTION_NAME, ARG_GET_LATEST_ONLY,
-        ARG_IS_HASH_IDENTIFIER_MODE, ARG_LAST_EVENT_ID, ARG_NFT_CONTRACT_HASH, ARG_OPERATOR,
-        ARG_SOURCE_KEY, ARG_STARTING_EVENT_ID, ARG_TARGET_KEY, ARG_TOKEN_HASH, ARG_TOKEN_ID,
-        ARG_TOKEN_META_DATA, ARG_TOKEN_OWNER, BALANCES, BURNT_TOKENS, CONTRACT_NAME,
+        ACCOUNT_USER_2, ACCOUNT_USER_3, ARG_COLLECTION_NAME, ARG_IS_HASH_IDENTIFIER_MODE,
+        ARG_NFT_CONTRACT_HASH, ARG_OPERATOR, ARG_SOURCE_KEY, ARG_TARGET_KEY, ARG_TOKEN_HASH,
+        ARG_TOKEN_ID, ARG_TOKEN_META_DATA, ARG_TOKEN_OWNER, BALANCES, BURNT_TOKENS, CONTRACT_NAME,
         ENTRY_POINT_APPROVE, ENTRY_POINT_BURN, ENTRY_POINT_REGISTER_OWNER,
-        ENTRY_POINT_SET_TOKEN_METADATA, EVENTS, EVENT_ID_TRACKER, GET_CEP_78_EVENTS_WASM,
-        METADATA_CEP78, METADATA_CUSTOM_VALIDATED, METADATA_NFT721, METADATA_RAW,
-        MINT_SESSION_WASM, NFT_CONTRACT_WASM, NFT_TEST_COLLECTION, OPERATOR, RECEIPT_NAME,
-        TEST_PRETTY_721_META_DATA, TEST_PRETTY_CEP78_METADATA, TEST_PRETTY_UPDATED_721_META_DATA,
+        ENTRY_POINT_SET_TOKEN_METADATA, EVENTS, EVENT_ID_TRACKER, METADATA_CEP78,
+        METADATA_CUSTOM_VALIDATED, METADATA_NFT721, METADATA_RAW, MINT_SESSION_WASM,
+        NFT_CONTRACT_WASM, NFT_TEST_COLLECTION, OPERATOR, TEST_PRETTY_721_META_DATA,
+        TEST_PRETTY_CEP78_METADATA, TEST_PRETTY_UPDATED_721_META_DATA,
         TEST_PRETTY_UPDATED_CEP78_METADATA, TRANSFER_SESSION_WASM,
     },
     installer_request_builder::{
@@ -29,8 +29,10 @@ use crate::utility::{
     support::{self, get_dictionary_value_from_key, get_nft_contract_hash, query_stored_value},
 };
 
+use core::convert::TryFrom;
+
 #[repr(u8)]
-#[derive(PartialEq, Eq)]
+#[derive(PartialEq, Eq, Debug)]
 pub(crate) enum TokenEvent {
     Mint = 0,
     Transfer = 1,
@@ -39,14 +41,17 @@ pub(crate) enum TokenEvent {
     // Approve = 3,
 }
 
-impl ToString for TokenEvent {
-    fn to_string(&self) -> String {
-        match self {
-            TokenEvent::Mint => "Mint".to_string(),
-            TokenEvent::Transfer => "Transfer".to_string(),
-            TokenEvent::Burn => "Burn".to_string(),
+impl TryFrom<u8> for TokenEvent {
+    type Error = CLValueError;
+    fn try_from(value: u8) -> Result<Self, Self::Error> {
+        match value {
+            0 => Ok(TokenEvent::Mint),
+            1 => Ok(TokenEvent::Transfer),
+            2 => Ok(TokenEvent::Burn),
             // TODO
-            // TokenEvent::Approve => "Approve".to_string(),
+            // 3 => Ok(CEP78Event::Approve),
+            //  4 => Ok(CEP78Event::MetadataUpdate),
+            _ => panic!("invalid TokenEvent from u8"),
         }
     }
 }
@@ -116,28 +121,31 @@ fn should_get_single_events_by_identifier(identifier_mode: NFTIdentifierMode) {
 
     builder.exec(mint_session_call).expect_success().commit();
 
+    let token_index = 0u64;
+    let token_hash: String =
+        base16::encode_lower(&support::create_blake2b_hash(&TEST_PRETTY_CEP78_METADATA));
+    let event_id = 0u64;
+
     let event_dictionary_item_key = match identifier_mode {
         NFTIdentifierMode::Ordinal => {
             let latest_event_id = support::get_dictionary_value_from_key::<u64>(
                 &builder,
                 &nft_contract_key,
                 EVENT_ID_TRACKER,
-                &0u64.to_string(),
+                &token_index.to_string(),
             );
-            assert_eq!(0u64, latest_event_id);
-            get_event_item_key_from_token_index(0u64, 0u64)
+            assert_eq!(event_id, latest_event_id);
+            get_event_item_key_from_token_index(token_index, event_id)
         }
         NFTIdentifierMode::Hash => {
-            let token_hash: String =
-                base16::encode_lower(&support::create_blake2b_hash(&TEST_PRETTY_CEP78_METADATA));
             let latest_event_id = support::get_dictionary_value_from_key::<u64>(
                 &builder,
                 &nft_contract_key,
                 EVENT_ID_TRACKER,
-                &token_hash,
+                &token_hash.clone(),
             );
-            assert_eq!(0u64, latest_event_id);
-            get_event_item_key_from_token_hash(token_hash, 0u64)
+            assert_eq!(event_id, latest_event_id);
+            get_event_item_key_from_token_hash(token_hash.clone(), event_id)
         }
     };
 
@@ -149,56 +157,19 @@ fn should_get_single_events_by_identifier(identifier_mode: NFTIdentifierMode) {
     );
     assert_eq!(TokenEvent::Mint as u8, latest_event);
 
-    let nft_receipt: String = support::query_stored_value(
-        &mut builder,
-        nft_contract_key,
-        vec![RECEIPT_NAME.to_string()],
-    );
-
-    let mut get_events_runtime_args = runtime_args! {
-        ARG_NFT_CONTRACT_HASH => nft_contract_key,
-        ARG_STARTING_EVENT_ID => 0u64,
-        ARG_ALL_EVENTS => true,
-        ARG_GET_LATEST_ONLY => false,
+    let event_item_key = match identifier_mode {
+        NFTIdentifierMode::Ordinal => get_event_item_key_from_token_index(token_index, event_id),
+        NFTIdentifierMode::Hash => get_event_item_key_from_token_hash(token_hash, event_id),
     };
 
-    match identifier_mode {
-        NFTIdentifierMode::Ordinal => {
-            get_events_runtime_args
-                .insert(ARG_TOKEN_ID, 0u64)
-                .expect("must insert the token id runtime argument");
-            get_events_runtime_args
-                .insert(ARG_IS_HASH_IDENTIFIER_MODE, false)
-                .expect("must insert identifier mode flag argument");
-        }
-        NFTIdentifierMode::Hash => {
-            let token_hash: String =
-                base16::encode_lower(&support::create_blake2b_hash(&TEST_PRETTY_CEP78_METADATA));
-            get_events_runtime_args
-                .insert(ARG_TOKEN_HASH, token_hash)
-                .expect("must insert the token hash runtime argument");
-            get_events_runtime_args
-                .insert(ARG_IS_HASH_IDENTIFIER_MODE, true)
-                .expect("must insert identifier mode flag argument");
-        }
-    };
-
-    let get_events_call = ExecuteRequestBuilder::standard(
-        *DEFAULT_ACCOUNT_ADDR,
-        GET_CEP_78_EVENTS_WASM,
-        get_events_runtime_args,
-    )
-    .build();
-
-    builder.exec(get_events_call).expect_success().commit();
-
-    let actual_string_events: Vec<String> = support::query_stored_value(
-        &mut builder,
-        Key::Account(*DEFAULT_ACCOUNT_ADDR),
-        vec![format!("{EVENTS}-{nft_receipt}")],
-    );
-    let expected_string_events: Vec<String> = vec![TokenEvent::Mint.to_string()];
-    assert_eq!(actual_string_events, expected_string_events)
+    let actual_event: TokenEvent = TokenEvent::try_from(get_dictionary_value_from_key::<u8>(
+        &builder,
+        &nft_contract_key,
+        EVENTS,
+        &event_item_key,
+    ))
+    .unwrap();
+    assert_eq!(actual_event, TokenEvent::Mint)
 }
 
 #[test]
@@ -243,6 +214,9 @@ fn should_get_multiple_events_by_token_identifier(identifier_mode: NFTIdentifier
 
     let nft_contract_hash = support::get_nft_contract_hash(&builder);
     let nft_contract_key: Key = nft_contract_hash.into();
+    let token_index: u64 = 0u64;
+    let token_hash: String =
+        base16::encode_lower(&support::create_blake2b_hash(&TEST_PRETTY_CEP78_METADATA));
 
     let mint_session_call = ExecuteRequestBuilder::standard(
         *DEFAULT_ACCOUNT_ADDR,
@@ -281,17 +255,15 @@ fn should_get_multiple_events_by_token_identifier(identifier_mode: NFTIdentifier
     match identifier_mode {
         NFTIdentifierMode::Ordinal => {
             nft_transfer_args
-                .insert(ARG_TOKEN_ID, 0u64)
+                .insert(ARG_TOKEN_ID, token_index)
                 .expect("must insert the token id runtime argument");
             nft_transfer_args
                 .insert(ARG_IS_HASH_IDENTIFIER_MODE, false)
                 .expect("must insert identifier mode flag argument");
         }
         NFTIdentifierMode::Hash => {
-            let token_hash: String =
-                base16::encode_lower(&support::create_blake2b_hash(&TEST_PRETTY_CEP78_METADATA));
             nft_transfer_args
-                .insert(ARG_TOKEN_HASH, token_hash)
+                .insert(ARG_TOKEN_HASH, token_hash.clone())
                 .expect("must insert the token hash runtime argument");
             nft_transfer_args
                 .insert(ARG_IS_HASH_IDENTIFIER_MODE, true)
@@ -311,14 +283,13 @@ fn should_get_multiple_events_by_token_identifier(identifier_mode: NFTIdentifier
     let burn_transfer_args = match identifier_mode {
         NFTIdentifierMode::Ordinal => {
             runtime_args! {
-                ARG_TOKEN_ID => 0u64
+                ARG_TOKEN_ID => token_index
             }
         }
         NFTIdentifierMode::Hash => {
             runtime_args! {
-                        ARG_TOKEN_HASH =>
-            base16::encode_lower(&support::create_blake2b_hash(&TEST_PRETTY_CEP78_METADATA))
-                    }
+                ARG_TOKEN_HASH => token_hash.clone()
+            }
         }
     };
 
@@ -332,63 +303,47 @@ fn should_get_multiple_events_by_token_identifier(identifier_mode: NFTIdentifier
 
     builder.exec(nft_burn_request).expect_success().commit();
 
-    let mut get_event_runtime_args = runtime_args! {
-        ARG_NFT_CONTRACT_HASH => nft_contract_key,
-        ARG_STARTING_EVENT_ID => 0u64,
-        ARG_ALL_EVENTS => true,
-        ARG_GET_LATEST_ONLY => false,
+    let latest_event_id: u64 = match identifier_mode {
+        NFTIdentifierMode::Ordinal => support::get_dictionary_value_from_key::<u64>(
+            &builder,
+            &nft_contract_key,
+            EVENT_ID_TRACKER,
+            &token_index.to_string(),
+        ),
+        NFTIdentifierMode::Hash => support::get_dictionary_value_from_key::<u64>(
+            &builder,
+            &nft_contract_key,
+            EVENT_ID_TRACKER,
+            &token_hash.clone(),
+        ),
     };
 
-    match identifier_mode {
-        NFTIdentifierMode::Ordinal => {
-            get_event_runtime_args
-                .insert(ARG_TOKEN_ID, 0u64)
-                .expect("must insert the token id runtime argument");
-            get_event_runtime_args
-                .insert(ARG_IS_HASH_IDENTIFIER_MODE, false)
-                .expect("must insert hash identifier flag");
-        }
-        NFTIdentifierMode::Hash => {
-            get_event_runtime_args
-                .insert(
-                    ARG_TOKEN_HASH,
-                    base16::encode_lower(&support::create_blake2b_hash(
-                        &TEST_PRETTY_CEP78_METADATA,
-                    )),
-                )
-                .expect("must insert the token hash runtime argument");
-            get_event_runtime_args
-                .insert(ARG_IS_HASH_IDENTIFIER_MODE, true)
-                .expect("must insert hash identifier flag");
-        }
+    let mut actual_events = Vec::<TokenEvent>::new();
+
+    for event_id in 0u64..=latest_event_id {
+        let event_item_key = match identifier_mode {
+            NFTIdentifierMode::Ordinal => {
+                get_event_item_key_from_token_index(token_index, event_id)
+            }
+            NFTIdentifierMode::Hash => {
+                get_event_item_key_from_token_hash(token_hash.clone(), event_id)
+            }
+        };
+
+        let actual_event: TokenEvent = TokenEvent::try_from(get_dictionary_value_from_key::<u8>(
+            &builder,
+            &nft_contract_key,
+            EVENTS,
+            &event_item_key,
+        ))
+        .unwrap();
+        actual_events.push(actual_event);
     }
 
-    let get_events_request = ExecuteRequestBuilder::standard(
-        *DEFAULT_ACCOUNT_ADDR,
-        GET_CEP_78_EVENTS_WASM,
-        get_event_runtime_args,
-    )
-    .build();
+    let expected_events: Vec<TokenEvent> =
+        vec![TokenEvent::Mint, TokenEvent::Transfer, TokenEvent::Burn];
 
-    builder.exec(get_events_request).expect_success().commit();
-
-    let nft_receipt: String = support::query_stored_value(
-        &mut builder,
-        nft_contract_key,
-        vec![RECEIPT_NAME.to_string()],
-    );
-
-    let actual_string_events: Vec<String> = support::query_stored_value(
-        &mut builder,
-        Key::Account(*DEFAULT_ACCOUNT_ADDR),
-        vec![format!("{EVENTS}-{nft_receipt}")],
-    );
-    let expected_string_events: Vec<String> = vec![
-        TokenEvent::Mint.to_string(),
-        TokenEvent::Transfer.to_string(),
-        TokenEvent::Burn.to_string(),
-    ];
-    assert_eq!(actual_string_events, expected_string_events)
+    assert_eq!(actual_events, expected_events)
 }
 
 #[test]
@@ -448,6 +403,9 @@ fn should_get_range_of_events_using_token_identifier(identifier_mode: NFTIdentif
 
     let nft_contract_hash = support::get_nft_contract_hash(&builder);
     let nft_contract_key: Key = nft_contract_hash.into();
+    let token_index: u64 = 0u64;
+    let token_hash: String =
+        base16::encode_lower(&support::create_blake2b_hash(&TEST_PRETTY_CEP78_METADATA));
 
     let mint_session_call = ExecuteRequestBuilder::standard(
         *DEFAULT_ACCOUNT_ADDR,
@@ -486,17 +444,15 @@ fn should_get_range_of_events_using_token_identifier(identifier_mode: NFTIdentif
     match identifier_mode {
         NFTIdentifierMode::Ordinal => {
             nft_transfer_args_1
-                .insert(ARG_TOKEN_ID, 0u64)
+                .insert(ARG_TOKEN_ID, token_index)
                 .expect("must insert the token id runtime argument");
             nft_transfer_args_1
                 .insert(ARG_IS_HASH_IDENTIFIER_MODE, false)
                 .expect("must insert identifier mode flag argument");
         }
         NFTIdentifierMode::Hash => {
-            let token_hash: String =
-                base16::encode_lower(&support::create_blake2b_hash(&TEST_PRETTY_CEP78_METADATA));
             nft_transfer_args_1
-                .insert(ARG_TOKEN_HASH, token_hash)
+                .insert(ARG_TOKEN_HASH, token_hash.clone())
                 .expect("must insert the token hash runtime argument");
             nft_transfer_args_1
                 .insert(ARG_IS_HASH_IDENTIFIER_MODE, true)
@@ -539,17 +495,15 @@ fn should_get_range_of_events_using_token_identifier(identifier_mode: NFTIdentif
     match identifier_mode {
         NFTIdentifierMode::Ordinal => {
             nft_transfer_args_2
-                .insert(ARG_TOKEN_ID, 0u64)
+                .insert(ARG_TOKEN_ID, token_index)
                 .expect("must insert the token id runtime argument");
             nft_transfer_args_2
                 .insert(ARG_IS_HASH_IDENTIFIER_MODE, false)
                 .expect("must insert identifier mode flag argument");
         }
         NFTIdentifierMode::Hash => {
-            let token_hash: String =
-                base16::encode_lower(&support::create_blake2b_hash(&TEST_PRETTY_CEP78_METADATA));
             nft_transfer_args_2
-                .insert(ARG_TOKEN_HASH, token_hash)
+                .insert(ARG_TOKEN_HASH, token_hash.clone())
                 .expect("must insert the token hash runtime argument");
             nft_transfer_args_2
                 .insert(ARG_IS_HASH_IDENTIFIER_MODE, true)
@@ -572,14 +526,13 @@ fn should_get_range_of_events_using_token_identifier(identifier_mode: NFTIdentif
     let burn_runtime_args = match identifier_mode {
         NFTIdentifierMode::Ordinal => {
             runtime_args! {
-                ARG_TOKEN_ID => 0u64
+                ARG_TOKEN_ID => token_index
             }
         }
         NFTIdentifierMode::Hash => {
             runtime_args! {
-                ARG_TOKEN_HASH =>
-            base16::encode_lower(&support::create_blake2b_hash(&TEST_PRETTY_CEP78_METADATA))
-                    }
+                ARG_TOKEN_HASH => token_hash.clone()
+            }
         }
     };
 
@@ -593,63 +546,25 @@ fn should_get_range_of_events_using_token_identifier(identifier_mode: NFTIdentif
 
     builder.exec(nft_burn_request).expect_success().commit();
 
-    let mut get_event_runtime_args = runtime_args! {
-        ARG_NFT_CONTRACT_HASH => nft_contract_key,
-        ARG_STARTING_EVENT_ID => 1u64,
-        ARG_LAST_EVENT_ID => 2u64,
-        ARG_ALL_EVENTS => false,
-        ARG_GET_LATEST_ONLY => false,
-    };
+    for event_id in 1u64..=2u64 {
+        let event_item_key = match identifier_mode {
+            NFTIdentifierMode::Ordinal => {
+                get_event_item_key_from_token_index(token_index, event_id)
+            }
+            NFTIdentifierMode::Hash => {
+                get_event_item_key_from_token_hash(token_hash.clone(), event_id)
+            }
+        };
 
-    match identifier_mode {
-        NFTIdentifierMode::Ordinal => {
-            get_event_runtime_args
-                .insert(ARG_TOKEN_ID, 0u64)
-                .expect("must insert the token id runtime argument");
-            get_event_runtime_args
-                .insert(ARG_IS_HASH_IDENTIFIER_MODE, false)
-                .expect("must insert hash identifier flag");
-        }
-        NFTIdentifierMode::Hash => {
-            get_event_runtime_args
-                .insert(
-                    ARG_TOKEN_HASH,
-                    base16::encode_lower(&support::create_blake2b_hash(
-                        &TEST_PRETTY_CEP78_METADATA,
-                    )),
-                )
-                .expect("must insert the token hash runtime argument");
-            get_event_runtime_args
-                .insert(ARG_IS_HASH_IDENTIFIER_MODE, true)
-                .expect("must insert hash identifier flag");
-        }
+        let actual_event: TokenEvent = TokenEvent::try_from(get_dictionary_value_from_key::<u8>(
+            &builder,
+            &nft_contract_key,
+            EVENTS,
+            &event_item_key,
+        ))
+        .unwrap();
+        assert_eq!(actual_event, TokenEvent::Transfer)
     }
-
-    let get_events_request = ExecuteRequestBuilder::standard(
-        *DEFAULT_ACCOUNT_ADDR,
-        GET_CEP_78_EVENTS_WASM,
-        get_event_runtime_args,
-    )
-    .build();
-
-    builder.exec(get_events_request).expect_success().commit();
-
-    let nft_receipt: String = support::query_stored_value(
-        &mut builder,
-        nft_contract_key,
-        vec![RECEIPT_NAME.to_string()],
-    );
-
-    let actual_string_events: Vec<String> = support::query_stored_value(
-        &mut builder,
-        Key::Account(*DEFAULT_ACCOUNT_ADDR),
-        vec![format!("{EVENTS}-{nft_receipt}")],
-    );
-    let expected_string_events: Vec<String> = vec![
-        TokenEvent::Transfer.to_string(),
-        TokenEvent::Transfer.to_string(),
-    ];
-    assert_eq!(actual_string_events, expected_string_events)
 }
 
 #[test]
@@ -694,17 +609,20 @@ fn should_get_latest_token_event_by_token_identifier(identifier_mode: NFTIdentif
 
     builder.exec(mint_session_call).expect_success().commit();
 
+    let token_index = 0u64;
+    let token_hash =
+        base16::encode_lower(&support::create_blake2b_hash(&TEST_PRETTY_CEP78_METADATA));
+
     let burn_runtime_args = match identifier_mode {
         NFTIdentifierMode::Ordinal => {
             runtime_args! {
-                ARG_TOKEN_ID => 0u64
+                ARG_TOKEN_ID => token_index
             }
         }
         NFTIdentifierMode::Hash => {
             runtime_args! {
-                        ARG_TOKEN_HASH =>
-            base16::encode_lower(&support::create_blake2b_hash(&TEST_PRETTY_CEP78_METADATA))
-                    }
+                ARG_TOKEN_HASH =>token_hash.clone()
+            }
         }
     };
 
@@ -718,49 +636,20 @@ fn should_get_latest_token_event_by_token_identifier(identifier_mode: NFTIdentif
 
     builder.exec(nft_burn_request).expect_success().commit();
 
-    let get_latest_token_event_request = match identifier_mode {
-        NFTIdentifierMode::Ordinal => ExecuteRequestBuilder::standard(
-            *DEFAULT_ACCOUNT_ADDR,
-            GET_CEP_78_EVENTS_WASM,
-            runtime_args! {
-                ARG_NFT_CONTRACT_HASH => nft_contract_key,
-                ARG_IS_HASH_IDENTIFIER_MODE => false,
-                ARG_GET_LATEST_ONLY => true,
-                ARG_TOKEN_ID => 0u64,
-            },
-        )
-        .build(),
-        NFTIdentifierMode::Hash => ExecuteRequestBuilder::standard(
-            *DEFAULT_ACCOUNT_ADDR,
-            GET_CEP_78_EVENTS_WASM,
-            runtime_args! {
-                    ARG_NFT_CONTRACT_HASH => nft_contract_key,
-                    ARG_IS_HASH_IDENTIFIER_MODE => true,
-                    ARG_GET_LATEST_ONLY => true,
-                    ARG_TOKEN_HASH =>
-            base16::encode_lower(&support::create_blake2b_hash(&TEST_PRETTY_CEP78_METADATA))},
-        )
-        .build(),
+    let event_id = 1u64;
+    let event_item_key = match identifier_mode {
+        NFTIdentifierMode::Ordinal => get_event_item_key_from_token_index(token_index, event_id),
+        NFTIdentifierMode::Hash => get_event_item_key_from_token_hash(token_hash, event_id),
     };
 
-    builder
-        .exec(get_latest_token_event_request)
-        .expect_success()
-        .commit();
-
-    let nft_receipt: String = support::query_stored_value(
-        &mut builder,
-        nft_contract_key,
-        vec![RECEIPT_NAME.to_string()],
-    );
-
-    let actual_string_event: String = support::query_stored_value(
-        &mut builder,
-        Key::Account(*DEFAULT_ACCOUNT_ADDR),
-        vec![format!("{EVENTS}-{nft_receipt}")],
-    );
-
-    assert_eq!(actual_string_event, TokenEvent::Burn.to_string())
+    let actual_event: TokenEvent = TokenEvent::try_from(get_dictionary_value_from_key::<u8>(
+        &builder,
+        &nft_contract_key,
+        EVENTS,
+        &event_item_key,
+    ))
+    .unwrap();
+    assert_eq!(actual_event, TokenEvent::Burn)
 }
 
 #[test]
@@ -769,7 +658,7 @@ fn should_get_latest_token_event_by_token_id() {
 }
 
 #[test]
-fn should_get_latest_token_even_by_token_hash() {
+fn should_get_latest_token_event_by_token_hash() {
     should_get_latest_token_event_by_token_identifier(NFTIdentifierMode::Hash)
 }
 

@@ -21,18 +21,11 @@ use alloc::{
     vec::Vec,
 };
 
-use constants::{
-    ARG_EVENTS_MODE, ARG_LAST_EVENT_ID, ARG_STARTING_EVENT_ID, ENTRY_POINT_GET_CEP_78_EVENTS,
-    ENTRY_POINT_GET_LATEST_CEP_78_EVENT, EVENTS, EVENTS_MODE, EVENT_ID_TRACKER,
-};
+use constants::{ARG_EVENTS_MODE, EVENTS, EVENTS_MODE, EVENT_ID_TRACKER};
 use modalities::EventsMode;
 
 use core::convert::{TryFrom, TryInto};
-use events::{
-    events_cep47::CEP47Event,
-    events_cep78::{self, CEP78Event},
-    Event,
-};
+use events::{events_cep47::CEP47Event, events_cep78::CEP78Event, Event};
 use utils::get_stored_value_with_user_errors;
 
 use casper_types::{
@@ -1551,52 +1544,6 @@ pub extern "C" fn updated_receipts() {
 }
 
 #[no_mangle]
-pub extern "C" fn get_token_events() {
-    let identifier_mode: NFTIdentifierMode = utils::get_stored_value_with_user_errors::<u8>(
-        IDENTIFIER_MODE,
-        NFTCoreError::MissingIdentifierMode,
-        NFTCoreError::InvalidIdentifierMode,
-    )
-    .try_into()
-    .unwrap_or_revert();
-    let token_identifier = utils::get_token_identifier_from_runtime_args(&identifier_mode);
-    let starting_event_id = utils::get_optional_named_arg_with_user_errors::<u64>(
-        ARG_STARTING_EVENT_ID,
-        NFTCoreError::InvalidStartingEventId,
-    )
-    .unwrap_or(0u64);
-    let maybe_final_event_id = utils::get_optional_named_arg_with_user_errors::<u64>(
-        ARG_LAST_EVENT_ID,
-        NFTCoreError::InvalidLastEventId,
-    );
-
-    let events_mode = EventsMode::try_from(get_stored_value_with_user_errors::<u8>(
-        EVENTS_MODE,
-        NFTCoreError::MissingEventsMode,
-        NFTCoreError::InvalidEventsMode,
-    ))
-    .unwrap_or_revert();
-
-    let events = match events_mode {
-        EventsMode::CEP47 => todo!(),
-        EventsMode::CEP78 => {
-            events_cep78::get_events(token_identifier, starting_event_id, maybe_final_event_id)
-        }
-        _ => revert(NFTCoreError::InvalidEventsMode),
-    };
-
-    let receipt_name = utils::get_stored_value_with_user_errors::<String>(
-        RECEIPT_NAME,
-        NFTCoreError::MissingReceiptName,
-        NFTCoreError::InvalidReceiptName,
-    );
-    runtime::ret(
-        CLValue::from_t((format!("{EVENTS}-{receipt_name}"), events))
-            .unwrap_or_revert_with(NFTCoreError::FailedToConvertToCLValue),
-    )
-}
-
-#[no_mangle]
 pub extern "C" fn register_owner() {
     if let OwnerReverseLookupMode::Complete = utils::get_reporting_mode() {
         let owner_key = match utils::get_ownership_mode().unwrap_or_revert() {
@@ -1646,41 +1593,6 @@ pub extern "C" fn register_owner() {
         ));
         runtime::ret(CLValue::from_t((collection_name, package_uref)).unwrap_or_revert())
     }
-}
-
-#[no_mangle]
-pub extern "C" fn get_latest_token_event() {
-    let identifier_mode: NFTIdentifierMode = utils::get_stored_value_with_user_errors::<u8>(
-        IDENTIFIER_MODE,
-        NFTCoreError::MissingIdentifierMode,
-        NFTCoreError::InvalidIdentifierMode,
-    )
-    .try_into()
-    .unwrap_or_revert();
-    let token_identifier = utils::get_token_identifier_from_runtime_args(&identifier_mode);
-
-    let events_mode = EventsMode::try_from(get_stored_value_with_user_errors::<u8>(
-        EVENTS_MODE,
-        NFTCoreError::MissingEventsMode,
-        NFTCoreError::InvalidEventsMode,
-    ))
-    .unwrap_or_revert();
-
-    let latest_event = match events_mode {
-        EventsMode::CEP47 => todo!(),
-        EventsMode::CEP78 => events_cep78::get_latest_cep_78_event(token_identifier),
-        _ => revert(NFTCoreError::InvalidEventsMode),
-    };
-
-    let receipt_name = utils::get_stored_value_with_user_errors::<String>(
-        RECEIPT_NAME,
-        NFTCoreError::MissingReceiptName,
-        NFTCoreError::InvalidReceiptName,
-    );
-    runtime::ret(
-        CLValue::from_t((format!("{EVENTS}-{receipt_name}"), latest_event))
-            .unwrap_or_revert_with(NFTCoreError::FailedToConvertToCLValue),
-    )
 }
 
 fn generate_entry_points() -> EntryPoints {
@@ -1847,15 +1759,6 @@ fn generate_entry_points() -> EntryPoints {
         EntryPointType::Contract,
     );
 
-    // This entrypoint returns the latest event for a token
-    let get_latest_token_event = EntryPoint::new(
-        ENTRY_POINT_GET_LATEST_CEP_78_EVENT,
-        vec![],
-        CLType::String,
-        EntryPointAccess::Public,
-        EntryPointType::Contract,
-    );
-
     // This entrypoint returns number of owned tokens associated with the provided token holder
     let balance_of = EntryPoint::new(
         ENTRY_POINT_BALANCE_OF,
@@ -1925,15 +1828,6 @@ fn generate_entry_points() -> EntryPoints {
         EntryPointType::Contract,
     );
 
-    // This entrypoint allows to retrieve token events.
-    let get_token_events = EntryPoint::new(
-        ENTRY_POINT_GET_CEP_78_EVENTS,
-        vec![],
-        CLType::List(Box::new(CLType::String)),
-        EntryPointAccess::Public,
-        EntryPointType::Contract,
-    );
-
     entry_points.add_entry_point(init_contract);
     entry_points.add_entry_point(set_variables);
     entry_points.add_entry_point(mint);
@@ -1949,8 +1843,6 @@ fn generate_entry_points() -> EntryPoints {
     entry_points.add_entry_point(migrate);
     entry_points.add_entry_point(updated_receipts);
     entry_points.add_entry_point(register_owner);
-    entry_points.add_entry_point(get_token_events);
-    entry_points.add_entry_point(get_latest_token_event);
     entry_points
 }
 
