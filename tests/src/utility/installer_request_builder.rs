@@ -153,7 +153,6 @@ pub enum EventsMode {
     NoEvents = 0,
     CEP78 = 1,
     CEP47 = 2,
-    CEP47Dict = 3,
 }
 
 #[derive(Debug)]
