@@ -39,6 +39,7 @@ pub(crate) enum TokenEvent {
     Burn = 2,
     // TODO
     // Approve = 3,
+    // MetadataUpdate = 4
 }
 
 impl TryFrom<u8> for TokenEvent {
@@ -69,24 +70,6 @@ fn get_event_item_key_from_token_hash(token_hash: String, event_id: u64) -> Stri
     preimage.append(&mut token_hash.to_bytes().unwrap());
     preimage.append(&mut event_id.to_bytes().unwrap());
     base16::encode_lower(&support::create_blake2b_hash(&preimage))
-}
-
-// TODO Check usage or destination of that function
-fn _get_events_token_identifier_args(identifier_mode: NFTIdentifierMode) -> RuntimeArgs {
-    match identifier_mode {
-        NFTIdentifierMode::Ordinal => {
-            runtime_args! {
-                ARG_TOKEN_ID => 0u64,
-                ARG_IS_HASH_IDENTIFIER_MODE => false,
-            }
-        }
-        NFTIdentifierMode::Hash => {
-            runtime_args! {
-                ARG_TOKEN_HASH => base16::encode_lower(&support::create_blake2b_hash(&TEST_PRETTY_CEP78_METADATA)),
-                ARG_IS_HASH_IDENTIFIER_MODE => true,
-            }
-        }
-    }
 }
 
 fn should_get_single_events_by_identifier(identifier_mode: NFTIdentifierMode) {
