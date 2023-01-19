@@ -26,7 +26,10 @@ use crate::utility::{
         NFTMetadataKind, OwnerReverseLookupMode, OwnershipMode, TEST_CUSTOM_METADATA,
         TEST_CUSTOM_METADATA_SCHEMA, TEST_CUSTOM_UPDATED_METADATA,
     },
-    support::{self, get_dictionary_value_from_key, get_nft_contract_hash, query_stored_value},
+    support::{
+        self, get_dictionary_value_from_key, get_nft_contract_hash, get_token_page_by_id,
+        query_stored_value,
+    },
 };
 
 use core::convert::TryFrom;
@@ -35,11 +38,10 @@ use core::convert::TryFrom;
 #[derive(PartialEq, Eq, Debug)]
 pub(crate) enum TokenEvent {
     Mint = 0,
-    Transfer = 1,
-    Burn = 2,
-    // TODO
-    // Approve = 3,
-    // MetadataUpdate = 4
+    Burn = 1,
+    Approve = 2,
+    Transfer = 3,
+    MetadataUpdate = 4,
 }
 
 impl TryFrom<u8> for TokenEvent {
@@ -47,11 +49,10 @@ impl TryFrom<u8> for TokenEvent {
     fn try_from(value: u8) -> Result<Self, Self::Error> {
         match value {
             0 => Ok(TokenEvent::Mint),
-            1 => Ok(TokenEvent::Transfer),
-            2 => Ok(TokenEvent::Burn),
-            // TODO
-            // 3 => Ok(CEP78Event::Approve),
-            //  4 => Ok(CEP78Event::MetadataUpdate),
+            1 => Ok(TokenEvent::Burn),
+            2 => Ok(TokenEvent::Approve),
+            3 => Ok(TokenEvent::Transfer),
+            4 => Ok(TokenEvent::MetadataUpdate),
             _ => panic!("invalid TokenEvent from u8"),
         }
     }
@@ -72,7 +73,7 @@ fn get_event_item_key_from_token_hash(token_hash: String, event_id: u64) -> Stri
     base16::encode_lower(&support::create_blake2b_hash(&preimage))
 }
 
-fn should_get_single_events_by_identifier(identifier_mode: NFTIdentifierMode) {
+fn should_get_single_event_by_token_identifier(identifier_mode: NFTIdentifierMode) {
     let mut builder = InMemoryWasmTestBuilder::default();
     builder.run_genesis(&DEFAULT_RUN_GENESIS_REQUEST).commit();
 
@@ -87,7 +88,7 @@ fn should_get_single_events_by_identifier(identifier_mode: NFTIdentifierMode) {
 
     builder.exec(install_request).expect_success().commit();
 
-    let nft_contract_hash = support::get_nft_contract_hash(&builder);
+    let nft_contract_hash = get_nft_contract_hash(&builder);
     let nft_contract_key: Key = nft_contract_hash.into();
 
     let mint_session_call = ExecuteRequestBuilder::standard(
@@ -111,7 +112,7 @@ fn should_get_single_events_by_identifier(identifier_mode: NFTIdentifierMode) {
 
     let event_dictionary_item_key = match identifier_mode {
         NFTIdentifierMode::Ordinal => {
-            let latest_event_id = support::get_dictionary_value_from_key::<u64>(
+            let latest_event_id = get_dictionary_value_from_key::<u64>(
                 &builder,
                 &nft_contract_key,
                 EVENT_ID_TRACKER,
@@ -121,7 +122,7 @@ fn should_get_single_events_by_identifier(identifier_mode: NFTIdentifierMode) {
             get_event_item_key_from_token_index(token_index, event_id)
         }
         NFTIdentifierMode::Hash => {
-            let latest_event_id = support::get_dictionary_value_from_key::<u64>(
+            let latest_event_id = get_dictionary_value_from_key::<u64>(
                 &builder,
                 &nft_contract_key,
                 EVENT_ID_TRACKER,
@@ -132,7 +133,7 @@ fn should_get_single_events_by_identifier(identifier_mode: NFTIdentifierMode) {
         }
     };
 
-    let latest_event: u8 = support::get_dictionary_value_from_key(
+    let latest_event: u8 = get_dictionary_value_from_key(
         &builder,
         &nft_contract_key,
         EVENTS,
@@ -157,12 +158,12 @@ fn should_get_single_events_by_identifier(identifier_mode: NFTIdentifierMode) {
 
 #[test]
 fn should_get_single_event_by_token_id() {
-    should_get_single_events_by_identifier(NFTIdentifierMode::Ordinal)
+    should_get_single_event_by_token_identifier(NFTIdentifierMode::Ordinal)
 }
 
 #[test]
 fn should_get_token_events_by_token_hash() {
-    should_get_single_events_by_identifier(NFTIdentifierMode::Hash)
+    should_get_single_event_by_token_identifier(NFTIdentifierMode::Hash)
 }
 
 fn should_get_multiple_events_by_token_identifier(identifier_mode: NFTIdentifierMode) {
@@ -195,7 +196,7 @@ fn should_get_multiple_events_by_token_identifier(identifier_mode: NFTIdentifier
 
     builder.exec(install_request).expect_success().commit();
 
-    let nft_contract_hash = support::get_nft_contract_hash(&builder);
+    let nft_contract_hash = get_nft_contract_hash(&builder);
     let nft_contract_key: Key = nft_contract_hash.into();
     let token_index: u64 = 0u64;
     let token_hash: String =
@@ -287,13 +288,13 @@ fn should_get_multiple_events_by_token_identifier(identifier_mode: NFTIdentifier
     builder.exec(nft_burn_request).expect_success().commit();
 
     let latest_event_id: u64 = match identifier_mode {
-        NFTIdentifierMode::Ordinal => support::get_dictionary_value_from_key::<u64>(
+        NFTIdentifierMode::Ordinal => get_dictionary_value_from_key::<u64>(
             &builder,
             &nft_contract_key,
             EVENT_ID_TRACKER,
             &token_index.to_string(),
         ),
-        NFTIdentifierMode::Hash => support::get_dictionary_value_from_key::<u64>(
+        NFTIdentifierMode::Hash => get_dictionary_value_from_key::<u64>(
             &builder,
             &nft_contract_key,
             EVENT_ID_TRACKER,
@@ -384,7 +385,7 @@ fn should_get_range_of_events_using_token_identifier(identifier_mode: NFTIdentif
 
     builder.exec(install_request).expect_success().commit();
 
-    let nft_contract_hash = support::get_nft_contract_hash(&builder);
+    let nft_contract_hash = get_nft_contract_hash(&builder);
     let nft_contract_key: Key = nft_contract_hash.into();
     let token_index: u64 = 0u64;
     let token_hash: String =
@@ -575,7 +576,7 @@ fn should_get_latest_token_event_by_token_identifier(identifier_mode: NFTIdentif
 
     builder.exec(install_request).expect_success().commit();
 
-    let nft_contract_hash = support::get_nft_contract_hash(&builder);
+    let nft_contract_hash = get_nft_contract_hash(&builder);
     let nft_contract_key: Key = nft_contract_hash.into();
 
     let mint_session_call = ExecuteRequestBuilder::standard(
@@ -643,6 +644,110 @@ fn should_get_latest_token_event_by_token_id() {
 #[test]
 fn should_get_latest_token_event_by_token_hash() {
     should_get_latest_token_event_by_token_identifier(NFTIdentifierMode::Hash)
+}
+
+fn should_approve_event_by_token_identifier(identifier_mode: NFTIdentifierMode) {
+    let mut builder = InMemoryWasmTestBuilder::default();
+    builder.run_genesis(&DEFAULT_RUN_GENESIS_REQUEST).commit();
+
+    let install_request = InstallerRequestBuilder::new(*DEFAULT_ACCOUNT_ADDR, NFT_CONTRACT_WASM)
+        .with_total_token_supply(100u64)
+        .with_identifier_mode(identifier_mode)
+        .with_metadata_mutability(MetadataMutability::Immutable)
+        .with_nft_metadata_kind(NFTMetadataKind::CEP78)
+        .with_ownership_mode(OwnershipMode::Transferable)
+        .with_events_mode(EventsMode::CEP78)
+        .build();
+
+    builder.exec(install_request).expect_success().commit();
+
+    let nft_contract_hash = get_nft_contract_hash(&builder);
+    let nft_contract_key: Key = nft_contract_hash.into();
+
+    let mint_session_call = ExecuteRequestBuilder::standard(
+        *DEFAULT_ACCOUNT_ADDR,
+        MINT_SESSION_WASM,
+        runtime_args! {
+            ARG_NFT_CONTRACT_HASH => nft_contract_key,
+            ARG_TOKEN_OWNER => Key::Account(*DEFAULT_ACCOUNT_ADDR),
+            ARG_TOKEN_META_DATA => TEST_PRETTY_CEP78_METADATA ,
+            ARG_COLLECTION_NAME => NFT_TEST_COLLECTION.to_string()
+        },
+    )
+    .build();
+
+    builder.exec(mint_session_call).expect_success().commit();
+
+    let token_index = 0u64;
+    let token_hash =
+        base16::encode_lower(&support::create_blake2b_hash(&TEST_PRETTY_CEP78_METADATA));
+
+    let operator = Key::Account(AccountHash::new(ACCOUNT_USER_2));
+
+    let approve_runtime_args = match identifier_mode {
+        NFTIdentifierMode::Ordinal => {
+            runtime_args! {
+                ARG_TOKEN_ID => token_index,
+                ARG_OPERATOR => operator
+            }
+        }
+        NFTIdentifierMode::Hash => {
+            runtime_args! {
+                ARG_TOKEN_HASH => token_hash.clone(),
+                ARG_OPERATOR => operator
+            }
+        }
+    };
+
+    let approve_request = ExecuteRequestBuilder::contract_call_by_hash(
+        *DEFAULT_ACCOUNT_ADDR,
+        nft_contract_hash,
+        ENTRY_POINT_APPROVE,
+        approve_runtime_args,
+    )
+    .build();
+
+    builder.exec(approve_request).expect_success().commit();
+
+    let token_identifier = if let NFTIdentifierMode::Ordinal = identifier_mode {
+        token_index.to_string()
+    } else {
+        token_hash.clone()
+    };
+
+    let maybe_approved_operator = get_dictionary_value_from_key::<Option<Key>>(
+        &builder,
+        &nft_contract_key,
+        OPERATOR,
+        &token_identifier,
+    );
+
+    assert_eq!(maybe_approved_operator, Some(operator));
+
+    let event_id = 1u64;
+    let event_item_key = match identifier_mode {
+        NFTIdentifierMode::Ordinal => get_event_item_key_from_token_index(token_index, event_id),
+        NFTIdentifierMode::Hash => get_event_item_key_from_token_hash(token_hash, event_id),
+    };
+
+    let actual_event: TokenEvent = TokenEvent::try_from(get_dictionary_value_from_key::<u8>(
+        &builder,
+        &nft_contract_key,
+        EVENTS,
+        &event_item_key,
+    ))
+    .unwrap();
+    assert_eq!(actual_event, TokenEvent::Approve)
+}
+
+#[test]
+fn should_approve_event_by_token_id() {
+    should_approve_event_by_token_identifier(NFTIdentifierMode::Ordinal)
+}
+
+#[test]
+fn should_approve_event_by_token_hash() {
+    should_approve_event_by_token_identifier(NFTIdentifierMode::Hash)
 }
 
 // cep47_dictionary style
@@ -834,7 +939,7 @@ fn should_record_cep47_dictionary_style_metadata_update_event_for_nft721_using_t
 
     builder.exec(install_request).expect_success().commit();
 
-    let nft_contract_key: Key = support::get_nft_contract_hash(&builder).into();
+    let nft_contract_key: Key = get_nft_contract_hash(&builder).into();
 
     let custom_metadata = serde_json::to_string_pretty(&*TEST_CUSTOM_METADATA)
         .expect("must convert to json metadata");
@@ -868,13 +973,13 @@ fn should_record_cep47_dictionary_style_metadata_update_event_for_nft721_using_t
     };
 
     let actual_metadata = match identifier_mode {
-        NFTIdentifierMode::Ordinal => support::get_dictionary_value_from_key::<String>(
+        NFTIdentifierMode::Ordinal => get_dictionary_value_from_key::<String>(
             &builder,
             &nft_contract_key,
             dictionary_name,
             &0u64.to_string(),
         ),
-        NFTIdentifierMode::Hash => support::get_dictionary_value_from_key(
+        NFTIdentifierMode::Hash => get_dictionary_value_from_key(
             &builder,
             &nft_contract_key,
             dictionary_name,
@@ -912,7 +1017,7 @@ fn should_record_cep47_dictionary_style_metadata_update_event_for_nft721_using_t
 
     let update_metadata_request = ExecuteRequestBuilder::contract_call_by_hash(
         *DEFAULT_ACCOUNT_ADDR,
-        support::get_nft_contract_hash(&builder),
+        get_nft_contract_hash(&builder),
         ENTRY_POINT_SET_TOKEN_METADATA,
         update_metadata_runtime_args,
     )
@@ -924,13 +1029,13 @@ fn should_record_cep47_dictionary_style_metadata_update_event_for_nft721_using_t
         .commit();
 
     let actual_updated_metadata = match identifier_mode {
-        NFTIdentifierMode::Ordinal => support::get_dictionary_value_from_key::<String>(
+        NFTIdentifierMode::Ordinal => get_dictionary_value_from_key::<String>(
             &builder,
             &nft_contract_key,
             dictionary_name,
             &0u64.to_string(),
         ),
-        NFTIdentifierMode::Hash => support::get_dictionary_value_from_key(
+        NFTIdentifierMode::Hash => get_dictionary_value_from_key(
             &builder,
             &nft_contract_key,
             dictionary_name,
@@ -1007,7 +1112,7 @@ fn should_cep47_dictionary_style_burn_event() {
 
     builder.exec(mint_session_call).expect_success().commit();
 
-    let token_page = support::get_token_page_by_id(
+    let token_page = get_token_page_by_id(
         &builder,
         nft_contract_key,
         &Key::Account(*DEFAULT_ACCOUNT_ADDR),
@@ -1016,7 +1121,7 @@ fn should_cep47_dictionary_style_burn_event() {
 
     assert!(token_page[0]);
 
-    let actual_balance_before_burn = support::get_dictionary_value_from_key::<u64>(
+    let actual_balance_before_burn = get_dictionary_value_from_key::<u64>(
         &builder,
         nft_contract_key,
         BALANCES,
@@ -1038,7 +1143,7 @@ fn should_cep47_dictionary_style_burn_event() {
     builder.exec(burn_request).expect_success().commit();
 
     //This will error of token is not registered as burnt.
-    let _ = support::get_dictionary_value_from_key::<()>(
+    let _ = get_dictionary_value_from_key::<()>(
         &builder,
         nft_contract_key,
         BURNT_TOKENS,
@@ -1046,7 +1151,7 @@ fn should_cep47_dictionary_style_burn_event() {
     );
 
     // This will error of token is not registered as
-    let actual_balance = support::get_dictionary_value_from_key::<u64>(
+    let actual_balance = get_dictionary_value_from_key::<u64>(
         &builder,
         nft_contract_key,
         BALANCES,
@@ -1137,7 +1242,7 @@ fn should_cep47_dictionary_style_approve_event_in_hash_identifier_mode() {
 
     builder.exec(approve_request).expect_success().commit();
 
-    let maybe_approved_operator = support::get_dictionary_value_from_key::<Option<Key>>(
+    let maybe_approved_operator = get_dictionary_value_from_key::<Option<Key>>(
         &builder,
         &nft_contract_key,
         OPERATOR,

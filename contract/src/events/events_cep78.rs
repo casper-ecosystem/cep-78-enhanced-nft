@@ -19,9 +19,9 @@ use crate::{utils, NFTCoreError, TokenIdentifier, EVENTS, EVENT_ID_TRACKER};
 #[derive(PartialEq, Eq)]
 pub(crate) enum CEP78Event {
     Mint = 0,
-    Transfer = 1,
-    Burn = 2,
-    Approve = 3,
+    Burn = 1,
+    Approve = 2,
+    Transfer = 3,
     MetadataUpdate = 4,
 }
 
@@ -31,9 +31,9 @@ impl TryFrom<u8> for CEP78Event {
     fn try_from(value: u8) -> Result<Self, Self::Error> {
         match value {
             0 => Ok(CEP78Event::Mint),
-            1 => Ok(CEP78Event::Transfer),
-            2 => Ok(CEP78Event::Burn),
-            3 => Ok(CEP78Event::Approve),
+            1 => Ok(CEP78Event::Burn),
+            2 => Ok(CEP78Event::Approve),
+            3 => Ok(CEP78Event::Transfer),
             4 => Ok(CEP78Event::MetadataUpdate),
             _ => Err(NFTCoreError::InvalidTokenEvent),
         }
