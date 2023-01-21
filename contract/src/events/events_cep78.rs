@@ -86,6 +86,10 @@ fn record_approve_event(token_identifier: TokenIdentifier) -> Result<(), NFTCore
     store_event(token_identifier, CEP78Event::Approve)
 }
 
+fn record_metadata_update_event(token_identifier: TokenIdentifier) -> Result<(), NFTCoreError> {
+    store_event(token_identifier, CEP78Event::MetadataUpdate)
+}
+
 fn store_event(
     token_identifier: TokenIdentifier,
     cep_78_event: CEP78Event,
@@ -146,6 +150,7 @@ pub(crate) fn record_event(token_identifier: TokenIdentifier, event: CEP78Event)
             .unwrap_or_revert_with(NFTCoreError::FailedToRecordBurnedEvent),
         CEP78Event::Approve => record_approve_event(token_identifier)
             .unwrap_or_revert_with(NFTCoreError::FailedToRecordApproveEvent),
-        CEP78Event::MetadataUpdate => todo!(),
+        CEP78Event::MetadataUpdate => record_metadata_update_event(token_identifier)
+            .unwrap_or_revert_with(NFTCoreError::FailedToRecordApproveEvent),
     }
 }

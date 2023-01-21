@@ -903,20 +903,23 @@ pub extern "C" fn set_approval_for_all() {
         }
         let operator = if approve_all { Some(operator) } else { None };
         storage::dictionary_put(operator_uref, &token_id.get_dictionary_item_key(), operator);
+        let events_mode: u8 = get_stored_value_with_user_errors(
+            crate::constants::EVENTS_MODE,
+            NFTCoreError::MissingEventsMode,
+            NFTCoreError::InvalidEventsMode,
+        );
+        let events_mode = EventsMode::try_from(events_mode).unwrap_or_revert();
+        if events_mode != EventsMode::NoEvents {
+            events::record_event(match events_mode {
+                // EventsMode::CEP47 => Event::Cep47(CEP47Event::ApproveAll {
+                //     owner: token_owner,
+                //     spender: operator,
+                // }),
+                EventsMode::CEP78 => Event::Cep78(token_id, CEP78Event::Approve),
+                _ => revert(NFTCoreError::InvalidEventsMode),
+            });
+        }
     }
-    // TODO : figure this out
-    /*
-    let events_mode: u8 = get_stored_value_with_user_errors(crate::constants::EVENTS_MODE, NFTCoreError::MissingEventsMode, NFTCoreError::InvalidEventsMode);
-    let events_mode = EventsMode::try_from(events_mode).unwrap_or_revert();
-    if events_mode != EventsMode::NoEvents {
-        events::record_event(match events_mode{
-            EventsMode::CEP47Dict => Event::Cep47Dict(CEP47Event::ApproveAll{ owner: token_owner, spender :operator }),
-            EventsMode::CEP47 => Event::Cep47(CEP47Event::ApproveAll{ owner: token_owner, spender :operator }),
-            EventsMode::CEP78 => Event::Cep78,
-            _ => revert(NFTCoreError::InvalidEventsMode)
-        });
-    }
-    */
 }
 
 // Transfers token from token_owner to specified account. Transfer will go through if caller is
