@@ -32,7 +32,7 @@ The custom migration path assumes that the contract has modified the NamedKey en
 | contract_version | The value tracking the latest contract version in the contract package | 
 | nft-CEP-78-collection-contract-package-wasm... | A dictionary tracking the NFTs minted in v1.0.0 |
 
-![Account Named Keys pre Migration](../assets/standard-namedkeys-pre-migration.png)  
+![Account Named Keys pre Migration](../assets/custom-namedkeys-pre-migration.png)  
 
 ### Initiating the Upgrade
 
