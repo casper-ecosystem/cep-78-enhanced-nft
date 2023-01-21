@@ -5,7 +5,7 @@ This tutorial uses the Casper command-line client to upgrade *and* migrate from 
 ## Prerequisites
 
 - You have previously installed a CEP-78 contract using release v1.0.0 on a Casper network. Thus, you have experience with the [Casper CEP-78 NFT Standard](https://github.com/casper-ecosystem/cep-78-enhanced-nft/), the Casper command-line client, and interacting with a Casper network.
-- Your v1.0.0 NFT contract instance uses custom NamedKeys for the contract package hash and contract package access URef. An example of how the NamedKeys could have been customized is found [here](https://github.com/casper-ecosystem/cep-78-enhanced-nft/blob/dev/test-contracts/mangle_named_keys/src/main.rs).
+- Your v1.0.0 NFT contract instance uses custom NamedKeys for the contract package hash and contract package access URef.
 - You have the v1.0.0 contract package hash stored under a custom NamedKey in the account that installed the contract.
 - You have the v1.0.0 contract package access URef stored under a custom NamedKey in the account that installed the contract.
 - You understand what is [New in Version 1.1](https://github.com/casper-ecosystem/cep-78-enhanced-nft/#new-in-version-11) of the CEP-78 Enhanced NFT Standard.
