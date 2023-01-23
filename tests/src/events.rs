@@ -929,7 +929,6 @@ fn should_record_metadata_update_event_by_token_id() {
         &dictionary_key,
     ))
     .unwrap();
-    dbg!(&actual_event);
     assert_eq!(actual_event, TokenEvent::MetadataUpdate)
 }
 
