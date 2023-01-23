@@ -599,10 +599,6 @@ pub extern "C" fn mint() {
     if events_mode != EventsMode::NoEvents {
         let token_id = token_identifier.clone();
         events::record_event(match events_mode {
-            EventsMode::CEP47Dict => Event::Cep47Dict(CEP47Event::Mint {
-                recipient: token_owner_key,
-                token_id,
-            }),
             EventsMode::CEP47 => Event::Cep47(CEP47Event::Mint {
                 recipient: token_owner_key,
                 token_id,
@@ -749,10 +745,6 @@ pub extern "C" fn burn() {
 
     if events_mode != EventsMode::NoEvents {
         events::record_event(match events_mode {
-            EventsMode::CEP47Dict => Event::Cep47Dict(CEP47Event::Burn {
-                owner: token_owner,
-                token_id: token_identifier,
-            }),
             EventsMode::CEP47 => Event::Cep47(CEP47Event::Burn {
                 owner: token_owner,
                 token_id: token_identifier,
@@ -853,11 +845,6 @@ pub extern "C" fn approve() {
 
     if events_mode != EventsMode::NoEvents {
         events::record_event(match events_mode {
-            EventsMode::CEP47Dict => Event::Cep47Dict(CEP47Event::Approve {
-                owner: token_owner_key,
-                spender: operator,
-                token_id: token_identifier,
-            }),
             EventsMode::CEP47 => Event::Cep47(CEP47Event::Approve {
                 owner: token_owner_key,
                 spender: operator,
@@ -914,22 +901,39 @@ pub extern "C" fn set_approval_for_all() {
         if utils::is_token_burned(&token_id) {
             runtime::revert(NFTCoreError::PreviouslyBurntToken)
         }
-        let operator = if approve_all { Some(operator) } else { None };
-        storage::dictionary_put(operator_uref, &token_id.get_dictionary_item_key(), operator);
+        let token_identifier_dictionary_key = token_id.get_dictionary_item_key();
+        storage::dictionary_put(
+            operator_uref,
+            &token_identifier_dictionary_key,
+            if approve_all { Some(operator) } else { None },
+        );
+        let events_mode: u8 = get_stored_value_with_user_errors(
+            crate::constants::EVENTS_MODE,
+            NFTCoreError::MissingEventsMode,
+            NFTCoreError::InvalidEventsMode,
+        );
+        let events_mode = EventsMode::try_from(events_mode).unwrap_or_revert();
+        if events_mode != EventsMode::NoEvents {
+            events::record_event(match events_mode {
+                EventsMode::CEP47 => {
+                    let token_owner_key = match utils::get_dictionary_value_from_key::<Key>(
+                        TOKEN_OWNERS,
+                        &token_identifier_dictionary_key,
+                    ) {
+                        Some(token_owner) => token_owner,
+                        None => runtime::revert(NFTCoreError::InvalidAccountHash),
+                    };
+                    Event::Cep47(CEP47Event::Approve {
+                        owner: token_owner_key,
+                        spender: operator,
+                        token_id,
+                    })
+                }
+                EventsMode::CEP78 => Event::Cep78(token_id, CEP78Event::Approve),
+                _ => revert(NFTCoreError::InvalidEventsMode),
+            });
+        }
     }
-    // TODO : figure this out
-    /*
-    let events_mode: u8 = get_stored_value_with_user_errors(crate::constants::EVENTS_MODE, NFTCoreError::MissingEventsMode, NFTCoreError::InvalidEventsMode);
-    let events_mode = EventsMode::try_from(events_mode).unwrap_or_revert();
-    if events_mode != EventsMode::NoEvents {
-        events::record_event(match events_mode{
-            EventsMode::CEP47Dict => Event::Cep47Dict(CEP47Event::ApproveAll{ owner: token_owner, spender :operator }),
-            EventsMode::CEP47 => Event::Cep47(CEP47Event::ApproveAll{ owner: token_owner, spender :operator }),
-            EventsMode::CEP78 => Event::Cep78,
-            _ => revert(NFTCoreError::InvalidEventsMode)
-        });
-    }
-    */
 }
 
 // Transfers token from token_owner to specified account. Transfer will go through if caller is
@@ -1088,11 +1092,6 @@ pub extern "C" fn transfer() {
     if events_mode != EventsMode::NoEvents {
         let token_id = token_identifier.clone();
         events::record_event(match events_mode {
-            EventsMode::CEP47Dict => Event::Cep47Dict(CEP47Event::Transfer {
-                sender: token_owner_key,
-                recipient: target_owner_key,
-                token_id,
-            }),
             EventsMode::CEP47 => Event::Cep47(CEP47Event::Transfer {
                 sender: token_owner_key,
                 recipient: target_owner_key,
@@ -1392,9 +1391,6 @@ pub extern "C" fn set_token_metadata() {
 
     if events_mode != EventsMode::NoEvents {
         events::record_event(match events_mode {
-            EventsMode::CEP47Dict => Event::Cep47Dict(CEP47Event::MetadataUpdate {
-                token_id: token_identifier,
-            }),
             EventsMode::CEP47 => Event::Cep47(CEP47Event::MetadataUpdate {
                 token_id: token_identifier,
             }),

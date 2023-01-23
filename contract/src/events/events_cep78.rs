@@ -19,9 +19,9 @@ use crate::{utils, NFTCoreError, TokenIdentifier, EVENTS, EVENT_ID_TRACKER};
 #[derive(PartialEq, Eq)]
 pub(crate) enum CEP78Event {
     Mint = 0,
-    Transfer = 1,
-    Burn = 2,
-    Approve = 3,
+    Burn = 1,
+    Approve = 2,
+    Transfer = 3,
     MetadataUpdate = 4,
 }
 
@@ -31,9 +31,9 @@ impl TryFrom<u8> for CEP78Event {
     fn try_from(value: u8) -> Result<Self, Self::Error> {
         match value {
             0 => Ok(CEP78Event::Mint),
-            1 => Ok(CEP78Event::Transfer),
-            2 => Ok(CEP78Event::Burn),
-            3 => Ok(CEP78Event::Approve),
+            1 => Ok(CEP78Event::Burn),
+            2 => Ok(CEP78Event::Approve),
+            3 => Ok(CEP78Event::Transfer),
             4 => Ok(CEP78Event::MetadataUpdate),
             _ => Err(NFTCoreError::InvalidTokenEvent),
         }
@@ -84,6 +84,10 @@ fn record_burn_event(token_identifier: TokenIdentifier) -> Result<(), NFTCoreErr
 
 fn record_approve_event(token_identifier: TokenIdentifier) -> Result<(), NFTCoreError> {
     store_event(token_identifier, CEP78Event::Approve)
+}
+
+fn record_metadata_update_event(token_identifier: TokenIdentifier) -> Result<(), NFTCoreError> {
+    store_event(token_identifier, CEP78Event::MetadataUpdate)
 }
 
 fn store_event(
@@ -146,6 +150,7 @@ pub(crate) fn record_event(token_identifier: TokenIdentifier, event: CEP78Event)
             .unwrap_or_revert_with(NFTCoreError::FailedToRecordBurnedEvent),
         CEP78Event::Approve => record_approve_event(token_identifier)
             .unwrap_or_revert_with(NFTCoreError::FailedToRecordApproveEvent),
-        CEP78Event::MetadataUpdate => todo!(),
+        CEP78Event::MetadataUpdate => record_metadata_update_event(token_identifier)
+            .unwrap_or_revert_with(NFTCoreError::FailedToRecordMetadataUpdateEvent),
     }
 }

@@ -153,7 +153,6 @@ pub enum EventsMode {
     NoEvents = 0,
     CEP78 = 1,
     CEP47 = 2,
-    CEP47Dict = 3,
 }
 
 #[derive(Debug)]
@@ -268,8 +267,9 @@ impl InstallerRequestBuilder {
         self
     }
 
-    pub(crate) fn with_minting_mode(mut self, minting_mode: u8) -> Self {
-        self.minting_mode = CLValue::from_t(minting_mode).expect("public minting is legit CLValue");
+    pub(crate) fn with_minting_mode(mut self, minting_mode: MintingMode) -> Self {
+        self.minting_mode =
+            CLValue::from_t(minting_mode as u8).expect("public minting is legit CLValue");
         self
     }
 

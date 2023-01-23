@@ -38,7 +38,7 @@ fn should_dissallow_transfer_with_minter_or_assigned_ownership_mode() {
         .with_collection_symbol(NFT_TEST_SYMBOL.to_string())
         .with_total_token_supply(1u64)
         .with_ownership_mode(OwnershipMode::Assigned)
-        .with_minting_mode(MintingMode::Installer as u8)
+        .with_minting_mode(MintingMode::Installer)
         .with_reporting_mode(OwnerReverseLookupMode::Complete)
         .build();
 
@@ -659,7 +659,7 @@ fn should_transfer_between_contract_to_account() {
         .with_holder_mode(NFTHolderMode::Contracts)
         .with_whitelist_mode(WhitelistMode::Locked)
         .with_ownership_mode(OwnershipMode::Transferable)
-        .with_minting_mode(MintingMode::Installer as u8)
+        .with_minting_mode(MintingMode::Installer)
         .with_contract_whitelist(contract_whitelist.clone())
         .build();
 

@@ -398,7 +398,7 @@ fn should_get_metadata_using_token_id() {
         .with_holder_mode(NFTHolderMode::Contracts)
         .with_whitelist_mode(WhitelistMode::Locked)
         .with_ownership_mode(OwnershipMode::Transferable)
-        .with_minting_mode(MintingMode::Installer as u8)
+        .with_minting_mode(MintingMode::Installer)
         .with_reporting_mode(OwnerReverseLookupMode::NoLookUp)
         .with_contract_whitelist(contract_whitelist.clone())
         .build();
