@@ -139,6 +139,7 @@ pub enum BurnMode {
 pub enum OwnerReverseLookupMode {
     NoLookUp = 0,
     Complete = 1,
+    TransfersOnly = 2,
 }
 
 #[repr(u8)]

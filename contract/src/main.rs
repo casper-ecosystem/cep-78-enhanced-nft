@@ -255,6 +255,13 @@ pub extern "C" fn init() {
     .try_into()
     .unwrap_or_revert();
 
+    // OwnerReverseLookup TransfersOnly mode should be Transferable
+    if OwnerReverseLookupMode::TransfersOnly == reporting_mode
+        && OwnershipMode::Transferable != ownership_mode
+    {
+        runtime::revert(NFTCoreError::OwnerReverseLookupModeNotTransferable)
+    }
+
     // Put all created URefs into the contract's context (necessary to retain access rights,
     // for future use).
     //
@@ -815,7 +822,9 @@ pub extern "C" fn set_approval_for_all() {
     );
 
     let owned_tokens = match utils::get_reporting_mode() {
-        OwnerReverseLookupMode::NoLookUp => utils::get_owned_token_ids_by_token_number(),
+        OwnerReverseLookupMode::NoLookUp | OwnerReverseLookupMode::TransfersOnly => {
+            utils::get_owned_token_ids_by_token_number()
+        }
         OwnerReverseLookupMode::Complete => utils::get_owned_token_ids_by_page(),
     };
 

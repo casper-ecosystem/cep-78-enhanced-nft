@@ -114,6 +114,7 @@ impl TryFrom<u8> for NFTMetadataKind {
 }
 
 #[repr(u8)]
+#[derive(PartialEq, Eq)]
 pub enum OwnershipMode {
     /// The minter owns it and can never transfer it.
     Minter = 0,
@@ -233,6 +234,7 @@ impl TryFrom<u8> for BurnMode {
 pub enum OwnerReverseLookupMode {
     NoLookUp = 0,
     Complete = 1,
+    TransfersOnly = 2,
 }
 
 impl TryFrom<u8> for OwnerReverseLookupMode {
@@ -242,6 +244,7 @@ impl TryFrom<u8> for OwnerReverseLookupMode {
         match value {
             0 => Ok(OwnerReverseLookupMode::NoLookUp),
             1 => Ok(OwnerReverseLookupMode::Complete),
+            2 => Ok(OwnerReverseLookupMode::TransfersOnly),
             _ => Err(NFTCoreError::InvalidReportingMode),
         }
     }
