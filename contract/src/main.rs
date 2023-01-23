@@ -901,8 +901,12 @@ pub extern "C" fn set_approval_for_all() {
         if utils::is_token_burned(&token_id) {
             runtime::revert(NFTCoreError::PreviouslyBurntToken)
         }
-        let operator = if approve_all { Some(operator) } else { None };
-        storage::dictionary_put(operator_uref, &token_id.get_dictionary_item_key(), operator);
+        let token_identifier_dictionary_key = token_id.get_dictionary_item_key();
+        storage::dictionary_put(
+            operator_uref,
+            &token_identifier_dictionary_key,
+            if approve_all { Some(operator) } else { None },
+        );
         let events_mode: u8 = get_stored_value_with_user_errors(
             crate::constants::EVENTS_MODE,
             NFTCoreError::MissingEventsMode,
@@ -911,10 +915,20 @@ pub extern "C" fn set_approval_for_all() {
         let events_mode = EventsMode::try_from(events_mode).unwrap_or_revert();
         if events_mode != EventsMode::NoEvents {
             events::record_event(match events_mode {
-                // EventsMode::CEP47 => Event::Cep47(CEP47Event::ApproveAll {
-                //     owner: token_owner,
-                //     spender: operator,
-                // }),
+                EventsMode::CEP47 => {
+                    let token_owner_key = match utils::get_dictionary_value_from_key::<Key>(
+                        TOKEN_OWNERS,
+                        &token_identifier_dictionary_key,
+                    ) {
+                        Some(token_owner) => token_owner,
+                        None => runtime::revert(NFTCoreError::InvalidAccountHash),
+                    };
+                    Event::Cep47(CEP47Event::Approve {
+                        owner: token_owner_key,
+                        spender: operator,
+                        token_id,
+                    })
+                }
                 EventsMode::CEP78 => Event::Cep78(token_id, CEP78Event::Approve),
                 _ => revert(NFTCoreError::InvalidEventsMode),
             });

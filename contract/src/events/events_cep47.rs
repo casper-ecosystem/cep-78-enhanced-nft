@@ -33,10 +33,6 @@ pub(crate) enum CEP47Event {
         spender: Key,
         token_id: TokenIdentifier,
     },
-    // ApproveAll{
-    //     owner: Key,
-    //     spender: Key,
-    // },
     Transfer {
         sender: Key,
         recipient: Key,
