@@ -151,6 +151,6 @@ pub(crate) fn record_event(token_identifier: TokenIdentifier, event: CEP78Event)
         CEP78Event::Approve => record_approve_event(token_identifier)
             .unwrap_or_revert_with(NFTCoreError::FailedToRecordApproveEvent),
         CEP78Event::MetadataUpdate => record_metadata_update_event(token_identifier)
-            .unwrap_or_revert_with(NFTCoreError::FailedToRecordApproveEvent),
+            .unwrap_or_revert_with(NFTCoreError::FailedToRecordMetadataUpdateEvent),
     }
 }

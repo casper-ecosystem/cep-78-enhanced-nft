@@ -150,10 +150,11 @@ pub enum NFTCoreError {
     FailedToRecordBurnedEvent = 145,
     FailedToRecordApproveEvent = 146,
     FailedToRecordTransferEvent = 147,
-    InvalidStartingEventId = 148,
-    InvalidLastEventId = 149,
-    MissingEventsMode = 150,
-    InvalidEventsMode = 151,
+    FailedToRecordMetadataUpdateEvent = 148,
+    InvalidStartingEventId = 149,
+    InvalidLastEventId = 150,
+    MissingEventsMode = 151,
+    InvalidEventsMode = 152,
 }
 
 impl From<NFTCoreError> for ApiError {
