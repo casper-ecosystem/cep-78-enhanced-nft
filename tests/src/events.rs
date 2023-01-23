@@ -877,8 +877,6 @@ fn should_record_metadata_update_event_by_token_id() {
         .with_metadata_mutability(MetadataMutability::Mutable)
         .with_nft_metadata_kind(NFTMetadataKind::CEP78)
         .with_ownership_mode(OwnershipMode::Transferable)
-        // .with_ownership_mode(OwnershipMode::Minter)
-        // .with_reporting_mode(OwnerReverseLookupMode::NoLookUp)
         .with_events_mode(EventsMode::CEP78)
         .build();
 
