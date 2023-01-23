@@ -28,7 +28,7 @@ The release of version 1.1 for the CEP-78 Enhanced NFT Standard includes the fol
 
   - The naming convention for the default named key prefix of a given CEP-78 contract instance has been changed to `cep78_<collection_name>` with spaces and dashes within the collection name converted to underscores.
 
-  - Added a new modality named `NamedKeyConventionMode` that dictates the upgrading and installation process, with further information [here](#namedkeyconventionmode)
+    - **Version 1.1.1** Added a new modality named `NamedKeyConventionMode` that dictates the upgrading and installation process, with further information [here](#namedkeyconventionmode)
 
   - **If an account attempts to install a second CEP-78 contract instance with the same collection name, it will overwrite the `NamedKey` entry under which the access URef is written. Losing the access URef will prevent the account from adding newer versions, i.e., upgrading that particular instance of CEP-78.**
 
@@ -294,13 +294,13 @@ If you have an existing CEP-78 version 1.0 contract instance, and would prefer t
 
 #### NamedKeyConventionMode
 
-The `NamedKeyConvention` modality dictates whether the Wasm passed will attempt to install a version 1.1 instance of CEP-78 or attempt to migrate a version 1.0 CEP-78 instance to version 1.1.
+The `NamedKeyConvention` modality dictates whether the Wasm passed will attempt to install a version 1.1.1 instance of CEP-78 or attempt to migrate a version 1.0 CEP-78 instance to version 1.1.1.
 
 This modality provides three options:
 
-1. `DerivedFromCollectionName`: This modality will signal the contract to attempt to install a new version 1.1 instance of the CEP-78 contract. The contract package hash and the access URef will be saved in the installing account's `NamedKeys` as `cep78_contract_package_<collection_name>` and `cep78_contract_package_access_<collection_name>`.
-2. `V_1_0_standard`: This modality will signal the contract to attempt to upgrade from version 1.0 to version 1.1. In this scenario, the contract will retrieve the package hash and the access URef from the `NamedKey` entries originally created during the 1.0 installation.
-3. `V_1_0_custom`: This modality will signal the contract to attempt to upgrade from version 1.0 to version 1.1. In this scenario, the calling account must provide the `NamedKey` entries under which the package hash and the access URef are saved. Additionally, this requires the passing of the runtime arguments `access_key_name` and `hash_key_name` for the access URef and package hash, respectively. In this modality, these arguments are required and must be passed in.
+1. `DerivedFromCollectionName`: This modality will signal the contract to attempt to install a new version 1.1.1 instance of the CEP-78 contract. The contract package hash and the access URef will be saved in the installing account's `NamedKeys` as `cep78_contract_package_<collection_name>` and `cep78_contract_package_access_<collection_name>`.
+2. `V_1_0_standard`: This modality will signal the contract to attempt to upgrade from version 1.0 to version 1.1.1. In this scenario, the contract will retrieve the package hash and the access URef from the `NamedKey` entries originally created during the 1.0 installation.
+3. `V_1_0_custom`: This modality will signal the contract to attempt to upgrade from version 1.0 to version 1.1.1. In this scenario, the calling account must provide the `NamedKey` entries under which the package hash and the access URef are saved. Additionally, this requires the passing of the runtime arguments `access_key_name` and `hash_key_name` for the access URef and package hash, respectively. In this modality, these arguments are required and must be passed in.
 
 | NamedKeyConvention        | u8  |
 | ------------------------- | --- |
