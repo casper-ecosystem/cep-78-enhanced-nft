@@ -5,6 +5,7 @@ use alloc::{
     vec,
     vec::Vec,
 };
+use casper_event_standard::Schemas;
 use core::{convert::TryInto, mem::MaybeUninit};
 
 use casper_contract::{
@@ -26,6 +27,9 @@ use crate::{
         PAGE_LIMIT, RECEIPT_NAME, REPORTING_MODE,
     },
     error::NFTCoreError,
+    events::{
+        Approval, ApprovalForAll, Burn, MetadataUpdated, Migration, Mint, Transfer, VariablesSet,
+    },
     modalities::{
         NFTHolderMode, NFTIdentifierMode, OwnerReverseLookupMode, OwnershipMode, TokenIdentifier,
     },
@@ -737,4 +741,18 @@ pub(crate) fn get_reporting_mode() -> OwnerReverseLookupMode {
     )
     .try_into()
     .unwrap_or_revert()
+}
+
+// Initializes events-releated named keys and records all event schemas.
+pub fn init_events() {
+    let schemas = Schemas::new()
+        .with::<Mint>()
+        .with::<Burn>()
+        .with::<Approval>()
+        .with::<ApprovalForAll>()
+        .with::<Transfer>()
+        .with::<MetadataUpdated>()
+        .with::<VariablesSet>()
+        .with::<Migration>();
+    casper_event_standard::init(schemas);
 }
