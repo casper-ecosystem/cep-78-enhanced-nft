@@ -5,6 +5,7 @@ use alloc::{
     vec,
     vec::Vec,
 };
+use casper_event_standard::Schemas;
 use core::{convert::TryInto, mem::MaybeUninit};
 
 use casper_contract::{
@@ -26,6 +27,9 @@ use crate::{
         PAGE_LIMIT, RECEIPT_NAME, REPORTING_MODE,
     },
     error::NFTCoreError,
+    events::{
+        Approval, ApprovalForAll, Burn, MetadataUpdated, Migration, Mint, Transfer, VariablesSet,
+    },
     modalities::{
         MetadataRequirement, NFTHolderMode, NFTIdentifierMode, NFTMetadataKind,
         OwnerReverseLookupMode, OwnershipMode, Requirement, TokenIdentifier,
@@ -865,4 +869,16 @@ pub(crate) fn create_metadata_requirements(
     }
     metadata_requirements.insert(base, Requirement::Required);
     metadata_requirements
+// Initializes events-releated named keys and records all event schemas.
+pub fn init_events() {
+    let schemas = Schemas::new()
+        .with::<Mint>()
+        .with::<Burn>()
+        .with::<Approval>()
+        .with::<ApprovalForAll>()
+        .with::<Transfer>()
+        .with::<MetadataUpdated>()
+        .with::<VariablesSet>()
+        .with::<Migration>();
+    casper_event_standard::init(schemas);
 }

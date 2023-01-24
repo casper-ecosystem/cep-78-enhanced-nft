@@ -6,6 +6,7 @@ compile_error!("target arch should be wasm32: compile with '--target wasm32-unkn
 
 mod constants;
 mod error;
+mod events;
 mod metadata;
 mod modalities;
 mod utils;
@@ -24,6 +25,9 @@ use alloc::{
 use constants::{ARG_ADDITIONAL_REQUIRED_METADATA, ARG_OPTIONAL_METADATA, NFT_METADATA_KINDS};
 use core::convert::TryInto;
 use modalities::Requirement;
+use events::{
+    Approval, ApprovalForAll, Burn, MetadataUpdated, Migration, Mint, Transfer, VariablesSet,
+};
 
 use casper_types::{
     contracts::NamedKeys, runtime_args, CLType, CLValue, ContractHash, ContractPackageHash,
@@ -391,6 +395,9 @@ pub extern "C" fn init() {
         storage::new_uref(reporting_mode as u8).into(),
     );
     runtime::put_key(MIGRATION_FLAG, storage::new_uref(true).into());
+
+    // Initialize events structures.
+    utils::init_events();
 }
 
 // set_variables allows the user to set any variable or any combination of variables simultaneously.
@@ -445,6 +452,9 @@ pub extern "C" fn set_variables() {
             WhitelistMode::Locked => runtime::revert(NFTCoreError::InvalidWhitelistMode),
         }
     }
+
+    // Emit VariablesSet event.
+    casper_event_standard::emit(VariablesSet::new());
 }
 
 // Mints a new token. Minting will fail if allow_minting is set to false.
@@ -595,7 +605,12 @@ pub extern "C" fn mint() {
     utils::upsert_dictionary_value_from_key(
         TOKEN_ISSUERS,
         &token_identifier.get_dictionary_item_key(),
-        caller,
+        token_owner_key,
+    );
+    utils::upsert_dictionary_value_from_key(
+        &metadata::get_metadata_dictionary_name(&metadata_kind),
+        &token_identifier.get_dictionary_item_key(),
+        metadata.clone(),
     );
 
     let owned_tokens_item_key = utils::get_owned_tokens_dictionary_item_key(token_owner_key);
@@ -624,6 +639,9 @@ pub extern "C" fn mint() {
         NFTCoreError::InvalidTotalTokenSupply,
     );
     storage::write(number_of_minted_tokens_uref, minted_tokens_count + 1u64);
+
+    // Emit Mint event.
+    casper_event_standard::emit(Mint::new(token_owner_key, token_identifier.clone(), metadata));
 
     if let OwnerReverseLookupMode::Complete = utils::get_reporting_mode() {
         if (NFTIdentifierMode::Hash == identifier_mode)
@@ -714,6 +732,9 @@ pub extern "C" fn burn() {
         };
 
     utils::upsert_dictionary_value_from_key(TOKEN_COUNTS, &owned_tokens_item_key, updated_balance);
+
+    // Emit Burn event.
+    casper_event_standard::emit(Burn::new(token_owner, token_identifier));
 }
 
 // approve marks a token as approved for transfer by an account
@@ -796,6 +817,9 @@ pub extern "C" fn approve() {
         &token_identifier_dictionary_key,
         Some(operator),
     );
+
+    // Emit Approval event.
+    casper_event_standard::emit(Approval::new(token_owner_key, operator, token_identifier));
 }
 
 // This is an extremely gas intensive operation. DO NOT invoke this
@@ -819,6 +843,8 @@ pub extern "C" fn set_approval_for_all() {
     )
     .unwrap_or_revert();
 
+    let token_owner: Key = utils::get_verified_caller().unwrap_or_revert();
+
     let operator = utils::get_named_arg_with_user_errors::<Key>(
         ARG_OPERATOR,
         NFTCoreError::MissingOperator,
@@ -840,14 +866,17 @@ pub extern "C" fn set_approval_for_all() {
     };
 
     // Depending on approve_all we either approve all or disapprove all.
-    for token_id in owned_tokens {
+    let operator = if approve_all { Some(operator) } else { None };
+    for token_id in &owned_tokens {
         // We assume a burned token cannot be approved
-        if utils::is_token_burned(&token_id) {
+        if utils::is_token_burned(token_id) {
             runtime::revert(NFTCoreError::PreviouslyBurntToken)
         }
-        let operator = if approve_all { Some(operator) } else { None };
         storage::dictionary_put(operator_uref, &token_id.get_dictionary_item_key(), operator);
     }
+
+    // Emit ApprovalForAll event.
+    casper_event_standard::emit(ApprovalForAll::new(token_owner, operator, owned_tokens));
 }
 
 // Transfers token from token_owner to specified account. Transfer will go through if caller is
@@ -996,6 +1025,18 @@ pub extern "C" fn transfer() {
         Option::<Key>::None,
     );
 
+    // Emit Transfer event.
+    let operator = if caller == token_owner_key {
+        None
+    } else {
+        Some(caller)
+    };
+    casper_event_standard::emit(Transfer::new(
+        token_owner_key,
+        operator,
+        target_owner_key,
+        token_identifier.clone(),
+    ));
     let reporting_mode = utils::get_reporting_mode();
 
     if let OwnerReverseLookupMode::Complete | OwnerReverseLookupMode::TransfersOnly = reporting_mode
@@ -1254,6 +1295,17 @@ pub extern "C" fn set_token_metadata() {
             }
         }
     }
+    let updated_metadata =
+        metadata::validate_metadata(&metadata_kind, updated_token_metadata).unwrap_or_revert();
+
+    utils::upsert_dictionary_value_from_key(
+        &metadata::get_metadata_dictionary_name(&metadata_kind),
+        &token_identifier.get_dictionary_item_key(),
+        updated_metadata.clone(),
+    );
+
+    // Emit MetadataUpdate event.
+    casper_event_standard::emit(MetadataUpdated::new(token_identifier, updated_metadata));
 }
 
 #[no_mangle]
@@ -1352,6 +1404,11 @@ pub extern "C" fn migrate() {
         NFT_METADATA_KINDS,
         storage::new_uref(nft_metadata_kind_list).into(),
     );
+    // Initialize events structures.
+    utils::init_events();
+
+    // Emit Migration event.
+    casper_event_standard::emit(Migration::new());
 }
 
 #[no_mangle]
