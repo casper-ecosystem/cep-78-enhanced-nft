@@ -1426,8 +1426,11 @@ pub extern "C" fn updated_receipts() {
 
 #[no_mangle]
 pub extern "C" fn register_owner() {
-    if let OwnerReverseLookupMode::Complete | OwnerReverseLookupMode::TransfersOnly =
-        utils::get_reporting_mode()
+    if vec![
+        OwnerReverseLookupMode::Complete,
+        OwnerReverseLookupMode::TransfersOnly,
+    ]
+    .contains(&utils::get_reporting_mode())
     {
         let owner_key = match utils::get_ownership_mode().unwrap_or_revert() {
             OwnershipMode::Minter => utils::get_verified_caller().unwrap_or_revert(),
