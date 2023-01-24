@@ -136,6 +136,7 @@ pub enum BurnMode {
 }
 
 #[repr(u8)]
+#[derive(Eq, PartialEq, Clone, Copy)]
 pub enum OwnerReverseLookupMode {
     NoLookUp = 0,
     Complete = 1,

@@ -10,9 +10,9 @@ use crate::utility::{
     constants::{
         ACCOUNT_USER_1, ARG_APPROVE_ALL, ARG_COLLECTION_NAME, ARG_NFT_CONTRACT_HASH, ARG_OPERATOR,
         ARG_TOKEN_HASH, ARG_TOKEN_ID, ARG_TOKEN_META_DATA, ARG_TOKEN_OWNER, BALANCES, BURNT_TOKENS,
-        CONTRACT_NAME, ENTRY_POINT_BURN, ENTRY_POINT_MINT, ENTRY_POINT_SET_APPROVE_FOR_ALL,
-        MINTING_CONTRACT_WASM, MINT_SESSION_WASM, NFT_CONTRACT_WASM, NFT_TEST_COLLECTION,
-        TEST_PRETTY_721_META_DATA, TOKEN_COUNTS,
+        CONTRACT_NAME, ENTRY_POINT_BURN, ENTRY_POINT_MINT, ENTRY_POINT_REGISTER_OWNER,
+        ENTRY_POINT_SET_APPROVE_FOR_ALL, MINTING_CONTRACT_WASM, MINT_SESSION_WASM,
+        NFT_CONTRACT_WASM, NFT_TEST_COLLECTION, TEST_PRETTY_721_META_DATA, TOKEN_COUNTS,
     },
     installer_request_builder::{
         BurnMode, InstallerRequestBuilder, MetadataMutability, MintingMode, NFTHolderMode,
@@ -23,8 +23,7 @@ use crate::utility::{
     },
 };
 
-#[test]
-fn should_burn_minted_token() {
+fn should_burn_minted_token(reporting: OwnerReverseLookupMode) {
     let token_id = 0u64;
     let mut builder = InMemoryWasmTestBuilder::default();
     builder.run_genesis(&DEFAULT_RUN_GENESIS_REQUEST).commit();
@@ -33,7 +32,7 @@ fn should_burn_minted_token() {
         InstallerRequestBuilder::new(*DEFAULT_ACCOUNT_ADDR, NFT_CONTRACT_WASM)
             .with_total_token_supply(100u64)
             .with_ownership_mode(OwnershipMode::Transferable)
-            .with_reporting_mode(OwnerReverseLookupMode::Complete)
+            .with_reporting_mode(reporting)
             .build();
 
     builder
@@ -49,28 +48,46 @@ fn should_burn_minted_token() {
 
     let nft_contract_hash = get_nft_contract_hash(&builder);
 
-    let mint_session_call = ExecuteRequestBuilder::standard(
-        *DEFAULT_ACCOUNT_ADDR,
-        MINT_SESSION_WASM,
-        runtime_args! {
-            ARG_NFT_CONTRACT_HASH => Key::Hash(nft_contract_hash.value()),
+    let reverse_lookup_enabled: bool = reporting == OwnerReverseLookupMode::Complete;
+    if reverse_lookup_enabled {
+        let mint_session_call = ExecuteRequestBuilder::standard(
+            *DEFAULT_ACCOUNT_ADDR,
+            MINT_SESSION_WASM,
+            runtime_args! {
+                ARG_NFT_CONTRACT_HASH => Key::Hash(nft_contract_hash.value()),
+                ARG_TOKEN_OWNER => Key::Account(*DEFAULT_ACCOUNT_ADDR),
+                ARG_TOKEN_META_DATA => TEST_PRETTY_721_META_DATA.to_string(),
+                ARG_COLLECTION_NAME => NFT_TEST_COLLECTION.to_string()
+            },
+        )
+        .build();
+
+        builder.exec(mint_session_call).expect_success().commit();
+
+        let token_page = support::get_token_page_by_id(
+            &builder,
+            nft_contract_key,
+            &Key::Account(*DEFAULT_ACCOUNT_ADDR),
+            token_id,
+        );
+
+        assert!(token_page[0]);
+    } else {
+        let mint_runtime_args = runtime_args! {
             ARG_TOKEN_OWNER => Key::Account(*DEFAULT_ACCOUNT_ADDR),
             ARG_TOKEN_META_DATA => TEST_PRETTY_721_META_DATA.to_string(),
-            ARG_COLLECTION_NAME => NFT_TEST_COLLECTION.to_string()
-        },
-    )
-    .build();
+        };
 
-    builder.exec(mint_session_call).expect_success().commit();
+        let minting_request = ExecuteRequestBuilder::contract_call_by_hash(
+            *DEFAULT_ACCOUNT_ADDR,
+            nft_contract_hash,
+            ENTRY_POINT_MINT,
+            mint_runtime_args,
+        )
+        .build();
 
-    let token_page = support::get_token_page_by_id(
-        &builder,
-        nft_contract_key,
-        &Key::Account(*DEFAULT_ACCOUNT_ADDR),
-        token_id,
-    );
-
-    assert!(token_page[0]);
+        builder.exec(minting_request).expect_success().commit();
+    }
 
     let actual_balance_before_burn = support::get_dictionary_value_from_key::<u64>(
         &builder,
@@ -111,6 +128,16 @@ fn should_burn_minted_token() {
 
     let expected_balance = 0u64;
     assert_eq!(actual_balance, expected_balance);
+}
+
+#[test]
+fn should_burn_minted_token_with_complete_reporting() {
+    should_burn_minted_token(OwnerReverseLookupMode::Complete);
+}
+
+#[test]
+fn should_burn_minted_token_with_transfer_only_reporting() {
+    should_burn_minted_token(OwnerReverseLookupMode::TransfersOnly);
 }
 
 #[test]

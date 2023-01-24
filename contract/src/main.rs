@@ -350,7 +350,12 @@ pub extern "C" fn init() {
         .unwrap_or_revert_with(NFTCoreError::FailedToCreateDictionary);
     storage::new_dictionary(PAGE_TABLE)
         .unwrap_or_revert_with(NFTCoreError::FailedToCreateDictionary);
-    if reporting_mode == OwnerReverseLookupMode::Complete {
+    if vec![
+        OwnerReverseLookupMode::Complete,
+        OwnerReverseLookupMode::TransfersOnly,
+    ]
+    .contains(&reporting_mode)
+    {
         let page_table_width = utils::max_number_of_pages(total_token_supply);
         runtime::put_key(PAGE_LIMIT, storage::new_uref(page_table_width).into());
     }
@@ -985,7 +990,9 @@ pub extern "C" fn transfer() {
         Option::<Key>::None,
     );
 
-    if let OwnerReverseLookupMode::Complete = utils::get_reporting_mode() {
+    if let OwnerReverseLookupMode::Complete | OwnerReverseLookupMode::TransfersOnly =
+        utils::get_reporting_mode()
+    {
         // Update to_account owned_tokens. Revert if owned_tokens list is not found
         let token_number = utils::get_token_index(&token_identifier);
 
@@ -1399,7 +1406,9 @@ pub extern "C" fn updated_receipts() {
 
 #[no_mangle]
 pub extern "C" fn register_owner() {
-    if let OwnerReverseLookupMode::Complete = utils::get_reporting_mode() {
+    if let OwnerReverseLookupMode::Complete | OwnerReverseLookupMode::TransfersOnly =
+        utils::get_reporting_mode()
+    {
         let owner_key = match utils::get_ownership_mode().unwrap_or_revert() {
             OwnershipMode::Minter => utils::get_verified_caller().unwrap_or_revert(),
             OwnershipMode::Assigned | OwnershipMode::Transferable => {
