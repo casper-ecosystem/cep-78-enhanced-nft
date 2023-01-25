@@ -25,7 +25,7 @@ use constants::{ARG_EVENTS_MODE, EVENTS, EVENTS_MODE, EVENT_ID_TRACKER};
 use modalities::EventsMode;
 
 use core::convert::{TryFrom, TryInto};
-use events::{events_cep47::CEP47Event, events_cep78::CEP78Event, Event};
+use events::{events_cep47::CEP47Event, Event};
 use utils::get_stored_value_with_user_errors;
 
 use casper_types::{
@@ -603,7 +603,6 @@ pub extern "C" fn mint() {
                 recipient: token_owner_key,
                 token_id,
             }),
-            EventsMode::CEP78 => Event::Cep78(token_id, CEP78Event::Mint),
             _ => revert(NFTCoreError::InvalidEventsMode),
         });
     }
@@ -749,7 +748,6 @@ pub extern "C" fn burn() {
                 owner: token_owner,
                 token_id: token_identifier,
             }),
-            EventsMode::CEP78 => Event::Cep78(token_identifier, CEP78Event::Burn),
             _ => revert(NFTCoreError::InvalidEventsMode),
         });
     }
@@ -850,7 +848,6 @@ pub extern "C" fn approve() {
                 spender: operator,
                 token_id: token_identifier,
             }),
-            EventsMode::CEP78 => Event::Cep78(token_identifier, CEP78Event::Approve),
             _ => revert(NFTCoreError::InvalidEventsMode),
         });
     }
@@ -929,7 +926,6 @@ pub extern "C" fn set_approval_for_all() {
                         token_id,
                     })
                 }
-                EventsMode::CEP78 => Event::Cep78(token_id, CEP78Event::Approve),
                 _ => revert(NFTCoreError::InvalidEventsMode),
             });
         }
@@ -1097,7 +1093,6 @@ pub extern "C" fn transfer() {
                 recipient: target_owner_key,
                 token_id,
             }),
-            EventsMode::CEP78 => Event::Cep78(token_id, CEP78Event::Transfer),
             _ => revert(NFTCoreError::InvalidEventsMode),
         });
     }
@@ -1394,7 +1389,6 @@ pub extern "C" fn set_token_metadata() {
             EventsMode::CEP47 => Event::Cep47(CEP47Event::MetadataUpdate {
                 token_id: token_identifier,
             }),
-            EventsMode::CEP78 => Event::Cep78(token_identifier, CEP78Event::MetadataUpdate),
             _ => revert(NFTCoreError::InvalidEventsMode),
         });
     }

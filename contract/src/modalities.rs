@@ -280,9 +280,7 @@ impl TryFrom<u8> for NamedKeyConventionMode {
 #[derive(PartialEq, Eq)]
 pub enum EventsMode {
     NoEvents = 0,
-    CEP78 = 1,
-    CEP47 = 2,
-    CEP47Dict = 3,
+    CEP47 = 1,
 }
 
 impl TryFrom<u8> for EventsMode {
@@ -291,9 +289,7 @@ impl TryFrom<u8> for EventsMode {
     fn try_from(value: u8) -> Result<Self, Self::Error> {
         match value {
             0 => Ok(EventsMode::NoEvents),
-            1 => Ok(EventsMode::CEP78),
-            2 => Ok(EventsMode::CEP47),
-            3 => Ok(EventsMode::CEP47Dict),
+            1 => Ok(EventsMode::CEP47),
             _ => Err(NFTCoreError::InvalidEventsMode),
         }
     }
