@@ -41,7 +41,7 @@ The release of version 1.1 for the CEP-78 Enhanced NFT Standard includes the fol
 
 4) [Test Suite and Specification](#test-suite-and-specification)
 
-5) [Data Storage and Gas Stabilization](#gas-stabilization)
+5) [Owner Reverse Lookup Functionality](#owner-reverse-lookup-functionality)
 
 6) [Error Codes](#error-codes)
 
