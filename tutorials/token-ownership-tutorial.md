@@ -83,15 +83,15 @@ What if the named key was `cep78_CEP-78-collection_m_1000_p_11` for the same sam
 
 ### Tokens Identified by Hash
 
-If the token identifier mode was set to "Hash" when the NFT contract was installed, we need to do some additional work and query the "hash_by_index" dictionary, and map all the token numbers to their corresponding hash values. 
+Suppose the token identifier mode was set to "Hash" when the NFT contract was installed. In that case, we need to query the "hash_by_index" dictionary and map all the token numbers to their corresponding hash values. 
 
-![Hash by Index Dictionary](../assets/hash-by-index-dictionary.png) 
+![Hash by Index Dictionary](../assets/hash-by-index-dictionary.png) 
 
 We need to specify the "hash_by_index" dictionary URef and the index value to retrieve the corresponding token hash in this example query.
 
 **Sample query into the "hash_by_index" dictionary:**
 
-In this example, we query the hash of the token at index 0 in the "hash_by_index" dictionary.
+In this example, we query the token's hash at index 0 in the "hash_by_index" dictionary.
 
 ```bash
 casper-client get-dictionary-item \
@@ -233,11 +233,11 @@ In that case, the account specified in the request would own tokens in the "page
 
 ### What is the "page_limit" NamedKey?
 
-The "page_limit" NamedKey saves the maximum number of pages that can be allocated for tracking tokens minted by an NFT contract. If the page_limit is 1, then we know that the contract has set the maximum token supply to be less than or equal to 1,000.
+The "page_limit" NamedKey saves the maximum number of pages allocated for tracking tokens minted by an NFT contract. If the page_limit is 1, then we know that the contract has set the maximum token supply to be less than or equal to 1,000.
 
 ![The page_limit Dictionary](../assets/page-limit-dictionary.png)
 
-### How would the "page_*" NamedKeys look like for a larger collection?
+### How would the "page_*" NamedKeys look for a larger collection?
 
 If we create an NFT collection with a total token supply of 10,000 NFTs, the NamedKeys for the NFT contract would be split into 10 pages. 
 
@@ -262,5 +262,5 @@ To answer the question "which NFTs does this account own", we need to know which
 
 If you trust an account and want to see which NFT it owns, look at its NamedKeys. See how many NamedKeys in the format "m_1000_p_X" the account has for a given collection. Given these keys, you can directly access the dictionaries that track pages with token information. Using the state root hash and the dictionary address for each page, you can get the page out of the contract and access token ownership details.
 
-If you don't trust the account, you need to do some additional work to figure out which pages have been allocated to the account in the NFT contract. You can find this information by first querying the "page_table" dictionary.
+If you don't trust the account, you need to do additional work to figure out which pages have been allocated to the account in the NFT contract. You can find this information by first querying the "page_table" dictionary.
 
