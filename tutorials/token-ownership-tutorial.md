@@ -219,9 +219,9 @@ casper-client get-dictionary-item \
 
 Notice that the output is the same as when we queried the dictionary directly using the first method, and the dictionary address "dictionary-eb837c4c92199e66619e163271a7e487704b5be7b103e785ed5b262f36ab6f50". So, we are now at the same step of interpreting the output as explained above, in the [Tokens Identified by Token ID](tokens-identified-by-token-id) and [Tokens Identified by Hash](tokens-identified-by-hash) sections.
 
-### Another example
+## FAQ
 
-What if the value parsed from the "page_table" dictionary would look like this?
+### What if the value parsed from the "page_table" dictionary would look like this?
 
 ```bash
         "parsed": [
@@ -237,13 +237,24 @@ The "page_limit" NamedKey saves the maximum number of pages that can be allocate
 
 ![The page_limit Dictionary](../assets/page-limit-dictionary.png)
 
-### Why can't we use the balance dictionary?
+### How would the "page_*" NamedKeys look like for a larger collection?
+
+If we create an NFT collection with a total token supply of 10,000 NFTs, the NamedKeys for the NFT contract would be split into 10 pages. 
+
+![Larger Collection Pages](../assets/larger-collection-pages.png)
+
+Also, the page_limit value would be set to "10".
+
+![Larger Collection Limit](../assets/larger-collection-limit.png)
+
+### Why can't we use the balance dictionary in this tutorial?
 
 The "balance" dictionary tracks how many tokens an account owns, not which tokens it owns.
 
 ### When is the "token_owners" dictionary useful?
 
 The "token_owners" dictionary maps token IDs to token owners. So if you want to know who owns a specific token, use the "token_owners" dictionary. But, we cannot use this dictionary to answer which tokens a specific account owns.
+
 
 ## Conclusions
 
