@@ -83,13 +83,46 @@ What if the named key was `cep78_CEP-78-collection_m_1000_p_11` for the same sam
 
 ### Tokens Identified by Hash
 
-If the token identifier mode was set to "Hash" when the NFT contract was installed, we need to do some additional work and query the "index_by_hash" dictionary, and map all the token numbers to each token's hash. 
+If the token identifier mode was set to "Hash" when the NFT contract was installed, we need to do some additional work and query the "hash_by_index" dictionary, and map all the token numbers to their corresponding hash values. 
 
-![Index by Hash Dictionary](../assets/index-by-hash-dictionary.png) 
+![Hash by Index Dictionary](../assets/hash-by-index-dictionary.png) 
 
-In this example query, we need to specify the dictionary name (index_by_hash) and index values 0 and 1 to retrieve the corresponding token hashes.
+We need to specify the "hash_by_index" dictionary URef and the index value to retrieve the corresponding token hash in this example query.
 
-<!-- TODO add a screenshot, example query, and example output -->
+**Sample query into the "hash_by_index" dictionary:**
+
+In this example, we query the hash of the token at index 0 in the "hash_by_index" dictionary.
+
+```bash
+casper-client get-dictionary-item \
+--node-address http://65.21.235.219:7777 \
+--state-root-hash 5aa0cda415ef9f422e51e65b1fe69c60e6cac8bc370fd6ff416fe2101ae3242a \
+--seed-uref "uref-dd3041bf2fc5f7ec3937b97b0dd51d01634437680accfe1c3f9b921753afe2f4-007" \
+--dictionary-item-key "0"
+```
+
+**Sample response from the "hash_by_index" dictionary:**
+
+The sample response shows that the hash of the NFT token at index 0 is "2b66bf103522470b75a4dae645b03db974cdf0061c4ca7b9e5b812e85d7a7737".
+
+```json
+{
+  "id": -5671053351359407927,
+  "jsonrpc": "2.0",
+  "result": {
+    "api_version": "1.4.10",
+    "dictionary_key": "dictionary-472606f90b87a81395a4e71662033ff3148b570d59f0a46f0954aad4f2ea608f",
+    "merkle_proof": "[37226 hex chars]",
+    "stored_value": {
+      "CLValue": {
+        "bytes": "4000000032623636626631303335323234373062373561346461653634356230336462393734636466303036316334636137623965356238313265383564376137373337",
+        "cl_type": "String",
+        "parsed": "2b66bf103522470b75a4dae645b03db974cdf0061c4ca7b9e5b812e85d7a7737"
+      }
+    }
+  }
+}
+```
 
 ## Querying the Contract
 
@@ -106,7 +139,7 @@ The NFT contract should have a `page_table` NamedKey, which is the seed URef for
 ```bash
 casper-client get-dictionary-item \
 --node-address http://65.21.235.219:7777 \
---state-root-hash 6d004bb17a76e59d6c0fe6d25ecbdf9fb01ea3e7b16b0484c185761dfe70d181 \
+--state-root-hash a77af17080112066caeb73d8133752584ddd11407f1fae94be0849a8abe1d1f9 \
 --seed-uref "uref-38b21f84ce85d22ee8cfba27744c44d6b393edfb3f56a4474897cb3969039324-007" \
 --dictionary-item-key "e861226c153eefc0ca48bf29c76bc305235151aebde76257bf9bbacb4fa041f7"
 ```
@@ -147,7 +180,7 @@ Since the contract allocated the page at index 0 to track tokens, we expect to s
 ```bash
 casper-client get-dictionary-item \
 --node-address http://65.21.235.219:7777 \
---state-root-hash 6d004bb17a76e59d6c0fe6d25ecbdf9fb01ea3e7b16b0484c185761dfe70d181 \
+--state-root-hash a77af17080112066caeb73d8133752584ddd11407f1fae94be0849a8abe1d1f9 \
 --seed-uref "uref-f0079428fd7cd358c981d3eb1dd751f7cf744bb850d67e0506c76fd69f0bb3bc-007" \
 --dictionary-item-key "e861226c153eefc0ca48bf29c76bc305235151aebde76257bf9bbacb4fa041f7" 
 ```
