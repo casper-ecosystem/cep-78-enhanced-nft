@@ -5,11 +5,21 @@ This tutorial demonstrates how to check token ownership in CEP-78 NFT contracts,
 1. Which NFTs do I own?
 2. Which NFTs does someone else own?
 
-The first method to answer these questions is an [account-centric approach](#querying-the-account), in which we trust the account owner and the information stored in the account's NamedKeys. This account could be an account we own, or someone else owns. This method is less secure and needs to be based on trust.
+The first method to answer these questions is an [account-centric approach](#querying-the-account), in which we trust the account owner and the information stored in the account's NamedKeys. This account could be an account we own, or someone else owns. This method is less secure and needs to be based on trust. At a high level, we would follow these steps:
 
-The second method is a [contract-centric approach](#querying-the-contract), in which we interrogate the NFT contract directly to retrieve token ownership information. This method is more secure than the first approach and can be used when we need to verify or cannot trust an account's NamedKeys. 
+- Look for NamedKeys in this format: "cep78_*_m_1000_p_#".
+- Query each "cep78_*_m_1000_p_#" dictionary using the `casper-client get-dictionary-item` and the `dictionary-address`.
 
-> **Note**: Please choose the most secure method that serves your use case based on the level of trust required.
+The second method is a [contract-centric approach](#querying-the-contract), in which we interrogate the NFT contract. This method is more secure than the first approach and can be used when we need to verify or cannot trust an account's NamedKeys. To apply this method, we usually follow these steps:
+
+- Query the "page_table" dictionary from the CEP-78 contract using its seed URef and the account hash (without the "account-hash-" prefix).
+- Then, query each page dictionary given its seed URef and the account hash (again, without the "account-hash-" prefix).
+
+> **Note: Please choose the most secure method that serves your use case based on the level of trust you require.**
+
+![Methods of Querying Token Ownership](../assets/methods-of-querying.png)
+
+The tutorial presents sample accounts, contracts, and NamedKeys to explain, by example, the two methods of querying token ownership.
 
 ## Prerequisites
 
@@ -18,13 +28,15 @@ The second method is a [contract-centric approach](#querying-the-contract), in w
 - You have experience with the [Casper CEP-78 NFT Standard](https://github.com/casper-ecosystem/cep-78-enhanced-nft/) and the Casper command-line client and know how to interact with a Casper network.
 - You understand the [The CEP-78 Page System](../README.md#the-cep-78-page-system) introduced in [Version 1.1](https://github.com/casper-ecosystem/cep-78-enhanced-nft/#new-in-version-11) of the CEP-78 Enhanced NFT Standard.
 
-## Querying the Account
+## Method 1 - Querying the Account 
 
-To check token ownership by examining NamedKeys, we examine the account or the calling contract's NamedKeys. We look for NamedKeys that use this format: `cep78_[COLLECTION_NAME]_m_1000_p_X. For more information on this format, read about the [CEP-78 Page System](../README.md#the-cep-78-page-system). If we have such a key in the account, we can access the dictionary storing the NFTs and retrieve ownership information.
+In this method of checking token ownership, we examine the account or the calling contract's NamedKeys. We look for NamedKeys that use this format: "cep78_*_m_1000_p_#". For more information on this format, read about the [CEP-78 Page System](../README.md#the-cep-78-page-system). We can access the dictionary storing the NFTs directly and retrieve ownership information.
 
-Let's consider an example where the contract minted a small number of NFTs and has the following NamedKey: `cep78_CEP-78-collection_m_1000_p_0`. We can query the dictionary stored under this NamedKey to retrieve the tokens that this account owns.
+Let's consider an example where the contract minted a small number of NFTs and has the following NamedKey: `cep78_CEP-78-collection_m_1000_p_0`. We can query the dictionary referenced by this NamedKey to retrieve the tokens that this account owns.
 
-![Highlighted Collection NamedKey](../assets/highlighted-collection-named-key.png)
+<div align="center">
+<img src="../assets/highlighted-collection-named-key.png" alt="Highlighted Collection NamedKey" width="500"/>
+</div>
 
 We will use the `casper-client` and its `get-dictionary-item` option to query this dictionary. Given the dictionary's address and the latest state root hash, the command would look like this:
 
@@ -37,7 +49,7 @@ casper-client get-dictionary-item  \
 --dictionary-address dictionary-eb837c4c92199e66619e163271a7e487704b5be7b103e785ed5b262f36ab6f50
 ```
 
-Here is some sample output that we will discuss in more detail below. The list of boolean values would have 1,000 rows, but we have omitted most rows, because only the first two values in this example are set to "true".
+Here is the sample output that we will discuss in more detail below. The list of boolean values would have 1,000 rows, but we have omitted most rows, because only the first two values are set to "true" in this example.
 
 **Sample response from the "cep78_*_m_1000_p_0" dictionary:**
 
@@ -75,19 +87,19 @@ To interpret the output, we need to know how the token identifier mode was set a
 
 ### Tokens Identified by Token ID
 
-If the token identifier mode was set to "Ordinal", the token number is the token ID. In this case, the output above tells us that this account owns the first two tokens in the list. Also, the NamedKey `cep78_CEP-78-collection_m_1000_p_0` tells us that we are on page 0. By doing the math explained [here](../README.md#the-cep-78-page-system) and considering that the token number is the token ID, we conclude that the account owns tokens 0 and 1.
+If the token identifier mode was set to "Ordinal", the token number is the token ID. In this case, the output above tells us that this account owns the first two tokens in the list. Also, the NamedKey `cep78_CEP-78-collection_m_1000_p_0` tells us that we are on "page_0" in the "page_table" dictionary. By doing the math explained [here](../README.md#the-cep-78-page-system) and considering that the token number is the token ID, we conclude that this account owns tokens 0 and 1.
 
-#### Another example
-
-What if the named key was `cep78_CEP-78-collection_m_1000_p_11` for the same sample output? In that case, the account would own tokens on page 11, at index 0 and 1, which would be tokens 11,000 and 11,001.
+> **Note**: What if the named key was `cep78_CEP-78-collection_m_1000_p_11` for the same sample output above? In that case, the account would own tokens on page 11, at index 0 and 1, which would be tokens 11,000 and 11,001.
 
 ### Tokens Identified by Hash
 
 Suppose the token identifier mode was set to "Hash" when the NFT contract was installed. In that case, we need to query the "hash_by_index" dictionary and map all the token numbers to their corresponding hash values. 
 
-![Hash by Index Dictionary](../assets/hash-by-index-dictionary.png) 
+<div align="center">
+<img src="../assets/hash-by-index-dictionary.png" alt="Hash by Index Dictionary" width="500"/>
+</div>
 
-We need to specify the "hash_by_index" dictionary URef and the index value to retrieve the corresponding token hash in this example query.
+Specify the "hash_by_index" dictionary URef and the index value to retrieve the corresponding token hash in this example query.
 
 **Sample query into the "hash_by_index" dictionary:**
 
@@ -124,15 +136,19 @@ The sample response shows that the hash of the NFT token at index 0 is "2b66bf10
 }
 ```
 
-## Querying the Contract
+## Method 2 - Querying the Contract
 
-The second way to check token ownership is to examine the NFT contract. To proceed, we need the contract hash.
+The second way to check token ownership is to examine the NFT contract. To proceed, we first need the contract hash.
 
-![Accessing the NFT Contract Hash](../assets/the-nft-contract-hash.png)
+<div align="center">
+<img src="../assets/the-nft-contract-hash.png" alt="Accessing the NFT Contract Hash" width="500"/>
+</div>
 
-The NFT contract should have a `page_table` NamedKey, which is the seed URef for the "page_table" dictionary. Using this dictionary and the account hash (without the prefix), we can find the pages tracking tokens owned by the account specified. 
+The NFT contract should have a `page_table` NamedKey, which is the seed URef for the "page_table" dictionary. Using this dictionary and the account hash (without the "account-hash-" prefix), we can find the pages tracking tokens owned by the account specified. 
 
-![The page_table Dictionary](../assets/page-table-dictionary.png)
+<div align="center">
+<img src="../assets/page-table-dictionary.png" alt="The page_table Dictionary" width="500"/>
+</div>
 
 **Sample query into the "page_table" dictionary:**
 
@@ -171,9 +187,11 @@ casper-client get-dictionary-item \
 
 The sample response includes only one "parsed" value equal to "true", meaning that one page was allocated at index 0 to track tokens owned by the account specified. In other words, the account with hash "e861226c153eefc0ca48bf29c76bc305235151aebde76257bf9bbacb4fa041f7" owns tokens tracked in the "page_0" dictionary. To understand the page structure further, review how the contract manages storage and token ownership [here](../README.md#the-cep-78-page-system).
 
-Since the contract allocated the page at index 0 to track tokens, we expect to see a NamedKey called "page_0" in the NFT contract. Using the URef of the "page_0" dictionary and the account hash, we can get the token IDs that the account owns.
+Since the NFT contract allocated the "page_0" dictionary to track tokens for this account, we expect to see a NamedKey called "page_0". Using the URef of the "page_0" dictionary and the account hash, we can get the token IDs that the account owns.
 
-![The page_0 Dictionary](../assets/page-0-dictionary.png)
+<div align="center">
+<img src="../assets/page-0-dictionary.png" alt="The page_0 Dictionary" width="500"/>
+</div>
 
 **Sample query into the "page_0" dictionary:**
 
@@ -217,9 +235,9 @@ casper-client get-dictionary-item \
 }
 ```
 
-Notice that the output is the same as when we queried the dictionary directly using the first method, and the dictionary address "dictionary-eb837c4c92199e66619e163271a7e487704b5be7b103e785ed5b262f36ab6f50". So, we are now at the same step of interpreting the output as explained above, in the [Tokens Identified by Token ID](tokens-identified-by-token-id) and [Tokens Identified by Hash](tokens-identified-by-hash) sections.
+Notice that the output is the same as when we queried the dictionary directly using the first method, and the dictionary address is "dictionary-eb837c4c92199e66619e163271a7e487704b5be7b103e785ed5b262f36ab6f50". So, we now need to interpret the output as explained in the [Tokens Identified by Token ID](tokens-identified-by-token-id) and [Tokens Identified by Hash](tokens-identified-by-hash) sections.
 
-## FAQ
+## Frequently Asked Questions
 
 ### What if the value parsed from the "page_table" dictionary would look like this?
 
@@ -233,23 +251,29 @@ In that case, the account specified in the request would own tokens in the "page
 
 ### What is the "page_limit" NamedKey?
 
-The "page_limit" NamedKey saves the maximum number of pages allocated for tracking tokens minted by an NFT contract. If the page_limit is 1, then we know that the contract has set the maximum token supply to be less than or equal to 1,000.
+The "page_limit" NamedKey saves the maximum number of pages allocated for tracking tokens minted by an NFT contract. If the page_limit is 1, then we know that the contract has set the maximum token supply to be less than or equal to 1,000 tokens.
 
-![The page_limit Dictionary](../assets/page-limit-dictionary.png)
+<div align="center">
+<img src="../assets/page-limit-dictionary.png" alt="The page_limit Dictionary" width="500"/>
+</div>
 
 ### How would the "page_*" NamedKeys look for a larger collection?
 
 If we create an NFT collection with a total token supply of 10,000 NFTs, the NamedKeys for the NFT contract would be split into 10 pages. 
 
-![Larger Collection Pages](../assets/larger-collection-pages.png)
+<div align="center">
+<img src="../assets/larger-collection-pages.png" alt="Larger Collection Pages" width="500"/>
+</div>
 
 Also, the page_limit value would be set to "10".
 
-![Larger Collection Limit](../assets/larger-collection-limit.png)
+<div align="center">
+<img src="../assets/larger-collection-limit.png" alt="Larger Collection Limit" width="500"/>
+</div>
 
-### Why can't we use the balance dictionary in this tutorial?
+### Why don't we use the "balance" dictionary in this tutorial?
 
-The "balance" dictionary tracks how many tokens an account owns, not which tokens it owns.
+The "balance" dictionary tracks how many tokens an account owns, not knowing which tokens it owns.
 
 ### When is the "token_owners" dictionary useful?
 
@@ -258,9 +282,9 @@ The "token_owners" dictionary maps token IDs to token owners. So if you want to 
 
 ## Conclusions
 
-To answer the question "which NFTs does this account own", we need to know which pages were allocated to the account in the "page_table" dictionary and which page indices were set to true. These pages link to dictionaries containing token ownership information.
+To answer the question "which NFTs does this account own" we need to consult the "page_table" dictionary and find which pages are allocated to the account in question. Each page has another page-specific dictionary containing token ownership information in the format "page_#" (for example, "page_0").
 
-If you trust an account and want to see which NFT it owns, look at its NamedKeys. See how many NamedKeys in the format "m_1000_p_X" the account has for a given collection. Given these keys, you can directly access the dictionaries that track pages with token information. Using the state root hash and the dictionary address for each page, you can get the page out of the contract and access token ownership details.
+If you trust an account and want to see which NFT it owns, look at its NamedKeys. See how many NamedKeys the account has for a given collection (in the format "m_1000_p_#"). These NamedKeys point to the "page_#" dictionaries that contain token ownership information. Using the state root hash and the dictionary address for each page (in the format "dictionary-...", you can retrieve token ownership details.
 
-If you don't trust the account, you need to do additional work to figure out which pages have been allocated to the account in the NFT contract. You can find this information by first querying the "page_table" dictionary.
+Suppose you want additional security or cannot trust the account's NamedKeys. In that case, you need to interrogate the NFT contract using the "page_table" dictionary to determine which pages are allocated to the account. Then, you can use the seed URef of the page-specific dictionaries and the account hash (without the "account-hash-" prefix) to retrieve the tokens assigned to the account specified.
 
