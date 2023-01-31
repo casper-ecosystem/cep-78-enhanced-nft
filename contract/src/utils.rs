@@ -625,8 +625,7 @@ pub(crate) fn migrate_token_hashes(token_owner: Key) {
     storage::write(unmatched_hash_count_uref, unmatched_hash_count);
 }
 
-// This function is incredibly gas expensive
-// DO not use this function unless absolutely necessary.
+
 pub(crate) fn get_owned_token_ids_by_token_number() -> Vec<TokenIdentifier> {
     let token_owner: Key = get_verified_caller().unwrap_or_revert();
 
@@ -671,8 +670,6 @@ pub(crate) fn get_owned_token_ids_by_token_number() -> Vec<TokenIdentifier> {
     token_identifiers
 }
 
-// This function is incredibly gas expensive
-// DO not use this function unless absolutely necessary.
 pub(crate) fn get_owned_token_ids_by_page() -> Vec<TokenIdentifier> {
     let token_owner: Key = get_verified_caller().unwrap_or_revert();
     let token_item_key = get_owned_tokens_dictionary_item_key(token_owner);

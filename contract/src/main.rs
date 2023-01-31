@@ -853,8 +853,6 @@ pub extern "C" fn approve() {
     }
 }
 
-// This is an extremely gas intensive operation. DO NOT invoke this
-// entrypoint unless absoluteness necessary
 // Approves the specified operator for transfer token_owner's tokens.
 #[no_mangle]
 pub extern "C" fn set_approval_for_all() {
