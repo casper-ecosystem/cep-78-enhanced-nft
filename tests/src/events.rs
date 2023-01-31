@@ -82,7 +82,7 @@ fn should_record_cep47_dictionary_style_mint_event() {
 
     let mut expected_event: BTreeMap<String, String> = BTreeMap::new();
     expected_event.insert("event_type".to_string(), "Mint".to_string());
-    expected_event.insert("nft_contract_package".to_string(), package);
+    expected_event.insert("cep78_contract_package".to_string(), package);
     expected_event.insert(
         "recipient".to_string(),
         "Key::Account(58b891759929bd4ed5a9cce20b9d6e3c96a66c21386bed96040e17dd07b79fa7)"
@@ -176,7 +176,7 @@ fn should_record_cep47_dictionary_style_transfer_token_event_in_hash_identifier_
     let mut expected_event: BTreeMap<String, String> = BTreeMap::new();
 
     expected_event.insert("event_type".to_string(), "Transfer".to_string());
-    expected_event.insert("nft_contract_package".to_string(), package);
+    expected_event.insert("cep78_contract_package".to_string(), package);
     expected_event.insert(
         "recipient".to_string(),
         "Key::Account(0303030303030303030303030303030303030303030303030303030303030303)"
@@ -344,7 +344,7 @@ fn should_record_cep47_dictionary_style_metadata_update_event_for_nft721_using_t
 
     let mut expected_event: BTreeMap<String, String> = BTreeMap::new();
     expected_event.insert("event_type".to_string(), "MetadataUpdate".to_string());
-    expected_event.insert("nft_contract_package".to_string(), package);
+    expected_event.insert("cep78_contract_package".to_string(), package);
     expected_event.insert("token_id".to_string(), "0".to_string());
     assert_eq!(event, expected_event);
 }
@@ -460,7 +460,7 @@ fn should_cep47_dictionary_style_burn_event() {
 
     let mut expected_event: BTreeMap<String, String> = BTreeMap::new();
     expected_event.insert("event_type".to_string(), "Burn".to_string());
-    expected_event.insert("nft_contract_package".to_string(), package);
+    expected_event.insert("cep78_contract_package".to_string(), package);
     expected_event.insert(
         "owner".to_string(),
         "Key::Account(58b891759929bd4ed5a9cce20b9d6e3c96a66c21386bed96040e17dd07b79fa7)"
@@ -549,7 +549,7 @@ fn should_cep47_dictionary_style_approve_event_in_hash_identifier_mode() {
     );
     let mut expected_event: BTreeMap<String, String> = BTreeMap::new();
     expected_event.insert("event_type".to_string(), "Approve".to_string());
-    expected_event.insert("nft_contract_package".to_string(), package);
+    expected_event.insert("cep78_contract_package".to_string(), package);
     expected_event.insert(
         "owner".to_string(),
         "Key::Account(58b891759929bd4ed5a9cce20b9d6e3c96a66c21386bed96040e17dd07b79fa7)"

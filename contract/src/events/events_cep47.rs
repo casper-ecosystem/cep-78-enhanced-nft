@@ -13,7 +13,7 @@ use casper_contract::{
 use casper_types::Key;
 
 use crate::{
-    constants::{CEP78_PREFIX, HASH_KEY_NAME_1_0_0},
+    constants::{CEP78_PREFIX, HASH_KEY_NAME_PREFIX},
     error::NFTCoreError,
     modalities::TokenIdentifier,
     utils::{self, get_stored_value_with_user_errors},
@@ -62,7 +62,7 @@ pub(crate) fn record_event_dictionary(event: &CEP47Event) {
             token_id,
         } => {
             let mut event = BTreeMap::new();
-            event.insert(HASH_KEY_NAME_1_0_0, package);
+            event.insert(HASH_KEY_NAME_PREFIX, package);
             event.insert("event_type", "Mint".to_string());
             event.insert("recipient", recipient.to_string());
             event.insert("token_id", token_id.to_string());
@@ -70,7 +70,7 @@ pub(crate) fn record_event_dictionary(event: &CEP47Event) {
         }
         CEP47Event::Burn { owner, token_id } => {
             let mut event = BTreeMap::new();
-            event.insert(HASH_KEY_NAME_1_0_0, package);
+            event.insert(HASH_KEY_NAME_PREFIX, package);
             event.insert("event_type", "Burn".to_string());
             event.insert("owner", owner.to_string());
             event.insert("token_id", token_id.to_string());
@@ -82,7 +82,7 @@ pub(crate) fn record_event_dictionary(event: &CEP47Event) {
             token_id,
         } => {
             let mut event = BTreeMap::new();
-            event.insert(HASH_KEY_NAME_1_0_0, package);
+            event.insert(HASH_KEY_NAME_PREFIX, package);
             event.insert("event_type", "Approve".to_string());
             event.insert("owner", owner.to_string());
             event.insert("spender", spender.to_string());
@@ -95,7 +95,7 @@ pub(crate) fn record_event_dictionary(event: &CEP47Event) {
             token_id,
         } => {
             let mut event = BTreeMap::new();
-            event.insert(HASH_KEY_NAME_1_0_0, package);
+            event.insert(HASH_KEY_NAME_PREFIX, package);
             event.insert("event_type", "Transfer".to_string());
             event.insert("sender", sender.to_string());
             event.insert("recipient", recipient.to_string());
@@ -104,7 +104,7 @@ pub(crate) fn record_event_dictionary(event: &CEP47Event) {
         }
         CEP47Event::MetadataUpdate { token_id } => {
             let mut event = BTreeMap::new();
-            event.insert(HASH_KEY_NAME_1_0_0, package);
+            event.insert(HASH_KEY_NAME_PREFIX, package);
             event.insert("event_type", "MetadataUpdate".to_string());
             event.insert("token_id", token_id.to_string());
             event
