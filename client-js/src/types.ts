@@ -4,6 +4,12 @@ export interface CallConfig {
   useSessionCode: boolean;
 }
 
+export enum NamedKeyConventionMode  {
+  DerivedFromCollectionName,
+  V1_0Standard,
+  V1_0Custom
+}
+
 export enum NFTOwnershipMode {
   Minter,
   Assigned,
@@ -89,6 +95,9 @@ export type InstallArgs = {
   holderMode?: NFTHolderMode;
   burnMode?: BurnMode;
   ownerReverseLookupMode?: OwnerReverseLookupMode;
+  namedKeyConventionMode?: NamedKeyConventionMode;
+  accessKeyName?: string;
+  hashKeyName?: string;
 } & ConfigurableVariables;
 
 export interface RegisterArgs {
@@ -138,5 +147,5 @@ export type ApproveAllArgs = {
 };
 
 export type MigrateArgs = {
-  collectionName: string;
+  contractPackageHash: string;
 };

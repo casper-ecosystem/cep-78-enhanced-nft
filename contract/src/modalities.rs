@@ -210,6 +210,15 @@ impl TokenIdentifier {
     }
 }
 
+impl ToString for TokenIdentifier {
+    fn to_string(&self) -> String {
+        match self {
+            TokenIdentifier::Index(i) => i.to_string(),
+            TokenIdentifier::Hash(h) => h.to_string(),
+        }
+    }
+}
+
 #[repr(u8)]
 pub enum BurnMode {
     Burnable = 0,
@@ -267,14 +276,12 @@ impl TryFrom<u8> for NamedKeyConventionMode {
     }
 }
 
-
 #[repr(u8)]
+#[derive(PartialEq, Eq)]
 pub enum EventsMode {
     NoEvents = 0,
-    CEP78 = 1,
-    CEP47 = 2,
+    CEP47 = 1,
 }
-
 
 impl TryFrom<u8> for EventsMode {
     type Error = NFTCoreError;
@@ -282,9 +289,8 @@ impl TryFrom<u8> for EventsMode {
     fn try_from(value: u8) -> Result<Self, Self::Error> {
         match value {
             0 => Ok(EventsMode::NoEvents),
-            1 => Ok(EventsMode::CEP78),
-            2 => Ok(EventsMode::CEP47),
-            _ => Err(NFTCoreError::InvalidEventMode),
+            1 => Ok(EventsMode::CEP47),
+            _ => Err(NFTCoreError::InvalidEventsMode),
         }
     }
 }
