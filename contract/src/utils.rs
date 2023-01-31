@@ -625,7 +625,6 @@ pub(crate) fn migrate_token_hashes(token_owner: Key) {
     storage::write(unmatched_hash_count_uref, unmatched_hash_count);
 }
 
-
 pub(crate) fn get_owned_token_ids_by_token_number() -> Vec<TokenIdentifier> {
     let token_owner: Key = get_verified_caller().unwrap_or_revert();
 
