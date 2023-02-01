@@ -274,7 +274,7 @@ This modality provides the following options:
 
 1. `NoLookup`: The reporting and receipt functionality is not supported. In this option, the contract instance does not maintain a reverse lookup database of ownership and therefore has more predictable gas costs and greater scaling.
 2. `Complete`: The reporting and receipt functionality is supported. Token ownership will be tracked by the contract instance using the system described [here](#owner-reverse-lookup-functionality).
-3. `TransfersOnly`: The reporting and receipt functionality is supported alike `Complete` however is not directly active after minting but only after a first transfer. This modality is for usecases where the majority of NFTs are owned by a private minter and only NFT's that have been transferred benefit from reverse lookup tracking. Token ownership will be as well tracked by the contract instance using the system described [here](#owner-reverse-lookup-functionality).
+3. `TransfersOnly`: The reporting and receipt functionality is supported alike `Complete` however it is not directly active after minting but only after a first transfer. This modality is for usecases where the majority of NFTs are owned by a private minter and only NFT's that have been transferred benefit from reverse lookup tracking. Token ownership will be as well tracked by the contract instance using the system described [here](#owner-reverse-lookup-functionality).
 
 Additionally, when set to `Complete`, causes a receipt to be returned by the `mint` or `transfer` entrypoints, which the caller can store in their account or contract context for later reference.
 
