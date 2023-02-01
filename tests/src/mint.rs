@@ -527,7 +527,7 @@ fn should_allow_public_minting_with_flag_set_to_true() {
 
     let install_request = InstallerRequestBuilder::new(*DEFAULT_ACCOUNT_ADDR, NFT_CONTRACT_WASM)
         .with_total_token_supply(100u64)
-        .with_minting_mode(MintingMode::Public as u8)
+        .with_minting_mode(MintingMode::Public)
         .build();
     builder.exec(install_request).expect_success().commit();
 
@@ -602,7 +602,7 @@ fn should_disallow_public_minting_with_flag_set_to_false() {
 
     let install_request = InstallerRequestBuilder::new(*DEFAULT_ACCOUNT_ADDR, NFT_CONTRACT_WASM)
         .with_total_token_supply(100u64)
-        .with_minting_mode(MintingMode::Installer as u8)
+        .with_minting_mode(MintingMode::Installer)
         .with_ownership_mode(OwnershipMode::Transferable)
         .build();
     builder.exec(install_request).expect_success().commit();
@@ -665,7 +665,7 @@ fn should_allow_minting_for_different_public_key_with_minting_mode_set_to_public
 
     let install_request = InstallerRequestBuilder::new(*DEFAULT_ACCOUNT_ADDR, NFT_CONTRACT_WASM)
         .with_total_token_supply(100u64)
-        .with_minting_mode(MintingMode::Public as u8)
+        .with_minting_mode(MintingMode::Public)
         .build();
     builder.exec(install_request).expect_success().commit();
 
@@ -854,7 +854,7 @@ fn should_allow_whitelisted_contract_to_mint() {
         .with_holder_mode(NFTHolderMode::Contracts)
         .with_whitelist_mode(WhitelistMode::Locked)
         .with_ownership_mode(OwnershipMode::Minter)
-        .with_minting_mode(MintingMode::Installer as u8)
+        .with_minting_mode(MintingMode::Installer)
         .with_reporting_mode(OwnerReverseLookupMode::NoLookUp)
         .with_contract_whitelist(contract_whitelist.clone())
         .build();
@@ -930,7 +930,7 @@ fn should_disallow_unlisted_contract_from_minting() {
         .with_holder_mode(NFTHolderMode::Contracts)
         .with_whitelist_mode(WhitelistMode::Locked)
         .with_ownership_mode(OwnershipMode::Minter)
-        .with_minting_mode(MintingMode::Installer as u8)
+        .with_minting_mode(MintingMode::Installer)
         .with_reporting_mode(OwnerReverseLookupMode::NoLookUp)
         .with_contract_whitelist(contract_whitelist)
         .build();
@@ -988,7 +988,7 @@ fn should_be_able_to_update_whitelist_for_minting() {
         .with_holder_mode(NFTHolderMode::Contracts)
         .with_whitelist_mode(WhitelistMode::Unlocked)
         .with_ownership_mode(OwnershipMode::Minter)
-        .with_minting_mode(MintingMode::Installer as u8)
+        .with_minting_mode(MintingMode::Installer)
         .with_reporting_mode(OwnerReverseLookupMode::NoLookUp)
         .with_contract_whitelist(vec![])
         .build();
