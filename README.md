@@ -28,7 +28,7 @@ The release of version 1.1 for the CEP-78 Enhanced NFT Standard includes the fol
 
   - The naming convention for the default named key prefix of a given CEP-78 contract instance has been changed to `cep78_<collection_name>` with spaces and dashes within the collection name converted to underscores.
 
-  - **Version 1.1.1** Added a new modality named `NamedKeyConventionMode` that dictates the upgrading and installation process, with further information [here](#namedkeyconventionmode)
+    - **Version 1.1.1** Added a new modality named `NamedKeyConventionMode` that dictates the upgrading and installation process, with further information [here](#namedkeyconventionmode)
 
   - **If an account attempts to install a second CEP-78 contract instance with the same collection name, it will overwrite the `NamedKey` entry under which the access URef is written. Losing the access URef will prevent the account from adding newer versions, i.e., upgrading that particular instance of CEP-78.**
 
@@ -312,6 +312,13 @@ This modality provides three options:
 
 The `MetadataMutability` option of `Mutable` cannot be used in conjunction with `NFTIdentifierMode` modality of `Hash`.
 
+#### EventsMode
+
+The `EventsMode` modality allows the deployers of the contract to decide on schemas for recording events during the operation of the contract where changes to the tokens happen.
+
+0. `NoEvents`: No events will be recorded during the operation, this is the default mode.
+1. `CEP47`: The event schema from the CEP47 contract has been implemented as a possibility.
+
 ### Usage
 
 #### Installing the contract.
@@ -342,6 +349,7 @@ The following are the optional parameters that can be passed in at the time of i
 - `"contract_whitelist"`: The contract whitelist is a list of contract hashes that specifies which contracts can call the `mint()` entrypoint to mint NFTs. This is an optional parameter which will default to an empty whitelist. This value can be changed via the `set_variables` post installation. If the whitelist mode is set to locked, a non-empty whitelist must be passed; else, installation of the contract will fail.
 - `"burn_mode"`: The [`BurnMode`](#burnmode) modality dictates whether minted NFTs can be burnt. This is an optional parameter and will allow tokens to be burnt by default. This parameter cannot be changed once the contract has been installed.
 - `"owner_reverse_lookup_mode"`: The [`OwnerReverseLookupMode`](#reportingmode) modality dictates whether the lookup for owners to token identifiers is available. This is an optional parameter and will not provide the lookup by default. This parameter cannot be changed once the contract has been installed.
+- `"events_mode"`: During installation of the contract the deployer can set the [`EventsMode`](#eventsmode) that selects the event schema that will be recorded when changes happen to the NFT tokens.
 
 ##### Example deploy
 
@@ -795,3 +803,6 @@ If it is set to `Hash`, you will need to reference the `HASH_BY_INDEX` dictionar
 | 137  | InvalidAccessKeyName              |
 | 138  | InvalidCheckForUpgrade            |
 | 139  | InvalidNamedKeyConvention         |
+| 140  | InvalidTokenEvent                 |
+| 141  | MissingEventsMode                 |
+| 142  | InvalidEventsMode                 |

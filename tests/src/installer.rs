@@ -331,7 +331,7 @@ fn should_prevent_installation_with_ownership_and_minting_modality_conflict() {
         .with_collection_name(NFT_TEST_COLLECTION.to_string())
         .with_collection_symbol(NFT_TEST_SYMBOL.to_string())
         .with_total_token_supply(1_000u64)
-        .with_minting_mode(MintingMode::Installer as u8)
+        .with_minting_mode(MintingMode::Installer)
         .with_ownership_mode(OwnershipMode::Minter)
         .with_reporting_mode(OwnerReverseLookupMode::Complete)
         .build();
@@ -356,7 +356,7 @@ fn should_prevent_installation_with_ownership_minter_and_owner_reverse_lookup_mo
         .with_collection_name(NFT_TEST_COLLECTION.to_string())
         .with_collection_symbol(NFT_TEST_SYMBOL.to_string())
         .with_total_token_supply(1_000u64)
-        .with_minting_mode(MintingMode::Installer as u8)
+        .with_minting_mode(MintingMode::Installer)
         .with_ownership_mode(OwnershipMode::Minter)
         .with_reporting_mode(OwnerReverseLookupMode::TransfersOnly)
         .build();
@@ -367,7 +367,7 @@ fn should_prevent_installation_with_ownership_minter_and_owner_reverse_lookup_mo
 
     support::assert_expected_error(
         error,
-        140u16,
+        143u16,
         "cannot install when Ownership::Minter and OwnerReverseLookupMode::TransfersOnly",
     );
 }
@@ -382,7 +382,7 @@ fn should_prevent_installation_with_ownership_assigned_and_owner_reverse_lookup_
         .with_collection_name(NFT_TEST_COLLECTION.to_string())
         .with_collection_symbol(NFT_TEST_SYMBOL.to_string())
         .with_total_token_supply(1_000u64)
-        .with_minting_mode(MintingMode::Installer as u8)
+        .with_minting_mode(MintingMode::Installer)
         .with_ownership_mode(OwnershipMode::Assigned)
         .with_reporting_mode(OwnerReverseLookupMode::TransfersOnly)
         .build();
@@ -393,7 +393,7 @@ fn should_prevent_installation_with_ownership_assigned_and_owner_reverse_lookup_
 
     support::assert_expected_error(
         error,
-        140u16,
+        143u16,
         "cannot install when Ownership::Assigned and OwnerReverseLookupMode::TransfersOnly",
     );
 }
@@ -408,7 +408,7 @@ fn should_allow_installation_with_ownership_transferable_and_owner_reverse_looku
         .with_collection_name(NFT_TEST_COLLECTION.to_string())
         .with_collection_symbol(NFT_TEST_SYMBOL.to_string())
         .with_total_token_supply(1_000u64)
-        .with_minting_mode(MintingMode::Installer as u8)
+        .with_minting_mode(MintingMode::Installer)
         .with_ownership_mode(OwnershipMode::Transferable)
         .with_reporting_mode(OwnerReverseLookupMode::TransfersOnly)
         .build();

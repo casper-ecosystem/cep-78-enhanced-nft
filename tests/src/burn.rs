@@ -448,7 +448,7 @@ fn should_allow_contract_to_burn_token() {
         .with_holder_mode(NFTHolderMode::Contracts)
         .with_whitelist_mode(WhitelistMode::Locked)
         .with_ownership_mode(OwnershipMode::Minter)
-        .with_minting_mode(MintingMode::Installer as u8)
+        .with_minting_mode(MintingMode::Installer)
         .with_reporting_mode(OwnerReverseLookupMode::NoLookUp)
         .with_contract_whitelist(contract_whitelist)
         .build();
