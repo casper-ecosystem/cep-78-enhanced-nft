@@ -200,7 +200,7 @@ fn transfer_costs_should_remain_stable() {
     assert_eq!(second_transfer_gas_cost, third_transfer_gas_cost);
 }
 
-fn should_cost_less_when_installing_without_reverse_lookup(resporting: OwnerReverseLookupMode) {
+fn should_cost_less_when_installing_without_reverse_lookup(reporting: OwnerReverseLookupMode) {
     let mut builder = InMemoryWasmTestBuilder::default();
     builder.run_genesis(&DEFAULT_RUN_GENESIS_REQUEST).commit();
 
@@ -211,7 +211,7 @@ fn should_cost_less_when_installing_without_reverse_lookup(resporting: OwnerReve
         .with_ownership_mode(OwnershipMode::Transferable)
         .with_identifier_mode(NFTIdentifierMode::Ordinal)
         .with_nft_metadata_kind(NFTMetadataKind::Raw)
-        .with_reporting_mode(resporting)
+        .with_reporting_mode(reporting)
         .build();
 
     builder.exec(install_request).expect_success().commit();
