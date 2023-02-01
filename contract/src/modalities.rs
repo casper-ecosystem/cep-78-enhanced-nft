@@ -213,8 +213,8 @@ impl TokenIdentifier {
 impl ToString for TokenIdentifier {
     fn to_string(&self) -> String {
         match self {
-            TokenIdentifier::Index(i) => i.to_string(),
-            TokenIdentifier::Hash(h) => h.to_string(),
+            TokenIdentifier::Index(index) => index.to_string(),
+            TokenIdentifier::Hash(hash) => hash.to_string(),
         }
     }
 }

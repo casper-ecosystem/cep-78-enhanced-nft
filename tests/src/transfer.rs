@@ -494,7 +494,7 @@ fn should_be_able_to_transfer_token_using_approved_operator() {
 }
 
 #[test]
-fn should_dissallow_same_operator_to_tranfer_token_twice() {
+fn should_dissallow_same_operator_to_transfer_token_twice() {
     let mut builder = InMemoryWasmTestBuilder::default();
     builder.run_genesis(&DEFAULT_RUN_GENESIS_REQUEST).commit();
 

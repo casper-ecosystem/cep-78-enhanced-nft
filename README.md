@@ -663,7 +663,7 @@ If it is set to `Hash`, you will need to reference the `HASH_BY_INDEX` dictionar
 ## Error Codes
 
 | Code | Error                             |
-| ---- | --------------------------------- |
+|------|-----------------------------------|
 | 1    | InvalidAccount                    |
 | 2    | MissingInstaller                  |
 | 3    | InvalidInstaller                  |
@@ -804,15 +804,5 @@ If it is set to `Hash`, you will need to reference the `HASH_BY_INDEX` dictionar
 | 138  | InvalidCheckForUpgrade            |
 | 139  | InvalidNamedKeyConvention         |
 | 140  | InvalidTokenEvent                 |
-| 141  | MissingTokenEventId               |
-| 142  | InvalidTokenEventId               |
-| 143  | InvalidTokenEventOrder            |
-| 144  | FailedToRecordMintEvent           |
-| 145  | FailedToRecordBurnedEvent         |
-| 146  | FailedToRecordApproveEvent        |
-| 147  | FailedToRecordTransferEvent       |
-| 148  | FailedToRecordMetadataUpdateEvent |
-| 149  | InvalidStartingEventId            |
-| 150  | InvalidLastEventId                |
-| 151  | MissingEventsMode                 |
-| 152  | InvalidEventsMode                 |
+| 141  | MissingEventsMode                 |
+| 142  | InvalidEventsMode                 |
