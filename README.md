@@ -308,6 +308,41 @@ This modality provides three options:
 | V_1_0_standard            | 1   |
 | V_1_0_custom              | 2   |
 
+#### EventsMode
+
+The `EventsMode` modality determines how the installed instance of CEP-78 will handle the recording of events that occur from interacting with the contract.
+
+The modality provides two options:
+
+1. `NoEvents`: This modality will signal the contract to not record events at all.
+2. `CEP47`: This modality will signal the contract to record events in a manner similar to that used for CEP47. Events are stored as a `BTreeMap` within dictionary in the contract's context. Events are recorded as one of the following `event_type`s alongside the listed information.
+
+* `Mint`
+   - The `Key` of the recipient.
+   - The [`TokenIdentifier`](#nftidentifiermode) for the `token_id`.
+
+* `Burn`
+   - The `Key` of the owner.
+   - The [`TokenIdentifier`](#nftidentifiermode) for the `token_id`.
+
+* `Approve`
+   - The `Key` of the owner.
+   - The `Key` of the spender.
+   - The [`TokenIdentifier`](#nftidentifiermode) for the `token_id`.
+
+* `Transfer`
+   - The `Key` of the sender.
+   - The `Key` of the recipient.
+   - The [`TokenIdentifier`](#nftidentifiermode) for the `token_id`.
+
+* `MetadataUpdate`
+   - The [`TokenIdentifier`](#nftidentifiermode) for the `token_id`.
+
+| EventsMode                | u8  |
+| ------------------------- | --- |
+| NoEvents                  | 0   |
+| CEP47                     | 1   |
+
 #### Modality Conflicts
 
 The `MetadataMutability` option of `Mutable` cannot be used in conjunction with `NFTIdentifierMode` modality of `Hash`.
