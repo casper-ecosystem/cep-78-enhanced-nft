@@ -738,7 +738,7 @@ pub(crate) fn get_reporting_mode() -> OwnerReverseLookupMode {
 pub fn add_page_entry_and_page_record(
     tokens_count: u64,
     item_key: &str,
-    on_mint: Option<bool>,
+    on_mint: bool,
 ) -> (u64, URef) {
     // there is an explicit page_table;
     // this is the entry in that overall page table which maps to the underlying page
@@ -763,7 +763,7 @@ pub fn add_page_entry_and_page_record(
     let mut page_table =
         match storage::dictionary_get::<Vec<bool>>(page_table_uref, item_key).unwrap_or_revert() {
             Some(page_table) => page_table,
-            None => runtime::revert(if on_mint.unwrap() {
+            None => runtime::revert(if on_mint {
                 NFTCoreError::UnregisteredOwnerInMint
             } else {
                 NFTCoreError::UnregisteredOwnerInTransfer
