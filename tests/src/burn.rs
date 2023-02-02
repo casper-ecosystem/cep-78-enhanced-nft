@@ -5,6 +5,7 @@ use casper_engine_test_support::{
 use casper_types::{
     account::AccountHash, runtime_args, system::mint, ContractHash, Key, RuntimeArgs,
 };
+use contract::{events::Burn, modalities::TokenIdentifier};
 
 use crate::utility::{
     constants::{
@@ -47,6 +48,7 @@ fn should_burn_minted_token(reporting: OwnerReverseLookupMode) {
         .expect("must have key in named keys");
 
     let nft_contract_hash = get_nft_contract_hash(&builder);
+    let token_owner: Key = Key::Account(*DEFAULT_ACCOUNT_ADDR);
 
     let reverse_lookup_enabled: bool = reporting == OwnerReverseLookupMode::Complete;
     if reverse_lookup_enabled {
@@ -74,6 +76,7 @@ fn should_burn_minted_token(reporting: OwnerReverseLookupMode) {
         assert!(token_page[0]);
     } else {
         let mint_runtime_args = runtime_args! {
+            ARG_NFT_CONTRACT_HASH => Key::Hash(nft_contract_hash.value()),
             ARG_TOKEN_OWNER => Key::Account(*DEFAULT_ACCOUNT_ADDR),
             ARG_TOKEN_META_DATA => TEST_PRETTY_721_META_DATA.to_string(),
         };
@@ -88,6 +91,10 @@ fn should_burn_minted_token(reporting: OwnerReverseLookupMode) {
 
         builder.exec(minting_request).expect_success().commit();
     }
+    let token_page =
+        support::get_token_page_by_id(&builder, nft_contract_key, &token_owner, token_id);
+
+    assert!(token_page[0]);(Integration tests for events. Making 'contract' a library.)
 
     let actual_balance_before_burn = support::get_dictionary_value_from_key::<u64>(
         &builder,
@@ -128,6 +135,11 @@ fn should_burn_minted_token(reporting: OwnerReverseLookupMode) {
 
     let expected_balance = 0u64;
     assert_eq!(actual_balance, expected_balance);
+
+    // Expect Burn event.
+    let expected_event = Burn::new(token_owner, TokenIdentifier::Index(0));
+    let actual_event: Burn = support::get_event(&builder, nft_contract_key, 1);
+    assert_eq!(actual_event, expected_event, "Expected Burn event.");
 }
 
 #[test]

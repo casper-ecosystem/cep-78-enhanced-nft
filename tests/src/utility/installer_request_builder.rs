@@ -12,10 +12,15 @@ use crate::utility::constants::{
     ARG_CONTRACT_WHITELIST, ARG_HOLDER_MODE, ARG_IDENTIFIER_MODE, ARG_JSON_SCHEMA,
     ARG_METADATA_MUTABILITY, ARG_MINTING_MODE, ARG_NAMED_KEY_CONVENTION, ARG_NFT_KIND,
     ARG_NFT_METADATA_KIND, ARG_OWNERSHIP_MODE, ARG_OWNER_LOOKUP_MODE, ARG_TOTAL_TOKEN_SUPPLY,
-    ARG_WHITELIST_MODE, NFT_TEST_COLLECTION, NFT_TEST_SYMBOL,
+    ARG_WHITELIST_MODE, NFT_TEST_COLLECTION, NFT_TEST_SYMBOL, ARG_ADDITIONAL_REQUIRED_METADATA, ARG_OPTIONAL_METADATA
 };
 
-use super::constants::{ARG_ADDITIONAL_REQUIRED_METADATA, ARG_OPTIONAL_METADATA};
+// Modalities reexports.
+pub use contract::modalities::{
+    BurnMode, MetadataMutability, MintingMode, NFTHolderMode, NFTIdentifierMode, NFTKind,
+    NFTMetadataKind, NamedKeyConventionMode, OwnerReverseLookupMode, OwnershipMode,
+    TokenIdentifier, WhitelistMode,
+};
 
 pub(crate) static TEST_CUSTOM_METADATA_SCHEMA: Lazy<CustomMetadataSchema> = Lazy::new(|| {
     let mut properties = BTreeMap::new();
@@ -51,44 +56,6 @@ pub(crate) static TEST_CUSTOM_UPDATED_METADATA: Lazy<BTreeMap<String, String>> =
     attributes.insert("enemy".to_string(), "Loki".to_string());
     attributes
 });
-
-#[repr(u8)]
-pub enum WhitelistMode {
-    Unlocked = 0,
-    Locked = 1,
-}
-
-#[repr(u8)]
-pub enum NFTHolderMode {
-    Accounts = 0,
-    Contracts = 1,
-    Mixed = 2,
-}
-
-#[repr(u8)]
-pub enum MintingMode {
-    /// The ability to mint NFTs is restricted to the installing account only.
-    Installer = 0,
-    /// The ability to mint NFTs is not restricted.
-    Public = 1,
-}
-
-#[repr(u8)]
-#[derive(Debug)]
-pub enum OwnershipMode {
-    Minter = 0,       // The minter owns it and can never transfer it.
-    Assigned = 1,     // The minter assigns it to an address and can never be transferred.
-    Transferable = 2, // The NFT can be transferred even to an recipient that does not exist.
-}
-
-#[repr(u8)]
-#[derive(Debug)]
-#[allow(dead_code)]
-pub enum NFTKind {
-    Physical = 0,
-    Digital = 1, // The minter assigns it to an address and can never be transferred.
-    Virtual = 2, // The NFT can be transferred even to an recipient that does not exist
-}
 
 #[derive(Serialize, Deserialize, Clone)]
 pub(crate) struct MetadataSchemaProperty {
