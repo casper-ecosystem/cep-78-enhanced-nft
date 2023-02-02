@@ -4,6 +4,7 @@ use casper_engine_test_support::{
 };
 use casper_execution_engine::storage::global_state::in_memory::InMemoryGlobalState;
 use casper_types::{account::AccountHash, runtime_args, CLValue, ContractHash, Key, RuntimeArgs};
+use contract::events::Migration;
 
 use crate::utility::{
     constants::{
@@ -140,6 +141,11 @@ fn should_safely_upgrade_in_ordinal_identifier_mode() {
         page
     };
     assert_eq!(actual_page, expected_page);
+
+    // Expect Migration event.
+    let expected_event = Migration::new();
+    let actual_event: Migration = support::get_event(&builder, &nft_contract_key, 0);
+    assert_eq!(actual_event, expected_event, "Expected Migration event.");
 
     let mint_request = ExecuteRequestBuilder::standard(
         *DEFAULT_ACCOUNT_ADDR,

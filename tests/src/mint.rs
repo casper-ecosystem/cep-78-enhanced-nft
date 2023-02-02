@@ -1,3 +1,7 @@
+use contract::{
+    events::{ApprovalForAll, Mint},
+    modalities::TokenIdentifier,
+};
 use serde::{Deserialize, Serialize};
 
 use casper_engine_test_support::{
@@ -205,13 +209,14 @@ fn should_mint() {
         .commit();
 
     let nft_contract_key: Key = get_nft_contract_hash(&builder).into();
+    let token_owner: Key = Key::Account(*DEFAULT_ACCOUNT_ADDR);
 
     let mint_session_call = ExecuteRequestBuilder::standard(
         *DEFAULT_ACCOUNT_ADDR,
         MINT_SESSION_WASM,
         runtime_args! {
             ARG_NFT_CONTRACT_HASH => nft_contract_key,
-            ARG_TOKEN_OWNER => Key::Account(*DEFAULT_ACCOUNT_ADDR),
+            ARG_TOKEN_OWNER => token_owner,
             ARG_TOKEN_META_DATA => TEST_PRETTY_CEP78_METADATA,
             ARG_COLLECTION_NAME => NFT_TEST_COLLECTION.to_string()
         },
@@ -219,6 +224,15 @@ fn should_mint() {
     .build();
 
     builder.exec(mint_session_call).expect_success().commit();
+
+    // Expect Mint event.
+    let expected_event = Mint::new(
+        token_owner,
+        TokenIdentifier::Index(0),
+        TEST_PRETTY_CEP78_METADATA.to_string(),
+    );
+    let actual_event: Mint = support::get_event(&builder, &nft_contract_key, 0);
+    assert_eq!(actual_event, expected_event, "Expected Mint event.");
 }
 
 #[test]
@@ -252,11 +266,8 @@ fn mint_should_return_dictionary_key_to_callers_owned_tokens() {
 
     let account = builder.get_expected_account(*DEFAULT_ACCOUNT_ADDR);
 
-    let nft_receipt: String = support::query_stored_value(
-        &mut builder,
-        nft_contract_key,
-        vec![RECEIPT_NAME.to_string()],
-    );
+    let nft_receipt: String =
+        support::query_stored_value(&builder, nft_contract_key, vec![RECEIPT_NAME.to_string()]);
 
     let account_receipt = *account
         .named_keys()
@@ -319,7 +330,7 @@ fn mint_should_increment_number_of_minted_tokens_by_one_and_add_public_key_to_to
 
     //mint should have incremented number_of_minted_tokens by one
     let query_result: u64 = support::query_stored_value(
-        &mut builder,
+        &builder,
         *nft_contract_key,
         vec![NUMBER_OF_MINTED_TOKENS.to_string()],
     );
@@ -556,7 +567,7 @@ fn should_allow_public_minting_with_flag_set_to_true() {
         .commit();
 
     let public_minting_status = support::query_stored_value::<u8>(
-        &mut builder,
+        &builder,
         *nft_contract_key,
         vec![ARG_MINTING_MODE.to_string()],
     );
@@ -632,7 +643,7 @@ fn should_disallow_public_minting_with_flag_set_to_false() {
         .commit();
 
     let public_minting_status = support::query_stored_value::<u8>(
-        &mut builder,
+        &builder,
         *nft_contract_key,
         vec![ARG_MINTING_MODE.to_string()],
     );
@@ -705,7 +716,7 @@ fn should_allow_minting_for_different_public_key_with_minting_mode_set_to_public
     }
 
     let public_minting_status = support::query_stored_value::<u8>(
-        &mut builder,
+        &builder,
         *nft_contract_key,
         vec![ARG_MINTING_MODE.to_string()],
     );
@@ -746,12 +757,14 @@ fn should_set_approval_for_all() {
 
     let nft_contract_hash = get_nft_contract_hash(&builder);
     let nft_contract_key: Key = nft_contract_hash.into();
+    let owner_key = Key::Account(*DEFAULT_ACCOUNT_ADDR);
+
     let mint_session_call = ExecuteRequestBuilder::standard(
         *DEFAULT_ACCOUNT_ADDR,
         MINT_SESSION_WASM,
         runtime_args! {
             ARG_NFT_CONTRACT_HASH => nft_contract_key,
-            ARG_TOKEN_OWNER => Key::Account(*DEFAULT_ACCOUNT_ADDR),
+            ARG_TOKEN_OWNER => owner_key,
             ARG_TOKEN_META_DATA => TEST_PRETTY_721_META_DATA.to_string(),
             ARG_COLLECTION_NAME => NFT_TEST_COLLECTION.to_string()
         },
@@ -764,7 +777,7 @@ fn should_set_approval_for_all() {
         MINT_SESSION_WASM,
         runtime_args! {
             ARG_NFT_CONTRACT_HASH => nft_contract_key,
-            ARG_TOKEN_OWNER => Key::Account(*DEFAULT_ACCOUNT_ADDR),
+            ARG_TOKEN_OWNER => owner_key,
             ARG_TOKEN_META_DATA => TEST_PRETTY_721_META_DATA.to_string(),
             ARG_COLLECTION_NAME => NFT_TEST_COLLECTION.to_string()
         },
@@ -773,13 +786,15 @@ fn should_set_approval_for_all() {
     builder.exec(mint_session_call).expect_success().commit();
 
     let (_, operator_public_key) = create_dummy_key_pair(ACCOUNT_USER_1);
+    let operator_key = Key::Account(operator_public_key.to_account_hash());
+
     let set_approve_for_all_request = ExecuteRequestBuilder::contract_call_by_name(
         *DEFAULT_ACCOUNT_ADDR,
         CONTRACT_NAME,
         ENTRY_POINT_SET_APPROVE_FOR_ALL,
-        runtime_args! {ARG_TOKEN_OWNER =>  Key::Account(*DEFAULT_ACCOUNT_ADDR),
+        runtime_args! {ARG_TOKEN_OWNER =>  owner_key,
             ARG_APPROVE_ALL => true,
-            ARG_OPERATOR => Key::Account(operator_public_key.to_account_hash())
+            ARG_OPERATOR => operator_key
         },
     )
     .build();
@@ -801,10 +816,9 @@ fn should_set_approval_for_all() {
         "get_approved",
     );
 
-    let expected_operator = Key::Account(operator_public_key.to_account_hash());
     assert_eq!(
         actual_operator,
-        Some(expected_operator),
+        Some(operator_key),
         "actual and expected operator should be equal"
     );
 
@@ -814,17 +828,28 @@ fn should_set_approval_for_all() {
         nft_contract_key,
         runtime_args! {
             ARG_IS_HASH_IDENTIFIER_MODE => false,
-            ARG_TOKEN_ID => 0u64,
+            ARG_TOKEN_ID => 1u64,
         },
         "get_approved_call.wasm",
         "get_approved",
     );
 
-    let expected_operator = Key::Account(operator_public_key.to_account_hash());
     assert_eq!(
         actual_operator,
-        Some(expected_operator),
+        Some(operator_key),
         "actual and expected operator should be equal"
+    );
+
+    // Expect ApprovalForAll event.
+    let expected_event = ApprovalForAll::new(
+        owner_key,
+        Some(operator_key),
+        vec![TokenIdentifier::Index(0), TokenIdentifier::Index(1)],
+    );
+    let actual_event: ApprovalForAll = support::get_event(&builder, &nft_contract_key, 2);
+    assert_eq!(
+        actual_event, expected_event,
+        "Expected ApprovalForAll event."
     );
 }
 
@@ -864,7 +889,7 @@ fn should_allow_whitelisted_contract_to_mint() {
     let nft_contract_key: Key = get_nft_contract_hash(&builder).into();
 
     let actual_contract_whitelist: Vec<ContractHash> = query_stored_value(
-        &mut builder,
+        &builder,
         nft_contract_key,
         vec![ARG_CONTRACT_WHITELIST.to_string()],
     );
@@ -999,7 +1024,7 @@ fn should_be_able_to_update_whitelist_for_minting() {
     let nft_contract_key = nft_contract_hash.into();
 
     let current_contract_whitelist: Vec<ContractHash> = query_stored_value(
-        &mut builder,
+        &builder,
         nft_contract_key,
         vec![ARG_CONTRACT_WHITELIST.to_string()],
     );
@@ -1045,7 +1070,7 @@ fn should_be_able_to_update_whitelist_for_minting() {
         .commit();
 
     let updated_contract_whitelist: Vec<ContractHash> = query_stored_value(
-        &mut builder,
+        &builder,
         nft_contract_key,
         vec![ARG_CONTRACT_WHITELIST.to_string()],
     );

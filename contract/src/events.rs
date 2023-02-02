@@ -4,7 +4,7 @@ use casper_types::Key;
 
 use crate::modalities::TokenIdentifier;
 
-#[derive(Event)]
+#[derive(Event, Debug, PartialEq, Eq)]
 pub struct Mint {
     recipient: Key,
     token_id: TokenIdentifier,
@@ -16,12 +16,12 @@ impl Mint {
         Self {
             recipient,
             token_id,
-            data
+            data,
         }
     }
 }
 
-#[derive(Event)]
+#[derive(Event, Debug, PartialEq, Eq)]
 pub struct Burn {
     owner: Key,
     token_id: TokenIdentifier,
@@ -33,7 +33,7 @@ impl Burn {
     }
 }
 
-#[derive(Event)]
+#[derive(Event, Debug, PartialEq, Eq)]
 pub struct Approval {
     owner: Key,
     operator: Key,
@@ -50,7 +50,7 @@ impl Approval {
     }
 }
 
-#[derive(Event)]
+#[derive(Event, Debug, PartialEq, Eq)]
 pub struct ApprovalForAll {
     owner: Key,
     operator: Option<Key>,
@@ -67,7 +67,7 @@ impl ApprovalForAll {
     }
 }
 
-#[derive(Event)]
+#[derive(Event, Debug, PartialEq, Eq)]
 pub struct Transfer {
     owner: Key,
     operator: Option<Key>,
@@ -91,7 +91,7 @@ impl Transfer {
     }
 }
 
-#[derive(Event)]
+#[derive(Event, Debug, PartialEq, Eq)]
 pub struct MetadataUpdated {
     token_id: TokenIdentifier,
     data: String,
@@ -103,7 +103,7 @@ impl MetadataUpdated {
     }
 }
 
-#[derive(Event)]
+#[derive(Event, Debug, PartialEq, Eq, Default)]
 pub struct VariablesSet {}
 
 impl VariablesSet {
@@ -112,7 +112,7 @@ impl VariablesSet {
     }
 }
 
-#[derive(Event)]
+#[derive(Event, Debug, PartialEq, Eq, Default)]
 pub struct Migration {}
 
 impl Migration {

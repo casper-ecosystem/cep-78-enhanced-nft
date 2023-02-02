@@ -580,7 +580,11 @@ pub extern "C" fn mint() {
     storage::write(number_of_minted_tokens_uref, minted_tokens_count + 1u64);
 
     // Emit Mint event.
-    casper_event_standard::emit(Mint::new(token_owner_key, token_identifier.clone(), metadata));
+    casper_event_standard::emit(Mint::new(
+        token_owner_key,
+        token_identifier.clone(),
+        metadata,
+    ));
 
     if let OwnerReverseLookupMode::Complete = utils::get_reporting_mode() {
         if (NFTIdentifierMode::Hash == identifier_mode)

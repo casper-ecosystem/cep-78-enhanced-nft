@@ -2,7 +2,7 @@ use alloc::{
     string::{String, ToString},
     vec::Vec,
 };
-use casper_contract::unwrap_or_revert::UnwrapOrRevert;
+
 use casper_types::{
     bytesrepr::{self, FromBytes, ToBytes, U64_SERIALIZED_LENGTH, U8_SERIALIZED_LENGTH},
     CLTyped,
@@ -10,7 +10,7 @@ use casper_types::{
 
 use core::convert::TryFrom;
 
-use crate::NFTCoreError;
+use crate::error::NFTCoreError;
 
 #[repr(u8)]
 #[derive(PartialEq, Eq)]
@@ -100,6 +100,7 @@ impl TryFrom<u8> for NFTKind {
 }
 
 #[repr(u8)]
+#[derive(Clone, Copy)]
 pub enum NFTMetadataKind {
     CEP78 = 0,
     NFT721 = 1,
@@ -145,7 +146,7 @@ impl TryFrom<u8> for OwnershipMode {
 }
 
 #[repr(u8)]
-#[derive(PartialEq, Eq)]
+#[derive(PartialEq, Eq, Clone, Copy)]
 pub enum NFTIdentifierMode {
     Ordinal = 0,
     Hash = 1,
@@ -181,7 +182,7 @@ impl TryFrom<u8> for MetadataMutability {
     }
 }
 
-#[derive(PartialEq, Eq, Clone)]
+#[derive(PartialEq, Eq, Clone, Debug)]
 pub enum TokenIdentifier {
     Index(u64),
     Hash(String),
@@ -246,7 +247,8 @@ impl ToBytes for TokenIdentifier {
 impl FromBytes for TokenIdentifier {
     fn from_bytes(bytes: &[u8]) -> Result<(Self, &[u8]), bytesrepr::Error> {
         let (identifier_mode, bytes) = u8::from_bytes(bytes)?;
-        let identifier_mode = NFTIdentifierMode::try_from(identifier_mode).unwrap_or_revert();
+        let identifier_mode = NFTIdentifierMode::try_from(identifier_mode)
+            .map_err(|_| bytesrepr::Error::Formatting)?;
         match identifier_mode {
             NFTIdentifierMode::Ordinal => {
                 let (index, bytes) = u64::from_bytes(bytes)?;
