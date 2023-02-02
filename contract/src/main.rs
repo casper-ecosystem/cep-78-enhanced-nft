@@ -627,8 +627,9 @@ pub extern "C" fn mint() {
             utils::migrate_token_hashes(token_owner_key)
         }
 
+        let on_mint = Some(true);
         let (page_table_entry, page_uref) =
-            add_page_entry_and_page_record(minted_tokens_count, &owned_tokens_item_key);
+            add_page_entry_and_page_record(minted_tokens_count, &owned_tokens_item_key, on_mint);
 
         let receipt_string = utils::get_receipt_name(page_table_entry);
         let receipt_address = Key::dictionary(page_uref, owned_tokens_item_key.as_bytes());
@@ -1079,7 +1080,7 @@ pub extern "C" fn transfer() {
         // Update to_account owned_tokens. Revert if owned_tokens list is not found
         let tokens_count = utils::get_token_index(&token_identifier);
         if OwnerReverseLookupMode::TransfersOnly == reporting_mode {
-            add_page_entry_and_page_record(tokens_count, &source_owner_item_key);
+            add_page_entry_and_page_record(tokens_count, &source_owner_item_key, None);
         }
 
         let (page_table_entry, page_uref) = update_page_entry_and_page_record(

@@ -735,7 +735,11 @@ pub(crate) fn get_reporting_mode() -> OwnerReverseLookupMode {
     .unwrap_or_revert()
 }
 
-pub fn add_page_entry_and_page_record(tokens_count: u64, item_key: &str) -> (u64, URef) {
+pub fn add_page_entry_and_page_record(
+    tokens_count: u64,
+    item_key: &str,
+    on_mint: Option<bool>,
+) -> (u64, URef) {
     // there is an explicit page_table;
     // this is the entry in that overall page table which maps to the underlying page
     // upon which this mint's address will exist
@@ -759,7 +763,11 @@ pub fn add_page_entry_and_page_record(tokens_count: u64, item_key: &str) -> (u64
     let mut page_table =
         match storage::dictionary_get::<Vec<bool>>(page_table_uref, item_key).unwrap_or_revert() {
             Some(page_table) => page_table,
-            None => runtime::revert(NFTCoreError::UnregisteredOwnerInPageAdd),
+            None => runtime::revert(if on_mint.unwrap() {
+                NFTCoreError::UnregisteredOwnerInMint
+            } else {
+                NFTCoreError::UnregisteredOwnerInTransfer
+            }),
         };
 
     let mut page = if !page_table[page_table_entry as usize] {
@@ -813,7 +821,7 @@ pub fn update_page_entry_and_page_record(
 
     let mut target_page_table = storage::dictionary_get::<Vec<bool>>(page_table_uref, new_item_key)
         .unwrap_or_revert()
-        .unwrap_or_revert_with(NFTCoreError::UnregisteredOwnerInPageUpdate);
+        .unwrap_or_revert_with(NFTCoreError::UnregisteredOwnerInTransfer);
 
     let mut target_page = if !target_page_table[page_table_entry as usize] {
         // Create a new page here
