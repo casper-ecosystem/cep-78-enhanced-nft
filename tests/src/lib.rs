@@ -26,6 +26,10 @@ mod costs;
 mod metadata;
 #[cfg(test)]
 mod upgrade;
+// A collection of tests that are focused
+// around token events.
+#[cfg(test)]
+mod events;
 
 // A collection of helper methods and constants.
 #[cfg(test)]
