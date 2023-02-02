@@ -315,7 +315,9 @@ The `EventsMode` modality determines how the installed instance of CEP-78 will h
 The modality provides two options:
 
 1. `NoEvents`: This modality will signal the contract to not record events at all.
-2. `CEP47`: This modality will signal the contract to record events in a manner similar to that used for CEP47. Events are stored as a `BTreeMap` within dictionary in the contract's context. Events are recorded as one of the following `event_type`s alongside the listed information.
+2. `CEP47`: This modality will signal the contract to record events in a manner similar to that used for CEP47. Events are stored as a `BTreeMap` within dictionary in the contract's context. The events can be retrieved directly via their dictionary entry using the JSON-RPC, with more information on this process available [here](https://docs.casperlabs.io/dapp-dev-guide/writing-contracts/dictionaries/).
+
+Events are recorded as one of the following `event_type`s alongside the listed information.
 
 * `Mint`
    - The `Key` of the recipient.
