@@ -1574,3 +1574,48 @@ fn should_prevent_mint_to_unregistered_owner() {
 
     assert_expected_error(error, 127u16, "must raise unregistered owner in mint");
 }
+
+#[test]
+fn should_mint_with_transfer_only_reporting() {
+    let mut builder = InMemoryWasmTestBuilder::default();
+    builder.run_genesis(&DEFAULT_RUN_GENESIS_REQUEST).commit();
+
+    let install_request_builder =
+        InstallerRequestBuilder::new(*DEFAULT_ACCOUNT_ADDR, NFT_CONTRACT_WASM)
+            .with_nft_metadata_kind(NFTMetadataKind::CEP78)
+            .with_ownership_mode(OwnershipMode::Transferable)
+            .with_reporting_mode(OwnerReverseLookupMode::TransfersOnly)
+            .with_total_token_supply(2u64);
+    builder
+        .exec(install_request_builder.build())
+        .expect_success()
+        .commit();
+
+    let nft_contract_key: Key = get_nft_contract_hash(&builder).into();
+    let nft_contract_hash = get_nft_contract_hash(&builder);
+
+    let mint_runtime_args = runtime_args! {
+        ARG_TOKEN_OWNER => Key::Account(*DEFAULT_ACCOUNT_ADDR),
+        ARG_TOKEN_META_DATA => TEST_PRETTY_CEP78_METADATA.to_string(),
+    };
+
+    let minting_request = ExecuteRequestBuilder::contract_call_by_hash(
+        *DEFAULT_ACCOUNT_ADDR,
+        nft_contract_hash,
+        ENTRY_POINT_MINT,
+        mint_runtime_args,
+    )
+    .build();
+
+    builder.exec(minting_request).expect_success().commit();
+
+    let actual_balance_after_mint = support::get_dictionary_value_from_key::<u64>(
+        &builder,
+        &nft_contract_key,
+        BALANCES,
+        &DEFAULT_ACCOUNT_ADDR.clone().to_string(),
+    );
+
+    let expected_balance_after_mint = 1u64;
+    assert_eq!(actual_balance_after_mint, expected_balance_after_mint);
+}

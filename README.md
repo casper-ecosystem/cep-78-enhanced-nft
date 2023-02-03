@@ -274,6 +274,7 @@ This modality provides the following options:
 
 1. `NoLookup`: The reporting and receipt functionality is not supported. In this option, the contract instance does not maintain a reverse lookup database of ownership and therefore has more predictable gas costs and greater scaling.
 2. `Complete`: The reporting and receipt functionality is supported. Token ownership will be tracked by the contract instance using the system described [here](#owner-reverse-lookup-functionality).
+3. `TransfersOnly`: The reporting and receipt functionality is supported alike `Complete` however it is not directly active after minting but only after a first transfer. This modality is for usecases where the majority of NFTs are owned by a private minter and only NFT's that have been transferred benefit from reverse lookup tracking. Token ownership will be as well tracked by the contract instance using the system described [here](#owner-reverse-lookup-functionality).
 
 Additionally, when set to `Complete`, causes a receipt to be returned by the `mint` or `transfer` entrypoints, which the caller can store in their account or contract context for later reference.
 
@@ -283,10 +284,13 @@ Further, two special entrypoints are enabled in `Complete` mode. First, `registe
 | ---------------------- | --- |
 | NoLookup               | 0   |
 | Complete               | 1   |
+| TransfersOnly          | 2   |
 
 This modality is an optional installation parameter and will default to the `NoLookup` mode if not provided. The mode is set by passing a `u8` value to the `owner_reverse_lookup_mode` runtime argument. This mode cannot be changed once the contract has been installed.
 
-Note, if `ownership_mode` is set to `Minter` and the `minting_mode` is set to `Installer` only, `OwnerReverseLookupMode` will be set to `NoLookup`. This is because the minter, by definition, owns all of the tokens forever. Therefore, there is no reason to do a reverse lookup for that owner. This rule applies only to newly installed contract instances.
+**Note** : if `ownership_mode` is set to `Minter` and the `minting_mode` is set to `Installer` only, `OwnerReverseLookupMode` will be set to `NoLookup`. This is because the minter, by definition, owns all of the tokens forever. Therefore, there is no reason to do a reverse lookup for that owner. This rule applies only to newly installed contract instances.
+
+**Note** : if `OwnerReverseLookupMode` is set to `TransfersOnly` then `ownership_mode` has to be set to `Transferable` only. This is because other ownership modes do not allow transfer.
 
 If you are upgrading a contract from CEP-78 version 1.0 to 1.1, `OwnerReverseLookupMode` will be set to `Complete`, as this was the standard behavior of CEP-78 1.0. In addition to being set to `Complete`, existing records will be migrated into the CEP-78 1.1 format, which will impose a one-time gas cost to cover the migration.
 
@@ -349,7 +353,7 @@ The following are the optional parameters that can be passed in at the time of i
 - `"contract_whitelist"`: The contract whitelist is a list of contract hashes that specifies which contracts can call the `mint()` entrypoint to mint NFTs. This is an optional parameter which will default to an empty whitelist. This value can be changed via the `set_variables` post installation. If the whitelist mode is set to locked, a non-empty whitelist must be passed; else, installation of the contract will fail.
 - `"burn_mode"`: The [`BurnMode`](#burnmode) modality dictates whether minted NFTs can be burnt. This is an optional parameter and will allow tokens to be burnt by default. This parameter cannot be changed once the contract has been installed.
 - `"owner_reverse_lookup_mode"`: The [`OwnerReverseLookupMode`](#reportingmode) modality dictates whether the lookup for owners to token identifiers is available. This is an optional parameter and will not provide the lookup by default. This parameter cannot be changed once the contract has been installed.
-- `"events_mode"`: During installation of the contract the deployer can set the [`EventsMode`](#eventsmode) that selects the event schema that will be recorded when changes happen to the NFT tokens. 
+- `"events_mode"`: During installation of the contract the deployer can set the [`EventsMode`](#eventsmode) that selects the event schema that will be recorded when changes happen to the NFT tokens.
 
 ##### Example deploy
 
@@ -663,7 +667,7 @@ If it is set to `Hash`, you will need to reference the `HASH_BY_INDEX` dictionar
 ## Error Codes
 
 | Code | Error                             |
-|------|-----------------------------------|
+| ---- | --------------------------------- |
 | 1    | InvalidAccount                    |
 | 2    | MissingInstaller                  |
 | 3    | InvalidInstaller                  |
@@ -790,8 +794,8 @@ If it is set to `Hash`, you will need to reference the `HASH_BY_INDEX` dictionar
 | 124  | MissingMigrationFlag              |
 | 125  | InvalidMigrationFlag              |
 | 126  | ContractAlreadyMigrated           |
-| 127  | UnregisteredOwnerInMint           |
-| 128  | UnregisteredOwnerInTransfer       |
+| 127  | UnregisteredOwnerInPageAdd        |
+| 128  | UnregisteredOwnerInPageUpdate     |
 | 129  | MissingReportingMode              |
 | 130  | InvalidReportingMode              |
 | 131  | MissingPage                       |

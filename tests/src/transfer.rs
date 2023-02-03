@@ -1116,3 +1116,126 @@ fn should_prevent_transfer_to_unregistered_owner() {
 
     assert_expected_error(error, 128u16, "must raise unregistered owner in transfer");
 }
+
+#[test]
+fn should_transfer_token_from_sender_to_receiver_with_transfer_only_reporting() {
+    let mut builder = InMemoryWasmTestBuilder::default();
+    builder.run_genesis(&DEFAULT_RUN_GENESIS_REQUEST).commit();
+
+    let install_request = InstallerRequestBuilder::new(*DEFAULT_ACCOUNT_ADDR, NFT_CONTRACT_WASM)
+        .with_collection_name(NFT_TEST_COLLECTION.to_string())
+        .with_collection_symbol(NFT_TEST_SYMBOL.to_string())
+        .with_total_token_supply(1u64)
+        .with_ownership_mode(OwnershipMode::Transferable)
+        .with_reporting_mode(OwnerReverseLookupMode::TransfersOnly)
+        .build();
+
+    builder.exec(install_request).expect_success().commit();
+
+    let token_owner = *DEFAULT_ACCOUNT_ADDR;
+
+    let nft_contract_hash = get_nft_contract_hash(&builder);
+    let nft_contract_key: Key = nft_contract_hash.into();
+
+    let register_request = ExecuteRequestBuilder::contract_call_by_hash(
+        *DEFAULT_ACCOUNT_ADDR,
+        nft_contract_hash,
+        ENTRY_POINT_REGISTER_OWNER,
+        runtime_args! {
+            ARG_TOKEN_OWNER => Key::Account(token_owner)
+        },
+    )
+    .build();
+
+    builder.exec(register_request).expect_success().commit();
+
+    let mint_runtime_args = runtime_args! {
+        ARG_TOKEN_OWNER => Key::Account(token_owner),
+        ARG_TOKEN_META_DATA => TEST_PRETTY_721_META_DATA.to_string(),
+    };
+
+    let minting_request = ExecuteRequestBuilder::contract_call_by_hash(
+        token_owner,
+        nft_contract_hash,
+        ENTRY_POINT_MINT,
+        mint_runtime_args,
+    )
+    .build();
+
+    builder.exec(minting_request).expect_success().commit();
+
+    let actual_owner_balance: u64 = support::get_dictionary_value_from_key(
+        &builder,
+        &nft_contract_key,
+        BALANCES,
+        &token_owner.to_string(),
+    );
+    let expected_owner_balance = 1u64;
+    assert_eq!(actual_owner_balance, expected_owner_balance);
+
+    let (_, token_receiver) = support::create_dummy_key_pair(ACCOUNT_USER_1);
+
+    let register_request = ExecuteRequestBuilder::contract_call_by_hash(
+        *DEFAULT_ACCOUNT_ADDR,
+        nft_contract_hash,
+        ENTRY_POINT_REGISTER_OWNER,
+        runtime_args! {
+            ARG_TOKEN_OWNER => Key::Account(token_receiver.to_account_hash())
+        },
+    )
+    .build();
+
+    builder.exec(register_request).expect_success().commit();
+
+    let transfer_request = ExecuteRequestBuilder::standard(
+        *DEFAULT_ACCOUNT_ADDR,
+        TRANSFER_SESSION_WASM,
+        runtime_args! {
+            ARG_NFT_CONTRACT_HASH => nft_contract_key,
+            ARG_TOKEN_ID => 0u64,
+            ARG_IS_HASH_IDENTIFIER_MODE => false,
+            ARG_SOURCE_KEY => Key::Account(token_owner),
+            ARG_TARGET_KEY =>  Key::Account(token_receiver.to_account_hash()),
+        },
+    )
+    .build();
+    builder.exec(transfer_request).expect_success().commit();
+
+    let actual_token_owner = support::get_dictionary_value_from_key::<Key>(
+        &builder,
+        &nft_contract_key,
+        TOKEN_OWNERS,
+        &0u64.to_string(),
+    )
+    .into_account()
+    .unwrap();
+
+    assert_eq!(actual_token_owner, token_receiver.to_account_hash());
+
+    let token_receiver_page = support::get_token_page_by_id(
+        &builder,
+        &nft_contract_key,
+        &Key::Account(token_receiver.to_account_hash()),
+        0u64,
+    );
+
+    assert!(token_receiver_page[0]);
+
+    let actual_sender_balance: u64 = support::get_dictionary_value_from_key(
+        &builder,
+        &nft_contract_key,
+        BALANCES,
+        &token_owner.to_string(),
+    );
+    let expected_sender_balance = 0u64;
+    assert_eq!(actual_sender_balance, expected_sender_balance);
+
+    let actual_receiver_balance: u64 = support::get_dictionary_value_from_key(
+        &builder,
+        &nft_contract_key,
+        BALANCES,
+        &token_receiver.to_account_hash().to_string(),
+    );
+    let expected_receiver_balance = 1u64;
+    assert_eq!(actual_receiver_balance, expected_receiver_balance);
+}

@@ -734,3 +734,108 @@ pub(crate) fn get_reporting_mode() -> OwnerReverseLookupMode {
     .try_into()
     .unwrap_or_revert()
 }
+
+pub fn add_page_entry_and_page_record(
+    tokens_count: u64,
+    item_key: &str,
+    on_mint: bool,
+) -> (u64, URef) {
+    // there is an explicit page_table;
+    // this is the entry in that overall page table which maps to the underlying page
+    // upon which this mint's address will exist
+    let page_table_entry = tokens_count / PAGE_SIZE;
+    let page_address = tokens_count % PAGE_SIZE;
+
+    // Update the page entry first
+    let page_table_uref = utils::get_uref(
+        PAGE_TABLE,
+        NFTCoreError::MissingPageTableURef,
+        NFTCoreError::InvalidPageTableURef,
+    );
+
+    // Update the individual page record.
+    let page_uref = utils::get_uref(
+        &format!("{}{}", PAGE_DICTIONARY_PREFIX, page_table_entry),
+        NFTCoreError::MissingPageUref,
+        NFTCoreError::InvalidPageUref,
+    );
+
+    let mut page_table =
+        match storage::dictionary_get::<Vec<bool>>(page_table_uref, item_key).unwrap_or_revert() {
+            Some(page_table) => page_table,
+            None => runtime::revert(if on_mint {
+                NFTCoreError::UnregisteredOwnerInMint
+            } else {
+                NFTCoreError::UnregisteredOwnerInTransfer
+            }),
+        };
+
+    let mut page = if !page_table[page_table_entry as usize] {
+        // We mark the page table entry to true to signal the allocation of a page.
+        let _ = core::mem::replace(&mut page_table[page_table_entry as usize], true);
+        storage::dictionary_put(page_table_uref, item_key, page_table);
+        vec![false; PAGE_SIZE as usize]
+    } else {
+        storage::dictionary_get::<Vec<bool>>(page_uref, item_key)
+            .unwrap_or_revert()
+            .unwrap_or_revert_with(NFTCoreError::MissingPage)
+    };
+
+    let _ = core::mem::replace(&mut page[page_address as usize], true);
+
+    storage::dictionary_put(page_uref, item_key, page);
+    (page_table_entry, page_uref)
+}
+
+pub fn update_page_entry_and_page_record(
+    tokens_count: u64,
+    old_item_key: &str,
+    new_item_key: &str,
+) -> (u64, URef) {
+    let page_table_entry = tokens_count / PAGE_SIZE;
+    let page_address = tokens_count % PAGE_SIZE;
+
+    let page_uref = utils::get_uref(
+        &format!("{}{}", PAGE_DICTIONARY_PREFIX, page_table_entry),
+        NFTCoreError::MissingStorageUref,
+        NFTCoreError::InvalidStorageUref,
+    );
+
+    let mut source_page = storage::dictionary_get::<Vec<bool>>(page_uref, old_item_key)
+        .unwrap_or_revert()
+        .unwrap_or_revert_with(NFTCoreError::InvalidPageNumber);
+
+    if !source_page[page_address as usize] {
+        runtime::revert(NFTCoreError::InvalidTokenIdentifier)
+    }
+
+    let _ = core::mem::replace(&mut source_page[page_address as usize], false);
+
+    storage::dictionary_put(page_uref, old_item_key, source_page);
+
+    let page_table_uref = utils::get_uref(
+        PAGE_TABLE,
+        NFTCoreError::MissingPageTableURef,
+        NFTCoreError::InvalidPageTableURef,
+    );
+
+    let mut target_page_table = storage::dictionary_get::<Vec<bool>>(page_table_uref, new_item_key)
+        .unwrap_or_revert()
+        .unwrap_or_revert_with(NFTCoreError::UnregisteredOwnerInTransfer);
+
+    let mut target_page = if !target_page_table[page_table_entry as usize] {
+        // Create a new page here
+        let _ = core::mem::replace(&mut target_page_table[page_table_entry as usize], true);
+        storage::dictionary_put(page_table_uref, new_item_key, target_page_table);
+        vec![false; PAGE_SIZE as usize]
+    } else {
+        storage::dictionary_get::<Vec<bool>>(page_uref, new_item_key)
+            .unwrap_or_revert()
+            .unwrap_or_revert()
+    };
+
+    let _ = core::mem::replace(&mut target_page[page_address as usize], true);
+
+    storage::dictionary_put(page_uref, new_item_key, target_page);
+    (page_table_entry, page_uref)
+}
