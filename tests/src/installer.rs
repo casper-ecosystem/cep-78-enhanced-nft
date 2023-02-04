@@ -287,7 +287,7 @@ fn should_disallow_installation_with_zero_issuance() {
         .with_total_token_supply(0u64)
         .with_ownership_mode(OwnershipMode::Minter)
         .with_identifier_mode(NFTIdentifierMode::Ordinal)
-        .with_nft_metadata_kind(NFTMetadataKind::Raw)
+        .with_nft_metadata_kind(NFTMetadataKind::Raw as u8)
         .build();
 
     builder.exec(install_request).expect_failure().commit();
@@ -308,7 +308,7 @@ fn should_disallow_installation_with_supply_exceeding_hard_cap() {
         .with_total_token_supply(1_000_001u64)
         .with_ownership_mode(OwnershipMode::Minter)
         .with_identifier_mode(NFTIdentifierMode::Ordinal)
-        .with_nft_metadata_kind(NFTMetadataKind::Raw)
+        .with_nft_metadata_kind(NFTMetadataKind::Raw as u8)
         .build();
 
     builder.exec(install_request).expect_failure().commit();

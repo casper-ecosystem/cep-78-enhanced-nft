@@ -1212,7 +1212,7 @@ fn should_mint_with_custom_metadata_validation() {
         runtime_args! {
             ARG_NFT_CONTRACT_HASH => nft_contract_key,
             ARG_TOKEN_OWNER => Key::Account(*DEFAULT_ACCOUNT_ADDR),
-            ARG_COLLECTION_NAME => NFT_TEST_COLLECTION.to_string()
+            ARG_COLLECTION_NAME => NFT_TEST_COLLECTION.to_string(),
             ARG_TOKEN_META_DATA => serde_json::to_string(&*TEST_CUSTOM_METADATA).expect("must convert to json metadata") ,
         },
     )
@@ -1421,7 +1421,7 @@ fn should_mint_without_returning_receipts_and_flat_gas_cost() {
         .with_metadata_mutability(MetadataMutability::Immutable)
         .with_ownership_mode(OwnershipMode::Transferable)
         .with_reporting_mode(OwnerReverseLookupMode::NoLookUp)
-        .with_nft_metadata_kind(NFTMetadataKind::Raw)
+        .with_nft_metadata_kind(NFTMetadataKind::Raw as u8)
         .build();
 
     builder.exec(install_request).expect_success().commit();
@@ -1478,7 +1478,7 @@ fn should_maintain_page_table_despite_invoking_register_owner() {
         .with_identifier_mode(NFTIdentifierMode::Ordinal)
         .with_metadata_mutability(MetadataMutability::Immutable)
         .with_ownership_mode(OwnershipMode::Transferable)
-        .with_nft_metadata_kind(NFTMetadataKind::Raw)
+        .with_nft_metadata_kind(NFTMetadataKind::Raw as u8)
         .build();
 
     builder.exec(install_request).expect_success().commit();
@@ -1504,7 +1504,7 @@ fn should_maintain_page_table_despite_invoking_register_owner() {
         &builder,
         &nft_contract_key,
         PAGE_TABLE,
-        &*DEFAULT_ACCOUNT_ADDR.to_string(),
+        &DEFAULT_ACCOUNT_ADDR.to_string(),
     );
 
     assert_eq!(actual_page_table.len(), 1);
@@ -1527,7 +1527,7 @@ fn should_maintain_page_table_despite_invoking_register_owner() {
         &builder,
         &nft_contract_key,
         PAGE_TABLE,
-        &*DEFAULT_ACCOUNT_ADDR.to_string(),
+        &DEFAULT_ACCOUNT_ADDR.to_string(),
     );
 
     assert_eq!(actual_page_table, table_post_register)
@@ -1544,7 +1544,7 @@ fn should_prevent_mint_to_unregistered_owner() {
         .with_metadata_mutability(MetadataMutability::Immutable)
         .with_ownership_mode(OwnershipMode::Transferable)
         .with_reporting_mode(OwnerReverseLookupMode::Complete)
-        .with_nft_metadata_kind(NFTMetadataKind::Raw)
+        .with_nft_metadata_kind(NFTMetadataKind::Raw as u8)
         .build();
 
     builder.exec(install_request).expect_success().commit();
@@ -1578,9 +1578,13 @@ fn should_mint_with_two_required_metadata_kind() {
 
     let install_request_builder =
         InstallerRequestBuilder::new(*DEFAULT_ACCOUNT_ADDR, NFT_CONTRACT_WASM)
+            .with_total_token_supply(1000u64)
+            .with_identifier_mode(NFTIdentifierMode::Ordinal)
+            .with_metadata_mutability(MetadataMutability::Immutable)
+            .with_ownership_mode(OwnershipMode::Transferable)
+            .with_reporting_mode(OwnerReverseLookupMode::Complete)
             .with_nft_metadata_kind(NFTMetadataKind::CEP78 as u8)
-            .with_additional_required_metadata(vec![NFTMetadataKind::Raw as u8])
-            .with_total_token_supply(2u64);
+            .with_additional_required_metadata(vec![NFTMetadataKind::Raw as u8]);
     builder
         .exec(install_request_builder.build())
         .expect_success()
@@ -1620,8 +1624,8 @@ fn should_mint_with_two_required_metadata_kind() {
     assert_eq!(meta_raw, TEST_PRETTY_CEP78_METADATA);
 }
 
-    #[test]
-    fn should_mint_with_one_required_one_optional_metadata_kind_without_optional() {
+#[test]
+fn should_mint_with_one_required_one_optional_metadata_kind_without_optional() {
     let mut builder = InMemoryWasmTestBuilder::default();
     builder.run_genesis(&DEFAULT_RUN_GENESIS_REQUEST).commit();
 
@@ -1629,7 +1633,11 @@ fn should_mint_with_two_required_metadata_kind() {
         InstallerRequestBuilder::new(*DEFAULT_ACCOUNT_ADDR, NFT_CONTRACT_WASM)
             .with_nft_metadata_kind(NFTMetadataKind::CEP78 as u8)
             .with_optional_metadata(vec![NFTMetadataKind::Raw as u8])
-            .with_total_token_supply(2u64);
+            .with_total_token_supply(1000u64)
+            .with_identifier_mode(NFTIdentifierMode::Ordinal)
+            .with_metadata_mutability(MetadataMutability::Immutable)
+            .with_ownership_mode(OwnershipMode::Transferable)
+            .with_reporting_mode(OwnerReverseLookupMode::Complete);
     builder
         .exec(install_request_builder.build())
         .expect_success()
@@ -1642,6 +1650,7 @@ fn should_mint_with_two_required_metadata_kind() {
         MINT_SESSION_WASM,
         runtime_args! {
             ARG_NFT_CONTRACT_HASH => nft_contract_key,
+            ARG_COLLECTION_NAME => NFT_TEST_COLLECTION.to_string(),
             ARG_TOKEN_OWNER => Key::Account(*DEFAULT_ACCOUNT_ADDR),
             ARG_TOKEN_META_DATA => TEST_PRETTY_CEP78_METADATA,
         },
@@ -1671,7 +1680,7 @@ fn should_mint_with_two_required_metadata_kind() {
         MINT_SESSION_WASM,
         runtime_args! {
             ARG_NFT_CONTRACT_HASH => nft_contract_key,
-
+            ARG_COLLECTION_NAME => NFT_TEST_COLLECTION.to_string(),
             ARG_TOKEN_OWNER => Key::Account(*DEFAULT_ACCOUNT_ADDR),
             ARG_TOKEN_META_DATA => TEST_PRETTY_CEP78_METADATA,
         },
@@ -1688,16 +1697,20 @@ fn should_mint_with_two_required_metadata_kind() {
     );
 
     assert_eq!(meta_78, TEST_PRETTY_CEP78_METADATA);
-    }
+}
 
-    #[test]
-    fn should_not_mint_with_missing_required_metadata() {
+#[test]
+fn should_not_mint_with_missing_required_metadata() {
     let mut builder = InMemoryWasmTestBuilder::default();
     builder.run_genesis(&DEFAULT_RUN_GENESIS_REQUEST).commit();
 
     let install_request_builder =
         InstallerRequestBuilder::new(*DEFAULT_ACCOUNT_ADDR, NFT_CONTRACT_WASM)
-            .with_total_token_supply(2u64)
+            .with_total_token_supply(1000u64)
+            .with_identifier_mode(NFTIdentifierMode::Ordinal)
+            .with_metadata_mutability(MetadataMutability::Immutable)
+            .with_ownership_mode(OwnershipMode::Transferable)
+            .with_reporting_mode(OwnerReverseLookupMode::Complete)
             .with_nft_metadata_kind(NFTMetadataKind::CEP78 as u8)
             .with_additional_required_metadata(vec![NFTMetadataKind::NFT721 as u8]);
     builder
@@ -1712,16 +1725,20 @@ fn should_mint_with_two_required_metadata_kind() {
         MINT_SESSION_WASM,
         runtime_args! {
             ARG_NFT_CONTRACT_HASH => nft_contract_key,
-
             ARG_TOKEN_OWNER => Key::Account(*DEFAULT_ACCOUNT_ADDR),
             ARG_TOKEN_META_DATA => TEST_PRETTY_721_META_DATA,
+            ARG_COLLECTION_NAME => NFT_TEST_COLLECTION.to_string()
         },
     )
     .build();
 
     builder.exec(mint_session_call).expect_failure();
     let error = builder.get_error().expect("mint request must have failed");
-    assert_expected_error(error, 88, "Not all required metadata kinds were satisfied")
+    assert_expected_error(
+        error,
+        88,
+        "NFT721 metadata does not satisfy the required CEP78 requirement.",
+    )
 }
 
 #[test]

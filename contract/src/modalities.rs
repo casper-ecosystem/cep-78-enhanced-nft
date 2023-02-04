@@ -117,7 +117,7 @@ impl TryFrom<u8> for Requirement {
             0 => Ok(Requirement::Required),
             1 => Ok(Requirement::Optional),
             2 => Ok(Requirement::Unneeded),
-            _ => Err(NFTCoreError::InvalidNFTMetadataKind),
+            _ => Err(NFTCoreError::InvalidRequirement),
         }
     }
 }

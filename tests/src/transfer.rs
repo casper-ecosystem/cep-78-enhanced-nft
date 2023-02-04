@@ -384,15 +384,6 @@ fn should_be_able_to_transfer_token_using_approved_operator() {
 
     builder.exec(install_request).expect_success().commit();
 
-    let account = builder.get_expected_account(*DEFAULT_ACCOUNT_ADDR);
-    let nft_contract_hash = account
-        .named_keys()
-        .get(CONTRACT_NAME)
-        .cloned()
-        .and_then(Key::into_hash)
-        .map(ContractHash::new)
-        .expect("failed to find nft contract");
-
     // mint token for DEFAULT_ACCOUNT_ADDR
     let token_owner = DEFAULT_ACCOUNT_PUBLIC_KEY.clone().to_account_hash();
     let nft_contract_hash = get_nft_contract_hash(&builder);
@@ -1011,7 +1002,7 @@ fn transfer_should_correctly_track_page_table_entries() {
         .with_collection_symbol(NFT_TEST_SYMBOL.to_string())
         .with_total_token_supply(100u64)
         .with_ownership_mode(OwnershipMode::Transferable)
-        .with_nft_metadata_kind(NFTMetadataKind::Raw)
+        .with_nft_metadata_kind(NFTMetadataKind::Raw as u8)
         .build();
 
     builder.exec(install_request).expect_success().commit();
@@ -1084,7 +1075,7 @@ fn should_prevent_transfer_to_unregistered_owner() {
         .with_metadata_mutability(MetadataMutability::Immutable)
         .with_ownership_mode(OwnershipMode::Transferable)
         .with_reporting_mode(OwnerReverseLookupMode::Complete)
-        .with_nft_metadata_kind(NFTMetadataKind::Raw)
+        .with_nft_metadata_kind(NFTMetadataKind::Raw as u8)
         .build();
 
     builder.exec(install_request).expect_success().commit();
