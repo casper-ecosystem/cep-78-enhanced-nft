@@ -156,6 +156,23 @@ pub enum NFTCoreError {
     InvalidAdditionalNFTMetadataKind = 151,
     InvalidRequirement = 152,
     InvalidNFTMetadataKinds = 153,
+    FailedToCreateDictionaryIndexByHash = 154,
+    FailedToCreateDictionaryHashByIndex = 155,
+    FailedToCreateDictionaryPageTable = 156,
+    FailedToCreateDictionaryEventIDTracker = 157,
+    FailedToCreateDictionaryEvents = 158,
+    FailedToCreateDictionaryTokenOwners = 159,
+    FailedToCreateDictionaryTokensIssuers = 160,
+    FailedToCreateDictionaryOwnedTokens = 161,
+    FailedToCreateDictionaryOperator = 162,
+    FailedToCreateDictionaryBurntTokens = 163,
+    FailedToCreateDictionaryTokenCounts = 164,
+    FailedToCreateDictionaryMatadataCustomValidated = 165,
+    FailedToCreateDictionaryMetadataCep78 = 166,
+    FailedToCreateDictionaryMetadataNFT721 = 167,
+    FailedToCreateDictionaryMetadataRaw = 168,
+    FailedToCreateDictionaryPageDictionaryZero = 169,
+    FailedToCreateDictionaryPageDictionaryNumbered = 170,
 }
 
 impl From<NFTCoreError> for ApiError {

@@ -22,16 +22,17 @@ use alloc::{
     vec::Vec,
 };
 
-use constants::{ARG_EVENTS_MODE, EVENTS, EVENTS_MODE, EVENT_ID_TRACKER};
+use constants::{
+    ARG_ADDITIONAL_REQUIRED_METADATA, ARG_EVENTS_MODE, ARG_OPTIONAL_METADATA, EVENTS, EVENTS_MODE,
+    EVENT_ID_TRACKER,
+};
 use core::convert::{TryFrom, TryInto};
 use events::{events_cep47::CEP47Event, Event};
-use modalities::EventsMode;
+use modalities::{EventsMode, Requirement};
 use utils::{
     add_page_entry_and_page_record, get_stored_value_with_user_errors,
     update_page_entry_and_page_record,
 };
-use constants::{ARG_OPTIONAL_METADATA, ARG_ADDITIONAL_REQUIRED_METADATA};
-use modalities::Requirement;
 
 use casper_types::{
     contracts::NamedKeys, runtime_args, CLType, CLValue, ContractHash, ContractPackageHash,
@@ -357,11 +358,6 @@ pub extern "C" fn init() {
     );
     runtime::put_key(BURN_MODE, storage::new_uref(burn_mode as u8).into());
 
-    if reporting_mode == OwnerReverseLookupMode::Complete {
-        let page_table_width = utils::max_number_of_pages(total_token_supply);
-        runtime::put_key(PAGE_LIMIT, storage::new_uref(page_table_width).into());
-    }
-
     runtime::put_key(EVENTS_MODE, storage::new_uref(events_mode as u8).into());
 
     // Initialize contract with variables which must be present but maybe set to
@@ -373,33 +369,35 @@ pub extern "C" fn init() {
 
     // Create the data dictionaries to store essential values, topically.
     storage::new_dictionary(TOKEN_OWNERS)
-        .unwrap_or_revert_with(NFTCoreError::FailedToCreateDictionary);
+        .unwrap_or_revert_with(NFTCoreError::FailedToCreateDictionaryTokenOwners);
     storage::new_dictionary(TOKEN_ISSUERS)
-        .unwrap_or_revert_with(NFTCoreError::FailedToCreateDictionary);
+        .unwrap_or_revert_with(NFTCoreError::FailedToCreateDictionaryTokensIssuers);
     storage::new_dictionary(OWNED_TOKENS)
-        .unwrap_or_revert_with(NFTCoreError::FailedToCreateDictionary);
-    storage::new_dictionary(OPERATOR).unwrap_or_revert_with(NFTCoreError::FailedToCreateDictionary);
+        .unwrap_or_revert_with(NFTCoreError::FailedToCreateDictionaryOwnedTokens);
+    storage::new_dictionary(OPERATOR)
+        .unwrap_or_revert_with(NFTCoreError::FailedToCreateDictionaryOperator);
     storage::new_dictionary(BURNT_TOKENS)
-        .unwrap_or_revert_with(NFTCoreError::FailedToCreateDictionary);
+        .unwrap_or_revert_with(NFTCoreError::FailedToCreateDictionaryBurntTokens);
     storage::new_dictionary(TOKEN_COUNTS)
-        .unwrap_or_revert_with(NFTCoreError::FailedToCreateDictionary);
+        .unwrap_or_revert_with(NFTCoreError::FailedToCreateDictionaryTokenCounts);
     storage::new_dictionary(METADATA_CUSTOM_VALIDATED)
-        .unwrap_or_revert_with(NFTCoreError::FailedToCreateDictionary);
+        .unwrap_or_revert_with(NFTCoreError::FailedToCreateDictionaryMatadataCustomValidated);
     storage::new_dictionary(METADATA_CEP78)
-        .unwrap_or_revert_with(NFTCoreError::FailedToCreateDictionary);
+        .unwrap_or_revert_with(NFTCoreError::FailedToCreateDictionaryMetadataCep78);
     storage::new_dictionary(METADATA_NFT721)
-        .unwrap_or_revert_with(NFTCoreError::FailedToCreateDictionary);
+        .unwrap_or_revert_with(NFTCoreError::FailedToCreateDictionaryMetadataNFT721);
     storage::new_dictionary(METADATA_RAW)
-        .unwrap_or_revert_with(NFTCoreError::FailedToCreateDictionary);
+        .unwrap_or_revert_with(NFTCoreError::FailedToCreateDictionaryMetadataRaw);
     storage::new_dictionary(HASH_BY_INDEX)
-        .unwrap_or_revert_with(NFTCoreError::FailedToCreateDictionary);
+        .unwrap_or_revert_with(NFTCoreError::FailedToCreateDictionaryHashByIndex);
     storage::new_dictionary(INDEX_BY_HASH)
-        .unwrap_or_revert_with(NFTCoreError::FailedToCreateDictionary);
+        .unwrap_or_revert_with(NFTCoreError::FailedToCreateDictionaryIndexByHash);
     storage::new_dictionary(PAGE_TABLE)
-        .unwrap_or_revert_with(NFTCoreError::FailedToCreateDictionary);
-    storage::new_dictionary(EVENTS).unwrap_or_revert_with(NFTCoreError::FailedToCreateDictionary);
+        .unwrap_or_revert_with(NFTCoreError::FailedToCreateDictionaryPageTable);
+    storage::new_dictionary(EVENTS)
+        .unwrap_or_revert_with(NFTCoreError::FailedToCreateDictionaryEvents);
     storage::new_dictionary(EVENT_ID_TRACKER)
-        .unwrap_or_revert_with(NFTCoreError::FailedToCreateDictionary);
+        .unwrap_or_revert_with(NFTCoreError::FailedToCreateDictionaryEventIDTracker);
     if vec![
         OwnerReverseLookupMode::Complete,
         OwnerReverseLookupMode::TransfersOnly,
@@ -1423,7 +1421,7 @@ pub extern "C" fn migrate() {
     }
 
     storage::new_dictionary(PAGE_TABLE)
-        .unwrap_or_revert_with(NFTCoreError::FailedToCreateDictionary);
+        .unwrap_or_revert_with(NFTCoreError::FailedToCreateDictionaryPageTable);
     let page_table_width = utils::max_number_of_pages(total_token_supply);
     runtime::put_key(PAGE_LIMIT, storage::new_uref(page_table_width).into());
     runtime::put_key(
@@ -1465,9 +1463,9 @@ pub extern "C" fn migrate() {
         NFTIdentifierMode::Ordinal => utils::migrate_owned_tokens_in_ordinal_mode(),
         NFTIdentifierMode::Hash => {
             storage::new_dictionary(HASH_BY_INDEX)
-                .unwrap_or_revert_with(NFTCoreError::FailedToCreateDictionary);
+                .unwrap_or_revert_with(NFTCoreError::FailedToCreateDictionaryHashByIndex);
             storage::new_dictionary(INDEX_BY_HASH)
-                .unwrap_or_revert_with(NFTCoreError::FailedToCreateDictionary);
+                .unwrap_or_revert_with(NFTCoreError::FailedToCreateDictionaryIndexByHash);
             let current_number_of_minted_tokens = utils::get_stored_value_with_user_errors::<u64>(
                 NUMBER_OF_MINTED_TOKENS,
                 NFTCoreError::MissingNumberOfMintedTokens,

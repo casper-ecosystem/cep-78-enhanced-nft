@@ -36,7 +36,7 @@ fn should_record_cep47_dictionary_style_mint_event() {
 
     let install_request_builder =
         InstallerRequestBuilder::new(*DEFAULT_ACCOUNT_ADDR, NFT_CONTRACT_WASM)
-            .with_nft_metadata_kind(NFTMetadataKind::CEP78)
+            .with_nft_metadata_kind(NFTMetadataKind::CEP78 as u8)
             .with_ownership_mode(OwnershipMode::Transferable)
             .with_total_token_supply(2u64)
             .with_events_mode(EventsMode::CEP47);
@@ -77,11 +77,11 @@ fn should_record_cep47_dictionary_style_mint_event() {
     let package = query_stored_value::<String>(
         &mut builder,
         nft_contract_key,
-        vec![format!("cep78_{}", collection_name)],
+        vec![format!("cep78_{collection_name}")],
     );
 
     let mut expected_event: BTreeMap<String, String> = BTreeMap::new();
-    expected_event.insert("event_type".to_string(), "Mint".to_string());
+    expected_event.insert("event_type".to_string(), "mint".to_string());
     expected_event.insert("cep78_contract_package".to_string(), package);
     expected_event.insert(
         "recipient".to_string(),
@@ -125,7 +125,7 @@ fn should_record_cep47_dictionary_style_transfer_token_event_in_hash_identifier_
     builder.exec(mint_session_call).expect_success().commit();
 
     let token_hash: String =
-        base16::encode_lower(&support::create_blake2b_hash(&TEST_PRETTY_721_META_DATA));
+        base16::encode_lower(&support::create_blake2b_hash(TEST_PRETTY_721_META_DATA));
 
     let register_request = ExecuteRequestBuilder::contract_call_by_hash(
         *DEFAULT_ACCOUNT_ADDR,
@@ -170,12 +170,12 @@ fn should_record_cep47_dictionary_style_transfer_token_event_in_hash_identifier_
     let package = query_stored_value::<String>(
         &mut builder,
         nft_contract_key,
-        vec![format!("cep78_{}", collection_name)],
+        vec![format!("cep78_{collection_name}")],
     );
 
     let mut expected_event: BTreeMap<String, String> = BTreeMap::new();
 
-    expected_event.insert("event_type".to_string(), "Transfer".to_string());
+    expected_event.insert("event_type".to_string(), "transfer".to_string());
     expected_event.insert("cep78_contract_package".to_string(), package);
     expected_event.insert(
         "recipient".to_string(),
@@ -183,7 +183,7 @@ fn should_record_cep47_dictionary_style_transfer_token_event_in_hash_identifier_
             .to_string(),
     );
     expected_event.insert(
-        "sender".to_string(),
+        "owner".to_string(),
         "Key::Account(58b891759929bd4ed5a9cce20b9d6e3c96a66c21386bed96040e17dd07b79fa7)"
             .to_string(),
     );
@@ -207,7 +207,7 @@ fn should_record_cep47_dictionary_style_metadata_update_event_for_nft721_using_t
         .with_ownership_mode(OwnershipMode::Transferable)
         .with_metadata_mutability(MetadataMutability::Mutable)
         .with_identifier_mode(identifier_mode)
-        .with_nft_metadata_kind(nft_metadata_kind)
+        .with_nft_metadata_kind(nft_metadata_kind as u8)
         .with_json_schema(
             serde_json::to_string(&*TEST_CUSTOM_METADATA_SCHEMA)
                 .expect("must convert to json schema"),
@@ -339,11 +339,11 @@ fn should_record_cep47_dictionary_style_metadata_update_event_for_nft721_using_t
     let package = query_stored_value::<String>(
         &mut builder,
         nft_contract_key,
-        vec![format!("cep78_{}", collection_name)],
+        vec![format!("cep78_{collection_name}")],
     );
 
     let mut expected_event: BTreeMap<String, String> = BTreeMap::new();
-    expected_event.insert("event_type".to_string(), "MetadataUpdate".to_string());
+    expected_event.insert("event_type".to_string(), "metadata_update".to_string());
     expected_event.insert("cep78_contract_package".to_string(), package);
     expected_event.insert("token_id".to_string(), "0".to_string());
     assert_eq!(event, expected_event);
@@ -421,7 +421,7 @@ fn should_cep47_dictionary_style_burn_event() {
     builder.exec(burn_request).expect_success().commit();
 
     //This will error of token is not registered as burnt.
-    let _ = get_dictionary_value_from_key::<()>(
+    get_dictionary_value_from_key::<()>(
         &builder,
         nft_contract_key,
         BURNT_TOKENS,
@@ -455,11 +455,11 @@ fn should_cep47_dictionary_style_burn_event() {
     let package = query_stored_value::<String>(
         &mut builder,
         *nft_contract_key,
-        vec![format!("cep78_{}", collection_name)],
+        vec![format!("cep78_{collection_name}")],
     );
 
     let mut expected_event: BTreeMap<String, String> = BTreeMap::new();
-    expected_event.insert("event_type".to_string(), "Burn".to_string());
+    expected_event.insert("event_type".to_string(), "burn".to_string());
     expected_event.insert("cep78_contract_package".to_string(), package);
     expected_event.insert(
         "owner".to_string(),
@@ -545,10 +545,10 @@ fn should_cep47_dictionary_style_approve_event_in_hash_identifier_mode() {
     let package = query_stored_value::<String>(
         &mut builder,
         nft_contract_key,
-        vec![format!("cep78_{}", collection_name)],
+        vec![format!("cep78_{collection_name}")],
     );
     let mut expected_event: BTreeMap<String, String> = BTreeMap::new();
-    expected_event.insert("event_type".to_string(), "Approve".to_string());
+    expected_event.insert("event_type".to_string(), "approve".to_string());
     expected_event.insert("cep78_contract_package".to_string(), package);
     expected_event.insert(
         "owner".to_string(),

@@ -77,6 +77,12 @@ pub const REPORTING_MODE: &str = "reporting_mode";
 pub const EVENTS: &str = "events";
 pub const EVENT_ID_TRACKER: &str = "id_tracker";
 pub const EVENTS_MODE: &str = "events_mode";
+pub const METADATA_UPDATE: &str = "metadata_update";
+pub const LEN: &str = "len";
+pub const EVENT_TYPE: &str = "event_type";
+pub const RECIPIENT: &str = "recipient";
+pub const SPENDER: &str = "spender";
+pub const OWNER: &str = "owner";
 
 pub const ENTRY_POINT_INIT: &str = "init";
 pub const ENTRY_POINT_SET_VARIABLES: &str = "set_variables";

@@ -1748,7 +1748,7 @@ fn should_mint_with_transfer_only_reporting() {
 
     let install_request_builder =
         InstallerRequestBuilder::new(*DEFAULT_ACCOUNT_ADDR, NFT_CONTRACT_WASM)
-            .with_nft_metadata_kind(NFTMetadataKind::CEP78)
+            .with_nft_metadata_kind(NFTMetadataKind::CEP78 as u8)
             .with_ownership_mode(OwnershipMode::Transferable)
             .with_reporting_mode(OwnerReverseLookupMode::TransfersOnly)
             .with_total_token_supply(2u64);

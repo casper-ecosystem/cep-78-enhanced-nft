@@ -374,15 +374,16 @@ pub(crate) fn max_number_of_pages(total_token_supply: u64) -> u64 {
     if total_token_supply < PAGE_SIZE {
         let dictionary_name = format!("{}{}", PAGE_DICTIONARY_PREFIX, 0);
         storage::new_dictionary(&dictionary_name)
-            .unwrap_or_revert_with(NFTCoreError::FailedToCreateDictionary);
+            .unwrap_or_revert_with(NFTCoreError::FailedToCreateDictionaryPageDictionaryZero);
         1
     } else {
         let max_number_of_pages = total_token_supply / PAGE_SIZE;
         let overflow = total_token_supply % PAGE_SIZE;
         for page_number in 0..max_number_of_pages {
             let dictionary_name = format!("{PAGE_DICTIONARY_PREFIX}{page_number}");
-            storage::new_dictionary(&dictionary_name)
-                .unwrap_or_revert_with(NFTCoreError::FailedToCreateDictionary);
+            storage::new_dictionary(&dictionary_name).unwrap_or_revert_with(
+                NFTCoreError::FailedToCreateDictionaryPageDictionaryNumbered,
+            );
         }
         // With a page size of say 1000 and a token supply of 1050
         // max_number_of_pages = 1, but we need an additional page
@@ -756,7 +757,7 @@ pub fn add_page_entry_and_page_record(
 
     // Update the individual page record.
     let page_uref = utils::get_uref(
-        &format!("{}{}", PAGE_DICTIONARY_PREFIX, page_table_entry),
+        &format!("{PAGE_DICTIONARY_PREFIX}{page_table_entry}"),
         NFTCoreError::MissingPageUref,
         NFTCoreError::InvalidPageUref,
     );
@@ -797,7 +798,7 @@ pub fn update_page_entry_and_page_record(
     let page_address = tokens_count % PAGE_SIZE;
 
     let page_uref = utils::get_uref(
-        &format!("{}{}", PAGE_DICTIONARY_PREFIX, page_table_entry),
+        &format!("{PAGE_DICTIONARY_PREFIX}{page_table_entry}"),
         NFTCoreError::MissingStorageUref,
         NFTCoreError::InvalidStorageUref,
     );

@@ -10,10 +10,13 @@ use casper_contract::{
     },
     unwrap_or_revert::UnwrapOrRevert,
 };
-use casper_types::Key;
+use casper_types::{system::MINT, Key};
 
 use crate::{
-    constants::{CEP78_PREFIX, HASH_KEY_NAME_PREFIX},
+    constants::{
+        ARG_TOKEN_ID, CEP78_PREFIX, ENTRY_POINT_APPROVE, ENTRY_POINT_BURN, ENTRY_POINT_TRANSFER,
+        EVENTS, EVENT_TYPE, HASH_KEY_NAME_PREFIX, LEN, METADATA_UPDATE, OWNER, RECIPIENT, SPENDER,
+    },
     error::NFTCoreError,
     modalities::TokenIdentifier,
     utils::{self, get_stored_value_with_user_errors},
@@ -51,7 +54,7 @@ pub(crate) fn record_event_dictionary(event: &CEP47Event) {
     );
 
     let package = utils::get_stored_value_with_user_errors::<String>(
-        &format!("{}{}", CEP78_PREFIX, collection_name),
+        &format!("{CEP78_PREFIX}{collection_name}"),
         NFTCoreError::MissingCep78PackageHash,
         NFTCoreError::InvalidCep78InvalidHash,
     );
@@ -63,17 +66,17 @@ pub(crate) fn record_event_dictionary(event: &CEP47Event) {
         } => {
             let mut event = BTreeMap::new();
             event.insert(HASH_KEY_NAME_PREFIX, package);
-            event.insert("event_type", "Mint".to_string());
-            event.insert("recipient", recipient.to_string());
-            event.insert("token_id", token_id.to_string());
+            event.insert(EVENT_TYPE, MINT.to_string());
+            event.insert(RECIPIENT, recipient.to_string());
+            event.insert(ARG_TOKEN_ID, token_id.to_string());
             event
         }
         CEP47Event::Burn { owner, token_id } => {
             let mut event = BTreeMap::new();
             event.insert(HASH_KEY_NAME_PREFIX, package);
-            event.insert("event_type", "Burn".to_string());
-            event.insert("owner", owner.to_string());
-            event.insert("token_id", token_id.to_string());
+            event.insert(EVENT_TYPE, ENTRY_POINT_BURN.to_string());
+            event.insert(OWNER, owner.to_string());
+            event.insert(ARG_TOKEN_ID, token_id.to_string());
             event
         }
         CEP47Event::Approve {
@@ -83,10 +86,10 @@ pub(crate) fn record_event_dictionary(event: &CEP47Event) {
         } => {
             let mut event = BTreeMap::new();
             event.insert(HASH_KEY_NAME_PREFIX, package);
-            event.insert("event_type", "Approve".to_string());
-            event.insert("owner", owner.to_string());
-            event.insert("spender", spender.to_string());
-            event.insert("token_id", token_id.to_string());
+            event.insert(EVENT_TYPE, ENTRY_POINT_APPROVE.to_string());
+            event.insert(OWNER, owner.to_string());
+            event.insert(SPENDER, spender.to_string());
+            event.insert(ARG_TOKEN_ID, token_id.to_string());
             event
         }
         CEP47Event::Transfer {
@@ -96,27 +99,27 @@ pub(crate) fn record_event_dictionary(event: &CEP47Event) {
         } => {
             let mut event = BTreeMap::new();
             event.insert(HASH_KEY_NAME_PREFIX, package);
-            event.insert("event_type", "Transfer".to_string());
-            event.insert("sender", sender.to_string());
-            event.insert("recipient", recipient.to_string());
-            event.insert("token_id", token_id.to_string());
+            event.insert(EVENT_TYPE, ENTRY_POINT_TRANSFER.to_string());
+            event.insert(OWNER, sender.to_string());
+            event.insert(RECIPIENT, recipient.to_string());
+            event.insert(ARG_TOKEN_ID, token_id.to_string());
             event
         }
         CEP47Event::MetadataUpdate { token_id } => {
             let mut event = BTreeMap::new();
             event.insert(HASH_KEY_NAME_PREFIX, package);
-            event.insert("event_type", "MetadataUpdate".to_string());
-            event.insert("token_id", token_id.to_string());
+            event.insert(EVENT_TYPE, METADATA_UPDATE.to_string());
+            event.insert(ARG_TOKEN_ID, token_id.to_string());
             event
         }
     };
-    let dictionary_uref = match runtime::get_key("events") {
+    let dictionary_uref = match runtime::get_key(EVENTS) {
         Some(dict_uref) => dict_uref.into_uref().unwrap_or_revert(),
-        None => new_dictionary("events").unwrap_or_revert(),
+        None => new_dictionary(EVENTS).unwrap_or_revert(),
     };
-    let len = dictionary_get(dictionary_uref, "len")
+    let len = dictionary_get(dictionary_uref, LEN)
         .unwrap_or_revert()
         .unwrap_or(0_u64);
     dictionary_put(dictionary_uref, &len.to_string(), event);
-    dictionary_put(dictionary_uref, "len", len + 1);
+    dictionary_put(dictionary_uref, LEN, len + 1);
 }

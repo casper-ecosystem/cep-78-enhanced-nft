@@ -210,7 +210,7 @@ fn should_cost_less_when_installing_without_reverse_lookup(reporting: OwnerRever
         .with_total_token_supply(5000u64)
         .with_ownership_mode(OwnershipMode::Transferable)
         .with_identifier_mode(NFTIdentifierMode::Ordinal)
-        .with_nft_metadata_kind(NFTMetadataKind::Raw)
+        .with_nft_metadata_kind(NFTMetadataKind::Raw as u8)
         .with_reporting_mode(reporting)
         .build();
 
