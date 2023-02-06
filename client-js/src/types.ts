@@ -65,6 +65,11 @@ export enum OwnerReverseLookupMode {
   Complete,
 }
 
+export enum EventsMode {
+  NoEvents,
+  CEP47
+}
+
 export interface JSONSchemaEntry {
   name: string;
   description: string;
@@ -98,6 +103,7 @@ export type InstallArgs = {
   namedKeyConventionMode?: NamedKeyConventionMode;
   accessKeyName?: string;
   hashKeyName?: string;
+  eventsMode?: EventsMode;
 } & ConfigurableVariables;
 
 export interface RegisterArgs {
