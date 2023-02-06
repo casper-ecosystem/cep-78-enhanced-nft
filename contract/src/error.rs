@@ -146,6 +146,10 @@ pub enum NFTCoreError {
     MissingEventsMode = 141,
     InvalidEventsMode = 142,
     OwnerReverseLookupModeNotTransferable = 143,
+    MissingAccountsWhiteList = 144,
+    InvalidAccountsWhitelist = 145,
+    EmptyAccountsWhitelist = 146,
+    EmptyMixedWhitelist = 147,
 }
 
 impl From<NFTCoreError> for ApiError {
