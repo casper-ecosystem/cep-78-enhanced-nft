@@ -186,8 +186,8 @@ pub extern "C" fn init() {
     .unwrap_or_revert();
 
     if WhitelistMode::Locked == whitelist_mode
-        && contract_whitelist.is_empty()
         && NFTHolderMode::Contracts == holder_mode
+        && contract_whitelist.is_empty()
     {
         runtime::revert(NFTCoreError::EmptyContractWhitelist)
     }
@@ -200,16 +200,16 @@ pub extern "C" fn init() {
     .unwrap_or_revert();
 
     if WhitelistMode::Locked == whitelist_mode
-        && accounts_whitelist.is_empty()
         && NFTHolderMode::Accounts == holder_mode
+        && accounts_whitelist.is_empty()
     {
         runtime::revert(NFTCoreError::EmptyAccountsWhitelist)
     }
 
     if WhitelistMode::Locked == whitelist_mode
+        && NFTHolderMode::Mixed == holder_mode
         && contract_whitelist.is_empty()
         && accounts_whitelist.is_empty()
-        && NFTHolderMode::Mixed == holder_mode
     {
         runtime::revert(NFTCoreError::EmptyMixedWhitelist)
     }
