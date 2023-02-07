@@ -11,14 +11,14 @@ use casper_types::{
 
 use crate::utility::{
     constants::{
-        ACCOUNT_USER_1, ACCOUNT_USER_2, ARG_APPROVE_ALL, ARG_COLLECTION_NAME,
-        ARG_CONTRACT_WHITELIST, ARG_IS_HASH_IDENTIFIER_MODE, ARG_MINTING_CONTRACT_REVERSE_LOOKUP,
-        ARG_MINTING_MODE, ARG_NFT_CONTRACT_HASH, ARG_OPERATOR, ARG_TOKEN_HASH, ARG_TOKEN_ID,
-        ARG_TOKEN_META_DATA, ARG_TOKEN_OWNER, BALANCES, BALANCE_OF_SESSION_WASM, CONTRACT_NAME,
-        ENTRY_POINT_APPROVE, ENTRY_POINT_MINT, ENTRY_POINT_REGISTER_OWNER,
-        ENTRY_POINT_SET_APPROVE_FOR_ALL, ENTRY_POINT_SET_VARIABLES, GET_APPROVED_WASM,
-        MALFORMED_META_DATA, METADATA_CEP78, METADATA_CUSTOM_VALIDATED, METADATA_NFT721,
-        METADATA_RAW, MINTING_CONTRACT_WASM, MINT_SESSION_WASM, NFT_CONTRACT_WASM,
+        ACCOUNT_USER_1, ACCOUNT_USER_2, ARG_ACCOUNTS_WHITELIST, ARG_APPROVE_ALL,
+        ARG_COLLECTION_NAME, ARG_CONTRACT_WHITELIST, ARG_IS_HASH_IDENTIFIER_MODE,
+        ARG_MINTING_CONTRACT_REVERSE_LOOKUP, ARG_MINTING_MODE, ARG_NFT_CONTRACT_HASH, ARG_OPERATOR,
+        ARG_TOKEN_HASH, ARG_TOKEN_ID, ARG_TOKEN_META_DATA, ARG_TOKEN_OWNER, BALANCES,
+        BALANCE_OF_SESSION_WASM, CONTRACT_NAME, ENTRY_POINT_APPROVE, ENTRY_POINT_MINT,
+        ENTRY_POINT_REGISTER_OWNER, ENTRY_POINT_SET_APPROVE_FOR_ALL, ENTRY_POINT_SET_VARIABLES,
+        GET_APPROVED_WASM, MALFORMED_META_DATA, METADATA_CEP78, METADATA_CUSTOM_VALIDATED,
+        METADATA_NFT721, METADATA_RAW, MINTING_CONTRACT_WASM, MINT_SESSION_WASM, NFT_CONTRACT_WASM,
         NFT_TEST_COLLECTION, NUMBER_OF_MINTED_TOKENS, OPERATOR, OWNER_OF_SESSION_WASM, PAGE_SIZE,
         PAGE_TABLE, RECEIPT_NAME, TEST_COMPACT_META_DATA, TEST_PRETTY_721_META_DATA,
         TEST_PRETTY_CEP78_METADATA, TOKEN_ISSUERS, TOKEN_OWNERS,
@@ -902,6 +902,80 @@ fn should_allow_whitelisted_contract_to_mint() {
 }
 
 #[test]
+fn should_allow_whitelisted_account_to_mint() {
+    let mut builder = InMemoryWasmTestBuilder::default();
+    builder.run_genesis(&DEFAULT_RUN_GENESIS_REQUEST).commit();
+
+    let (_, account_user_1) = support::create_dummy_key_pair(ACCOUNT_USER_1);
+
+    let transfer_to_account_1 = ExecuteRequestBuilder::transfer(
+        *DEFAULT_ACCOUNT_ADDR,
+        runtime_args! {
+            mint::ARG_AMOUNT => 100_000_000_000_000u64,
+            mint::ARG_TARGET => account_user_1.to_account_hash(),
+            mint::ARG_ID => Option::<u64>::None,
+        },
+    )
+    .build();
+
+    builder
+        .exec(transfer_to_account_1)
+        .expect_success()
+        .commit();
+
+    let account_user_1_account_hash = account_user_1.to_account_hash();
+
+    let accounts_whitelist = vec![account_user_1_account_hash];
+
+    let install_request = InstallerRequestBuilder::new(*DEFAULT_ACCOUNT_ADDR, NFT_CONTRACT_WASM)
+        .with_total_token_supply(100u64)
+        .with_holder_mode(NFTHolderMode::Accounts)
+        .with_whitelist_mode(WhitelistMode::Locked)
+        .with_ownership_mode(OwnershipMode::Minter)
+        .with_minting_mode(MintingMode::Public)
+        .with_reporting_mode(OwnerReverseLookupMode::NoLookUp)
+        .with_accounts_whitelist(accounts_whitelist.clone())
+        .build();
+
+    builder.exec(install_request).expect_success().commit();
+
+    let nft_contract_hash = get_nft_contract_hash(&builder);
+    let nft_contract_key: Key = nft_contract_hash.into();
+
+    let actual_accounts_whitelist: Vec<AccountHash> = query_stored_value(
+        &mut builder,
+        nft_contract_key,
+        vec![ARG_ACCOUNTS_WHITELIST.to_string()],
+    );
+
+    assert_eq!(actual_accounts_whitelist, accounts_whitelist);
+
+    let mint_runtime_args = runtime_args! {
+        ARG_TOKEN_OWNER => Key::Account(account_user_1_account_hash),
+        ARG_TOKEN_META_DATA => TEST_PRETTY_721_META_DATA.to_string(),
+    };
+
+    let mint_contract_call = ExecuteRequestBuilder::contract_call_by_hash(
+        account_user_1_account_hash,
+        nft_contract_hash,
+        ENTRY_POINT_MINT,
+        mint_runtime_args,
+    )
+    .build();
+
+    builder.exec(mint_contract_call).expect_success().commit();
+
+    let token_id = 0u64.to_string();
+
+    let actual_token_owner: Key =
+        get_dictionary_value_from_key(&builder, &nft_contract_key, TOKEN_OWNERS, &token_id);
+
+    let minting_account_key: Key = account_user_1_account_hash.into();
+
+    assert_eq!(actual_token_owner, minting_account_key)
+}
+
+#[test]
 fn should_disallow_unlisted_contract_from_minting() {
     let mut builder = InMemoryWasmTestBuilder::default();
     builder.run_genesis(&DEFAULT_RUN_GENESIS_REQUEST).commit();
@@ -965,7 +1039,98 @@ fn should_disallow_unlisted_contract_from_minting() {
 }
 
 #[test]
-fn should_be_able_to_update_whitelist_for_minting() {
+fn should_disallow_unlisted_account_from_minting() {
+    let mut builder = InMemoryWasmTestBuilder::default();
+    builder.run_genesis(&DEFAULT_RUN_GENESIS_REQUEST).commit();
+
+    let (_, account_user_1) = support::create_dummy_key_pair(ACCOUNT_USER_1);
+
+    let transfer_to_account_1 = ExecuteRequestBuilder::transfer(
+        *DEFAULT_ACCOUNT_ADDR,
+        runtime_args! {
+            mint::ARG_AMOUNT => 100_000_000_000_000u64,
+            mint::ARG_TARGET => account_user_1.to_account_hash(),
+            mint::ARG_ID => Option::<u64>::None,
+        },
+    )
+    .build();
+
+    builder
+        .exec(transfer_to_account_1)
+        .expect_success()
+        .commit();
+
+    let account_user_1_account_hash = account_user_1.to_account_hash();
+
+    let accounts_whitelist = vec![account_user_1_account_hash];
+
+    let install_request = InstallerRequestBuilder::new(*DEFAULT_ACCOUNT_ADDR, NFT_CONTRACT_WASM)
+        .with_total_token_supply(100u64)
+        .with_holder_mode(NFTHolderMode::Accounts)
+        .with_whitelist_mode(WhitelistMode::Locked)
+        .with_ownership_mode(OwnershipMode::Minter)
+        .with_minting_mode(MintingMode::Public)
+        .with_reporting_mode(OwnerReverseLookupMode::NoLookUp)
+        .with_accounts_whitelist(accounts_whitelist.clone())
+        .build();
+
+    builder.exec(install_request).expect_success().commit();
+
+    let nft_contract_hash = get_nft_contract_hash(&builder);
+    let nft_contract_key: Key = nft_contract_hash.into();
+
+    let actual_accounts_whitelist: Vec<AccountHash> = query_stored_value(
+        &mut builder,
+        nft_contract_key,
+        vec![ARG_ACCOUNTS_WHITELIST.to_string()],
+    );
+
+    assert_eq!(actual_accounts_whitelist, accounts_whitelist);
+
+    let (_, account_user_2) = support::create_dummy_key_pair(ACCOUNT_USER_2);
+
+    let transfer_to_account_2 = ExecuteRequestBuilder::transfer(
+        *DEFAULT_ACCOUNT_ADDR,
+        runtime_args! {
+            mint::ARG_AMOUNT => 100_000_000_000_000u64,
+            mint::ARG_TARGET => account_user_2.to_account_hash(),
+            mint::ARG_ID => Option::<u64>::None,
+        },
+    )
+    .build();
+
+    builder
+        .exec(transfer_to_account_2)
+        .expect_success()
+        .commit();
+
+    let account_user_2_account_hash = account_user_2.to_account_hash();
+
+    let mint_runtime_args = runtime_args! {
+        ARG_TOKEN_OWNER => Key::Account(account_user_2_account_hash),
+        ARG_TOKEN_META_DATA => TEST_PRETTY_721_META_DATA.to_string(),
+    };
+
+    let mint_contract_call = ExecuteRequestBuilder::contract_call_by_hash(
+        account_user_2_account_hash,
+        nft_contract_hash,
+        ENTRY_POINT_MINT,
+        mint_runtime_args,
+    )
+    .build();
+
+    builder.exec(mint_contract_call).expect_failure();
+
+    let error = builder.get_error().expect("should have an error");
+    assert_expected_error(
+        error,
+        148,
+        "Unlisted account hash should not be permitted to mint",
+    );
+}
+
+#[test]
+fn should_be_able_to_update_contract_whitelist_for_minting() {
     let mut builder = InMemoryWasmTestBuilder::default();
     builder.run_genesis(&DEFAULT_RUN_GENESIS_REQUEST).commit();
 
@@ -1064,6 +1229,169 @@ fn should_be_able_to_update_whitelist_for_minting() {
         .exec(mint_via_contract_call)
         .expect_success()
         .commit();
+}
+
+#[test]
+fn should_be_able_to_update_accounts_whitelist_for_minting() {
+    let mut builder = InMemoryWasmTestBuilder::default();
+    builder.run_genesis(&DEFAULT_RUN_GENESIS_REQUEST).commit();
+
+    let install_request = InstallerRequestBuilder::new(*DEFAULT_ACCOUNT_ADDR, NFT_CONTRACT_WASM)
+        .with_total_token_supply(100u64)
+        .with_holder_mode(NFTHolderMode::Accounts)
+        .with_whitelist_mode(WhitelistMode::Unlocked)
+        .with_ownership_mode(OwnershipMode::Minter)
+        .with_minting_mode(MintingMode::Public)
+        .with_reporting_mode(OwnerReverseLookupMode::NoLookUp)
+        .with_accounts_whitelist(vec![])
+        .build();
+
+    builder.exec(install_request).expect_success().commit();
+
+    let nft_contract_hash = get_nft_contract_hash(&builder);
+    let nft_contract_key = nft_contract_hash.into();
+
+    let current_account_whitelist: Vec<AccountHash> = query_stored_value(
+        &mut builder,
+        nft_contract_key,
+        vec![ARG_ACCOUNTS_WHITELIST.to_string()],
+    );
+
+    assert!(current_account_whitelist.is_empty());
+
+    let (_, account_user_1) = support::create_dummy_key_pair(ACCOUNT_USER_1);
+
+    let transfer_to_account_1 = ExecuteRequestBuilder::transfer(
+        *DEFAULT_ACCOUNT_ADDR,
+        runtime_args! {
+            mint::ARG_AMOUNT => 100_000_000_000_000u64,
+            mint::ARG_TARGET => account_user_1.to_account_hash(),
+            mint::ARG_ID => Option::<u64>::None,
+        },
+    )
+    .build();
+
+    builder
+        .exec(transfer_to_account_1)
+        .expect_success()
+        .commit();
+
+    let account_user_1_account_hash = account_user_1.to_account_hash();
+
+    let mint_runtime_args = runtime_args! {
+        ARG_TOKEN_OWNER => Key::Account(account_user_1_account_hash),
+        ARG_TOKEN_META_DATA => TEST_PRETTY_721_META_DATA.to_string(),
+    };
+
+    let mint_contract_call = ExecuteRequestBuilder::contract_call_by_hash(
+        account_user_1_account_hash,
+        nft_contract_hash,
+        ENTRY_POINT_MINT,
+        mint_runtime_args.clone(),
+    )
+    .build();
+
+    // Public minting mode with empty whitelist allows any account to mint
+    builder.exec(mint_contract_call).expect_success().commit();
+
+    let (_, account_user_2) = support::create_dummy_key_pair(ACCOUNT_USER_2);
+
+    let transfer_to_account_2 = ExecuteRequestBuilder::transfer(
+        *DEFAULT_ACCOUNT_ADDR,
+        runtime_args! {
+            mint::ARG_AMOUNT => 100_000_000_000_000u64,
+            mint::ARG_TARGET => account_user_2.to_account_hash(),
+            mint::ARG_ID => Option::<u64>::None,
+        },
+    )
+    .build();
+
+    builder
+        .exec(transfer_to_account_2)
+        .expect_success()
+        .commit();
+
+    let account_user_2_account_hash = account_user_2.to_account_hash();
+
+    let update_whitelist_request = ExecuteRequestBuilder::contract_call_by_hash(
+        *DEFAULT_ACCOUNT_ADDR,
+        nft_contract_hash,
+        ENTRY_POINT_SET_VARIABLES,
+        runtime_args! {
+            ARG_ACCOUNTS_WHITELIST => vec![account_user_2_account_hash]
+        },
+    )
+    .build();
+
+    builder
+        .exec(update_whitelist_request)
+        .expect_success()
+        .commit();
+
+    let updated_contract_whitelist: Vec<AccountHash> = query_stored_value(
+        &mut builder,
+        nft_contract_key,
+        vec![ARG_ACCOUNTS_WHITELIST.to_string()],
+    );
+
+    assert_eq!(
+        vec![account_user_2_account_hash],
+        updated_contract_whitelist
+    );
+
+    let mint_contract_call = ExecuteRequestBuilder::contract_call_by_hash(
+        account_user_1_account_hash,
+        nft_contract_hash,
+        ENTRY_POINT_MINT,
+        mint_runtime_args.clone(),
+    )
+    .build();
+
+    // First account can not mint anymore as not whitelisted
+    builder.exec(mint_contract_call).expect_failure();
+
+    let error = builder.get_error().expect("should have an error");
+    assert_expected_error(
+        error,
+        148,
+        "Unlisted account hash should not be permitted to mint",
+    );
+
+    let update_whitelist_request = ExecuteRequestBuilder::contract_call_by_hash(
+        *DEFAULT_ACCOUNT_ADDR,
+        nft_contract_hash,
+        ENTRY_POINT_SET_VARIABLES,
+        runtime_args! {
+            ARG_ACCOUNTS_WHITELIST => vec![account_user_1_account_hash, account_user_2_account_hash]
+        },
+    )
+    .build();
+
+    builder
+        .exec(update_whitelist_request)
+        .expect_success()
+        .commit();
+
+    let updated_contract_whitelist: Vec<AccountHash> = query_stored_value(
+        &mut builder,
+        nft_contract_key,
+        vec![ARG_ACCOUNTS_WHITELIST.to_string()],
+    );
+
+    assert_eq!(
+        vec![account_user_1_account_hash, account_user_2_account_hash],
+        updated_contract_whitelist
+    );
+
+    let mint_contract_call = ExecuteRequestBuilder::contract_call_by_hash(
+        account_user_1_account_hash,
+        nft_contract_hash,
+        ENTRY_POINT_MINT,
+        mint_runtime_args,
+    )
+    .build();
+    // Both accounts can mint anymore as whitelisted
+    builder.exec(mint_contract_call).expect_success().commit();
 }
 
 #[test]

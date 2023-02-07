@@ -150,6 +150,7 @@ pub enum NFTCoreError {
     InvalidAccountsWhitelist = 145,
     EmptyAccountsWhitelist = 146,
     EmptyMixedWhitelist = 147,
+    UnlistedAccountHash = 148,
 }
 
 impl From<NFTCoreError> for ApiError {

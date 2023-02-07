@@ -439,19 +439,20 @@ pub extern "C" fn set_variables() {
         storage::write(allow_minting_uref, allow_minting);
     }
 
+    let whitelist_mode: WhitelistMode = utils::get_stored_value_with_user_errors::<u8>(
+        WHITELIST_MODE,
+        NFTCoreError::MissingWhitelistMode,
+        NFTCoreError::InvalidWhitelistMode,
+    )
+    .try_into()
+    .unwrap_or_revert();
+
     if let Some(new_contract_whitelist) =
         utils::get_optional_named_arg_with_user_errors::<Vec<ContractHash>>(
             ARG_CONTRACT_WHITELIST,
             NFTCoreError::MissingContractWhiteList,
         )
     {
-        let whitelist_mode: WhitelistMode = utils::get_stored_value_with_user_errors::<u8>(
-            WHITELIST_MODE,
-            NFTCoreError::MissingWhitelistMode,
-            NFTCoreError::InvalidWhitelistMode,
-        )
-        .try_into()
-        .unwrap_or_revert();
         match whitelist_mode {
             WhitelistMode::Unlocked => {
                 let whitelist_uref = utils::get_uref(
@@ -460,6 +461,25 @@ pub extern "C" fn set_variables() {
                     NFTCoreError::InvalidWhitelistMode,
                 );
                 storage::write(whitelist_uref, new_contract_whitelist)
+            }
+            WhitelistMode::Locked => runtime::revert(NFTCoreError::InvalidWhitelistMode),
+        }
+    }
+
+    if let Some(new_acounts_whitelist) =
+        utils::get_optional_named_arg_with_user_errors::<Vec<ContractHash>>(
+            ARG_ACCOUNTS_WHITELIST,
+            NFTCoreError::MissingContractWhiteList,
+        )
+    {
+        match whitelist_mode {
+            WhitelistMode::Unlocked => {
+                let whitelist_uref = utils::get_uref(
+                    ACCOUNTS_WHITELIST,
+                    NFTCoreError::MissingContractWhiteList,
+                    NFTCoreError::InvalidWhitelistMode,
+                );
+                storage::write(whitelist_uref, new_acounts_whitelist)
             }
             WhitelistMode::Locked => runtime::revert(NFTCoreError::InvalidWhitelistMode),
         }
@@ -537,6 +557,30 @@ pub extern "C" fn mint() {
                 // Revert if private minting is required and caller is not installer.
                 if runtime::get_caller() != installer_account {
                     runtime::revert(NFTCoreError::InvalidMinter)
+                }
+            }
+            _ => runtime::revert(NFTCoreError::InvalidKey),
+        }
+    }
+
+    // Revert if minting is public and caller is not in the whitelist.
+    if let MintingMode::Public = minting_mode {
+        let caller = utils::get_verified_caller().unwrap_or_revert();
+        match caller.tag() {
+            // accounts whitelist does not affect contracts in Public minting mode, only for
+            // accounts if accounts_whitelist is not empty
+            KeyTag::Hash => {}
+            KeyTag::Account => {
+                let accounts_whitelist = utils::get_stored_value_with_user_errors::<Vec<AccountHash>>(
+                    ACCOUNTS_WHITELIST,
+                    NFTCoreError::MissingWhitelistMode,
+                    NFTCoreError::InvalidWhitelistMode,
+                );
+                // Revert if the caller is not in the whitelist.
+                if !accounts_whitelist.is_empty()
+                    && !accounts_whitelist.contains(&runtime::get_caller())
+                {
+                    runtime::revert(NFTCoreError::UnlistedAccountHash)
                 }
             }
             _ => runtime::revert(NFTCoreError::InvalidKey),
@@ -1582,6 +1626,10 @@ fn generate_entry_points() -> EntryPoints {
                 ARG_CONTRACT_WHITELIST,
                 CLType::List(Box::new(CLType::ByteArray(32u32))),
             ),
+            Parameter::new(
+                ARG_ACCOUNTS_WHITELIST,
+                CLType::List(Box::new(CLType::ByteArray(32u32))),
+            ),
             Parameter::new(ARG_JSON_SCHEMA, CLType::String),
             Parameter::new(ARG_RECEIPT_NAME, CLType::String),
             Parameter::new(ARG_IDENTIFIER_MODE, CLType::U8),
@@ -1610,6 +1658,10 @@ fn generate_entry_points() -> EntryPoints {
             Parameter::new(ARG_ALLOW_MINTING, CLType::Bool),
             Parameter::new(
                 ARG_CONTRACT_WHITELIST,
+                CLType::List(Box::new(CLType::ByteArray(32u32))),
+            ),
+            Parameter::new(
+                ARG_ACCOUNTS_WHITELIST,
                 CLType::List(Box::new(CLType::ByteArray(32u32))),
             ),
         ],
