@@ -77,7 +77,7 @@ fn should_record_cep47_dictionary_style_mint_event() {
     let package = query_stored_value::<String>(
         &mut builder,
         nft_contract_key,
-        vec![format!("cep78_{}", collection_name)],
+        vec![format!("cep78_{collection_name}")],
     );
 
     let mut expected_event: BTreeMap<String, String> = BTreeMap::new();
@@ -125,7 +125,7 @@ fn should_record_cep47_dictionary_style_transfer_token_event_in_hash_identifier_
     builder.exec(mint_session_call).expect_success().commit();
 
     let token_hash: String =
-        base16::encode_lower(&support::create_blake2b_hash(&TEST_PRETTY_721_META_DATA));
+        base16::encode_lower(&support::create_blake2b_hash(TEST_PRETTY_721_META_DATA));
 
     let register_request = ExecuteRequestBuilder::contract_call_by_hash(
         *DEFAULT_ACCOUNT_ADDR,
@@ -170,7 +170,7 @@ fn should_record_cep47_dictionary_style_transfer_token_event_in_hash_identifier_
     let package = query_stored_value::<String>(
         &mut builder,
         nft_contract_key,
-        vec![format!("cep78_{}", collection_name)],
+        vec![format!("cep78_{collection_name}")],
     );
 
     let mut expected_event: BTreeMap<String, String> = BTreeMap::new();
@@ -339,7 +339,7 @@ fn should_record_cep47_dictionary_style_metadata_update_event_for_nft721_using_t
     let package = query_stored_value::<String>(
         &mut builder,
         nft_contract_key,
-        vec![format!("cep78_{}", collection_name)],
+        vec![format!("cep78_{collection_name}")],
     );
 
     let mut expected_event: BTreeMap<String, String> = BTreeMap::new();
@@ -421,7 +421,7 @@ fn should_cep47_dictionary_style_burn_event() {
     builder.exec(burn_request).expect_success().commit();
 
     //This will error of token is not registered as burnt.
-    let _ = get_dictionary_value_from_key::<()>(
+    get_dictionary_value_from_key::<()>(
         &builder,
         nft_contract_key,
         BURNT_TOKENS,
@@ -455,7 +455,7 @@ fn should_cep47_dictionary_style_burn_event() {
     let package = query_stored_value::<String>(
         &mut builder,
         *nft_contract_key,
-        vec![format!("cep78_{}", collection_name)],
+        vec![format!("cep78_{collection_name}")],
     );
 
     let mut expected_event: BTreeMap<String, String> = BTreeMap::new();
@@ -545,7 +545,7 @@ fn should_cep47_dictionary_style_approve_event_in_hash_identifier_mode() {
     let package = query_stored_value::<String>(
         &mut builder,
         nft_contract_key,
-        vec![format!("cep78_{}", collection_name)],
+        vec![format!("cep78_{collection_name}")],
     );
     let mut expected_event: BTreeMap<String, String> = BTreeMap::new();
     expected_event.insert("event_type".to_string(), "Approve".to_string());

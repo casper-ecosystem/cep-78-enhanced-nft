@@ -51,7 +51,7 @@ pub(crate) fn record_event_dictionary(event: &CEP47Event) {
     );
 
     let package = utils::get_stored_value_with_user_errors::<String>(
-        &format!("{}{}", CEP78_PREFIX, collection_name),
+        &format!("{CEP78_PREFIX}{collection_name}"),
         NFTCoreError::MissingCep78PackageHash,
         NFTCoreError::InvalidCep78InvalidHash,
     );

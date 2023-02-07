@@ -208,7 +208,7 @@ fn should_install_with_contract_holder_mode() {
         .with_holder_mode(NFTHolderMode::Contracts)
         .with_whitelist_mode(WhitelistMode::Unlocked)
         .with_reporting_mode(OwnerReverseLookupMode::NoLookUp)
-        .with_contract_whitelist(vec![ContractHash::default()]);
+        .with_contract_whitelist(vec![ContractHash::default().into()]);
 
     builder
         .exec(install_request.build())
