@@ -67,6 +67,14 @@ const buildKeyHashList = (list: string[]) =>
 export const getBinary = (pathToBinary: string) =>
   new Uint8Array(fs.readFileSync(pathToBinary, null).buffer);
 
+export enum CEP47Events {
+  MintOne = "cep47_mint_one",
+  TransferToken = "cep47_transfer_token",
+  BurnOne = "cep47_burn_one",
+  MetadataUpdate = 'cep47_metadata_update',
+  ApproveToken = 'cep47_approve_token'
+}
+
 export class CEP78Client {
   private casperClient: CasperClient;
 
@@ -168,6 +176,13 @@ export class CEP78Client {
       runtimeArgs.insert(
         "hash_key_name",
         CLValueBuilder.string(args.hashKeyName)
+      );
+    }
+
+    if (args.eventsMode !== undefined) {
+      runtimeArgs.insert(
+        'events_mode',
+        CLValueBuilder.u8(args.eventsMode)
       );
     }
 
@@ -359,6 +374,7 @@ export class CEP78Client {
     const runtimeArgs = RuntimeArgs.fromMap({
       token_owner: CLValueBuilder.key(args.owner),
       token_meta_data: CLValueBuilder.string(JSON.stringify(args.meta)),
+      collection_name: CLValueBuilder.string('my-collection')
     });
 
     if (config.useSessionCode) {

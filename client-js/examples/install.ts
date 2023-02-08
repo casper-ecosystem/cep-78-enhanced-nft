@@ -7,6 +7,7 @@ import {
   MetadataMutability,
   OwnerReverseLookupMode,
   MintingMode,
+  EventsMode
 } from "../src/index";
 
 import {
@@ -38,7 +39,8 @@ const install = async () => {
       identifierMode: NFTIdentifierMode.Ordinal,
       metadataMutability: MetadataMutability.Immutable,
       mintingMode: MintingMode.Installer,
-      ownerReverseLookupMode: OwnerReverseLookupMode.Complete
+      ownerReverseLookupMode: OwnerReverseLookupMode.Complete,
+      eventsMode: EventsMode.CEP47
     },
     "250000000000",
     FAUCET_KEYS.publicKey,

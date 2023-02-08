@@ -10,9 +10,9 @@ import {
   printHeader,
 } from "./common";
 
-import { DeployUtil, CLPublicKey } from "casper-js-sdk";
+import { DeployUtil, CLPublicKey, EventStream, EventName, CLValueParsers, CLTypeTag, CLMap, CLValue, CLValueBuilder } from "casper-js-sdk";
 
-const { NODE_URL } = process.env;
+const { NODE_URL, EVENT_STREAM_ADDRESS } = process.env;
 
 const runDeployFlow = async (deploy: DeployUtil.Deploy) => {
   const deployHash = await deploy.send(NODE_URL!);
@@ -23,6 +23,72 @@ const runDeployFlow = async (deploy: DeployUtil.Deploy) => {
   await getDeploy(NODE_URL!, deployHash);
 
   console.log(`...... Deploy ${deployHash} succedeed`);
+};
+
+enum CEP47Events {
+  MintOne = "cep47_mint_one",
+  TransferToken = "cep47_transfer_token",
+  BurnOne = "cep47_burn_one",
+  MetadataUpdate = 'cep47_metadata_update',
+  ApproveToken = 'cep47_approve_token'
+}
+
+const CEP47EventParser = (
+  {
+    contractPackageHash,
+    eventNames,
+  }: { contractPackageHash: string; eventNames: CEP47Events[] },
+  value: any
+) => {
+  if (value.body.DeployProcessed.execution_result.Success) {
+    const { transforms } =
+      value.body.DeployProcessed.execution_result.Success.effect;
+
+        const cep47Events = transforms.reduce((acc: any, val: any) => {
+          if (
+            val.transform.hasOwnProperty("WriteCLValue") &&
+            val.transform.WriteCLValue.cl_type === 'Any'
+            // typeof val.transform.WriteCLValue.parsed === "object" &&
+            // val.transform.WriteCLValue.parsed !== null
+          ) {
+            const maybeCLValue = CLValueParsers.fromBytesWithType(
+              Buffer.from(val.transform.WriteCLValue.bytes, 'hex')
+            );
+            const clValue = maybeCLValue.unwrap();
+
+            console.log(val);
+            console.log('value',clValue.toJSON());
+
+            if (clValue && clValue.clType().tag === CLTypeTag.Map) {
+              const hash = (clValue as CLMap<CLValue, CLValue>).get(
+                CLValueBuilder.string("contract_package_hash")
+              );
+
+              console.log(hash);
+
+              const event = (clValue as CLMap<CLValue, CLValue>).get(CLValueBuilder.string("event_type"));
+
+              console.log(event);
+
+              if (
+                hash &&
+                // NOTE: Calling toLowerCase() because current JS-SDK doesn't support checksumed hashes and returns all lower case value
+                // Remove it after updating SDK
+                hash.value() === contractPackageHash.slice(5).toLowerCase() &&
+                event &&
+                eventNames.includes(event.value())
+              ) {
+                acc = [...acc, { name: event.value(), clValue }];
+              }
+            }
+          }
+          return acc;
+        }, []);
+
+    return { error: null, success: !!cep47Events.length, data: cep47Events };
+  }
+
+  return null;
 };
 
 const run = async () => {
@@ -48,12 +114,12 @@ const run = async () => {
 
   const contractHash = await getAccountNamedKeyValue(
     accountInfo,
-    `nft_contract`
+    `cep78_contract_hash_my-collection`
   );
 
   const contractPackageHash = await getAccountNamedKeyValue(
     accountInfo,
-    `nft_contract_package`
+    `cep78_contract_package_my-collection`
   );
 
   console.log(`... Contract Hash: ${contractHash}`);
@@ -88,6 +154,28 @@ const run = async () => {
     OwnerReverseLookupMode[OwnerReverseLookupMode.Complete];
 
   const JSONSetting = await cc.getJSONSchemaConfig();
+
+  const es = new EventStream(EVENT_STREAM_ADDRESS!);
+  es.subscribe(EventName.DeployProcessed, (event) => {
+    const parsedEvents = CEP47EventParser({
+      contractPackageHash, 
+      eventNames: [
+        CEP47Events.MintOne,
+        CEP47Events.TransferToken,
+        CEP47Events.BurnOne,
+        CEP47Events.MetadataUpdate,
+        CEP47Events.ApproveToken
+      ]
+    }, event);
+
+    if (parsedEvents && parsedEvents.success) {
+      console.log("*** EVENT ***");
+      console.log(parsedEvents.data);
+      console.log("*** ***");
+    }
+  });
+
+  es.start();
 
   /* Mint */
   printHeader("Mint");
