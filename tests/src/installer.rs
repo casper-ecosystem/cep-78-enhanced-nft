@@ -335,24 +335,6 @@ fn should_disallow_installation_of_contract_with_empty_locked_contract_whitelist
 }
 
 #[test]
-fn should_disallow_installation_of_contract_with_empty_locked_mixed_whitelist() {
-    let mut builder = InMemoryWasmTestBuilder::default();
-    builder.run_genesis(&DEFAULT_RUN_GENESIS_REQUEST).commit();
-
-    let install_request_builder =
-        InstallerRequestBuilder::new(*DEFAULT_ACCOUNT_ADDR, NFT_CONTRACT_WASM)
-            .with_holder_mode(NFTHolderMode::Mixed)
-            .with_reporting_mode(OwnerReverseLookupMode::NoLookUp)
-            .with_whitelist_mode(WhitelistMode::Locked);
-
-    support::assert_expected_invalid_installer_request(
-        install_request_builder,
-        147,
-        "should fail execution since whitelist mode is locked and the provided whitelist is empty",
-    );
-}
-
-#[test]
 fn should_disallow_installation_of_contract_with_empty_locked_account_whitelist() {
     let mut builder = InMemoryWasmTestBuilder::default();
     builder.run_genesis(&DEFAULT_RUN_GENESIS_REQUEST).commit();
@@ -366,6 +348,24 @@ fn should_disallow_installation_of_contract_with_empty_locked_account_whitelist(
     support::assert_expected_invalid_installer_request(
         install_request_builder,
         146,
+        "should fail execution since whitelist mode is locked and the provided whitelist is empty",
+    );
+}
+
+#[test]
+fn should_disallow_installation_of_contract_with_empty_locked_mixed_whitelist() {
+    let mut builder = InMemoryWasmTestBuilder::default();
+    builder.run_genesis(&DEFAULT_RUN_GENESIS_REQUEST).commit();
+
+    let install_request_builder =
+        InstallerRequestBuilder::new(*DEFAULT_ACCOUNT_ADDR, NFT_CONTRACT_WASM)
+            .with_holder_mode(NFTHolderMode::Mixed)
+            .with_reporting_mode(OwnerReverseLookupMode::NoLookUp)
+            .with_whitelist_mode(WhitelistMode::Locked);
+
+    support::assert_expected_invalid_installer_request(
+        install_request_builder,
+        147,
         "should fail execution since whitelist mode is locked and the provided whitelist is empty",
     );
 }
