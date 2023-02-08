@@ -27,15 +27,13 @@ pub const ARG_NFT_PACKAGE_HASH: &str = "cep78_package_key";
 pub const ARG_NAMED_KEY_CONVENTION: &str = "named_key_convention";
 pub const ARG_ACCESS_KEY_NAME_1_0_0: &str = "access_key_name";
 pub const ARG_HASH_KEY_NAME_1_0_0: &str = "hash_key_name";
-pub const ARG_EVENTS_MODE: &str = "events_mode";
-
 pub const OPERATOR: &str = "operator";
 pub const NUMBER_OF_MINTED_TOKENS: &str = "number_of_minted_tokens";
 pub const INSTALLER: &str = "installer";
 pub const JSON_SCHEMA: &str = "json_schema";
 pub const HASH_KEY_NAME_1_0_0: &str = "nft_contract_package";
 pub const ACCESS_KEY_NAME_1_0_0: &str = "nft_contract_package_access";
-pub const HASH_KEY_NAME_PREFIX: &str = "cep78_contract_package";
+pub const HASH_KEY_NAME_PREFIX: &str = "cep78_contract_package_";
 pub const ACCESS_KEY_NAME_PREFIX: &str = "cep78_contract_package_access_";
 pub const CONTRACT_NAME_PREFIX: &str = "cep78_contract_hash_";
 pub const CONTRACT_VERSION_PREFIX: &str = "cep78_contract_version_";
@@ -72,10 +70,6 @@ pub const PAGE_LIMIT: &str = "page_limit";
 pub const UNMATCHED_HASH_COUNT: &str = "unmatched_hash_count";
 pub const MIGRATION_FLAG: &str = "migration_flag";
 pub const REPORTING_MODE: &str = "reporting_mode";
-pub const EVENTS: &str = "events";
-pub const EVENT_ID_TRACKER: &str = "id_tracker";
-pub const EVENTS_MODE: &str = "events_mode";
-
 pub const ENTRY_POINT_INIT: &str = "init";
 pub const ENTRY_POINT_SET_VARIABLES: &str = "set_variables";
 pub const ENTRY_POINT_MINT: &str = "mint";
