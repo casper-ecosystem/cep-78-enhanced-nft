@@ -15,7 +15,7 @@ use crate::utility::constants::{
     ARG_WHITELIST_MODE, NFT_TEST_COLLECTION, NFT_TEST_SYMBOL,
 };
 
-use super::constants::ARG_ACCOUNTS_WHITELIST;
+use super::constants::ARG_ACCOUNT_WHITELIST;
 
 pub(crate) static TEST_CUSTOM_METADATA_SCHEMA: Lazy<CustomMetadataSchema> = Lazy::new(|| {
     let mut properties = BTreeMap::new();
@@ -172,7 +172,7 @@ pub(crate) struct InstallerRequestBuilder {
     holder_mode: CLValue,
     whitelist_mode: CLValue,
     contract_whitelist: CLValue,
-    accounts_whitelist: CLValue,
+    account_whitelist: CLValue,
     json_schema: CLValue,
     nft_metadata_kind: CLValue,
     identifier_mode: CLValue,
@@ -206,7 +206,7 @@ impl InstallerRequestBuilder {
             holder_mode: CLValue::from_t(NFTHolderMode::Mixed as u8).unwrap(),
             whitelist_mode: CLValue::from_t(WhitelistMode::Unlocked as u8).unwrap(),
             contract_whitelist: CLValue::from_t(Vec::<ContractHash>::new()).unwrap(),
-            accounts_whitelist: CLValue::from_t(Vec::<AccountHash>::new()).unwrap(),
+            account_whitelist: CLValue::from_t(Vec::<AccountHash>::new()).unwrap(),
             json_schema: CLValue::from_t("test".to_string())
                 .expect("test_metadata was created from a concrete value"),
             nft_metadata_kind: CLValue::from_t(NFTMetadataKind::NFT721 as u8).unwrap(),
@@ -298,8 +298,8 @@ impl InstallerRequestBuilder {
         self
     }
 
-    pub(crate) fn with_accounts_whitelist(mut self, accounts_whitelist: Vec<AccountHash>) -> Self {
-        self.accounts_whitelist = CLValue::from_t(accounts_whitelist).unwrap();
+    pub(crate) fn with_account_whitelist(mut self, account_whitelist: Vec<AccountHash>) -> Self {
+        self.account_whitelist = CLValue::from_t(account_whitelist).unwrap();
         self
     }
 
@@ -353,7 +353,7 @@ impl InstallerRequestBuilder {
         runtime_args.insert_cl_value(ARG_HOLDER_MODE, self.holder_mode);
         runtime_args.insert_cl_value(ARG_WHITELIST_MODE, self.whitelist_mode);
         runtime_args.insert_cl_value(ARG_CONTRACT_WHITELIST, self.contract_whitelist);
-        runtime_args.insert_cl_value(ARG_ACCOUNTS_WHITELIST, self.accounts_whitelist);
+        runtime_args.insert_cl_value(ARG_ACCOUNT_WHITELIST, self.account_whitelist);
         runtime_args.insert_cl_value(ARG_JSON_SCHEMA, self.json_schema);
         runtime_args.insert_cl_value(ARG_NFT_METADATA_KIND, self.nft_metadata_kind);
         runtime_args.insert_cl_value(ARG_IDENTIFIER_MODE, self.identifier_mode);

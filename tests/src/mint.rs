@@ -11,7 +11,7 @@ use casper_types::{
 
 use crate::utility::{
     constants::{
-        ACCOUNT_USER_1, ACCOUNT_USER_2, ARG_ACCOUNTS_WHITELIST, ARG_APPROVE_ALL,
+        ACCOUNT_USER_1, ACCOUNT_USER_2, ARG_ACCOUNT_WHITELIST, ARG_APPROVE_ALL,
         ARG_COLLECTION_NAME, ARG_CONTRACT_WHITELIST, ARG_IS_HASH_IDENTIFIER_MODE,
         ARG_MINTING_CONTRACT_REVERSE_LOOKUP, ARG_MINTING_MODE, ARG_NFT_CONTRACT_HASH, ARG_OPERATOR,
         ARG_TOKEN_HASH, ARG_TOKEN_ID, ARG_TOKEN_META_DATA, ARG_TOKEN_OWNER, BALANCES,
@@ -925,7 +925,7 @@ fn should_allow_whitelisted_account_to_mint() {
 
     let account_user_1_account_hash = account_user_1.to_account_hash();
 
-    let accounts_whitelist = vec![account_user_1_account_hash];
+    let account_whitelist = vec![account_user_1_account_hash];
 
     let install_request = InstallerRequestBuilder::new(*DEFAULT_ACCOUNT_ADDR, NFT_CONTRACT_WASM)
         .with_total_token_supply(100u64)
@@ -934,7 +934,7 @@ fn should_allow_whitelisted_account_to_mint() {
         .with_ownership_mode(OwnershipMode::Minter)
         .with_minting_mode(MintingMode::Public)
         .with_reporting_mode(OwnerReverseLookupMode::NoLookUp)
-        .with_accounts_whitelist(accounts_whitelist.clone())
+        .with_account_whitelist(account_whitelist.clone())
         .build();
 
     builder.exec(install_request).expect_success().commit();
@@ -942,13 +942,13 @@ fn should_allow_whitelisted_account_to_mint() {
     let nft_contract_hash = get_nft_contract_hash(&builder);
     let nft_contract_key: Key = nft_contract_hash.into();
 
-    let actual_accounts_whitelist: Vec<AccountHash> = query_stored_value(
+    let actual_account_whitelist: Vec<AccountHash> = query_stored_value(
         &mut builder,
         nft_contract_key,
-        vec![ARG_ACCOUNTS_WHITELIST.to_string()],
+        vec![ARG_ACCOUNT_WHITELIST.to_string()],
     );
 
-    assert_eq!(actual_accounts_whitelist, accounts_whitelist);
+    assert_eq!(actual_account_whitelist, account_whitelist);
 
     let mint_runtime_args = runtime_args! {
         ARG_TOKEN_OWNER => Key::Account(account_user_1_account_hash),
@@ -1062,7 +1062,7 @@ fn should_disallow_unlisted_account_from_minting() {
 
     let account_user_1_account_hash = account_user_1.to_account_hash();
 
-    let accounts_whitelist = vec![account_user_1_account_hash];
+    let account_whitelist = vec![account_user_1_account_hash];
 
     let install_request = InstallerRequestBuilder::new(*DEFAULT_ACCOUNT_ADDR, NFT_CONTRACT_WASM)
         .with_total_token_supply(100u64)
@@ -1071,7 +1071,7 @@ fn should_disallow_unlisted_account_from_minting() {
         .with_ownership_mode(OwnershipMode::Minter)
         .with_minting_mode(MintingMode::Public)
         .with_reporting_mode(OwnerReverseLookupMode::NoLookUp)
-        .with_accounts_whitelist(accounts_whitelist.clone())
+        .with_account_whitelist(account_whitelist.clone())
         .build();
 
     builder.exec(install_request).expect_success().commit();
@@ -1079,13 +1079,13 @@ fn should_disallow_unlisted_account_from_minting() {
     let nft_contract_hash = get_nft_contract_hash(&builder);
     let nft_contract_key: Key = nft_contract_hash.into();
 
-    let actual_accounts_whitelist: Vec<AccountHash> = query_stored_value(
+    let actual_account_whitelist: Vec<AccountHash> = query_stored_value(
         &mut builder,
         nft_contract_key,
-        vec![ARG_ACCOUNTS_WHITELIST.to_string()],
+        vec![ARG_ACCOUNT_WHITELIST.to_string()],
     );
 
-    assert_eq!(actual_accounts_whitelist, accounts_whitelist);
+    assert_eq!(actual_account_whitelist, account_whitelist);
 
     let (_, account_user_2) = support::create_dummy_key_pair(ACCOUNT_USER_2);
 
@@ -1232,7 +1232,7 @@ fn should_be_able_to_update_contract_whitelist_for_minting() {
 }
 
 #[test]
-fn should_be_able_to_update_accounts_whitelist_for_minting() {
+fn should_be_able_to_update_account_whitelist_for_minting() {
     let mut builder = InMemoryWasmTestBuilder::default();
     builder.run_genesis(&DEFAULT_RUN_GENESIS_REQUEST).commit();
 
@@ -1243,7 +1243,7 @@ fn should_be_able_to_update_accounts_whitelist_for_minting() {
         .with_ownership_mode(OwnershipMode::Minter)
         .with_minting_mode(MintingMode::Public)
         .with_reporting_mode(OwnerReverseLookupMode::NoLookUp)
-        .with_accounts_whitelist(vec![])
+        .with_account_whitelist(vec![])
         .build();
 
     builder.exec(install_request).expect_success().commit();
@@ -1254,7 +1254,7 @@ fn should_be_able_to_update_accounts_whitelist_for_minting() {
     let current_account_whitelist: Vec<AccountHash> = query_stored_value(
         &mut builder,
         nft_contract_key,
-        vec![ARG_ACCOUNTS_WHITELIST.to_string()],
+        vec![ARG_ACCOUNT_WHITELIST.to_string()],
     );
 
     assert!(current_account_whitelist.is_empty());
@@ -1318,7 +1318,7 @@ fn should_be_able_to_update_accounts_whitelist_for_minting() {
         nft_contract_hash,
         ENTRY_POINT_SET_VARIABLES,
         runtime_args! {
-            ARG_ACCOUNTS_WHITELIST => vec![account_user_2_account_hash]
+            ARG_ACCOUNT_WHITELIST => vec![account_user_2_account_hash]
         },
     )
     .build();
@@ -1331,7 +1331,7 @@ fn should_be_able_to_update_accounts_whitelist_for_minting() {
     let updated_contract_whitelist: Vec<AccountHash> = query_stored_value(
         &mut builder,
         nft_contract_key,
-        vec![ARG_ACCOUNTS_WHITELIST.to_string()],
+        vec![ARG_ACCOUNT_WHITELIST.to_string()],
     );
 
     assert_eq!(
@@ -1362,7 +1362,7 @@ fn should_be_able_to_update_accounts_whitelist_for_minting() {
         nft_contract_hash,
         ENTRY_POINT_SET_VARIABLES,
         runtime_args! {
-            ARG_ACCOUNTS_WHITELIST => vec![account_user_1_account_hash, account_user_2_account_hash]
+            ARG_ACCOUNT_WHITELIST => vec![account_user_1_account_hash, account_user_2_account_hash]
         },
     )
     .build();
@@ -1375,7 +1375,7 @@ fn should_be_able_to_update_accounts_whitelist_for_minting() {
     let updated_contract_whitelist: Vec<AccountHash> = query_stored_value(
         &mut builder,
         nft_contract_key,
-        vec![ARG_ACCOUNTS_WHITELIST.to_string()],
+        vec![ARG_ACCOUNT_WHITELIST.to_string()],
     );
 
     assert_eq!(

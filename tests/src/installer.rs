@@ -6,7 +6,7 @@ use casper_types::{account::AccountHash, runtime_args, CLValue, ContractHash, Ru
 
 use crate::utility::{
     constants::{
-        ARG_ACCOUNTS_WHITELIST, ARG_ALLOW_MINTING, ARG_COLLECTION_NAME, ARG_COLLECTION_SYMBOL,
+        ARG_ACCOUNT_WHITELIST, ARG_ALLOW_MINTING, ARG_COLLECTION_NAME, ARG_COLLECTION_SYMBOL,
         ARG_CONTRACT_WHITELIST, ARG_HOLDER_MODE, ARG_MINTING_MODE, ARG_TOTAL_TOKEN_SUPPLY,
         ARG_WHITELIST_MODE, CONTRACT_NAME, ENTRY_POINT_INIT, NFT_CONTRACT_WASM,
         NFT_TEST_COLLECTION, NFT_TEST_SYMBOL, NUMBER_OF_MINTED_TOKENS,
@@ -267,7 +267,7 @@ fn should_install_with_accounts_holder_mode() {
         .with_holder_mode(NFTHolderMode::Accounts)
         .with_whitelist_mode(WhitelistMode::Unlocked)
         .with_reporting_mode(OwnerReverseLookupMode::NoLookUp)
-        .with_accounts_whitelist(vec![AccountHash::default()]);
+        .with_account_whitelist(vec![AccountHash::default()]);
 
     builder
         .exec(install_request.build())
@@ -304,14 +304,14 @@ fn should_install_with_accounts_holder_mode() {
         "whitelist mode is not set to unlocked"
     );
 
-    let actual_accounts_whitelist: Vec<AccountHash> = support::query_stored_value(
+    let actual_account_whitelist: Vec<AccountHash> = support::query_stored_value(
         &mut builder,
         *nft_contract_key,
-        vec![ARG_ACCOUNTS_WHITELIST.to_string()],
+        vec![ARG_ACCOUNT_WHITELIST.to_string()],
     );
 
     assert_eq!(
-        actual_accounts_whitelist,
+        actual_account_whitelist,
         vec![AccountHash::default()],
         "accounts whitelist is incorrectly set"
     );
@@ -353,7 +353,7 @@ fn should_disallow_installation_of_contract_with_empty_locked_mixed_whitelist() 
 }
 
 #[test]
-fn should_disallow_installation_of_contract_with_empty_locked_accounts_whitelist() {
+fn should_disallow_installation_of_contract_with_empty_locked_account_whitelist() {
     let mut builder = InMemoryWasmTestBuilder::default();
     builder.run_genesis(&DEFAULT_RUN_GENESIS_REQUEST).commit();
 
