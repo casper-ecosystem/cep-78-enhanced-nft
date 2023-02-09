@@ -142,9 +142,7 @@ pub enum NFTCoreError {
     InvalidAccessKeyName = 137,
     InvalidCheckForUpgrade = 138,
     InvalidNamedKeyConvention = 139,
-    InvalidTokenEvent = 140,
-    MissingEventsMode = 141,
-    InvalidEventsMode = 142,
+    // maintained for feature errors
     OwnerReverseLookupModeNotTransferable = 143,
     InvalidAdditionalRequiredMetadata = 144,
     InvalidOptionalMetadata = 145,

@@ -9,7 +9,7 @@ use casper_types::{account::AccountHash, bytesrepr::Bytes, CLValue, ContractHash
 
 use crate::utility::constants::{
     ARG_ALLOW_MINTING, ARG_BURN_MODE, ARG_COLLECTION_NAME, ARG_COLLECTION_SYMBOL,
-    ARG_CONTRACT_WHITELIST, ARG_EVENTS_MODE, ARG_HOLDER_MODE, ARG_IDENTIFIER_MODE, ARG_JSON_SCHEMA,
+    ARG_CONTRACT_WHITELIST, ARG_HOLDER_MODE, ARG_IDENTIFIER_MODE, ARG_JSON_SCHEMA,
     ARG_METADATA_MUTABILITY, ARG_MINTING_MODE, ARG_NAMED_KEY_CONVENTION, ARG_NFT_KIND,
     ARG_NFT_METADATA_KIND, ARG_OWNERSHIP_MODE, ARG_OWNER_LOOKUP_MODE, ARG_TOTAL_TOKEN_SUPPLY,
     ARG_WHITELIST_MODE, NFT_TEST_COLLECTION, NFT_TEST_SYMBOL,
@@ -152,12 +152,6 @@ pub enum NamedKeyConventionMode {
     V1_0Custom = 2,
 }
 
-#[repr(u8)]
-pub enum EventsMode {
-    NoEvents = 0,
-    CEP47 = 1,
-}
-
 #[derive(Debug)]
 pub(crate) struct InstallerRequestBuilder {
     account_hash: AccountHash,
@@ -179,7 +173,6 @@ pub(crate) struct InstallerRequestBuilder {
     burn_mode: CLValue,
     reporting_mode: CLValue,
     named_key_convention: CLValue,
-    events_mode: CLValue,
     additional_required_metadata: CLValue,
     optional_metadata: CLValue,
 }
@@ -218,7 +211,6 @@ impl InstallerRequestBuilder {
                 NamedKeyConventionMode::DerivedFromCollectionName as u8,
             )
             .unwrap(),
-            events_mode: CLValue::from_t(EventsMode::NoEvents as u8).unwrap(),
             additional_required_metadata: CLValue::from_t(Bytes::new()).unwrap(),
             optional_metadata: CLValue::from_t(Bytes::new()).unwrap(),
         }
@@ -347,11 +339,6 @@ impl InstallerRequestBuilder {
         self
     }
 
-    pub(crate) fn with_events_mode(mut self, events_mode: EventsMode) -> Self {
-        self.events_mode = CLValue::from_t(events_mode as u8).unwrap();
-        self
-    }
-
     pub(crate) fn build(self) -> ExecuteRequest {
         let mut runtime_args = RuntimeArgs::new();
         runtime_args.insert_cl_value(ARG_COLLECTION_NAME, self.collection_name);
@@ -371,7 +358,6 @@ impl InstallerRequestBuilder {
         runtime_args.insert_cl_value(ARG_BURN_MODE, self.burn_mode);
         runtime_args.insert_cl_value(ARG_OWNER_LOOKUP_MODE, self.reporting_mode);
         runtime_args.insert_cl_value(ARG_NAMED_KEY_CONVENTION, self.named_key_convention);
-        runtime_args.insert_cl_value(ARG_EVENTS_MODE, self.events_mode);
         runtime_args.insert_cl_value(
             ARG_ADDITIONAL_REQUIRED_METADATA,
             self.additional_required_metadata,
