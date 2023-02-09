@@ -65,7 +65,7 @@ pub(crate) const ARG_ACCESS_KEY_NAME_1_0_0: &str = "access_key_name";
 pub(crate) const ARG_HASH_KEY_NAME_1_0_0: &str = "hash_key_name";
 pub(crate) const ACCOUNT_USER_1: [u8; 32] = [1u8; 32];
 pub(crate) const ACCOUNT_USER_2: [u8; 32] = [2u8; 32];
-pub(crate) const ACCOUNT_USER_3: [u8; 32] = [2u8; 32];
+pub(crate) const ACCOUNT_USER_3: [u8; 32] = [3u8; 32];
 pub(crate) const TEST_PRETTY_721_META_DATA: &str = r#"{
   "name": "John Doe",
   "symbol": "abc",
