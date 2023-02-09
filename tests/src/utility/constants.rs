@@ -63,7 +63,6 @@ pub(crate) const ARG_IS_HASH_IDENTIFIER_MODE: &str = "is_hash_identifier_mode";
 pub(crate) const ARG_NAMED_KEY_CONVENTION: &str = "named_key_convention";
 pub(crate) const ARG_ACCESS_KEY_NAME_1_0_0: &str = "access_key_name";
 pub(crate) const ARG_HASH_KEY_NAME_1_0_0: &str = "hash_key_name";
-pub(crate) const ARG_EVENTS_MODE: &str = "events_mode";
 pub(crate) const ACCOUNT_USER_1: [u8; 32] = [1u8; 32];
 pub(crate) const ACCOUNT_USER_2: [u8; 32] = [2u8; 32];
 pub(crate) const ACCOUNT_USER_3: [u8; 32] = [3u8; 32];
