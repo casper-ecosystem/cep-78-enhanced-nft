@@ -2,7 +2,7 @@
 
 Utility session code for migrating their receipts from the previous storage scheme 
 to the new page based model scheme. This session code calls the `updated_receipts`
-entry point on the contract inserting the necessary updated the reciepts into
+entry point on the contract inserting the necessary updated the receipts into
 the account's named keys.
 
 ## Compiling session code
