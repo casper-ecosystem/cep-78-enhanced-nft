@@ -26,11 +26,11 @@ const runDeployFlow = async (deploy: DeployUtil.Deploy) => {
 };
 
 enum CEP47Events {
-  MintOne = "cep47_mint_one",
-  TransferToken = "cep47_transfer_token",
-  BurnOne = "cep47_burn_one",
-  MetadataUpdate = 'cep47_metadata_update',
-  ApproveToken = 'cep47_approve_token'
+  Mint = "Mint",
+  Transfer = "Transfer",
+  Burn = "Burn",
+  MetadataUpdate = 'MetadataUpdate',
+  Approve = 'Approve'
 }
 
 const CEP47EventParser = (
@@ -48,33 +48,26 @@ const CEP47EventParser = (
           if (
             val.transform.hasOwnProperty("WriteCLValue") &&
             val.transform.WriteCLValue.cl_type === 'Any'
-            // typeof val.transform.WriteCLValue.parsed === "object" &&
-            // val.transform.WriteCLValue.parsed !== null
           ) {
             const maybeCLValue = CLValueParsers.fromBytesWithType(
               Buffer.from(val.transform.WriteCLValue.bytes, 'hex')
             );
             const clValue = maybeCLValue.unwrap();
 
-            console.log(val);
-            console.log('value',clValue.toJSON());
-
             if (clValue && clValue.clType().tag === CLTypeTag.Map) {
               const hash = (clValue as CLMap<CLValue, CLValue>).get(
-                CLValueBuilder.string("contract_package_hash")
+                CLValueBuilder.string("cep78_contract_package")
               );
 
-              console.log(hash);
+              const hashToCompare = hash.value().slice(21);
 
               const event = (clValue as CLMap<CLValue, CLValue>).get(CLValueBuilder.string("event_type"));
-
-              console.log(event);
 
               if (
                 hash &&
                 // NOTE: Calling toLowerCase() because current JS-SDK doesn't support checksumed hashes and returns all lower case value
                 // Remove it after updating SDK
-                hash.value() === contractPackageHash.slice(5).toLowerCase() &&
+                hashToCompare === contractPackageHash.slice(5).toLowerCase() &&
                 event &&
                 eventNames.includes(event.value())
               ) {
@@ -160,11 +153,11 @@ const run = async () => {
     const parsedEvents = CEP47EventParser({
       contractPackageHash, 
       eventNames: [
-        CEP47Events.MintOne,
-        CEP47Events.TransferToken,
-        CEP47Events.BurnOne,
+        CEP47Events.Mint,
+        CEP47Events.Transfer,
+        CEP47Events.Burn,
         CEP47Events.MetadataUpdate,
-        CEP47Events.ApproveToken
+        CEP47Events.Approve
       ]
     }, event);
 
