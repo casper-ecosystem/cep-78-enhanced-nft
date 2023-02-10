@@ -349,31 +349,30 @@ pub extern "C" fn init() {
 
     // Create the data dictionaries to store essential values, topically.
     storage::new_dictionary(TOKEN_OWNERS)
-        .unwrap_or_revert_with(NFTCoreError::FailedToCreateDictionaryTokenOwners);
+        .unwrap_or_revert_with(NFTCoreError::FailedToCreateDictionary);
     storage::new_dictionary(TOKEN_ISSUERS)
-        .unwrap_or_revert_with(NFTCoreError::FailedToCreateDictionaryTokensIssuers);
+        .unwrap_or_revert_with(NFTCoreError::FailedToCreateDictionary);
     storage::new_dictionary(OWNED_TOKENS)
-        .unwrap_or_revert_with(NFTCoreError::FailedToCreateDictionaryOwnedTokens);
-    storage::new_dictionary(OPERATOR)
-        .unwrap_or_revert_with(NFTCoreError::FailedToCreateDictionaryOperator);
+        .unwrap_or_revert_with(NFTCoreError::FailedToCreateDictionary);
+    storage::new_dictionary(OPERATOR).unwrap_or_revert_with(NFTCoreError::FailedToCreateDictionary);
     storage::new_dictionary(BURNT_TOKENS)
-        .unwrap_or_revert_with(NFTCoreError::FailedToCreateDictionaryBurntTokens);
+        .unwrap_or_revert_with(NFTCoreError::FailedToCreateDictionary);
     storage::new_dictionary(TOKEN_COUNTS)
-        .unwrap_or_revert_with(NFTCoreError::FailedToCreateDictionaryTokenCounts);
+        .unwrap_or_revert_with(NFTCoreError::FailedToCreateDictionary);
     storage::new_dictionary(METADATA_CUSTOM_VALIDATED)
-        .unwrap_or_revert_with(NFTCoreError::FailedToCreateDictionaryMatadataCustomValidated);
+        .unwrap_or_revert_with(NFTCoreError::FailedToCreateDictionary);
     storage::new_dictionary(METADATA_CEP78)
-        .unwrap_or_revert_with(NFTCoreError::FailedToCreateDictionaryMetadataCep78);
+        .unwrap_or_revert_with(NFTCoreError::FailedToCreateDictionary);
     storage::new_dictionary(METADATA_NFT721)
-        .unwrap_or_revert_with(NFTCoreError::FailedToCreateDictionaryMetadataNFT721);
+        .unwrap_or_revert_with(NFTCoreError::FailedToCreateDictionary);
     storage::new_dictionary(METADATA_RAW)
-        .unwrap_or_revert_with(NFTCoreError::FailedToCreateDictionaryMetadataRaw);
+        .unwrap_or_revert_with(NFTCoreError::FailedToCreateDictionary);
     storage::new_dictionary(HASH_BY_INDEX)
-        .unwrap_or_revert_with(NFTCoreError::FailedToCreateDictionaryHashByIndex);
+        .unwrap_or_revert_with(NFTCoreError::FailedToCreateDictionary);
     storage::new_dictionary(INDEX_BY_HASH)
-        .unwrap_or_revert_with(NFTCoreError::FailedToCreateDictionaryIndexByHash);
+        .unwrap_or_revert_with(NFTCoreError::FailedToCreateDictionary);
     storage::new_dictionary(PAGE_TABLE)
-        .unwrap_or_revert_with(NFTCoreError::FailedToCreateDictionaryPageTable);
+        .unwrap_or_revert_with(NFTCoreError::FailedToCreateDictionary);
     if vec![
         OwnerReverseLookupMode::Complete,
         OwnerReverseLookupMode::TransfersOnly,
@@ -1281,7 +1280,7 @@ pub extern "C" fn migrate() {
     }
 
     storage::new_dictionary(PAGE_TABLE)
-        .unwrap_or_revert_with(NFTCoreError::FailedToCreateDictionaryPageTable);
+        .unwrap_or_revert_with(NFTCoreError::FailedToCreateDictionary);
     let page_table_width = utils::max_number_of_pages(total_token_supply);
     runtime::put_key(PAGE_LIMIT, storage::new_uref(page_table_width).into());
     runtime::put_key(
@@ -1323,9 +1322,9 @@ pub extern "C" fn migrate() {
         NFTIdentifierMode::Ordinal => utils::migrate_owned_tokens_in_ordinal_mode(),
         NFTIdentifierMode::Hash => {
             storage::new_dictionary(HASH_BY_INDEX)
-                .unwrap_or_revert_with(NFTCoreError::FailedToCreateDictionaryHashByIndex);
+                .unwrap_or_revert_with(NFTCoreError::FailedToCreateDictionary);
             storage::new_dictionary(INDEX_BY_HASH)
-                .unwrap_or_revert_with(NFTCoreError::FailedToCreateDictionaryIndexByHash);
+                .unwrap_or_revert_with(NFTCoreError::FailedToCreateDictionary);
             let current_number_of_minted_tokens = utils::get_stored_value_with_user_errors::<u64>(
                 NUMBER_OF_MINTED_TOKENS,
                 NFTCoreError::MissingNumberOfMintedTokens,

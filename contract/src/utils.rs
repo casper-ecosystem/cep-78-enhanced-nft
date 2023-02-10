@@ -374,16 +374,15 @@ pub(crate) fn max_number_of_pages(total_token_supply: u64) -> u64 {
     if total_token_supply < PAGE_SIZE {
         let dictionary_name = format!("{}{}", PAGE_DICTIONARY_PREFIX, 0);
         storage::new_dictionary(&dictionary_name)
-            .unwrap_or_revert_with(NFTCoreError::FailedToCreateDictionaryPageDictionaryZero);
+            .unwrap_or_revert_with(NFTCoreError::FailedToCreateDictionary);
         1
     } else {
         let max_number_of_pages = total_token_supply / PAGE_SIZE;
         let overflow = total_token_supply % PAGE_SIZE;
         for page_number in 0..max_number_of_pages {
             let dictionary_name = format!("{PAGE_DICTIONARY_PREFIX}{page_number}");
-            storage::new_dictionary(&dictionary_name).unwrap_or_revert_with(
-                NFTCoreError::FailedToCreateDictionaryPageDictionaryNumbered,
-            );
+            storage::new_dictionary(&dictionary_name)
+                .unwrap_or_revert_with(NFTCoreError::FailedToCreateDictionary);
         }
         // With a page size of say 1000 and a token supply of 1050
         // max_number_of_pages = 1, but we need an additional page

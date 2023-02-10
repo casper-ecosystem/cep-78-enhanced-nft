@@ -367,7 +367,7 @@ fn should_prevent_installation_with_ownership_minter_and_owner_reverse_lookup_mo
 
     support::assert_expected_error(
         error,
-        143u16,
+        140u16,
         "cannot install when Ownership::Minter and OwnerReverseLookupMode::TransfersOnly",
     );
 }
@@ -393,7 +393,7 @@ fn should_prevent_installation_with_ownership_assigned_and_owner_reverse_lookup_
 
     support::assert_expected_error(
         error,
-        143u16,
+        140u16,
         "cannot install when Ownership::Assigned and OwnerReverseLookupMode::TransfersOnly",
     );
 }
