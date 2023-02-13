@@ -57,6 +57,7 @@ pub const TOKEN_COUNTS: &str = "balances";
 pub const CONTRACT_WHITELIST: &str = "contract_whitelist";
 pub const RECEIPT_NAME: &str = "receipt_name";
 pub const NFT_METADATA_KIND: &str = "nft_metadata_kind";
+pub const NFT_METADATA_KINDS: &str = "nft_metadata_kinds";
 pub const IDENTIFIER_MODE: &str = "identifier_mode";
 pub const BURN_MODE: &str = "burn_mode";
 pub const METADATA_MUTABILITY: &str = "metadata_mutability";

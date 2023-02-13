@@ -21,7 +21,7 @@ use alloc::{
     vec::Vec,
 };
 
-use constants::{ARG_ADDITIONAL_REQUIRED_METADATA, ARG_OPTIONAL_METADATA};
+use constants::{ARG_ADDITIONAL_REQUIRED_METADATA, ARG_OPTIONAL_METADATA, NFT_METADATA_KINDS};
 use core::convert::TryInto;
 use modalities::Requirement;
 
@@ -328,6 +328,10 @@ pub extern "C" fn init() {
     );
     runtime::put_key(
         NFT_METADATA_KIND,
+        storage::new_uref(base_metadata_kind).into(),
+    );
+    runtime::put_key(
+        NFT_METADATA_KINDS,
         storage::new_uref(nft_metadata_kinds).into(),
     );
     runtime::put_key(
@@ -533,7 +537,7 @@ pub extern "C" fn mint() {
 
     let metadata_kinds: BTreeMap<NFTMetadataKind, Requirement> =
         utils::get_stored_value_with_user_errors(
-            NFT_METADATA_KIND,
+            NFT_METADATA_KINDS,
             NFTCoreError::MissingNFTMetadataKind,
             NFTCoreError::InvalidNFTMetadataKind,
         );
@@ -1107,7 +1111,7 @@ pub extern "C" fn metadata() {
 
     let metadata_kind_list: BTreeMap<NFTMetadataKind, Requirement> =
         utils::get_stored_value_with_user_errors(
-            NFT_METADATA_KIND,
+            NFT_METADATA_KINDS,
             NFTCoreError::MissingNFTMetadataKind,
             NFTCoreError::InvalidNFTMetadataKind,
         );
@@ -1217,7 +1221,7 @@ pub extern "C" fn set_token_metadata() {
 
     let metadata_kinds: BTreeMap<NFTMetadataKind, Requirement> =
         utils::get_stored_value_with_user_errors(
-            NFT_METADATA_KIND,
+            NFT_METADATA_KINDS,
             NFTCoreError::MissingNFTMetadataKind,
             NFTCoreError::InvalidNFTMetadataKind,
         );
@@ -1345,7 +1349,7 @@ pub extern "C" fn migrate() {
     let mut nft_metadata_kind_list: BTreeMap<NFTMetadataKind, Requirement> = BTreeMap::new();
     nft_metadata_kind_list.insert(metadata_kind, Requirement::Required);
     runtime::put_key(
-        NFT_METADATA_KIND,
+        NFT_METADATA_KINDS,
         storage::new_uref(nft_metadata_kind_list).into(),
     );
 }
