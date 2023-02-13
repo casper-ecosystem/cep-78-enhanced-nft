@@ -29,7 +29,7 @@ fn mint_cost_should_remain_stable() {
         .with_total_token_supply(100u64)
         .with_ownership_mode(OwnershipMode::Transferable)
         .with_identifier_mode(NFTIdentifierMode::Ordinal)
-        .with_nft_metadata_kind(NFTMetadataKind::Raw as u8)
+        .with_nft_metadata_kind(NFTMetadataKind::Raw)
         .build();
 
     builder.exec(install_request).expect_success().commit();
@@ -100,7 +100,7 @@ fn transfer_costs_should_remain_stable() {
         .with_total_token_supply(100u64)
         .with_ownership_mode(OwnershipMode::Transferable)
         .with_identifier_mode(NFTIdentifierMode::Ordinal)
-        .with_nft_metadata_kind(NFTMetadataKind::Raw as u8)
+        .with_nft_metadata_kind(NFTMetadataKind::Raw)
         .build();
 
     builder.exec(install_request).expect_success().commit();
@@ -210,7 +210,7 @@ fn should_cost_less_when_installing_without_reverse_lookup(reporting: OwnerRever
         .with_total_token_supply(5000u64)
         .with_ownership_mode(OwnershipMode::Transferable)
         .with_identifier_mode(NFTIdentifierMode::Ordinal)
-        .with_nft_metadata_kind(NFTMetadataKind::Raw as u8)
+        .with_nft_metadata_kind(NFTMetadataKind::Raw)
         .with_reporting_mode(reporting)
         .build();
 
@@ -230,7 +230,7 @@ fn should_cost_less_when_installing_without_reverse_lookup(reporting: OwnerRever
         .with_total_token_supply(5000u64)
         .with_ownership_mode(OwnershipMode::Transferable)
         .with_identifier_mode(NFTIdentifierMode::Ordinal)
-        .with_nft_metadata_kind(NFTMetadataKind::Raw as u8)
+        .with_nft_metadata_kind(NFTMetadataKind::Raw)
         .with_reporting_mode(OwnerReverseLookupMode::NoLookUp)
         .build();
 

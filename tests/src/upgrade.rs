@@ -49,7 +49,7 @@ fn should_safely_upgrade_in_ordinal_identifier_mode() {
         .with_total_token_supply(1000u64)
         .with_ownership_mode(OwnershipMode::Minter)
         .with_identifier_mode(NFTIdentifierMode::Ordinal)
-        .with_nft_metadata_kind(NFTMetadataKind::Raw as u8)
+        .with_nft_metadata_kind(NFTMetadataKind::Raw)
         .build();
 
     builder.exec(install_request).expect_success().commit();
@@ -167,7 +167,7 @@ fn should_safely_upgrade_in_hash_identifier_mode() {
         .with_total_token_supply(100u64)
         .with_ownership_mode(OwnershipMode::Transferable)
         .with_identifier_mode(NFTIdentifierMode::Hash)
-        .with_nft_metadata_kind(NFTMetadataKind::CEP78 as u8)
+        .with_nft_metadata_kind(NFTMetadataKind::CEP78)
         .with_metadata_mutability(MetadataMutability::Immutable)
         .build();
 
@@ -348,7 +348,7 @@ fn should_update_receipts_post_upgrade_paged() {
         .with_total_token_supply(100u64)
         .with_ownership_mode(OwnershipMode::Minter)
         .with_identifier_mode(NFTIdentifierMode::Ordinal)
-        .with_nft_metadata_kind(NFTMetadataKind::Raw as u8)
+        .with_nft_metadata_kind(NFTMetadataKind::Raw)
         .build();
 
     builder.exec(install_request).expect_success().commit();
@@ -443,7 +443,7 @@ fn should_not_be_able_to_reinvoke_migrate_entrypoint() {
         .with_total_token_supply(100u64)
         .with_ownership_mode(OwnershipMode::Minter)
         .with_identifier_mode(NFTIdentifierMode::Ordinal)
-        .with_nft_metadata_kind(NFTMetadataKind::Raw as u8)
+        .with_nft_metadata_kind(NFTMetadataKind::Raw)
         .build();
 
     builder.exec(install_request).expect_success().commit();
@@ -493,7 +493,7 @@ fn should_not_migrate_contracts_with_zero_token_issuance() {
         .with_total_token_supply(0u64)
         .with_ownership_mode(OwnershipMode::Minter)
         .with_identifier_mode(NFTIdentifierMode::Ordinal)
-        .with_nft_metadata_kind(NFTMetadataKind::Raw as u8)
+        .with_nft_metadata_kind(NFTMetadataKind::Raw)
         .build();
 
     builder.exec(install_request).expect_success().commit();
@@ -527,7 +527,7 @@ fn should_upgrade_with_custom_named_keys() {
         .with_total_token_supply(1000u64)
         .with_ownership_mode(OwnershipMode::Minter)
         .with_identifier_mode(NFTIdentifierMode::Ordinal)
-        .with_nft_metadata_kind(NFTMetadataKind::Raw as u8)
+        .with_nft_metadata_kind(NFTMetadataKind::Raw)
         .build();
 
     builder.exec(install_request).expect_success().commit();

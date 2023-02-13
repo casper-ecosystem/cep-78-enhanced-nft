@@ -207,8 +207,8 @@ pub extern "C" fn init() {
 
     let base_metadata_kind: NFTMetadataKind = utils::get_named_arg_with_user_errors::<u8>(
         ARG_NFT_METADATA_KIND,
-        NFTCoreError::MissingBaseNFTMetadataKind,
-        NFTCoreError::InvalidBaseNFTMetadataKind,
+        NFTCoreError::MissingNFTMetadataKind,
+        NFTCoreError::InvalidNFTMetadataKind,
     )
     .unwrap_or_revert()
     .try_into()
@@ -534,8 +534,8 @@ pub extern "C" fn mint() {
     let metadata_kinds: BTreeMap<NFTMetadataKind, Requirement> =
         utils::get_stored_value_with_user_errors(
             NFT_METADATA_KIND,
-            NFTCoreError::MissingNFTMetadataKinds,
-            NFTCoreError::InvalidNFTMetadataKinds,
+            NFTCoreError::MissingNFTMetadataKind,
+            NFTCoreError::InvalidNFTMetadataKind,
         );
 
     let token_metadata = utils::get_named_arg_with_user_errors::<String>(
@@ -1108,8 +1108,8 @@ pub extern "C" fn metadata() {
     let metadata_kind_list: BTreeMap<NFTMetadataKind, Requirement> =
         utils::get_stored_value_with_user_errors(
             NFT_METADATA_KIND,
-            NFTCoreError::MissingNFTMetadataKinds,
-            NFTCoreError::InvalidNFTMetadataKinds,
+            NFTCoreError::MissingNFTMetadataKind,
+            NFTCoreError::InvalidNFTMetadataKind,
         );
 
     for (&metadata_kind, required) in metadata_kind_list.iter() {
@@ -1218,8 +1218,8 @@ pub extern "C" fn set_token_metadata() {
     let metadata_kinds: BTreeMap<NFTMetadataKind, Requirement> =
         utils::get_stored_value_with_user_errors(
             NFT_METADATA_KIND,
-            NFTCoreError::MissingNFTMetadataKinds,
-            NFTCoreError::InvalidNFTMetadataKinds,
+            NFTCoreError::MissingNFTMetadataKind,
+            NFTCoreError::InvalidNFTMetadataKind,
         );
 
     let updated_token_metadata: String = utils::get_named_arg_with_user_errors(
@@ -1339,8 +1339,8 @@ pub extern "C" fn migrate() {
 
     let metadata_kind: NFTMetadataKind = utils::get_stored_value_with_user_errors(
         NFT_METADATA_KIND,
-        NFTCoreError::MissingNFTMetadataKinds,
-        NFTCoreError::InvalidNFTMetadataKinds,
+        NFTCoreError::MissingNFTMetadataKind,
+        NFTCoreError::InvalidNFTMetadataKind,
     );
     let mut nft_metadata_kind_list: BTreeMap<NFTMetadataKind, Requirement> = BTreeMap::new();
     nft_metadata_kind_list.insert(metadata_kind, Requirement::Required);
@@ -1816,8 +1816,8 @@ fn install_contract() {
     // This value cannot be changed after installation.
     let base_metadata_kind: u8 = utils::get_named_arg_with_user_errors(
         ARG_NFT_METADATA_KIND,
-        NFTCoreError::MissingBaseNFTMetadataKind,
-        NFTCoreError::InvalidBaseNFTMetadataKind,
+        NFTCoreError::MissingNFTMetadataKind,
+        NFTCoreError::InvalidNFTMetadataKind,
     )
     .unwrap_or_revert();
 

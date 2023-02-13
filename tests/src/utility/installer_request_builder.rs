@@ -292,8 +292,8 @@ impl InstallerRequestBuilder {
         self
     }
 
-    pub(crate) fn with_nft_metadata_kind(mut self, nft_metadata_kind: u8) -> Self {
-        self.nft_metadata_kind = CLValue::from_t(nft_metadata_kind).unwrap();
+    pub(crate) fn with_nft_metadata_kind(mut self, nft_metadata_kind: NFTMetadataKind) -> Self {
+        self.nft_metadata_kind = CLValue::from_t(nft_metadata_kind as u8).unwrap();
         self
     }
 

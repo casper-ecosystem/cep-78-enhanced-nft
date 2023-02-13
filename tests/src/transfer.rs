@@ -1002,7 +1002,7 @@ fn transfer_should_correctly_track_page_table_entries() {
         .with_collection_symbol(NFT_TEST_SYMBOL.to_string())
         .with_total_token_supply(100u64)
         .with_ownership_mode(OwnershipMode::Transferable)
-        .with_nft_metadata_kind(NFTMetadataKind::Raw as u8)
+        .with_nft_metadata_kind(NFTMetadataKind::Raw)
         .build();
 
     builder.exec(install_request).expect_success().commit();
@@ -1075,7 +1075,7 @@ fn should_prevent_transfer_to_unregistered_owner() {
         .with_metadata_mutability(MetadataMutability::Immutable)
         .with_ownership_mode(OwnershipMode::Transferable)
         .with_reporting_mode(OwnerReverseLookupMode::Complete)
-        .with_nft_metadata_kind(NFTMetadataKind::Raw as u8)
+        .with_nft_metadata_kind(NFTMetadataKind::Raw)
         .build();
 
     builder.exec(install_request).expect_success().commit();

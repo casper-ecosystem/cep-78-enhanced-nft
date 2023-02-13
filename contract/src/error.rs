@@ -98,7 +98,7 @@ pub enum NFTCoreError {
     InvalidNFT721Metadata = 93,
     FailedToJsonifyNFT721Metadata = 94,
     InvalidCustomMetadata = 95,
-    MissingNFTMetadataKinds = 96,
+    MissingNFTMetadataKind = 96,
     InvalidNFTMetadataKind = 97,
     MissingIdentifierMode = 98,
     InvalidIdentifierMode = 99,
@@ -145,14 +145,11 @@ pub enum NFTCoreError {
     OwnerReverseLookupModeNotTransferable = 140,
     InvalidAdditionalRequiredMetadata = 141,
     InvalidOptionalMetadata = 142,
-    MissingBaseNFTMetadataKind = 143,
-    InvalidBaseNFTMetadataKind = 144,
-    MissingOptionalNFTMetadataKind = 145,
-    InvalidOptionalNFTMetadataKind = 146,
-    MissingAdditionalNFTMetadataKind = 147,
-    InvalidAdditionalNFTMetadataKind = 148,
-    InvalidRequirement = 149,
-    InvalidNFTMetadataKinds = 150,
+    MissingOptionalNFTMetadataKind = 143,
+    InvalidOptionalNFTMetadataKind = 144,
+    MissingAdditionalNFTMetadataKind = 145,
+    InvalidAdditionalNFTMetadataKind = 146,
+    InvalidRequirement = 147,
 }
 
 impl From<NFTCoreError> for ApiError {

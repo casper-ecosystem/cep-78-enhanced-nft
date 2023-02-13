@@ -32,7 +32,7 @@ fn should_prevent_update_in_immutable_mode() {
 
     let install_request = InstallerRequestBuilder::new(*DEFAULT_ACCOUNT_ADDR, NFT_CONTRACT_WASM)
         .with_total_token_supply(10u64)
-        .with_nft_metadata_kind(NFTMetadataKind::NFT721 as u8)
+        .with_nft_metadata_kind(NFTMetadataKind::NFT721)
         .with_identifier_mode(NFTIdentifierMode::Hash)
         .with_metadata_mutability(MetadataMutability::Immutable)
         .with_ownership_mode(OwnershipMode::Transferable)
@@ -84,7 +84,7 @@ fn should_prevent_install_with_hash_identifier_in_mutable_mode() {
 
     let install_request = InstallerRequestBuilder::new(*DEFAULT_ACCOUNT_ADDR, NFT_CONTRACT_WASM)
         .with_total_token_supply(10u64)
-        .with_nft_metadata_kind(NFTMetadataKind::NFT721 as u8)
+        .with_nft_metadata_kind(NFTMetadataKind::NFT721)
         .with_identifier_mode(NFTIdentifierMode::Hash)
         .with_metadata_mutability(MetadataMutability::Mutable)
         .build();
@@ -103,7 +103,7 @@ fn should_prevent_update_for_invalid_metadata() {
 
     let install_request = InstallerRequestBuilder::new(*DEFAULT_ACCOUNT_ADDR, NFT_CONTRACT_WASM)
         .with_total_token_supply(10u64)
-        .with_nft_metadata_kind(NFTMetadataKind::NFT721 as u8)
+        .with_nft_metadata_kind(NFTMetadataKind::NFT721)
         .with_identifier_mode(NFTIdentifierMode::Ordinal)
         .with_metadata_mutability(MetadataMutability::Mutable)
         .with_ownership_mode(OwnershipMode::Transferable)
@@ -158,7 +158,7 @@ fn should_prevent_metadata_update_by_non_owner_key() {
     let install_request = InstallerRequestBuilder::new(*DEFAULT_ACCOUNT_ADDR, NFT_CONTRACT_WASM)
         .with_total_token_supply(10u64)
         .with_ownership_mode(OwnershipMode::Transferable)
-        .with_nft_metadata_kind(NFTMetadataKind::NFT721 as u8)
+        .with_nft_metadata_kind(NFTMetadataKind::NFT721)
         .with_identifier_mode(NFTIdentifierMode::Ordinal)
         .with_metadata_mutability(MetadataMutability::Mutable)
         .build();
@@ -231,7 +231,7 @@ fn should_allow_update_for_valid_metadata_based_on_kind(
         .with_ownership_mode(OwnershipMode::Transferable)
         .with_metadata_mutability(MetadataMutability::Mutable)
         .with_identifier_mode(identifier_mode)
-        .with_nft_metadata_kind(nft_metadata_kind as u8)
+        .with_nft_metadata_kind(nft_metadata_kind)
         .with_json_schema(
             serde_json::to_string(&*TEST_CUSTOM_METADATA_SCHEMA)
                 .expect("must convert to json schema"),

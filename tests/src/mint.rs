@@ -197,7 +197,7 @@ fn should_mint() {
     let install_request_builder =
         InstallerRequestBuilder::new(*DEFAULT_ACCOUNT_ADDR, NFT_CONTRACT_WASM)
             .with_ownership_mode(OwnershipMode::Transferable)
-            .with_nft_metadata_kind(NFTMetadataKind::CEP78 as u8)
+            .with_nft_metadata_kind(NFTMetadataKind::CEP78)
             .with_total_token_supply(2u64);
     builder
         .exec(install_request_builder.build())
@@ -1156,7 +1156,7 @@ fn should_mint_with_valid_cep99_metadata() {
     let install_request = InstallerRequestBuilder::new(*DEFAULT_ACCOUNT_ADDR, NFT_CONTRACT_WASM)
         .with_total_token_supply(2u64)
         .with_ownership_mode(OwnershipMode::Transferable)
-        .with_nft_metadata_kind(NFTMetadataKind::CEP78 as u8)
+        .with_nft_metadata_kind(NFTMetadataKind::CEP78)
         .build();
 
     builder.exec(install_request).expect_success().commit();
@@ -1198,7 +1198,7 @@ fn should_mint_with_custom_metadata_validation() {
     let install_request = InstallerRequestBuilder::new(*DEFAULT_ACCOUNT_ADDR, NFT_CONTRACT_WASM)
         .with_total_token_supply(2u64)
         .with_ownership_mode(OwnershipMode::Transferable)
-        .with_nft_metadata_kind(NFTMetadataKind::CustomValidated as u8)
+        .with_nft_metadata_kind(NFTMetadataKind::CustomValidated)
         .with_json_schema(custom_json_schema)
         .build();
 
@@ -1241,7 +1241,7 @@ fn should_mint_with_raw_metadata() {
     let install_request = InstallerRequestBuilder::new(*DEFAULT_ACCOUNT_ADDR, NFT_CONTRACT_WASM)
         .with_total_token_supply(2u64)
         .with_ownership_mode(OwnershipMode::Transferable)
-        .with_nft_metadata_kind(NFTMetadataKind::Raw as u8)
+        .with_nft_metadata_kind(NFTMetadataKind::Raw)
         .build();
 
     builder.exec(install_request).expect_success().commit();
@@ -1421,7 +1421,7 @@ fn should_mint_without_returning_receipts_and_flat_gas_cost() {
         .with_metadata_mutability(MetadataMutability::Immutable)
         .with_ownership_mode(OwnershipMode::Transferable)
         .with_reporting_mode(OwnerReverseLookupMode::NoLookUp)
-        .with_nft_metadata_kind(NFTMetadataKind::Raw as u8)
+        .with_nft_metadata_kind(NFTMetadataKind::Raw)
         .build();
 
     builder.exec(install_request).expect_success().commit();
@@ -1478,7 +1478,7 @@ fn should_maintain_page_table_despite_invoking_register_owner() {
         .with_identifier_mode(NFTIdentifierMode::Ordinal)
         .with_metadata_mutability(MetadataMutability::Immutable)
         .with_ownership_mode(OwnershipMode::Transferable)
-        .with_nft_metadata_kind(NFTMetadataKind::Raw as u8)
+        .with_nft_metadata_kind(NFTMetadataKind::Raw)
         .build();
 
     builder.exec(install_request).expect_success().commit();
@@ -1544,7 +1544,7 @@ fn should_prevent_mint_to_unregistered_owner() {
         .with_metadata_mutability(MetadataMutability::Immutable)
         .with_ownership_mode(OwnershipMode::Transferable)
         .with_reporting_mode(OwnerReverseLookupMode::Complete)
-        .with_nft_metadata_kind(NFTMetadataKind::Raw as u8)
+        .with_nft_metadata_kind(NFTMetadataKind::Raw)
         .build();
 
     builder.exec(install_request).expect_success().commit();
@@ -1583,7 +1583,7 @@ fn should_mint_with_two_required_metadata_kind() {
             .with_metadata_mutability(MetadataMutability::Immutable)
             .with_ownership_mode(OwnershipMode::Transferable)
             .with_reporting_mode(OwnerReverseLookupMode::Complete)
-            .with_nft_metadata_kind(NFTMetadataKind::CEP78 as u8)
+            .with_nft_metadata_kind(NFTMetadataKind::CEP78)
             .with_additional_required_metadata(vec![NFTMetadataKind::Raw as u8]);
     builder
         .exec(install_request_builder.build())
@@ -1631,7 +1631,7 @@ fn should_mint_with_one_required_one_optional_metadata_kind_without_optional() {
 
     let install_request_builder =
         InstallerRequestBuilder::new(*DEFAULT_ACCOUNT_ADDR, NFT_CONTRACT_WASM)
-            .with_nft_metadata_kind(NFTMetadataKind::CEP78 as u8)
+            .with_nft_metadata_kind(NFTMetadataKind::CEP78)
             .with_optional_metadata(vec![NFTMetadataKind::Raw as u8])
             .with_total_token_supply(1000u64)
             .with_identifier_mode(NFTIdentifierMode::Ordinal)
@@ -1711,7 +1711,7 @@ fn should_not_mint_with_missing_required_metadata() {
             .with_metadata_mutability(MetadataMutability::Immutable)
             .with_ownership_mode(OwnershipMode::Transferable)
             .with_reporting_mode(OwnerReverseLookupMode::Complete)
-            .with_nft_metadata_kind(NFTMetadataKind::CEP78 as u8)
+            .with_nft_metadata_kind(NFTMetadataKind::CEP78)
             .with_additional_required_metadata(vec![NFTMetadataKind::NFT721 as u8]);
     builder
         .exec(install_request_builder.build())
@@ -1748,7 +1748,7 @@ fn should_mint_with_transfer_only_reporting() {
 
     let install_request_builder =
         InstallerRequestBuilder::new(*DEFAULT_ACCOUNT_ADDR, NFT_CONTRACT_WASM)
-            .with_nft_metadata_kind(NFTMetadataKind::CEP78 as u8)
+            .with_nft_metadata_kind(NFTMetadataKind::CEP78)
             .with_ownership_mode(OwnershipMode::Transferable)
             .with_reporting_mode(OwnerReverseLookupMode::TransfersOnly)
             .with_total_token_supply(2u64);
