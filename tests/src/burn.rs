@@ -5,7 +5,7 @@ use casper_engine_test_support::{
 use casper_types::{
     account::AccountHash, runtime_args, system::mint, ContractHash, Key, RuntimeArgs,
 };
-use contract::{events::Burn, modalities::TokenIdentifier};
+use contract::{events::events_ces::Burn, modalities::TokenIdentifier};
 
 use crate::utility::{
     constants::{

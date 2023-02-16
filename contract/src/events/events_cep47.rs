@@ -6,7 +6,7 @@ use casper_types::Key;
 
 use crate::{modalities::TokenIdentifier, constants::{HASH_KEY_NAME_PREFIX, CEP78_PREFIX}, error::NFTCoreError, utils};
 
-pub(crate) enum CEP47Event {
+pub enum CEP47Event {
     Mint {
         recipient: Key,
         token_id: TokenIdentifier,
@@ -32,7 +32,7 @@ pub(crate) enum CEP47Event {
     Migrate
 }
 
-pub(crate) fn record_cep47_event_dictionary(event: &CEP47Event) {
+pub fn record_cep47_event_dictionary(event: &CEP47Event) {
     let collection_name: String = utils::get_stored_value_with_user_errors(
         crate::constants::COLLECTION_NAME,
         NFTCoreError::MissingCollectionName,

@@ -19,7 +19,7 @@ use crate::utility::constants::{
 pub use contract::modalities::{
     BurnMode, MetadataMutability, MintingMode, NFTHolderMode, NFTIdentifierMode, NFTKind,
     NFTMetadataKind, NamedKeyConventionMode, OwnerReverseLookupMode, OwnershipMode,
-    TokenIdentifier, WhitelistMode,
+    TokenIdentifier, WhitelistMode, EventsMode
 };
 
 pub(crate) static TEST_CUSTOM_METADATA_SCHEMA: Lazy<CustomMetadataSchema> = Lazy::new(|| {
@@ -142,6 +142,7 @@ pub(crate) struct InstallerRequestBuilder {
     named_key_convention: CLValue,
     additional_required_metadata: CLValue,
     optional_metadata: CLValue,
+    events_mode: CLValue,
 }
 
 impl InstallerRequestBuilder {
@@ -180,6 +181,7 @@ impl InstallerRequestBuilder {
             .unwrap(),
             additional_required_metadata: CLValue::from_t(Bytes::new()).unwrap(),
             optional_metadata: CLValue::from_t(Bytes::new()).unwrap(),
+            events_mode: CLValue::from_t(EventsMode::CES as u8).unwrap(),
         }
     }
 
@@ -306,6 +308,11 @@ impl InstallerRequestBuilder {
         self
     }
 
+    pub(crate) fn with_events_mode(mut self, events_mode: EventsMode) -> Self {
+        self.reporting_mode = CLValue::from_t(events_mode as u8).unwrap();
+        self
+    }
+
     pub(crate) fn build(self) -> ExecuteRequest {
         let mut runtime_args = RuntimeArgs::new();
         runtime_args.insert_cl_value(ARG_COLLECTION_NAME, self.collection_name);
@@ -325,6 +332,7 @@ impl InstallerRequestBuilder {
         runtime_args.insert_cl_value(ARG_BURN_MODE, self.burn_mode);
         runtime_args.insert_cl_value(ARG_OWNER_LOOKUP_MODE, self.reporting_mode);
         runtime_args.insert_cl_value(ARG_NAMED_KEY_CONVENTION, self.named_key_convention);
+        runtime_args.insert_cl_value(ARG_EVENTS_MODE, self.events_mode);
         runtime_args.insert_cl_value(
             ARG_ADDITIONAL_REQUIRED_METADATA,
             self.additional_required_metadata,

@@ -7,7 +7,7 @@ use casper_types::{
     SecretKey, U512,
 };
 use contract::{
-    events::{Approval, Transfer},
+    events::events_ces::{Approval, Transfer},
     modalities::TokenIdentifier,
 };
 

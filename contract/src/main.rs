@@ -29,8 +29,8 @@ use modalities::EventsMode;
 use core::convert::{TryFrom, TryInto};
 use utils::get_stored_value_with_user_errors;
 use events::{
-    events_ces::{Approval, ApprovalForAll, Burn, MetadataUpdated, Migration, CESMint, Transfer, VariablesSet,},
-    events_cep47::CEP47Event
+    events_ces::{Approval, ApprovalForAll, Burn, MetadataUpdated, Migration, Mint, Transfer, VariablesSet,},
+    events_cep47::{CEP47Event, record_cep47_event_dictionary}
 };
 
 use casper_types::{
@@ -41,7 +41,7 @@ use casper_types::{
 
 use casper_contract::{
     contract_api::{
-        runtime,
+        runtime::{self},
         storage::{self},
     },
     unwrap_or_revert::UnwrapOrRevert,
@@ -78,7 +78,7 @@ use crate::{
         TokenIdentifier, WhitelistMode,
     },
 };
-use crate::events::events_cep47::record_cep47_event_dictionary;
+
 
 #[no_mangle]
 pub extern "C" fn init() {
@@ -352,6 +352,11 @@ pub extern "C" fn init() {
         storage::new_uref(metadata_mutability as u8).into(),
     );
     runtime::put_key(BURN_MODE, storage::new_uref(burn_mode as u8).into());
+    // Initialize events structures for CES.
+    if let EventsMode::CES = events_mode {
+        utils::init_events();
+    }
+    runtime::put_key(EVENTS_MODE, storage::new_uref(events_mode as u8).into());
 
     // Initialize contract with variables which must be present but maybe set to
     // different values after initialization.
@@ -400,9 +405,6 @@ pub extern "C" fn init() {
         storage::new_uref(reporting_mode as u8).into(),
     );
     runtime::put_key(MIGRATION_FLAG, storage::new_uref(true).into());
-
-    // Initialize events structures.
-    utils::init_events();
 }
 
 // set_variables allows the user to set any variable or any combination of variables simultaneously.
@@ -458,8 +460,22 @@ pub extern "C" fn set_variables() {
         }
     }
 
+    let events_mode: EventsMode = utils::get_stored_value_with_user_errors::<u8>(
+        EVENTS_MODE,
+        NFTCoreError::MissingEventsMode,
+        NFTCoreError::InvalidEventsMode
+    ).try_into().unwrap_or_revert();
+
     // Emit VariablesSet event.
-    casper_event_standard::emit(VariablesSet::new());
+    match events_mode {
+        EventsMode::NoEvents => {}
+        EventsMode::CEP47 => {
+            record_cep47_event_dictionary(&CEP47Event::VariablesSet)
+        }
+        EventsMode::CES => {
+            casper_event_standard::emit(VariablesSet::new())
+        }
+    }
 }
 
 // Mints a new token. Minting will fail if allow_minting is set to false.
@@ -663,7 +679,7 @@ pub extern "C" fn mint() {
             record_cep47_event_dictionary(&cep47_event)
         },
         EventsMode::CES => {
-            casper_event_standard::emit(CESMint::new(token_owner_key, token_identifier.clone(), metadata))
+            casper_event_standard::emit(Mint::new(token_owner_key, token_identifier.clone(), metadata))
         },
     }
 
@@ -679,6 +695,40 @@ pub extern "C" fn mint() {
             &owned_tokens_item_key,
             true,
         );
+
+        // Update the individual page record.
+        let page_uref = utils::get_uref(
+            &format!("{PAGE_DICTIONARY_PREFIX}{page_table_entry}"),
+            NFTCoreError::MissingPageUref,
+            NFTCoreError::InvalidPageUref,
+        );
+
+        let mut page_table =
+            match storage::dictionary_get::<Vec<bool>>(page_table_uref, &owned_tokens_item_key)
+                .unwrap_or_revert()
+            {
+                Some(page_table) => page_table,
+                None => runtime::revert(NFTCoreError::UnregisteredOwnerInMint),
+            };
+
+        let mut page = if !page_table[page_table_entry as usize] {
+            // We mark the page table entry to true to signal the allocation of a page.
+            let _ = core::mem::replace(&mut page_table[page_table_entry as usize], true);
+            storage::dictionary_put(page_table_uref, &owned_tokens_item_key, page_table);
+            vec![false; PAGE_SIZE as usize]
+        } else {
+            storage::dictionary_get::<Vec<bool>>(page_uref, &owned_tokens_item_key)
+                .unwrap_or_revert()
+                .unwrap_or_revert_with(NFTCoreError::MissingPage)
+        };
+
+        let _ = core::mem::replace(&mut page[page_address as usize], true);
+
+        storage::dictionary_put(page_uref, &owned_tokens_item_key, page);
+
+        let token_identifier_string = token_identifier.get_dictionary_item_key();
+
+        let receipt_address = Key::dictionary(page_uref, owned_tokens_item_key.as_bytes());
 
         let receipt_string = utils::get_receipt_name(page_table_entry);
         let receipt_address = Key::dictionary(page_uref, owned_tokens_item_key.as_bytes());
@@ -1166,9 +1216,30 @@ pub extern "C" fn transfer() {
     if let OwnerReverseLookupMode::Complete | OwnerReverseLookupMode::TransfersOnly = reporting_mode
     {
         // Update to_account owned_tokens. Revert if owned_tokens list is not found
-        let tokens_count = utils::get_token_index(&token_identifier);
-        if OwnerReverseLookupMode::TransfersOnly == reporting_mode {
-            utils::add_page_entry_and_page_record(tokens_count, &source_owner_item_key, false);
+        let token_number = utils::get_token_index(&token_identifier);
+
+        let page_table_uref = utils::get_uref(
+            PAGE_TABLE,
+            NFTCoreError::MissingPageTableURef,
+            NFTCoreError::InvalidPageTableURef,
+        );
+
+        let page_table_entry = token_number / PAGE_SIZE;
+        let page_address = token_number % PAGE_SIZE;
+
+        let page_uref = utils::get_uref(
+            &format!("{PAGE_DICTIONARY_PREFIX}{page_table_entry}"),
+            NFTCoreError::MissingStorageUref,
+            NFTCoreError::InvalidStorageUref,
+        );
+
+        let mut source_page =
+            storage::dictionary_get::<Vec<bool>>(page_uref, &source_owner_item_key)
+                .unwrap_or_revert()
+                .unwrap_or_revert_with(NFTCoreError::InvalidPageNumber);
+
+        if !source_page[page_address as usize] {
+            runtime::revert(NFTCoreError::InvalidTokenIdentifier)
         }
 
         let (page_table_entry, page_uref) = utils::update_page_entry_and_page_record(
@@ -2206,6 +2277,11 @@ fn migrate_contract(access_key_name: String, package_key_name: String) {
     )
     .unwrap_or_revert();
 
+    let events_mode = utils::get_optional_named_arg_with_user_errors::<u8>(
+        ARG_EVENTS_MODE,
+        NFTCoreError::InvalidEventsMode,
+    ).unwrap_or(0u8);
+
     runtime::put_key(
         &format!("{HASH_KEY_NAME_PREFIX}{collection_name}"),
         nft_contact_package_hash.into(),
@@ -2238,7 +2314,8 @@ fn migrate_contract(access_key_name: String, package_key_name: String) {
         contract_hash,
         ENTRY_POINT_MIGRATE,
         runtime_args! {
-            ARG_NFT_PACKAGE_HASH => nft_contact_package_hash
+            ARG_NFT_PACKAGE_HASH => nft_contact_package_hash,
+            ARG_EVENTS_MODE => events_mode,
         },
     );
 }
