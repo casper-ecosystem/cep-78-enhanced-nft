@@ -5,6 +5,7 @@ use casper_engine_test_support::{
 use casper_types::{
     account::AccountHash, runtime_args, system::mint, ContractHash, Key, RuntimeArgs,
 };
+use contract::{events::Burn, modalities::TokenIdentifier};
 
 use crate::utility::{
     constants::{
@@ -48,13 +49,14 @@ fn should_burn_minted_token() {
         .expect("must have key in named keys");
 
     let nft_contract_hash = get_nft_contract_hash(&builder);
+    let token_owner: Key = Key::Account(*DEFAULT_ACCOUNT_ADDR);
 
     let mint_session_call = ExecuteRequestBuilder::standard(
         *DEFAULT_ACCOUNT_ADDR,
         MINT_SESSION_WASM,
         runtime_args! {
             ARG_NFT_CONTRACT_HASH => Key::Hash(nft_contract_hash.value()),
-            ARG_TOKEN_OWNER => Key::Account(*DEFAULT_ACCOUNT_ADDR),
+            ARG_TOKEN_OWNER => token_owner,
             ARG_TOKEN_META_DATA => TEST_PRETTY_721_META_DATA.to_string(),
             ARG_COLLECTION_NAME => NFT_TEST_COLLECTION.to_string()
         },
@@ -63,12 +65,8 @@ fn should_burn_minted_token() {
 
     builder.exec(mint_session_call).expect_success().commit();
 
-    let token_page = support::get_token_page_by_id(
-        &builder,
-        nft_contract_key,
-        &Key::Account(*DEFAULT_ACCOUNT_ADDR),
-        token_id,
-    );
+    let token_page =
+        support::get_token_page_by_id(&builder, nft_contract_key, &token_owner, token_id);
 
     assert!(token_page[0]);
 
@@ -111,6 +109,11 @@ fn should_burn_minted_token() {
 
     let expected_balance = 0u64;
     assert_eq!(actual_balance, expected_balance);
+
+    // Expect Burn event.
+    let expected_event = Burn::new(token_owner, TokenIdentifier::Index(0));
+    let actual_event: Burn = support::get_event(&builder, nft_contract_key, 1);
+    assert_eq!(actual_event, expected_event, "Expected Burn event.");
 }
 
 #[test]

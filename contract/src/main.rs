@@ -27,6 +27,9 @@ use modalities::EventsMode;
 use core::convert::{TryFrom, TryInto};
 use events::{events_cep47::CEP47Event, Event};
 use utils::get_stored_value_with_user_errors;
+use events::{
+    Approval, ApprovalForAll, Burn, MetadataUpdated, Migration, Mint, Transfer, VariablesSet,
+};
 
 use casper_types::{
     contracts::NamedKeys, runtime_args, CLType, CLValue, ContractHash, ContractPackageHash,
@@ -368,6 +371,9 @@ pub extern "C" fn init() {
         runtime::put_key(PAGE_LIMIT, storage::new_uref(page_table_width).into());
     }
     runtime::put_key(MIGRATION_FLAG, storage::new_uref(true).into());
+
+    // Initialize events structures.
+    utils::init_events();
 }
 
 // set_variables allows the user to set any variable or any combination of variables simultaneously.
@@ -422,6 +428,9 @@ pub extern "C" fn set_variables() {
             WhitelistMode::Locked => runtime::revert(NFTCoreError::InvalidWhitelistMode),
         }
     }
+
+    // Emit VariablesSet event.
+    casper_event_standard::emit(VariablesSet::new());
 }
 
 // Mints a new token. Minting will fail if allow_minting is set to false.
@@ -559,7 +568,7 @@ pub extern "C" fn mint() {
     utils::upsert_dictionary_value_from_key(
         &metadata::get_metadata_dictionary_name(&metadata_kind),
         &token_identifier.get_dictionary_item_key(),
-        metadata,
+        metadata.clone(),
     );
 
     let owned_tokens_item_key = utils::get_owned_tokens_dictionary_item_key(token_owner_key);
@@ -603,9 +612,19 @@ pub extern "C" fn mint() {
                 recipient: token_owner_key,
                 token_id,
             }),
+            EventsMode::CESP => {
+                casper_event_standard::emit(Mint::new(
+                    token_owner_key,
+                    token_identifier.clone(),
+                    metadata,
+                ))
+            }
             _ => revert(NFTCoreError::InvalidEventsMode),
         });
     }
+
+    // Emit Mint event.
+    ;
 
     if let OwnerReverseLookupMode::Complete = utils::get_reporting_mode() {
         if (NFTIdentifierMode::Hash == identifier_mode)
@@ -751,6 +770,9 @@ pub extern "C" fn burn() {
             _ => revert(NFTCoreError::InvalidEventsMode),
         });
     }
+
+    // Emit Burn event.
+    casper_event_standard::emit(Burn::new(token_owner, token_identifier));
 }
 
 // approve marks a token as approved for transfer by an account
@@ -851,6 +873,9 @@ pub extern "C" fn approve() {
             _ => revert(NFTCoreError::InvalidEventsMode),
         });
     }
+
+    // Emit Approval event.
+    casper_event_standard::emit(Approval::new(token_owner_key, operator, token_identifier));
 }
 
 // Approves the specified operator for transfer token_owner's tokens.
@@ -872,6 +897,8 @@ pub extern "C" fn set_approval_for_all() {
     )
     .unwrap_or_revert();
 
+    let token_owner: Key = utils::get_verified_caller().unwrap_or_revert();
+
     let operator = utils::get_named_arg_with_user_errors::<Key>(
         ARG_OPERATOR,
         NFTCoreError::MissingOperator,
@@ -891,9 +918,10 @@ pub extern "C" fn set_approval_for_all() {
     };
 
     // Depending on approve_all we either approve all or disapprove all.
-    for token_id in owned_tokens {
+    let operator = if approve_all { Some(operator) } else { None };
+    for token_id in &owned_tokens {
         // We assume a burned token cannot be approved
-        if utils::is_token_burned(&token_id) {
+        if utils::is_token_burned(token_id) {
             runtime::revert(NFTCoreError::PreviouslyBurntToken)
         }
         let token_identifier_dictionary_key = token_id.get_dictionary_item_key();
@@ -927,7 +955,11 @@ pub extern "C" fn set_approval_for_all() {
                 _ => revert(NFTCoreError::InvalidEventsMode),
             });
         }
+        storage::dictionary_put(operator_uref, &token_id.get_dictionary_item_key(), operator);
     }
+
+    // Emit ApprovalForAll event.
+    casper_event_standard::emit(ApprovalForAll::new(token_owner, operator, owned_tokens));
 }
 
 // Transfers token from token_owner to specified account. Transfer will go through if caller is
@@ -1094,6 +1126,19 @@ pub extern "C" fn transfer() {
             _ => revert(NFTCoreError::InvalidEventsMode),
         });
     }
+
+    // Emit Transfer event.
+    let operator = if caller == token_owner_key {
+        None
+    } else {
+        Some(caller)
+    };
+    casper_event_standard::emit(Transfer::new(
+        token_owner_key,
+        operator,
+        target_owner_key,
+        token_identifier.clone(),
+    ));
 
     if let OwnerReverseLookupMode::Complete = utils::get_reporting_mode() {
         // Update to_account owned_tokens. Revert if owned_tokens list is not found
@@ -1372,7 +1417,7 @@ pub extern "C" fn set_token_metadata() {
     utils::upsert_dictionary_value_from_key(
         &metadata::get_metadata_dictionary_name(&metadata_kind),
         &token_identifier.get_dictionary_item_key(),
-        updated_metadata,
+        updated_metadata.clone(),
     );
 
     let events_mode = EventsMode::try_from(get_stored_value_with_user_errors::<u8>(
@@ -1390,6 +1435,9 @@ pub extern "C" fn set_token_metadata() {
             _ => revert(NFTCoreError::InvalidEventsMode),
         });
     }
+
+    // Emit MetadataUpdate event.
+    casper_event_standard::emit(MetadataUpdated::new(token_identifier, updated_metadata));
 }
 
 #[no_mangle]
@@ -1483,6 +1531,12 @@ pub extern "C" fn migrate() {
             storage::new_uref(EventsMode::NoEvents as u8).into(),
         );
     }
+
+    // Initialize events structures.
+    utils::init_events();
+
+    // Emit Migration event.
+    casper_event_standard::emit(Migration::new());
 }
 
 #[no_mangle]

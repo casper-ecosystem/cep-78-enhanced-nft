@@ -6,6 +6,10 @@ use casper_types::{
     account::AccountHash, runtime_args, system::mint, ContractHash, Key, PublicKey, RuntimeArgs,
     SecretKey, U512,
 };
+use contract::{
+    events::{Approval, Transfer},
+    modalities::TokenIdentifier,
+};
 
 use crate::utility::{
     constants::{
@@ -137,6 +141,7 @@ fn should_transfer_token_from_sender_to_receiver() {
     builder.exec(install_request).expect_success().commit();
 
     let token_owner = *DEFAULT_ACCOUNT_ADDR;
+    let token_owner_key = Key::Account(*DEFAULT_ACCOUNT_ADDR);
 
     let nft_contract_hash = get_nft_contract_hash(&builder);
     let nft_contract_key: Key = nft_contract_hash.into();
@@ -146,7 +151,7 @@ fn should_transfer_token_from_sender_to_receiver() {
         MINT_SESSION_WASM,
         runtime_args! {
             ARG_NFT_CONTRACT_HASH => nft_contract_key,
-            ARG_TOKEN_OWNER => Key::Account(*DEFAULT_ACCOUNT_ADDR),
+            ARG_TOKEN_OWNER => token_owner_key,
             ARG_TOKEN_META_DATA => TEST_PRETTY_721_META_DATA.to_string(),
             ARG_COLLECTION_NAME => NFT_TEST_COLLECTION.to_string()
         },
@@ -171,13 +176,14 @@ fn should_transfer_token_from_sender_to_receiver() {
     assert_eq!(actual_owner_balance, expected_owner_balance);
 
     let (_, token_receiver) = support::create_dummy_key_pair(ACCOUNT_USER_1);
+    let token_receiver_key = Key::Account(token_receiver.to_account_hash());
 
     let register_request = ExecuteRequestBuilder::contract_call_by_hash(
         *DEFAULT_ACCOUNT_ADDR,
         nft_contract_hash,
         ENTRY_POINT_REGISTER_OWNER,
         runtime_args! {
-            ARG_TOKEN_OWNER => Key::Account(token_receiver.to_account_hash())
+            ARG_TOKEN_OWNER => token_receiver_key
         },
     )
     .build();
@@ -191,8 +197,8 @@ fn should_transfer_token_from_sender_to_receiver() {
             ARG_NFT_CONTRACT_HASH => nft_contract_key,
             ARG_TOKEN_ID => 0u64,
             ARG_IS_HASH_IDENTIFIER_MODE => false,
-            ARG_SOURCE_KEY => Key::Account(*DEFAULT_ACCOUNT_ADDR),
-            ARG_TARGET_KEY =>  Key::Account(token_receiver.to_account_hash()),
+            ARG_SOURCE_KEY => token_owner_key,
+            ARG_TARGET_KEY => token_receiver_key,
         },
     )
     .build();
@@ -209,12 +215,8 @@ fn should_transfer_token_from_sender_to_receiver() {
 
     assert_eq!(actual_token_owner, token_receiver.to_account_hash()); // Change  token_receiver to token_owner for red test
 
-    let token_receiver_page = support::get_token_page_by_id(
-        &builder,
-        &nft_contract_key,
-        &Key::Account(token_receiver.to_account_hash()),
-        0u64,
-    );
+    let token_receiver_page =
+        support::get_token_page_by_id(&builder, &nft_contract_key, &token_receiver_key, 0u64);
 
     assert!(token_receiver_page[0]);
 
@@ -235,6 +237,16 @@ fn should_transfer_token_from_sender_to_receiver() {
     );
     let expected_receiver_balance = 1u64;
     assert_eq!(actual_receiver_balance, expected_receiver_balance);
+
+    // Expect Transfer event.
+    let expected_event = Transfer::new(
+        token_owner_key,
+        None,
+        token_receiver_key,
+        TokenIdentifier::Index(0),
+    );
+    let actual_event: Transfer = support::get_event(&builder, &nft_contract_key, 1);
+    assert_eq!(actual_event, expected_event, "Expected Transfer event.");
 }
 
 #[test]
@@ -261,6 +273,7 @@ fn approve_token_for_transfer_should_add_entry_to_approved_dictionary() {
         .expect("failed to find nft contract");
 
     let nft_contract_key: Key = get_nft_contract_hash(&builder).into();
+    let owner_key = Key::Account(*DEFAULT_ACCOUNT_ADDR);
 
     let mint_session_call = ExecuteRequestBuilder::standard(
         *DEFAULT_ACCOUNT_ADDR,
@@ -268,7 +281,7 @@ fn approve_token_for_transfer_should_add_entry_to_approved_dictionary() {
         runtime_args! {
             ARG_NFT_CONTRACT_HASH => nft_contract_key,
 
-            ARG_TOKEN_OWNER => Key::Account(*DEFAULT_ACCOUNT_ADDR),
+            ARG_TOKEN_OWNER => owner_key,
             ARG_TOKEN_META_DATA => TEST_PRETTY_721_META_DATA.to_string(),
             ARG_COLLECTION_NAME => NFT_TEST_COLLECTION.to_string()
         },
@@ -278,13 +291,16 @@ fn approve_token_for_transfer_should_add_entry_to_approved_dictionary() {
     builder.exec(mint_session_call).expect_success().commit();
 
     let (_, approve_public_key) = support::create_dummy_key_pair(ACCOUNT_USER_1);
+    let operator_key = Key::Account(approve_public_key.to_account_hash());
+    let token_id = 0u64;
+
     let approve_request = ExecuteRequestBuilder::contract_call_by_hash(
         *DEFAULT_ACCOUNT_ADDR,
         nft_contract_hash,
         ENTRY_POINT_APPROVE,
         runtime_args! {
-            ARG_TOKEN_ID => 0u64,
-            ARG_OPERATOR => Key::Account(approve_public_key.to_account_hash())
+            ARG_TOKEN_ID => token_id,
+            ARG_OPERATOR => operator_key
         },
     )
     .build();
@@ -307,6 +323,11 @@ fn approve_token_for_transfer_should_add_entry_to_approved_dictionary() {
         actual_approved_key,
         Some(Key::Account(approve_public_key.to_account_hash()))
     );
+
+    // Expect Approval event.
+    let expected_event = Approval::new(owner_key, operator_key, TokenIdentifier::Index(token_id));
+    let actual_event: Approval = support::get_event(&builder, nft_contract_key, 1);
+    assert_eq!(actual_event, expected_event, "Expected Approval event.");
 }
 
 #[test]
@@ -339,7 +360,6 @@ fn should_dissallow_approving_when_ownership_mode_is_minter_or_assigned() {
         MINT_SESSION_WASM,
         runtime_args! {
             ARG_NFT_CONTRACT_HASH => nft_contract_key,
-
             ARG_TOKEN_OWNER => Key::Account(*DEFAULT_ACCOUNT_ADDR),
             ARG_TOKEN_META_DATA => TEST_PRETTY_721_META_DATA.to_string(),
             ARG_COLLECTION_NAME => NFT_TEST_COLLECTION.to_string()
@@ -669,7 +689,7 @@ fn should_transfer_between_contract_to_account() {
     let nft_contract_key: Key = nft_contract_hash.into();
 
     let actual_contract_whitelist: Vec<ContractHash> = query_stored_value(
-        &mut builder,
+        &builder,
         nft_contract_key,
         vec![ARG_CONTRACT_WHITELIST.to_string()],
     );

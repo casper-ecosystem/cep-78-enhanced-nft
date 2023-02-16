@@ -3,6 +3,7 @@ use casper_engine_test_support::{
     DEFAULT_RUN_GENESIS_REQUEST,
 };
 use casper_types::{account::AccountHash, runtime_args, ContractHash, Key, RuntimeArgs};
+use contract::{events::MetadataUpdated, modalities::TokenIdentifier};
 
 use crate::utility::{
     constants::{
@@ -273,6 +274,8 @@ fn should_allow_update_for_valid_metadata_based_on_kind(
         NFTMetadataKind::CustomValidated => METADATA_CUSTOM_VALIDATED,
     };
 
+    let token_hash = base16::encode_lower(&support::create_blake2b_hash(original_metadata));
+
     let actual_metadata = match identifier_mode {
         NFTIdentifierMode::Ordinal => support::get_dictionary_value_from_key::<String>(
             &builder,
@@ -284,7 +287,7 @@ fn should_allow_update_for_valid_metadata_based_on_kind(
             &builder,
             &nft_contract_key,
             dictionary_name,
-            &base16::encode_lower(&support::create_blake2b_hash(original_metadata)),
+            &token_hash,
         ),
     };
 
@@ -307,10 +310,7 @@ fn should_allow_update_for_valid_metadata_based_on_kind(
         match identifier_mode {
             NFTIdentifierMode::Ordinal => args.insert(ARG_TOKEN_ID, 0u64).expect("must get args"),
             NFTIdentifierMode::Hash => args
-                .insert(
-                    ARG_TOKEN_HASH,
-                    base16::encode_lower(&support::create_blake2b_hash(original_metadata)),
-                )
+                .insert(ARG_TOKEN_HASH, token_hash.clone())
                 .expect("must get args"),
         }
         args
@@ -340,11 +340,23 @@ fn should_allow_update_for_valid_metadata_based_on_kind(
             &builder,
             &nft_contract_key,
             dictionary_name,
-            &base16::encode_lower(&support::create_blake2b_hash(original_metadata)),
+            &token_hash,
         ),
     };
 
-    assert_eq!(actual_updated_metadata, updated_metadata.to_string())
+    assert_eq!(actual_updated_metadata, updated_metadata.to_string());
+
+    // Expect MetadataUpdated event.
+    let token_id = match identifier_mode {
+        NFTIdentifierMode::Ordinal => TokenIdentifier::Index(0),
+        NFTIdentifierMode::Hash => TokenIdentifier::Hash(token_hash),
+    };
+    let expected_event = MetadataUpdated::new(token_id, updated_metadata.to_string());
+    let actual_event: MetadataUpdated = support::get_event(&builder, &nft_contract_key, 1);
+    assert_eq!(
+        actual_event, expected_event,
+        "Expected MetadataUpdated event."
+    );
 }
 
 #[test]
@@ -408,7 +420,7 @@ fn should_get_metadata_using_token_id() {
     let nft_contract_key: Key = get_nft_contract_hash(&builder).into();
 
     let actual_contract_whitelist: Vec<ContractHash> = query_stored_value(
-        &mut builder,
+        &builder,
         nft_contract_key,
         vec![ARG_CONTRACT_WHITELIST.to_string()],
     );
@@ -452,7 +464,7 @@ fn should_get_metadata_using_token_id() {
     )
     .build();
 
-    builder.exec(get_metadata_request);
+    builder.exec(get_metadata_request).expect_success().commit();
 }
 
 #[test]

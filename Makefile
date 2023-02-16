@@ -41,7 +41,8 @@ test: setup-test
 	cd tests && cargo test
 
 clippy:
-	cd contract && cargo clippy --all-targets -- -D warnings
+	cd contract && cargo clippy --target wasm32-unknown-unknown --bins -- -D warnings
+	cd contract && cargo clippy --no-default-features --lib -- -D warnings
 	cd tests && cargo clippy --all-targets -- -D warnings
 
 check-lint: clippy
