@@ -5,7 +5,7 @@ use serde::{Deserialize, Serialize};
 
 use casper_engine_test_support::ExecuteRequestBuilder;
 use casper_execution_engine::core::engine_state::ExecuteRequest;
-use casper_types::{account::AccountHash, CLValue, ContractHash, RuntimeArgs};
+use casper_types::{account::AccountHash, bytesrepr::Bytes, CLValue, ContractHash, RuntimeArgs};
 
 use crate::utility::constants::{
     ARG_ALLOW_MINTING, ARG_BURN_MODE, ARG_COLLECTION_NAME, ARG_COLLECTION_SYMBOL,
@@ -14,6 +14,8 @@ use crate::utility::constants::{
     ARG_NFT_METADATA_KIND, ARG_OWNERSHIP_MODE, ARG_OWNER_LOOKUP_MODE, ARG_TOTAL_TOKEN_SUPPLY,
     ARG_WHITELIST_MODE, NFT_TEST_COLLECTION, NFT_TEST_SYMBOL,
 };
+
+use super::constants::{ARG_ADDITIONAL_REQUIRED_METADATA, ARG_OPTIONAL_METADATA};
 
 pub(crate) static TEST_CUSTOM_METADATA_SCHEMA: Lazy<CustomMetadataSchema> = Lazy::new(|| {
     let mut properties = BTreeMap::new();
@@ -171,6 +173,8 @@ pub(crate) struct InstallerRequestBuilder {
     burn_mode: CLValue,
     reporting_mode: CLValue,
     named_key_convention: CLValue,
+    additional_required_metadata: CLValue,
+    optional_metadata: CLValue,
 }
 
 impl InstallerRequestBuilder {
@@ -207,6 +211,8 @@ impl InstallerRequestBuilder {
                 NamedKeyConventionMode::DerivedFromCollectionName as u8,
             )
             .unwrap(),
+            additional_required_metadata: CLValue::from_t(Bytes::new()).unwrap(),
+            optional_metadata: CLValue::from_t(Bytes::new()).unwrap(),
         }
     }
 
@@ -291,6 +297,20 @@ impl InstallerRequestBuilder {
         self
     }
 
+    pub(crate) fn with_additional_required_metadata(
+        mut self,
+        additional_required_metadata: Vec<u8>,
+    ) -> Self {
+        self.additional_required_metadata =
+            CLValue::from_t(Bytes::from(additional_required_metadata)).unwrap();
+        self
+    }
+
+    pub(crate) fn with_optional_metadata(mut self, optional_metadata: Vec<u8>) -> Self {
+        self.optional_metadata = CLValue::from_t(Bytes::from(optional_metadata)).unwrap();
+        self
+    }
+
     pub(crate) fn with_json_schema(mut self, json_schema: String) -> Self {
         self.json_schema = CLValue::from_t(json_schema).expect("json_schema is legit CLValue");
         self
@@ -338,6 +358,11 @@ impl InstallerRequestBuilder {
         runtime_args.insert_cl_value(ARG_BURN_MODE, self.burn_mode);
         runtime_args.insert_cl_value(ARG_OWNER_LOOKUP_MODE, self.reporting_mode);
         runtime_args.insert_cl_value(ARG_NAMED_KEY_CONVENTION, self.named_key_convention);
+        runtime_args.insert_cl_value(
+            ARG_ADDITIONAL_REQUIRED_METADATA,
+            self.additional_required_metadata,
+        );
+        runtime_args.insert_cl_value(ARG_OPTIONAL_METADATA, self.optional_metadata);
         ExecuteRequestBuilder::standard(self.account_hash, &self.session_file, runtime_args).build()
     }
 }

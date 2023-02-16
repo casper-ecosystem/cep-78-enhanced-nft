@@ -14,12 +14,16 @@ extern crate alloc;
 
 use alloc::{
     boxed::Box,
+    collections::BTreeMap,
     format,
     string::{String, ToString},
     vec,
     vec::Vec,
 };
+
+use constants::{ARG_ADDITIONAL_REQUIRED_METADATA, ARG_OPTIONAL_METADATA, NFT_METADATA_KINDS};
 use core::convert::TryInto;
+use modalities::Requirement;
 
 use casper_types::{
     contracts::NamedKeys, runtime_args, CLType, CLValue, ContractHash, ContractPackageHash,
@@ -201,7 +205,7 @@ pub extern "C" fn init() {
     )
     .unwrap_or_revert();
 
-    let nft_metadata_kind: NFTMetadataKind = utils::get_named_arg_with_user_errors::<u8>(
+    let base_metadata_kind: NFTMetadataKind = utils::get_named_arg_with_user_errors::<u8>(
         ARG_NFT_METADATA_KIND,
         NFTCoreError::MissingNFTMetadataKind,
         NFTCoreError::InvalidNFTMetadataKind,
@@ -210,12 +214,36 @@ pub extern "C" fn init() {
     .try_into()
     .unwrap_or_revert();
 
-    // Attempt to parse the provided schema and fail installation
-    // if the schema cannot be parsed.
-    if let NFTMetadataKind::CustomValidated = nft_metadata_kind {
-        casper_serde_json_wasm::from_str::<CustomMetadataSchema>(&json_schema)
-            .map_err(|_| NFTCoreError::InvalidJsonSchema)
-            .unwrap_or_revert();
+    let optional_metadata = utils::get_named_arg_with_user_errors::<Vec<u8>>(
+        ARG_OPTIONAL_METADATA,
+        NFTCoreError::MissingOptionalNFTMetadataKind,
+        NFTCoreError::InvalidOptionalNFTMetadataKind,
+    )
+    .unwrap_or_revert();
+
+    let additional_required_metadata = utils::get_named_arg_with_user_errors::<Vec<u8>>(
+        ARG_ADDITIONAL_REQUIRED_METADATA,
+        NFTCoreError::MissingAdditionalNFTMetadataKind,
+        NFTCoreError::InvalidAdditionalNFTMetadataKind,
+    )
+    .unwrap_or_revert();
+
+    let nft_metadata_kinds = utils::create_metadata_requirements(
+        base_metadata_kind,
+        additional_required_metadata,
+        optional_metadata,
+    );
+
+    // Attempt to parse the provided schema if the CustomValidated metadata kind is required of
+    // optional and fail installation if the schema cannot be parsed.
+    if let Some(required_or_optional) = nft_metadata_kinds.get(&NFTMetadataKind::CustomValidated) {
+        if required_or_optional == &Requirement::Required
+            || required_or_optional == &Requirement::Optional
+        {
+            casper_serde_json_wasm::from_str::<CustomMetadataSchema>(&json_schema)
+                .map_err(|_| NFTCoreError::InvalidJsonSchema)
+                .unwrap_or_revert();
+        }
     }
 
     let identifier_mode: NFTIdentifierMode = utils::get_named_arg_with_user_errors::<u8>(
@@ -295,12 +323,16 @@ pub extern "C" fn init() {
     );
     runtime::put_key(RECEIPT_NAME, storage::new_uref(receipt_name).into());
     runtime::put_key(
-        &format!("{}{}", CEP78_PREFIX, collection_name),
+        &format!("{CEP78_PREFIX}{collection_name}"),
         storage::new_uref(package_hash).into(),
     );
     runtime::put_key(
         NFT_METADATA_KIND,
-        storage::new_uref(nft_metadata_kind as u8).into(),
+        storage::new_uref(base_metadata_kind).into(),
+    );
+    runtime::put_key(
+        NFT_METADATA_KINDS,
+        storage::new_uref(nft_metadata_kinds).into(),
     );
     runtime::put_key(
         IDENTIFIER_MODE,
@@ -311,10 +343,6 @@ pub extern "C" fn init() {
         storage::new_uref(metadata_mutability as u8).into(),
     );
     runtime::put_key(BURN_MODE, storage::new_uref(burn_mode as u8).into());
-    runtime::put_key(
-        REPORTING_MODE,
-        storage::new_uref(reporting_mode.clone() as u8).into(),
-    );
 
     // Initialize contract with variables which must be present but maybe set to
     // different values after initialization.
@@ -358,6 +386,10 @@ pub extern "C" fn init() {
         let page_table_width = utils::max_number_of_pages(total_token_supply);
         runtime::put_key(PAGE_LIMIT, storage::new_uref(page_table_width).into());
     }
+    runtime::put_key(
+        REPORTING_MODE,
+        storage::new_uref(reporting_mode as u8).into(),
+    );
     runtime::put_key(MIGRATION_FLAG, storage::new_uref(true).into());
 }
 
@@ -503,13 +535,12 @@ pub extern "C" fn mint() {
             caller
         };
 
-    let metadata_kind: NFTMetadataKind = utils::get_stored_value_with_user_errors::<u8>(
-        NFT_METADATA_KIND,
-        NFTCoreError::MissingNFTMetadataKind,
-        NFTCoreError::InvalidNFTMetadataKind,
-    )
-    .try_into()
-    .unwrap_or_revert();
+    let metadata_kinds: BTreeMap<NFTMetadataKind, Requirement> =
+        utils::get_stored_value_with_user_errors(
+            NFT_METADATA_KINDS,
+            NFTCoreError::MissingNFTMetadataKind,
+            NFTCoreError::InvalidNFTMetadataKind,
+        );
 
     let token_metadata = utils::get_named_arg_with_user_errors::<String>(
         ARG_TOKEN_META_DATA,
@@ -517,9 +548,6 @@ pub extern "C" fn mint() {
         NFTCoreError::InvalidTokenMetaData,
     )
     .unwrap_or_revert();
-
-    // Get token metadata if valid.
-    let metadata = metadata::validate_metadata(&metadata_kind, token_metadata).unwrap_or_revert();
 
     let identifier_mode: NFTIdentifierMode = utils::get_stored_value_with_user_errors::<u8>(
         IDENTIFIER_MODE,
@@ -532,10 +560,32 @@ pub extern "C" fn mint() {
     // This is the token ID.
     let token_identifier: TokenIdentifier = match identifier_mode {
         NFTIdentifierMode::Ordinal => TokenIdentifier::Index(minted_tokens_count),
-        NFTIdentifierMode::Hash => {
-            TokenIdentifier::Hash(base16::encode_lower(&runtime::blake2b(&metadata)))
-        }
+        NFTIdentifierMode::Hash => TokenIdentifier::Hash(base16::encode_lower(&runtime::blake2b(
+            token_metadata.clone(),
+        ))),
     };
+
+    for (metadata_kind, required) in metadata_kinds {
+        if required == Requirement::Unneeded {
+            continue;
+        }
+        let token_metadata_validation =
+            metadata::validate_metadata(&metadata_kind, token_metadata.clone());
+        match token_metadata_validation {
+            Ok(validated_token_metadata) => {
+                utils::upsert_dictionary_value_from_key(
+                    &metadata::get_metadata_dictionary_name(&metadata_kind),
+                    &token_identifier.get_dictionary_item_key(),
+                    validated_token_metadata,
+                );
+            }
+            Err(err) => {
+                if required == Requirement::Required {
+                    runtime::revert(err);
+                }
+            }
+        }
+    }
 
     utils::upsert_dictionary_value_from_key(
         TOKEN_OWNERS,
@@ -546,11 +596,6 @@ pub extern "C" fn mint() {
         TOKEN_ISSUERS,
         &token_identifier.get_dictionary_item_key(),
         token_owner_key,
-    );
-    utils::upsert_dictionary_value_from_key(
-        &metadata::get_metadata_dictionary_name(&metadata_kind),
-        &token_identifier.get_dictionary_item_key(),
-        metadata,
     );
 
     let owned_tokens_item_key = utils::get_owned_tokens_dictionary_item_key(token_owner_key);
@@ -1064,26 +1109,30 @@ pub extern "C" fn metadata() {
         }
     }
 
-    let metadata_kind: NFTMetadataKind = utils::get_stored_value_with_user_errors::<u8>(
-        NFT_METADATA_KIND,
-        NFTCoreError::MissingNFTMetadataKind,
-        NFTCoreError::InvalidNFTMetadataKind,
-    )
-    .try_into()
-    .unwrap_or_revert();
+    let metadata_kind_list: BTreeMap<NFTMetadataKind, Requirement> =
+        utils::get_stored_value_with_user_errors(
+            NFT_METADATA_KINDS,
+            NFTCoreError::MissingNFTMetadataKind,
+            NFTCoreError::InvalidNFTMetadataKind,
+        );
 
-    let maybe_token_metadata = utils::get_dictionary_value_from_key::<String>(
-        &metadata::get_metadata_dictionary_name(&metadata_kind),
-        &token_identifier.get_dictionary_item_key(),
-    );
-
-    if let Some(metadata) = maybe_token_metadata {
-        let metadata_cl_value =
-            CLValue::from_t(metadata).unwrap_or_revert_with(NFTCoreError::FailedToConvertToCLValue);
-        runtime::ret(metadata_cl_value);
-    } else {
-        runtime::revert(NFTCoreError::InvalidTokenIdentifier)
+    for (&metadata_kind, required) in metadata_kind_list.iter() {
+        match required {
+            &Requirement::Required => {
+                let metadata = utils::get_dictionary_value_from_key::<String>(
+                    &metadata::get_metadata_dictionary_name(&metadata_kind),
+                    &token_identifier.get_dictionary_item_key(),
+                )
+                .unwrap_or_revert_with(NFTCoreError::InvalidTokenIdentifier);
+                runtime::ret(
+                    CLValue::from_t(metadata)
+                        .unwrap_or_revert_with(NFTCoreError::FailedToConvertToCLValue),
+                );
+            }
+            _ => continue,
+        }
     }
+    runtime::revert(NFTCoreError::MissingTokenMetaData)
 }
 
 // Returns approved account_hash from token_id, throws error if token id is not valid
@@ -1170,29 +1219,41 @@ pub extern "C" fn set_token_metadata() {
         runtime::revert(NFTCoreError::InvalidTokenIdentifier)
     }
 
-    let metadata_kind: NFTMetadataKind = utils::get_stored_value_with_user_errors::<u8>(
-        NFT_METADATA_KIND,
-        NFTCoreError::MissingNFTMetadataKind,
-        NFTCoreError::InvalidNFTMetadataKind,
-    )
-    .try_into()
-    .unwrap_or_revert();
+    let metadata_kinds: BTreeMap<NFTMetadataKind, Requirement> =
+        utils::get_stored_value_with_user_errors(
+            NFT_METADATA_KINDS,
+            NFTCoreError::MissingNFTMetadataKind,
+            NFTCoreError::InvalidNFTMetadataKind,
+        );
 
-    let updated_token_metadata: String = utils::get_named_arg_with_user_errors::<String>(
+    let updated_token_metadata: String = utils::get_named_arg_with_user_errors(
         ARG_TOKEN_META_DATA,
         NFTCoreError::MissingTokenMetaData,
         NFTCoreError::InvalidTokenMetaData,
     )
     .unwrap_or_revert();
 
-    let updated_metadata =
-        metadata::validate_metadata(&metadata_kind, updated_token_metadata).unwrap_or_revert();
-
-    utils::upsert_dictionary_value_from_key(
-        &metadata::get_metadata_dictionary_name(&metadata_kind),
-        &token_identifier.get_dictionary_item_key(),
-        updated_metadata,
-    );
+    for (metadata_kind, required) in metadata_kinds {
+        if required == Requirement::Unneeded {
+            continue;
+        }
+        let token_metadata_validation =
+            metadata::validate_metadata(&metadata_kind, updated_token_metadata.clone());
+        match token_metadata_validation {
+            Ok(validated_token_metadata) => {
+                utils::upsert_dictionary_value_from_key(
+                    &metadata::get_metadata_dictionary_name(&metadata_kind),
+                    &token_identifier.get_dictionary_item_key(),
+                    validated_token_metadata,
+                );
+            }
+            Err(err) => {
+                if required == Requirement::Required {
+                    runtime::revert(err);
+                }
+            }
+        }
+    }
 }
 
 #[no_mangle]
@@ -1246,7 +1307,7 @@ pub extern "C" fn migrate() {
         NFTCoreError::InvalidReceiptName,
     );
 
-    let new_receipt_string_representation = format!("{}{}", CEP78_PREFIX, collection_name);
+    let new_receipt_string_representation = format!("{CEP78_PREFIX}{collection_name}");
     runtime::put_key(
         &new_receipt_string_representation,
         storage::new_uref(new_contract_package_hash_representation.to_formatted_string()).into(),
@@ -1279,6 +1340,18 @@ pub extern "C" fn migrate() {
             );
         }
     }
+
+    let metadata_kind: NFTMetadataKind = utils::get_stored_value_with_user_errors(
+        NFT_METADATA_KIND,
+        NFTCoreError::MissingNFTMetadataKind,
+        NFTCoreError::InvalidNFTMetadataKind,
+    );
+    let mut nft_metadata_kind_list: BTreeMap<NFTMetadataKind, Requirement> = BTreeMap::new();
+    nft_metadata_kind_list.insert(metadata_kind, Requirement::Required);
+    runtime::put_key(
+        NFT_METADATA_KINDS,
+        storage::new_uref(nft_metadata_kind_list).into(),
+    );
 }
 
 #[no_mangle]
@@ -1313,7 +1386,7 @@ pub extern "C" fn updated_receipts() {
                 continue;
             }
             let page_uref = utils::get_uref(
-                &format!("{}{}", PAGE_DICTIONARY_PREFIX, page_table_entry),
+                &format!("{PAGE_DICTIONARY_PREFIX}{page_table_entry}"),
                 NFTCoreError::MissingPageUref,
                 NFTCoreError::InvalidPageUref,
             );
@@ -1376,7 +1449,7 @@ pub extern "C" fn register_owner() {
             NFTCoreError::InvalidCollectionName,
         );
         let package_uref = storage::new_uref(utils::get_stored_value_with_user_errors::<String>(
-            &format!("{}{}", CEP78_PREFIX, collection_name),
+            &format!("{CEP78_PREFIX}{collection_name}"),
             NFTCoreError::MissingCep78PackageHash,
             NFTCoreError::InvalidCep78InvalidHash,
         ));
@@ -1745,12 +1818,24 @@ fn install_contract() {
     // Represents the schema for the metadata for a given NFT contract instance.
     // Refer to the `NFTMetadataKind` enum in src/utils for details.
     // This value cannot be changed after installation.
-    let nft_metadata_kind: u8 = utils::get_named_arg_with_user_errors(
+    let base_metadata_kind: u8 = utils::get_named_arg_with_user_errors(
         ARG_NFT_METADATA_KIND,
         NFTCoreError::MissingNFTMetadataKind,
         NFTCoreError::InvalidNFTMetadataKind,
     )
     .unwrap_or_revert();
+
+    let additional_required_metadata: Vec<u8> = utils::get_optional_named_arg_with_user_errors(
+        ARG_ADDITIONAL_REQUIRED_METADATA,
+        NFTCoreError::InvalidAdditionalRequiredMetadata,
+    )
+    .unwrap_or_default();
+
+    let optional_metadata: Vec<u8> = utils::get_optional_named_arg_with_user_errors(
+        ARG_OPTIONAL_METADATA,
+        NFTCoreError::InvalidOptionalMetadata,
+    )
+    .unwrap_or_default();
 
     // The JSON schema representation of the NFT which will be minted.
     // This value cannot be changed after installation.
@@ -1819,22 +1904,22 @@ fn install_contract() {
         named_keys
     };
 
-    let hash_key_name = format!("{}{}", HASH_KEY_NAME_PREFIX, collection_name);
+    let hash_key_name = format!("{HASH_KEY_NAME_PREFIX}{collection_name}");
 
     let (contract_hash, contract_version) = storage::new_contract(
         entry_points,
         Some(named_keys),
         Some(hash_key_name.clone()),
-        Some(format!("{}{}", ACCESS_KEY_NAME_PREFIX, collection_name)),
+        Some(format!("{ACCESS_KEY_NAME_PREFIX}{collection_name}")),
     );
 
     // Store contract_hash and contract_version under the keys CONTRACT_NAME and CONTRACT_VERSION
     runtime::put_key(
-        &format!("{}{}", CONTRACT_NAME_PREFIX, collection_name),
+        &format!("{CONTRACT_NAME_PREFIX}{collection_name}"),
         contract_hash.into(),
     );
     runtime::put_key(
-        &format!("{}{}", CONTRACT_VERSION_PREFIX, collection_name),
+        &format!("{CONTRACT_VERSION_PREFIX}{collection_name}"),
         storage::new_uref(contract_version).into(),
     );
 
@@ -1848,31 +1933,33 @@ fn install_contract() {
     // of a read only reference to the NFTs owned by the calling `Account` or `Contract`
     // This allows for users to look up a set of named keys and correctly identify
     // the contract package from which the NFTs were obtained.
-    let receipt_name = format!("{}{}", CEP78_PREFIX, collection_name);
+    let receipt_name = format!("{CEP78_PREFIX}{collection_name}");
 
     // Call contract to initialize it
     runtime::call_contract::<()>(
         contract_hash,
         ENTRY_POINT_INIT,
         runtime_args! {
-             ARG_COLLECTION_NAME => collection_name,
-             ARG_COLLECTION_SYMBOL => collection_symbol,
-             ARG_TOTAL_TOKEN_SUPPLY => total_token_supply,
-             ARG_ALLOW_MINTING => allow_minting,
-             ARG_OWNERSHIP_MODE => ownership_mode,
-             ARG_NFT_KIND => nft_kind,
-             ARG_MINTING_MODE => minting_mode,
-             ARG_HOLDER_MODE => holder_mode,
-             ARG_WHITELIST_MODE => whitelist_lock,
-             ARG_CONTRACT_WHITELIST => contract_white_list,
-             ARG_JSON_SCHEMA => json_schema,
-             ARG_RECEIPT_NAME => receipt_name,
-             ARG_NFT_METADATA_KIND => nft_metadata_kind,
-             ARG_IDENTIFIER_MODE => identifier_mode,
-             ARG_METADATA_MUTABILITY => metadata_mutability,
-             ARG_BURN_MODE => burn_mode,
-             ARG_OWNER_LOOKUP_MODE => reporting_mode,
-             ARG_NFT_PACKAGE_HASH => package_hash.to_formatted_string(),
+            ARG_COLLECTION_NAME => collection_name,
+            ARG_COLLECTION_SYMBOL => collection_symbol,
+            ARG_TOTAL_TOKEN_SUPPLY => total_token_supply,
+            ARG_ALLOW_MINTING => allow_minting,
+            ARG_OWNERSHIP_MODE => ownership_mode,
+            ARG_NFT_KIND => nft_kind,
+            ARG_MINTING_MODE => minting_mode,
+            ARG_HOLDER_MODE => holder_mode,
+            ARG_WHITELIST_MODE => whitelist_lock,
+            ARG_CONTRACT_WHITELIST => contract_white_list,
+            ARG_JSON_SCHEMA => json_schema,
+            ARG_RECEIPT_NAME => receipt_name,
+            ARG_NFT_METADATA_KIND => base_metadata_kind,
+            ARG_ADDITIONAL_REQUIRED_METADATA => additional_required_metadata,
+            ARG_OPTIONAL_METADATA => optional_metadata,
+            ARG_IDENTIFIER_MODE => identifier_mode,
+            ARG_METADATA_MUTABILITY => metadata_mutability,
+            ARG_BURN_MODE => burn_mode,
+            ARG_OWNER_LOOKUP_MODE => reporting_mode,
+            ARG_NFT_PACKAGE_HASH => package_hash.to_formatted_string(),
         },
     );
 }
@@ -1892,13 +1979,13 @@ fn migrate_contract(access_key_name: String, package_key_name: String) {
     .unwrap_or_revert();
 
     runtime::put_key(
-        &format!("{}{}", HASH_KEY_NAME_PREFIX, collection_name),
+        &format!("{HASH_KEY_NAME_PREFIX}{collection_name}"),
         nft_contact_package_hash.into(),
     );
 
     if let Some(access_key) = runtime::get_key(&access_key_name) {
         runtime::put_key(
-            &format!("{}{}", ACCESS_KEY_NAME_PREFIX, collection_name),
+            &format!("{ACCESS_KEY_NAME_PREFIX}{collection_name}"),
             access_key,
         )
     }
@@ -1911,11 +1998,11 @@ fn migrate_contract(access_key_name: String, package_key_name: String) {
 
     // Store contract_hash and contract_version under the keys CONTRACT_NAME and CONTRACT_VERSION
     runtime::put_key(
-        &format!("{}{}", CONTRACT_NAME_PREFIX, collection_name),
+        &format!("{CONTRACT_NAME_PREFIX}{collection_name}"),
         contract_hash.into(),
     );
     runtime::put_key(
-        &format!("{}{}", CONTRACT_VERSION_PREFIX, collection_name),
+        &format!("{CONTRACT_VERSION_PREFIX}{collection_name}"),
         storage::new_uref(contract_version).into(),
     );
 

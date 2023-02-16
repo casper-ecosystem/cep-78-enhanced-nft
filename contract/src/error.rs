@@ -143,6 +143,13 @@ pub enum NFTCoreError {
     InvalidCheckForUpgrade = 138,
     InvalidNamedKeyConvention = 139,
     OwnerReverseLookupModeNotTransferable = 140,
+    InvalidAdditionalRequiredMetadata = 141,
+    InvalidOptionalMetadata = 142,
+    MissingOptionalNFTMetadataKind = 143,
+    InvalidOptionalNFTMetadataKind = 144,
+    MissingAdditionalNFTMetadataKind = 145,
+    InvalidAdditionalNFTMetadataKind = 146,
+    InvalidRequirement = 147,
 }
 
 impl From<NFTCoreError> for ApiError {
