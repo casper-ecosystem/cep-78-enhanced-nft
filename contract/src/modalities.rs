@@ -339,6 +339,7 @@ impl TryFrom<u8> for NamedKeyConventionMode {
 pub enum EventsMode {
     NoEvents = 0,
     CEP47 = 1,
+    CES = 2,
 }
 
 impl TryFrom<u8> for EventsMode {
@@ -348,6 +349,7 @@ impl TryFrom<u8> for EventsMode {
         match value {
             0 => Ok(EventsMode::NoEvents),
             1 => Ok(EventsMode::CEP47),
+            2 => Ok(EventsMode::CES),
             _ => Err(NFTCoreError::InvalidEventsMode),
         }
     }

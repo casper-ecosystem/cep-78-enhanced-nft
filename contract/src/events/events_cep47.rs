@@ -1,23 +1,10 @@
-use alloc::{
-    collections::BTreeMap,
-    format,
-    string::{String, ToString},
-};
-use casper_contract::{
-    contract_api::{
-        runtime,
-        storage::{dictionary_get, dictionary_put, new_dictionary},
-    },
-    unwrap_or_revert::UnwrapOrRevert,
-};
+use alloc::{string::{String, ToString}, format, collections::BTreeMap };
+
+use casper_contract::contract_api::{storage, runtime};
+use casper_contract::unwrap_or_revert::UnwrapOrRevert;
 use casper_types::Key;
 
-use crate::{
-    constants::{CEP78_PREFIX, HASH_KEY_NAME_PREFIX},
-    error::NFTCoreError,
-    modalities::TokenIdentifier,
-    utils::{self, get_stored_value_with_user_errors},
-};
+use crate::{modalities::TokenIdentifier, constants::{HASH_KEY_NAME_PREFIX, CEP78_PREFIX}, error::NFTCoreError, utils};
 
 pub(crate) enum CEP47Event {
     Mint {
@@ -41,17 +28,19 @@ pub(crate) enum CEP47Event {
     MetadataUpdate {
         token_id: TokenIdentifier,
     },
+    VariablesSet,
+    Migrate
 }
 
-pub(crate) fn record_event_dictionary(event: &CEP47Event) {
-    let collection_name: String = get_stored_value_with_user_errors(
+pub(crate) fn record_cep47_event_dictionary(event: &CEP47Event) {
+    let collection_name: String = utils::get_stored_value_with_user_errors(
         crate::constants::COLLECTION_NAME,
         NFTCoreError::MissingCollectionName,
         NFTCoreError::InvalidCollectionName,
     );
 
     let package = utils::get_stored_value_with_user_errors::<String>(
-        &format!("{}{}", CEP78_PREFIX, collection_name),
+        &format!("{CEP78_PREFIX}{collection_name}"),
         NFTCoreError::MissingCep78PackageHash,
         NFTCoreError::InvalidCep78InvalidHash,
     );
@@ -109,14 +98,26 @@ pub(crate) fn record_event_dictionary(event: &CEP47Event) {
             event.insert("token_id", token_id.to_string());
             event
         }
+        CEP47Event::Migrate => {
+            let mut event = BTreeMap::new();
+            event.insert(HASH_KEY_NAME_PREFIX, package);
+            event.insert("event_type", "Migration".to_string());
+            event
+        }
+        CEP47Event::VariablesSet => {
+            let mut event = BTreeMap::new();
+            event.insert(HASH_KEY_NAME_PREFIX, package);
+            event.insert("event_type", "VariablesSet".to_string());
+            event
+        }
     };
     let dictionary_uref = match runtime::get_key("events") {
         Some(dict_uref) => dict_uref.into_uref().unwrap_or_revert(),
-        None => new_dictionary("events").unwrap_or_revert(),
+        None => storage::new_dictionary("events").unwrap_or_revert(),
     };
-    let len = dictionary_get(dictionary_uref, "len")
+    let len = storage::dictionary_get(dictionary_uref, "len")
         .unwrap_or_revert()
         .unwrap_or(0_u64);
-    dictionary_put(dictionary_uref, &len.to_string(), event);
-    dictionary_put(dictionary_uref, "len", len + 1);
+    storage::dictionary_put(dictionary_uref, &len.to_string(), event);
+    storage::dictionary_put(dictionary_uref, "len", len + 1);
 }
