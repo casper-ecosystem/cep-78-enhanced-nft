@@ -29,7 +29,7 @@ use crate::{
     },
     error::NFTCoreError,
     events::events_ces::{
-        Approval, ApprovalForAll, Burn, MetadataUpdated, Migration, CESMint, Transfer, VariablesSet,
+        Approval, ApprovalForAll, Burn, MetadataUpdated, Migration, Mint, Transfer, VariablesSet,
     },
     modalities::{
         NFTHolderMode, NFTIdentifierMode, OwnerReverseLookupMode, OwnershipMode, TokenIdentifier,BurnMode,
@@ -41,7 +41,7 @@ use crate::{
 // to ease the math around addressing newly minted tokens.
 pub const PAGE_SIZE: u64 = 1000;
 
-pub(crate) fn upsert_dictionary_value_from_key<T: CLTyped + FromBytes + ToBytes>(
+pub fn upsert_dictionary_value_from_key<T: CLTyped + FromBytes + ToBytes>(
     dictionary_name: &str,
     key: &str,
     value: T,
@@ -58,7 +58,7 @@ pub(crate) fn upsert_dictionary_value_from_key<T: CLTyped + FromBytes + ToBytes>
     }
 }
 
-pub(crate) fn get_ownership_mode() -> Result<OwnershipMode, NFTCoreError> {
+pub fn get_ownership_mode() -> Result<OwnershipMode, NFTCoreError> {
     get_stored_value_with_user_errors::<u8>(
         OWNERSHIP_MODE,
         NFTCoreError::MissingOwnershipMode,
@@ -67,7 +67,7 @@ pub(crate) fn get_ownership_mode() -> Result<OwnershipMode, NFTCoreError> {
     .try_into()
 }
 
-pub(crate) fn get_holder_mode() -> Result<NFTHolderMode, NFTCoreError> {
+pub fn get_holder_mode() -> Result<NFTHolderMode, NFTCoreError> {
     get_stored_value_with_user_errors::<u8>(
         HOLDER_MODE,
         NFTCoreError::MissingHolderMode,
@@ -76,7 +76,7 @@ pub(crate) fn get_holder_mode() -> Result<NFTHolderMode, NFTCoreError> {
     .try_into()
 }
 
-pub(crate) fn get_owned_tokens_dictionary_item_key(token_owner_key: Key) -> String {
+pub fn get_owned_tokens_dictionary_item_key(token_owner_key: Key) -> String {
     match token_owner_key {
         Key::Account(token_owner_account_hash) => token_owner_account_hash.to_string(),
         Key::Hash(token_owner_hash_addr) => ContractHash::new(token_owner_hash_addr).to_string(),
@@ -84,7 +84,7 @@ pub(crate) fn get_owned_tokens_dictionary_item_key(token_owner_key: Key) -> Stri
     }
 }
 
-pub(crate) fn get_dictionary_value_from_key<T: CLTyped + FromBytes>(
+pub fn get_dictionary_value_from_key<T: CLTyped + FromBytes>(
     dictionary_name: &str,
     key: &str,
 ) -> Option<T> {
@@ -100,7 +100,7 @@ pub(crate) fn get_dictionary_value_from_key<T: CLTyped + FromBytes>(
     }
 }
 
-pub(crate) fn get_stored_value_with_user_errors<T: CLTyped + FromBytes>(
+pub fn get_stored_value_with_user_errors<T: CLTyped + FromBytes>(
     name: &str,
     missing: NFTCoreError,
     invalid: NFTCoreError,
@@ -109,7 +109,7 @@ pub(crate) fn get_stored_value_with_user_errors<T: CLTyped + FromBytes>(
     read_with_user_errors(uref, missing, invalid)
 }
 
-pub(crate) fn get_named_arg_size(name: &str) -> Option<usize> {
+pub fn get_named_arg_size(name: &str) -> Option<usize> {
     let mut arg_size: usize = 0;
     let ret = unsafe {
         ext_ffi::casper_get_named_arg_size(
@@ -128,7 +128,7 @@ pub(crate) fn get_named_arg_size(name: &str) -> Option<usize> {
 // The optional here is literal and does not co-relate to an Option enum type.
 // If the argument has been provided it is accepted, and is then turned into a Some.
 // If the argument is not provided at all, then it is considered as None.
-pub(crate) fn get_optional_named_arg_with_user_errors<T: FromBytes>(
+pub fn get_optional_named_arg_with_user_errors<T: FromBytes>(
     name: &str,
     invalid: NFTCoreError,
 ) -> Option<T> {
@@ -138,7 +138,7 @@ pub(crate) fn get_optional_named_arg_with_user_errors<T: FromBytes>(
     }
 }
 
-pub(crate) fn get_named_arg_with_user_errors<T: FromBytes>(
+pub fn get_named_arg_with_user_errors<T: FromBytes>(
     name: &str,
     missing: NFTCoreError,
     invalid: NFTCoreError,
@@ -169,7 +169,7 @@ pub(crate) fn get_named_arg_with_user_errors<T: FromBytes>(
     bytesrepr::deserialize(arg_bytes).map_err(|_| invalid)
 }
 
-pub(crate) fn get_account_hash(
+pub fn get_account_hash(
     name: &str,
     missing: NFTCoreError,
     invalid: NFTCoreError,
@@ -179,13 +179,13 @@ pub(crate) fn get_account_hash(
         .unwrap_or_revert_with(NFTCoreError::UnexpectedKeyVariant)
 }
 
-pub(crate) fn get_uref(name: &str, missing: NFTCoreError, invalid: NFTCoreError) -> URef {
+pub fn get_uref(name: &str, missing: NFTCoreError, invalid: NFTCoreError) -> URef {
     let key = get_key_with_user_errors(name, missing, invalid);
     key.into_uref()
         .unwrap_or_revert_with(NFTCoreError::UnexpectedKeyVariant)
 }
 
-pub(crate) fn named_uref_exists(name: &str) -> bool {
+pub fn named_uref_exists(name: &str) -> bool {
     let (name_ptr, name_size, _bytes) = to_ptr(name);
     let mut key_bytes = vec![0u8; Key::max_serialized_length()];
     let mut total_bytes: usize = 0;
@@ -282,7 +282,7 @@ pub(crate) fn to_ptr<T: ToBytes>(t: T) -> (*const u8, usize, Vec<u8>) {
     (ptr, size, bytes)
 }
 
-pub(crate) fn get_verified_caller() -> Result<Key, NFTCoreError> {
+pub fn get_verified_caller() -> Result<Key, NFTCoreError> {
     let holder_mode = get_holder_mode()?;
     match *runtime::get_call_stack()
         .iter()
@@ -308,7 +308,7 @@ pub(crate) fn get_verified_caller() -> Result<Key, NFTCoreError> {
     }
 }
 
-pub(crate) fn get_token_identifier_from_runtime_args(
+pub fn get_token_identifier_from_runtime_args(
     identifier_mode: &NFTIdentifierMode,
 ) -> TokenIdentifier {
     match identifier_mode {
@@ -329,7 +329,7 @@ pub(crate) fn get_token_identifier_from_runtime_args(
     }
 }
 
-pub(crate) fn get_token_identifiers_from_dictionary(
+pub fn get_token_identifiers_from_dictionary(
     identifier_mode: &NFTIdentifierMode,
     owners_item_key: &str,
 ) -> Option<Vec<TokenIdentifier>> {
@@ -357,7 +357,7 @@ pub(crate) fn get_token_identifiers_from_dictionary(
     }
 }
 
-pub(crate) fn get_burn_mode() -> BurnMode {
+pub fn get_burn_mode() -> BurnMode {
     let burn_mode: BurnMode = get_stored_value_with_user_errors::<u8>(
         BURN_MODE,
         NFTCoreError::MissingBurnMode,
@@ -368,12 +368,12 @@ pub(crate) fn get_burn_mode() -> BurnMode {
     burn_mode
 }
 
-pub(crate) fn is_token_burned(token_identifier: &TokenIdentifier) -> bool {
+pub fn is_token_burned(token_identifier: &TokenIdentifier) -> bool {
     get_dictionary_value_from_key::<()>(BURNT_TOKENS, &token_identifier.get_dictionary_item_key())
         .is_some()
 }
 
-pub(crate) fn max_number_of_pages(total_token_supply: u64) -> u64 {
+pub fn max_number_of_pages(total_token_supply: u64) -> u64 {
     if total_token_supply < PAGE_SIZE {
         let dictionary_name = format!("{}{}", PAGE_DICTIONARY_PREFIX, 0);
         storage::new_dictionary(&dictionary_name)
@@ -383,7 +383,7 @@ pub(crate) fn max_number_of_pages(total_token_supply: u64) -> u64 {
         let max_number_of_pages = total_token_supply / PAGE_SIZE;
         let overflow = total_token_supply % PAGE_SIZE;
         for page_number in 0..max_number_of_pages {
-            let dictionary_name = format!("{}{}", PAGE_DICTIONARY_PREFIX, page_number);
+            let dictionary_name = format!("{PAGE_DICTIONARY_PREFIX}{page_number}");
             storage::new_dictionary(&dictionary_name)
                 .unwrap_or_revert_with(NFTCoreError::FailedToCreateDictionary);
         }
@@ -398,7 +398,7 @@ pub(crate) fn max_number_of_pages(total_token_supply: u64) -> u64 {
     }
 }
 
-pub(crate) fn insert_hash_id_lookups(
+pub fn insert_hash_id_lookups(
     current_number_of_minted_tokens: u64,
     token_identifier: TokenIdentifier,
 ) {
@@ -445,7 +445,7 @@ pub(crate) fn insert_hash_id_lookups(
     );
 }
 
-pub(crate) fn get_token_index(token_identifier: &TokenIdentifier) -> u64 {
+pub fn get_token_index(token_identifier: &TokenIdentifier) -> u64 {
     match token_identifier {
         TokenIdentifier::Index(token_index) => *token_index,
         TokenIdentifier::Hash(_) => {
@@ -464,7 +464,7 @@ pub(crate) fn get_token_index(token_identifier: &TokenIdentifier) -> u64 {
     }
 }
 
-pub(crate) fn migrate_owned_tokens_in_ordinal_mode() {
+pub fn migrate_owned_tokens_in_ordinal_mode() {
     let current_number_of_minted_tokens = utils::get_stored_value_with_user_errors::<u64>(
         NUMBER_OF_MINTED_TOKENS,
         NFTCoreError::MissingTotalTokenSupply,
@@ -509,7 +509,7 @@ pub(crate) fn migrate_owned_tokens_in_ordinal_mode() {
                     None => vec![false; page_table_width as usize],
                 };
                 let page_uref = get_uref(
-                    &format!("{}{}", PAGE_DICTIONARY_PREFIX, page_number),
+                    &format!("{PAGE_DICTIONARY_PREFIX}{page_number}"),
                     NFTCoreError::MissingStorageUref,
                     NFTCoreError::InvalidStorageUref,
                 );
@@ -534,7 +534,7 @@ pub(crate) fn migrate_owned_tokens_in_ordinal_mode() {
     }
 }
 
-pub(crate) fn should_migrate_token_hashes(token_owner: Key) -> bool {
+pub fn should_migrate_token_hashes(token_owner: Key) -> bool {
     if get_token_identifiers_from_dictionary(
         &NFTIdentifierMode::Hash,
         &get_owned_tokens_dictionary_item_key(token_owner),
@@ -562,7 +562,7 @@ pub(crate) fn should_migrate_token_hashes(token_owner: Key) -> bool {
     true
 }
 
-pub(crate) fn migrate_token_hashes(token_owner: Key) {
+pub fn migrate_token_hashes(token_owner: Key) {
     let mut unmatched_hash_count = get_stored_value_with_user_errors::<u64>(
         UNMATCHED_HASH_COUNT,
         NFTCoreError::MissingUnmatchedHashCount,
@@ -604,7 +604,7 @@ pub(crate) fn migrate_token_hashes(token_owner: Key) {
         let _ = core::mem::replace(&mut page_table[page_table_entry as usize], true);
         storage::dictionary_put(page_table_uref, &token_owner_item_key, page_table);
         let page_uref = get_uref(
-            &format!("{}{}", PAGE_DICTIONARY_PREFIX, page_table_entry),
+            &format!("{PAGE_DICTIONARY_PREFIX}{page_table_entry}"),
             NFTCoreError::MissingStorageUref,
             NFTCoreError::InvalidStorageUref,
         );
@@ -629,7 +629,7 @@ pub(crate) fn migrate_token_hashes(token_owner: Key) {
     storage::write(unmatched_hash_count_uref, unmatched_hash_count);
 }
 
-pub(crate) fn get_owned_token_ids_by_token_number() -> Vec<TokenIdentifier> {
+pub fn get_owned_token_ids_by_token_number() -> Vec<TokenIdentifier> {
     let token_owner: Key = get_verified_caller().unwrap_or_revert();
 
     let identifier_mode: NFTIdentifierMode = get_stored_value_with_user_errors::<u8>(
@@ -673,7 +673,7 @@ pub(crate) fn get_owned_token_ids_by_token_number() -> Vec<TokenIdentifier> {
     token_identifiers
 }
 
-pub(crate) fn get_owned_token_ids_by_page() -> Vec<TokenIdentifier> {
+pub fn get_owned_token_ids_by_page() -> Vec<TokenIdentifier> {
     let token_owner: Key = get_verified_caller().unwrap_or_revert();
     let token_item_key = get_owned_tokens_dictionary_item_key(token_owner);
     let page_table = get_dictionary_value_from_key::<Vec<bool>>(PAGE_TABLE, &token_item_key)
@@ -691,7 +691,7 @@ pub(crate) fn get_owned_token_ids_by_page() -> Vec<TokenIdentifier> {
             continue;
         }
         let page_uref = get_uref(
-            &format!("{}{}", PAGE_DICTIONARY_PREFIX, page_table_entry),
+            &format!("{PAGE_DICTIONARY_PREFIX}{page_table_entry}"),
             NFTCoreError::MissingStorageUref,
             NFTCoreError::InvalidStorageUref,
         );
@@ -720,16 +720,16 @@ pub(crate) fn get_owned_token_ids_by_page() -> Vec<TokenIdentifier> {
     token_identifiers
 }
 
-pub(crate) fn get_receipt_name(page_table_entry: u64) -> String {
+pub fn get_receipt_name(page_table_entry: u64) -> String {
     let receipt = utils::get_stored_value_with_user_errors::<String>(
         RECEIPT_NAME,
         NFTCoreError::MissingReceiptName,
         NFTCoreError::InvalidReceiptName,
     );
-    format!("{}_m_{}_p_{}", receipt, PAGE_SIZE, page_table_entry)
+    format!("{receipt}_m_{PAGE_SIZE}_p_{page_table_entry}")
 }
 
-pub(crate) fn get_reporting_mode() -> OwnerReverseLookupMode {
+pub fn get_reporting_mode() -> OwnerReverseLookupMode {
     utils::get_stored_value_with_user_errors::<u8>(
         REPORTING_MODE,
         NFTCoreError::MissingReportingMode,
@@ -742,7 +742,7 @@ pub(crate) fn get_reporting_mode() -> OwnerReverseLookupMode {
 // Initializes events-releated named keys and records all event schemas.
 pub fn init_events() {
     let schemas = Schemas::new()
-        .with::<CESMint>()
+        .with::<Mint>()
         .with::<Burn>()
         .with::<Approval>()
         .with::<ApprovalForAll>()

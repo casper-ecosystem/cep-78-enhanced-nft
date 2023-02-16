@@ -1,5 +1,5 @@
 use contract::{
-    events::{ApprovalForAll, Mint},
+    events::events_ces::{ApprovalForAll, Mint},
     modalities::TokenIdentifier,
 };
 use serde::{Deserialize, Serialize};

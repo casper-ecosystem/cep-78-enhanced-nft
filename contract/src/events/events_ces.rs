@@ -6,13 +6,13 @@ use casper_types::Key;
 use crate::modalities::TokenIdentifier;
 
 #[derive(Event, Debug, PartialEq, Eq)]
-pub struct CESMint {
+pub struct Mint {
     recipient: Key,
     token_id: TokenIdentifier,
     data: String,
 }
 
-impl CESMint {
+impl Mint {
     pub fn new(recipient: Key, token_id: TokenIdentifier, data: String) -> Self {
         Self {
             recipient,

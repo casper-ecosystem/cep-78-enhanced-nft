@@ -19,7 +19,7 @@ use crate::utility::constants::{
 pub use contract::modalities::{
     BurnMode, MetadataMutability, MintingMode, NFTHolderMode, NFTIdentifierMode, NFTKind,
     NFTMetadataKind, NamedKeyConventionMode, OwnerReverseLookupMode, OwnershipMode,
-    TokenIdentifier, WhitelistMode,
+    TokenIdentifier, WhitelistMode, EventsMode
 };
 
 pub(crate) static TEST_CUSTOM_METADATA_SCHEMA: Lazy<CustomMetadataSchema> = Lazy::new(|| {
@@ -134,7 +134,7 @@ impl InstallerRequestBuilder {
                 NamedKeyConventionMode::DerivedFromCollectionName as u8,
             )
             .unwrap(),
-            events_mode: CLValue::from_t(EventsMode::NoEvents as u8).unwrap(),
+            events_mode: CLValue::from_t(EventsMode::CES as u8).unwrap(),
         }
     }
 

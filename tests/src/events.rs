@@ -6,6 +6,8 @@ use casper_engine_test_support::{
 };
 use casper_types::{account::AccountHash, runtime_args, Key, RuntimeArgs};
 
+use contract::modalities::EventsMode;
+
 use crate::utility::{
     constants::{
         ARG_COLLECTION_NAME, ARG_IS_HASH_IDENTIFIER_MODE, ARG_NFT_CONTRACT_HASH, ARG_OPERATOR,
@@ -18,7 +20,7 @@ use crate::utility::{
         TEST_PRETTY_UPDATED_CEP78_METADATA, TRANSFER_SESSION_WASM,
     },
     installer_request_builder::{
-        EventsMode, InstallerRequestBuilder, MetadataMutability, NFTIdentifierMode,
+        InstallerRequestBuilder, MetadataMutability, NFTIdentifierMode,
         NFTMetadataKind, OwnerReverseLookupMode, OwnershipMode, TEST_CUSTOM_METADATA,
         TEST_CUSTOM_METADATA_SCHEMA, TEST_CUSTOM_UPDATED_METADATA,
     },

@@ -27,8 +27,8 @@ use modalities::EventsMode;
 use core::convert::{TryFrom, TryInto};
 use utils::get_stored_value_with_user_errors;
 use events::{
-    events_ces::{Approval, ApprovalForAll, Burn, MetadataUpdated, Migration, CESMint, Transfer, VariablesSet,},
-    events_cep47::CEP47Event
+    events_ces::{Approval, ApprovalForAll, Burn, MetadataUpdated, Migration, Mint, Transfer, VariablesSet,},
+    events_cep47::{CEP47Event, record_cep47_event_dictionary}
 };
 
 use casper_types::{
@@ -39,7 +39,7 @@ use casper_types::{
 
 use casper_contract::{
     contract_api::{
-        runtime::{self, revert},
+        runtime::{self},
         storage::{self},
     },
     unwrap_or_revert::UnwrapOrRevert,
@@ -77,7 +77,7 @@ use crate::{
     },
     utils::PAGE_SIZE,
 };
-use crate::events::events_cep47::record_cep47_event_dictionary;
+
 
 #[no_mangle]
 pub extern "C" fn init() {
@@ -309,7 +309,7 @@ pub extern "C" fn init() {
     );
     runtime::put_key(RECEIPT_NAME, storage::new_uref(receipt_name).into());
     runtime::put_key(
-        &format!("{}{}", CEP78_PREFIX, collection_name),
+        &format!("{CEP78_PREFIX}{collection_name}"),
         storage::new_uref(package_hash).into(),
     );
     runtime::put_key(
@@ -325,10 +325,10 @@ pub extern "C" fn init() {
         storage::new_uref(metadata_mutability as u8).into(),
     );
     runtime::put_key(BURN_MODE, storage::new_uref(burn_mode as u8).into());
-    runtime::put_key(
-        REPORTING_MODE,
-        storage::new_uref(reporting_mode.clone() as u8).into(),
-    );
+    // Initialize events structures for CES.
+    if let EventsMode::CES = events_mode {
+        utils::init_events();
+    }
     runtime::put_key(EVENTS_MODE, storage::new_uref(events_mode as u8).into());
 
     // Initialize contract with variables which must be present but maybe set to
@@ -371,10 +371,11 @@ pub extern "C" fn init() {
         let page_table_width = utils::max_number_of_pages(total_token_supply);
         runtime::put_key(PAGE_LIMIT, storage::new_uref(page_table_width).into());
     }
+    runtime::put_key(
+        REPORTING_MODE,
+        storage::new_uref(reporting_mode as u8).into(),
+    );
     runtime::put_key(MIGRATION_FLAG, storage::new_uref(true).into());
-
-    // Initialize events structures.
-    utils::init_events();
 }
 
 // set_variables allows the user to set any variable or any combination of variables simultaneously.
@@ -430,8 +431,22 @@ pub extern "C" fn set_variables() {
         }
     }
 
+    let events_mode: EventsMode = utils::get_stored_value_with_user_errors::<u8>(
+        EVENTS_MODE,
+        NFTCoreError::MissingEventsMode,
+        NFTCoreError::InvalidEventsMode
+    ).try_into().unwrap_or_revert();
+
     // Emit VariablesSet event.
-    casper_event_standard::emit(VariablesSet::new());
+    match events_mode {
+        EventsMode::NoEvents => {}
+        EventsMode::CEP47 => {
+            record_cep47_event_dictionary(&CEP47Event::VariablesSet)
+        }
+        EventsMode::CES => {
+            casper_event_standard::emit(VariablesSet::new())
+        }
+    }
 }
 
 // Mints a new token. Minting will fail if allow_minting is set to false.
@@ -617,7 +632,7 @@ pub extern "C" fn mint() {
             record_cep47_event_dictionary(&cep47_event)
         },
         EventsMode::CES => {
-            casper_event_standard::emit(CESMint::new(token_owner_key, token_identifier.clone(), metadata))
+            casper_event_standard::emit(Mint::new(token_owner_key, token_identifier.clone(), metadata))
         },
     }
 
@@ -642,7 +657,7 @@ pub extern "C" fn mint() {
 
         // Update the individual page record.
         let page_uref = utils::get_uref(
-            &format!("{}{}", PAGE_DICTIONARY_PREFIX, page_table_entry),
+            &format!("{PAGE_DICTIONARY_PREFIX}{page_table_entry}"),
             NFTCoreError::MissingPageUref,
             NFTCoreError::InvalidPageUref,
         );
@@ -1152,7 +1167,7 @@ pub extern "C" fn transfer() {
         let page_address = token_number % PAGE_SIZE;
 
         let page_uref = utils::get_uref(
-            &format!("{}{}", PAGE_DICTIONARY_PREFIX, page_table_entry),
+            &format!("{PAGE_DICTIONARY_PREFIX}{page_table_entry}"),
             NFTCoreError::MissingStorageUref,
             NFTCoreError::InvalidStorageUref,
         );
@@ -1491,7 +1506,7 @@ pub extern "C" fn migrate() {
         NFTCoreError::InvalidReceiptName,
     );
 
-    let new_receipt_string_representation = format!("{}{}", CEP78_PREFIX, collection_name);
+    let new_receipt_string_representation = format!("{CEP78_PREFIX}{collection_name}");
     runtime::put_key(
         &new_receipt_string_representation,
         storage::new_uref(new_contract_package_hash_representation.to_formatted_string()).into(),
@@ -1590,7 +1605,7 @@ pub extern "C" fn updated_receipts() {
                 continue;
             }
             let page_uref = utils::get_uref(
-                &format!("{}{}", PAGE_DICTIONARY_PREFIX, page_table_entry),
+                &format!("{PAGE_DICTIONARY_PREFIX}{page_table_entry}"),
                 NFTCoreError::MissingPageUref,
                 NFTCoreError::InvalidPageUref,
             );
@@ -1648,7 +1663,7 @@ pub extern "C" fn register_owner() {
             NFTCoreError::InvalidCollectionName,
         );
         let package_uref = storage::new_uref(utils::get_stored_value_with_user_errors::<String>(
-            &format!("{}{}", CEP78_PREFIX, collection_name),
+            &format!("{CEP78_PREFIX}{collection_name}"),
             NFTCoreError::MissingCep78PackageHash,
             NFTCoreError::InvalidCep78InvalidHash,
         ));
@@ -2098,22 +2113,22 @@ fn install_contract() {
         named_keys
     };
 
-    let hash_key_name = format!("{}_{}", HASH_KEY_NAME_PREFIX, collection_name);
+    let hash_key_name = format!("{HASH_KEY_NAME_PREFIX}_{collection_name}");
 
     let (contract_hash, contract_version) = storage::new_contract(
         entry_points,
         Some(named_keys),
         Some(hash_key_name.clone()),
-        Some(format!("{}{}", ACCESS_KEY_NAME_PREFIX, collection_name)),
+        Some(format!("{ACCESS_KEY_NAME_PREFIX}{collection_name}")),
     );
 
     // Store contract_hash and contract_version under the keys CONTRACT_NAME and CONTRACT_VERSION
     runtime::put_key(
-        &format!("{}{}", CONTRACT_NAME_PREFIX, collection_name),
+        &format!("{CONTRACT_NAME_PREFIX}{collection_name}"),
         contract_hash.into(),
     );
     runtime::put_key(
-        &format!("{}{}", CONTRACT_VERSION_PREFIX, collection_name),
+        &format!("{CONTRACT_VERSION_PREFIX}{collection_name}"),
         storage::new_uref(contract_version).into(),
     );
 
@@ -2127,7 +2142,7 @@ fn install_contract() {
     // of a read only reference to the NFTs owned by the calling `Account` or `Contract`
     // This allows for users to look up a set of named keys and correctly identify
     // the contract package from which the NFTs were obtained.
-    let receipt_name = format!("{}{}", CEP78_PREFIX, collection_name);
+    let receipt_name = format!("{CEP78_PREFIX}{collection_name}");
 
     // Call contract to initialize it
     runtime::call_contract::<()>(
@@ -2171,14 +2186,19 @@ fn migrate_contract(access_key_name: String, package_key_name: String) {
     )
     .unwrap_or_revert();
 
+    let events_mode = utils::get_optional_named_arg_with_user_errors::<u8>(
+        ARG_EVENTS_MODE,
+        NFTCoreError::InvalidEventsMode,
+    ).unwrap_or(0u8);
+
     runtime::put_key(
-        &format!("{}_{}", HASH_KEY_NAME_PREFIX, collection_name),
+        &format!("{HASH_KEY_NAME_PREFIX}_{collection_name}"),
         nft_contact_package_hash.into(),
     );
 
     if let Some(access_key) = runtime::get_key(&access_key_name) {
         runtime::put_key(
-            &format!("{}{}", ACCESS_KEY_NAME_PREFIX, collection_name),
+            &format!("{ACCESS_KEY_NAME_PREFIX}{collection_name}"),
             access_key,
         )
     }
@@ -2191,11 +2211,11 @@ fn migrate_contract(access_key_name: String, package_key_name: String) {
 
     // Store contract_hash and contract_version under the keys CONTRACT_NAME and CONTRACT_VERSION
     runtime::put_key(
-        &format!("{}{}", CONTRACT_NAME_PREFIX, collection_name),
+        &format!("{CONTRACT_NAME_PREFIX}{collection_name}"),
         contract_hash.into(),
     );
     runtime::put_key(
-        &format!("{}{}", CONTRACT_VERSION_PREFIX, collection_name),
+        &format!("{CONTRACT_VERSION_PREFIX}{collection_name}"),
         storage::new_uref(contract_version).into(),
     );
 
@@ -2203,7 +2223,8 @@ fn migrate_contract(access_key_name: String, package_key_name: String) {
         contract_hash,
         ENTRY_POINT_MIGRATE,
         runtime_args! {
-            ARG_NFT_PACKAGE_HASH => nft_contact_package_hash
+            ARG_NFT_PACKAGE_HASH => nft_contact_package_hash,
+            ARG_EVENTS_MODE => events_mode,
         },
     );
 }
