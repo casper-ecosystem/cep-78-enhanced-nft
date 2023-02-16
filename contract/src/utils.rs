@@ -24,18 +24,18 @@ use casper_types::{
 use crate::{
     constants::{
         ARG_TOKEN_HASH, ARG_TOKEN_ID, HOLDER_MODE, OWNERSHIP_MODE, PAGE_DICTIONARY_PREFIX,
-        PAGE_LIMIT, RECEIPT_NAME, REPORTING_MODE,
+        PAGE_LIMIT, RECEIPT_NAME, REPORTING_MODE, BURNT_TOKENS, BURN_MODE, HASH_BY_INDEX, IDENTIFIER_MODE, INDEX_BY_HASH,
+        NUMBER_OF_MINTED_TOKENS, OWNED_TOKENS, PAGE_TABLE, TOKEN_OWNERS, UNMATCHED_HASH_COUNT,
     },
     error::NFTCoreError,
-    events::{
-        Approval, ApprovalForAll, Burn, MetadataUpdated, Migration, Mint, Transfer, VariablesSet,
+    events::events_ces::{
+        Approval, ApprovalForAll, Burn, MetadataUpdated, Migration, CESMint, Transfer, VariablesSet,
     },
     modalities::{
         MetadataRequirement, NFTHolderMode, NFTIdentifierMode, NFTMetadataKind,
         OwnerReverseLookupMode, OwnershipMode, Requirement, TokenIdentifier,
     },
-    utils, BurnMode, BURNT_TOKENS, BURN_MODE, HASH_BY_INDEX, IDENTIFIER_MODE, INDEX_BY_HASH,
-    NUMBER_OF_MINTED_TOKENS, OWNED_TOKENS, PAGE_TABLE, TOKEN_OWNERS, UNMATCHED_HASH_COUNT,
+    utils,
 };
 
 // The size of a given page, it is currently set to 1000
@@ -872,7 +872,7 @@ pub(crate) fn create_metadata_requirements(
 // Initializes events-releated named keys and records all event schemas.
 pub fn init_events() {
     let schemas = Schemas::new()
-        .with::<Mint>()
+        .with::<CESMint>()
         .with::<Burn>()
         .with::<Approval>()
         .with::<ApprovalForAll>()
