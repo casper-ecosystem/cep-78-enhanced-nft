@@ -1,8 +1,16 @@
-use alloc::string::{String, ToString};
+use alloc::{
+    string::{String, ToString},
+    vec::Vec,
+};
+
+use casper_types::{
+    bytesrepr::{self, FromBytes, ToBytes, U64_SERIALIZED_LENGTH, U8_SERIALIZED_LENGTH},
+    CLTyped,
+};
 
 use core::convert::TryFrom;
 
-use crate::NFTCoreError;
+use crate::error::NFTCoreError;
 
 #[repr(u8)]
 #[derive(PartialEq, Eq)]
@@ -92,6 +100,7 @@ impl TryFrom<u8> for NFTKind {
 }
 
 #[repr(u8)]
+#[derive(Clone, Copy)]
 pub enum NFTMetadataKind {
     CEP78 = 0,
     NFT721 = 1,
@@ -137,7 +146,7 @@ impl TryFrom<u8> for OwnershipMode {
 }
 
 #[repr(u8)]
-#[derive(PartialEq, Eq)]
+#[derive(PartialEq, Eq, Clone, Copy)]
 pub enum NFTIdentifierMode {
     Ordinal = 0,
     Hash = 1,
@@ -173,40 +182,89 @@ impl TryFrom<u8> for MetadataMutability {
     }
 }
 
-#[derive(PartialEq, Eq, Clone)]
-pub(crate) enum TokenIdentifier {
+#[derive(PartialEq, Eq, Clone, Debug)]
+pub enum TokenIdentifier {
     Index(u64),
     Hash(String),
 }
 
 impl TokenIdentifier {
-    pub(crate) fn new_index(index: u64) -> Self {
+    pub fn new_index(index: u64) -> Self {
         TokenIdentifier::Index(index)
     }
 
-    pub(crate) fn new_hash(hash: String) -> Self {
+    pub fn new_hash(hash: String) -> Self {
         TokenIdentifier::Hash(hash)
     }
 
-    pub(crate) fn get_index(&self) -> Option<u64> {
+    pub fn get_index(&self) -> Option<u64> {
         if let Self::Index(index) = self {
             return Some(*index);
         }
         None
     }
 
-    pub(crate) fn get_hash(self) -> Option<String> {
+    pub fn get_hash(self) -> Option<String> {
         if let Self::Hash(hash) = self {
             return Some(hash);
         }
         None
     }
 
-    pub(crate) fn get_dictionary_item_key(&self) -> String {
+    pub fn get_dictionary_item_key(&self) -> String {
         match self {
             TokenIdentifier::Index(token_index) => token_index.to_string(),
             TokenIdentifier::Hash(hash) => hash.clone(),
         }
+    }
+}
+
+impl ToBytes for TokenIdentifier {
+    fn to_bytes(&self) -> Result<Vec<u8>, bytesrepr::Error> {
+        let mut bytes = Vec::new();
+        match self {
+            TokenIdentifier::Index(index) => {
+                bytes.push(NFTIdentifierMode::Ordinal as u8);
+                bytes.append(&mut index.to_bytes()?);
+            }
+            TokenIdentifier::Hash(string) => {
+                bytes.push(NFTIdentifierMode::Hash as u8);
+                bytes.append(&mut string.to_bytes()?);
+            }
+        };
+        Ok(bytes)
+    }
+
+    fn serialized_length(&self) -> usize {
+        U8_SERIALIZED_LENGTH
+            + match self {
+                TokenIdentifier::Index(_) => U64_SERIALIZED_LENGTH,
+                TokenIdentifier::Hash(string) => string.serialized_length(),
+            }
+    }
+}
+
+impl FromBytes for TokenIdentifier {
+    fn from_bytes(bytes: &[u8]) -> Result<(Self, &[u8]), bytesrepr::Error> {
+        let (identifier_mode, bytes) = u8::from_bytes(bytes)?;
+        let identifier_mode = NFTIdentifierMode::try_from(identifier_mode)
+            .map_err(|_| bytesrepr::Error::Formatting)?;
+        match identifier_mode {
+            NFTIdentifierMode::Ordinal => {
+                let (index, bytes) = u64::from_bytes(bytes)?;
+                Ok((TokenIdentifier::Index(index), bytes))
+            }
+            NFTIdentifierMode::Hash => {
+                let (string, bytes) = String::from_bytes(bytes)?;
+                Ok((TokenIdentifier::Hash(string), bytes))
+            }
+        }
+    }
+}
+
+impl CLTyped for TokenIdentifier {
+    fn cl_type() -> casper_types::CLType {
+        casper_types::CLType::Any
     }
 }
 

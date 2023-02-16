@@ -15,6 +15,13 @@ use crate::utility::constants::{
     ARG_WHITELIST_MODE, NFT_TEST_COLLECTION, NFT_TEST_SYMBOL,
 };
 
+// Modalities reexports.
+pub use contract::modalities::{
+    BurnMode, MetadataMutability, MintingMode, NFTHolderMode, NFTIdentifierMode, NFTKind,
+    NFTMetadataKind, NamedKeyConventionMode, OwnerReverseLookupMode, OwnershipMode,
+    TokenIdentifier, WhitelistMode,
+};
+
 pub(crate) static TEST_CUSTOM_METADATA_SCHEMA: Lazy<CustomMetadataSchema> = Lazy::new(|| {
     let mut properties = BTreeMap::new();
     properties.insert(
@@ -50,44 +57,6 @@ pub(crate) static TEST_CUSTOM_UPDATED_METADATA: Lazy<BTreeMap<String, String>> =
     attributes
 });
 
-#[repr(u8)]
-pub enum WhitelistMode {
-    Unlocked = 0,
-    Locked = 1,
-}
-
-#[repr(u8)]
-pub enum NFTHolderMode {
-    Accounts = 0,
-    Contracts = 1,
-    Mixed = 2,
-}
-
-#[repr(u8)]
-pub enum MintingMode {
-    /// The ability to mint NFTs is restricted to the installing account only.
-    Installer = 0,
-    /// The ability to mint NFTs is not restricted.
-    Public = 1,
-}
-
-#[repr(u8)]
-#[derive(Debug)]
-pub enum OwnershipMode {
-    Minter = 0,       // The minter owns it and can never transfer it.
-    Assigned = 1,     // The minter assigns it to an address and can never be transferred.
-    Transferable = 2, // The NFT can be transferred even to an recipient that does not exist.
-}
-
-#[repr(u8)]
-#[derive(Debug)]
-#[allow(dead_code)]
-pub enum NFTKind {
-    Physical = 0,
-    Digital = 1, // The minter assigns it to an address and can never be transferred.
-    Virtual = 2, // The NFT can be transferred even to an recipient that does not exist
-}
-
 #[derive(Serialize, Deserialize, Clone)]
 pub(crate) struct MetadataSchemaProperty {
     name: String,
@@ -105,47 +74,6 @@ struct Metadata {
     name: String,
     symbol: String,
     token_uri: String,
-}
-
-#[repr(u8)]
-#[derive(Copy, Clone)]
-pub enum NFTMetadataKind {
-    CEP78 = 0,
-    NFT721 = 1,
-    Raw = 2,
-    CustomValidated = 3,
-}
-
-#[repr(u8)]
-#[derive(Copy, Clone)]
-pub enum NFTIdentifierMode {
-    Ordinal = 0,
-    Hash = 1,
-}
-
-#[repr(u8)]
-pub enum MetadataMutability {
-    Immutable = 0,
-    Mutable = 1,
-}
-
-#[repr(u8)]
-pub enum BurnMode {
-    Burnable = 0,
-    NonBurnable = 1,
-}
-
-#[repr(u8)]
-pub enum OwnerReverseLookupMode {
-    NoLookUp = 0,
-    Complete = 1,
-}
-
-#[repr(u8)]
-pub enum NamedKeyConventionMode {
-    DerivedFromCollectionName = 0,
-    V1_0Standard = 1,
-    V1_0Custom = 2,
 }
 
 #[derive(Debug)]

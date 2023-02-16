@@ -307,6 +307,14 @@ This modality provides three options:
 
 The `MetadataMutability` option of `Mutable` cannot be used in conjunction with `NFTIdentifierMode` modality of `Hash`.
 
+#### EventsMode
+
+The `EventsMode` modality allows the deployers of the contract to decide on schemas for recording events during the operation of the contract where changes to the tokens happen.
+
+0. `NoEvents`: No events will be recorded during the operation, this is the default mode.
+1. `CEP47`: The event schema from the CEP47 contract has been implemented as a possibility.
+2. `CES` : Events will be recorded during the operation of the contract using an event schema in compliance with the Casper Event Schema. Refer to  section [Casper Event Standard](#casper-event-standard) for more information.
+
 ### Usage
 
 #### Installing the contract.
@@ -650,6 +658,30 @@ You can determine the token number by multiplying the `page_number` by the `page
 If the `NFTIdentifierMode` is set to `Ordinal`, this number corresponds directly to the token ID.
 
 If it is set to `Hash`, you will need to reference the `HASH_BY_INDEX` dictionary to determine the mapping of token numbers to token hashes.
+
+## Casper Event Standard
+
+When the `CES` events mode is enabled during contract installation, the operations that make changes on the tokens are recorded in the `__events` dictionary. Such event entries can be observed via a node's Server Side Events stream or querying the dictionary at any time using the RPC interface.
+
+The emitted events are encoded according to the [Casper Event Standard](https://github.com/make-software/casper-event-standard), and the schema can be known by an observer reading the `__events_schema` contract named key.
+
+For this CEP-78 reference implementation in particular, the events schema is the following:
+
+| Event name      | Included values and type                                   |
+|-----------------|----------------------------------------------------------------------|
+| Mint            | recipient (Key), token_id (Any), data (String)                       |
+| Transfer        | owner (Key), operator (Option<Key>), recipient (Key), token_id (Any) |
+| Burn            | owner (Key), token_id (Any)                                          |
+| Approval        | owner (Key), operator (Option<Key>), token_id (Any)                  |
+| ApprovalForAll  | owner (Key), operator (Option<Key>), token_ids (List<Any>)           |
+| MetadataUpdated | token_id (Any), data (String)                                        |
+| Migration       | -                                                                    |
+| VariablesSet    | -                                                                    |
+
+Token identifiers are stored under the `CLType` `Any` and the encoding depends on `NFTIdentifierMode`:.
+
+* `NFTIdentifierMode::Ordinal`: the `token id` is encoded as a byte `0x00` followed by a `u64` number.
+* `NFTIdentifierMode::Hash`: the `token_id` is encoded as a byte `0x01` followed by a `String`.
 
 ## Error Codes
 

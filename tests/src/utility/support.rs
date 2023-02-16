@@ -1,3 +1,5 @@
+use std::fmt::Debug;
+
 use crate::utility::constants::{
     ARG_KEY_NAME, ARG_NFT_CONTRACT_HASH, HASH_KEY_NAME, INDEX_BY_HASH, MINTING_CONTRACT_NAME,
     PAGE_DICTIONARY_PREFIX, PAGE_SIZE,
@@ -20,8 +22,10 @@ use casper_execution_engine::{
     storage::global_state::in_memory::InMemoryGlobalState,
 };
 use casper_types::{
-    account::AccountHash, bytesrepr::FromBytes, ApiError, CLTyped, CLValueError, ContractHash,
-    ContractPackageHash, Key, PublicKey, RuntimeArgs, SecretKey, URef, BLAKE2B_DIGEST_LENGTH,
+    account::AccountHash,
+    bytesrepr::{Bytes, FromBytes},
+    ApiError, CLTyped, CLValueError, ContractHash, ContractPackageHash, Key, PublicKey,
+    RuntimeArgs, SecretKey, URef, BLAKE2B_DIGEST_LENGTH,
 };
 
 pub(crate) fn get_nft_contract_hash(
@@ -141,7 +145,7 @@ pub(crate) fn _get_uref(builder: &WasmTestBuilder<InMemoryGlobalState>, key: &st
 }
 
 pub(crate) fn query_stored_value<T: CLTyped + FromBytes>(
-    builder: &mut InMemoryWasmTestBuilder,
+    builder: &InMemoryWasmTestBuilder,
     base_key: Key,
     path: Vec<String>,
 ) -> T {
@@ -260,4 +264,20 @@ pub(crate) fn get_stored_value_from_global_state<T: CLTyped + FromBytes>(
 
 pub(crate) fn get_receipt_name(nft_receipt: String, page_table_entry: u64) -> String {
     format!("{}_m_{}_p_{}", nft_receipt, PAGE_SIZE, page_table_entry)
+}
+
+pub fn get_event<T: FromBytes + CLTyped + Debug>(
+    builder: &WasmTestBuilder<InMemoryGlobalState>,
+    nft_contract_key: &Key,
+    index: u32,
+) -> T {
+    let bytes: Bytes = get_dictionary_value_from_key(
+        builder,
+        nft_contract_key,
+        casper_event_standard::EVENTS_DICT,
+        &index.to_string(),
+    );
+    let (event, bytes) = T::from_bytes(&bytes).unwrap();
+    assert!(bytes.is_empty());
+    event
 }

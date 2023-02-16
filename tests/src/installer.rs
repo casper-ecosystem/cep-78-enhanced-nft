@@ -2,7 +2,11 @@ use casper_engine_test_support::{
     ExecuteRequestBuilder, InMemoryWasmTestBuilder, DEFAULT_ACCOUNT_ADDR,
     DEFAULT_RUN_GENESIS_REQUEST,
 };
+use casper_event_standard::Schemas;
 use casper_types::{runtime_args, CLValue, ContractHash, RuntimeArgs};
+use contract::events::{
+    Approval, ApprovalForAll, Burn, MetadataUpdated, Migration, Mint, Transfer, VariablesSet,
+};
 
 use crate::utility::{
     constants::{
@@ -39,7 +43,7 @@ fn should_install_contract() {
         .expect("must have key in named keys");
 
     let query_result: String = support::query_stored_value(
-        &mut builder,
+        &builder,
         *nft_contract_key,
         vec![ARG_COLLECTION_NAME.to_string()],
     );
@@ -51,7 +55,7 @@ fn should_install_contract() {
     );
 
     let query_result: String = support::query_stored_value(
-        &mut builder,
+        &builder,
         *nft_contract_key,
         vec![ARG_COLLECTION_SYMBOL.to_string()],
     );
@@ -63,7 +67,7 @@ fn should_install_contract() {
     );
 
     let query_result: u64 = support::query_stored_value(
-        &mut builder,
+        &builder,
         *nft_contract_key,
         vec![ARG_TOTAL_TOKEN_SUPPLY.to_string()],
     );
@@ -74,7 +78,7 @@ fn should_install_contract() {
     );
 
     let query_result: bool = support::query_stored_value(
-        &mut builder,
+        &builder,
         *nft_contract_key,
         vec![ARG_ALLOW_MINTING.to_string()],
     );
@@ -82,7 +86,7 @@ fn should_install_contract() {
     assert!(query_result, "Allow minting should default to true");
 
     let query_result: u8 = support::query_stored_value(
-        &mut builder,
+        &builder,
         *nft_contract_key,
         vec![ARG_MINTING_MODE.to_string()],
     );
@@ -93,7 +97,7 @@ fn should_install_contract() {
     );
 
     let query_result: u64 = support::query_stored_value(
-        &mut builder,
+        &builder,
         *nft_contract_key,
         vec![NUMBER_OF_MINTED_TOKENS.to_string()],
     );
@@ -102,6 +106,23 @@ fn should_install_contract() {
         query_result, 0u64,
         "number_of_minted_tokens initialized at installation should exist"
     );
+
+    // Expects Schemas to be registerd.
+    let expected_schemas = Schemas::new()
+        .with::<Mint>()
+        .with::<Burn>()
+        .with::<Approval>()
+        .with::<ApprovalForAll>()
+        .with::<Transfer>()
+        .with::<MetadataUpdated>()
+        .with::<VariablesSet>()
+        .with::<Migration>();
+    let actual_schemas: Schemas = support::query_stored_value(
+        &builder,
+        *nft_contract_key,
+        vec![casper_event_standard::EVENTS_SCHEMA.to_string()],
+    );
+    assert_eq!(actual_schemas, expected_schemas, "Schemas mismatch.");
 }
 
 #[test]
@@ -222,7 +243,7 @@ fn should_install_with_contract_holder_mode() {
         .expect("must have key in named keys");
 
     let actual_holder_mode: u8 = support::query_stored_value(
-        &mut builder,
+        &builder,
         *nft_contract_key,
         vec![ARG_HOLDER_MODE.to_string()],
     );
@@ -234,7 +255,7 @@ fn should_install_with_contract_holder_mode() {
     );
 
     let actual_whitelist_mode: u8 = support::query_stored_value(
-        &mut builder,
+        &builder,
         *nft_contract_key,
         vec![ARG_WHITELIST_MODE.to_string()],
     );
@@ -246,7 +267,7 @@ fn should_install_with_contract_holder_mode() {
     );
 
     let actual_contract_whitelist: Vec<ContractHash> = support::query_stored_value(
-        &mut builder,
+        &builder,
         *nft_contract_key,
         vec![ARG_CONTRACT_WHITELIST.to_string()],
     );

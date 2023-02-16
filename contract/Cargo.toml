@@ -4,11 +4,12 @@ version = "1.1.1"
 edition = "2018"
 
 [dependencies]
-casper-contract = {version = "1.4.3", features = ["test-support"]}
+casper-contract = { version = "1.4.3", features = ["test-support"], optional = true }
 casper-types = "1.4.5"
 serde = { version = "1", features = ["derive", "alloc"], default-features = false }
 base16 = { version = "0.2", default-features = false, features = ["alloc"] }
-casper-serde-json-wasm = { git = "https://github.com/darthsiroftardis/casper-serde-json-wasm", branch = "casper-no-std"}
+casper-serde-json-wasm = { git = "https://github.com/darthsiroftardis/casper-serde-json-wasm", branch = "casper-no-std", optional = true }
+casper-event-standard = "0.1.1"
 
 [[bin]]
 name = "contract"
@@ -21,3 +22,9 @@ test = false
 codegen-units = 1
 lto = true
 
+[features]
+default = ["contract-support"]
+contract-support = [ 
+    "dep:casper-contract",
+    "dep:casper-serde-json-wasm"
+]
