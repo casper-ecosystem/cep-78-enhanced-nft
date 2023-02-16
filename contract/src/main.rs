@@ -612,7 +612,7 @@ pub extern "C" fn mint() {
         EventsMode::CEP47 => {
             let cep47_event = CEP47Event::Mint {
                 recipient: token_owner_key,
-                token_id,
+                token_id: token_identifier.clone(),
             };
             record_cep47_event_dictionary(&cep47_event)
         },
@@ -944,11 +944,11 @@ pub extern "C" fn set_approval_for_all() {
                 Some(token_owner) => token_owner,
                 None => runtime::revert(NFTCoreError::InvalidAccountHash),
             };
-            let cep47_event = Event::Cep47(CEP47Event::Approve {
+            let cep47_event = CEP47Event::Approve {
                 owner: token_owner_key,
                 spender: operator.unwrap(),
                 token_id: token_id.clone(),
-            });
+            };
             record_cep47_event_dictionary(&cep47_event)
         }
         storage::dictionary_put(operator_uref, &token_id.get_dictionary_item_key(), operator);
@@ -1117,7 +1117,7 @@ pub extern "C" fn transfer() {
             let cep47_event = CEP47Event::Transfer {
                 sender: token_owner_key,
                 recipient: target_owner_key,
-                token_id,
+                token_id: token_identifier.clone(),
             };
             record_cep47_event_dictionary(&cep47_event)
         },
