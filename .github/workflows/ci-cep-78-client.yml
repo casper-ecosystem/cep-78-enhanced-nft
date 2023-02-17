@@ -14,7 +14,7 @@ on:
       - "release-*"
 
 jobs:
-  build:
+  client-build:
     strategy:
       fail-fast: false
       matrix:
