@@ -21,7 +21,7 @@ use crate::utility::{
         METADATA_RAW, MINTING_CONTRACT_WASM, MINT_SESSION_WASM, NFT_CONTRACT_WASM,
         NFT_TEST_COLLECTION, NUMBER_OF_MINTED_TOKENS, OPERATOR, OWNER_OF_SESSION_WASM, PAGE_SIZE,
         PAGE_TABLE, RECEIPT_NAME, TEST_COMPACT_META_DATA, TEST_PRETTY_721_META_DATA,
-        TEST_PRETTY_UPDATED_721_META_DATA, TEST_PRETTY_CEP78_METADATA, TOKEN_ISSUERS, TOKEN_OWNERS,
+        TEST_PRETTY_CEP78_METADATA, TEST_PRETTY_UPDATED_721_META_DATA, TOKEN_ISSUERS, TOKEN_OWNERS,
     },
     installer_request_builder::{
         InstallerRequestBuilder, MetadataMutability, MintingMode, NFTHolderMode, NFTIdentifierMode,
@@ -828,7 +828,6 @@ fn should_set_approval_for_all() {
     );
 }
 
-
 #[test]
 fn should_set_approval_for_all_with_hash_identifier_mode() {
     let mut builder = InMemoryWasmTestBuilder::default();
@@ -909,8 +908,9 @@ fn should_set_approval_for_all_with_hash_identifier_mode() {
         "actual and expected operator should be equal"
     );
 
-    let token_id_hash: String =
-    base16::encode_lower(&support::create_blake2b_hash(TEST_PRETTY_UPDATED_721_META_DATA));
+    let token_id_hash: String = base16::encode_lower(&support::create_blake2b_hash(
+        TEST_PRETTY_UPDATED_721_META_DATA,
+    ));
 
     let actual_operator: Option<Key> = call_entry_point_with_ret(
         &mut builder,
