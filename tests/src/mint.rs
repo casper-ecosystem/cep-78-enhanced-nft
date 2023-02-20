@@ -20,8 +20,9 @@ use crate::utility::{
         MALFORMED_META_DATA, METADATA_CEP78, METADATA_CUSTOM_VALIDATED, METADATA_NFT721,
         METADATA_RAW, MINTING_CONTRACT_WASM, MINT_SESSION_WASM, NFT_CONTRACT_WASM,
         NFT_TEST_COLLECTION, NUMBER_OF_MINTED_TOKENS, OPERATOR, OWNER_OF_SESSION_WASM, PAGE_SIZE,
-        PAGE_TABLE, RECEIPT_NAME, TEST_COMPACT_META_DATA, TEST_PRETTY_721_META_DATA,
-        TEST_PRETTY_CEP78_METADATA, TEST_PRETTY_UPDATED_721_META_DATA, TOKEN_ISSUERS, TOKEN_OWNERS,
+        PAGE_TABLE, RECEIPT_NAME, RETURNED_VALUE_STORAGE_KEY, TEST_COMPACT_META_DATA,
+        TEST_PRETTY_721_META_DATA, TEST_PRETTY_CEP78_METADATA, TEST_PRETTY_UPDATED_721_META_DATA,
+        TOKEN_ISSUERS, TOKEN_OWNERS,
     },
     installer_request_builder::{
         InstallerRequestBuilder, MetadataMutability, MintingMode, NFTHolderMode, NFTIdentifierMode,
@@ -130,7 +131,7 @@ fn entry_points_with_ret_should_return_correct_value() {
             ARG_TOKEN_OWNER => Key::Account(*DEFAULT_ACCOUNT_ADDR),
         },
         BALANCE_OF_SESSION_WASM,
-        "balance_of",
+        RETURNED_VALUE_STORAGE_KEY,
     );
 
     let expected_balance = 1u64;
@@ -148,7 +149,7 @@ fn entry_points_with_ret_should_return_correct_value() {
             ARG_TOKEN_ID => 0u64,
         },
         OWNER_OF_SESSION_WASM,
-        "owner_of",
+        RETURNED_VALUE_STORAGE_KEY,
     );
 
     let expected_owner = Key::Account(*DEFAULT_ACCOUNT_ADDR);
@@ -178,7 +179,7 @@ fn entry_points_with_ret_should_return_correct_value() {
             ARG_TOKEN_ID => 0u64,
         },
         GET_APPROVED_WASM,
-        "get_approved",
+        RETURNED_VALUE_STORAGE_KEY,
     );
 
     let expected_operator = Key::Account(AccountHash::new(ACCOUNT_USER_1));
@@ -797,8 +798,8 @@ fn should_set_approval_for_all() {
             ARG_IS_HASH_IDENTIFIER_MODE => false,
             ARG_TOKEN_ID => 0u64,
         },
-        "get_approved_call.wasm",
-        "get_approved",
+        GET_APPROVED_WASM,
+        RETURNED_VALUE_STORAGE_KEY,
     );
 
     let expected_operator = Key::Account(operator_public_key.to_account_hash());
@@ -816,8 +817,8 @@ fn should_set_approval_for_all() {
             ARG_IS_HASH_IDENTIFIER_MODE => false,
             ARG_TOKEN_ID => 1u64,
         },
-        "get_approved_call.wasm",
-        "get_approved",
+        GET_APPROVED_WASM,
+        RETURNED_VALUE_STORAGE_KEY,
     );
 
     let expected_operator = Key::Account(operator_public_key.to_account_hash());
@@ -897,8 +898,8 @@ fn should_set_approval_for_all_with_hash_identifier_mode() {
             ARG_IS_HASH_IDENTIFIER_MODE => true,
             ARG_TOKEN_HASH => token_id_hash,
         },
-        "get_approved_call.wasm",
-        "get_approved",
+        GET_APPROVED_WASM,
+        RETURNED_VALUE_STORAGE_KEY,
     );
 
     let expected_operator = Key::Account(operator_public_key.to_account_hash());
@@ -920,8 +921,8 @@ fn should_set_approval_for_all_with_hash_identifier_mode() {
             ARG_IS_HASH_IDENTIFIER_MODE => true,
             ARG_TOKEN_HASH => token_id_hash,
         },
-        "get_approved_call.wasm",
-        "get_approved",
+        GET_APPROVED_WASM,
+        RETURNED_VALUE_STORAGE_KEY,
     );
 
     let expected_operator = Key::Account(operator_public_key.to_account_hash());
