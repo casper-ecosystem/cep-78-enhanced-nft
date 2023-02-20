@@ -472,6 +472,73 @@ fn should_set_issuer() {
 }
 
 #[test]
+fn should_set_issuer_with_different_owner() {
+    let mut builder = InMemoryWasmTestBuilder::default();
+    builder.run_genesis(&DEFAULT_RUN_GENESIS_REQUEST).commit();
+
+    let install_request_builder =
+        InstallerRequestBuilder::new(*DEFAULT_ACCOUNT_ADDR, NFT_CONTRACT_WASM)
+            .with_total_token_supply(2u64)
+            .with_ownership_mode(OwnershipMode::Transferable);
+    builder
+        .exec(install_request_builder.build())
+        .expect_success()
+        .commit();
+
+    let nft_contract_key: Key = get_nft_contract_hash(&builder).into();
+
+    let (_, account_1_public_key) = support::create_dummy_key_pair(ACCOUNT_USER_1);
+    let account_1_account_hash = account_1_public_key.to_account_hash();
+
+    let transfer_to_account_1 = ExecuteRequestBuilder::transfer(
+        *DEFAULT_ACCOUNT_ADDR,
+        runtime_args! {
+            mint::ARG_AMOUNT => 100_000_000_000_000u64,
+            mint::ARG_TARGET => account_1_account_hash,
+            mint::ARG_ID => Option::<u64>::None,
+        },
+    )
+    .build();
+
+    builder
+        .exec(transfer_to_account_1)
+        .expect_success()
+        .commit();
+
+    let mint_session_call = ExecuteRequestBuilder::standard(
+        *DEFAULT_ACCOUNT_ADDR,
+        MINT_SESSION_WASM,
+        runtime_args! {
+            ARG_NFT_CONTRACT_HASH => nft_contract_key,
+
+            ARG_TOKEN_OWNER => Key::Account(account_1_account_hash),
+            ARG_TOKEN_META_DATA => TEST_PRETTY_721_META_DATA.to_string(),
+            ARG_COLLECTION_NAME => NFT_TEST_COLLECTION.to_string()
+        },
+    )
+    .build();
+    builder.exec(mint_session_call).expect_success().commit();
+
+    //Let's start querying
+    let account = builder.get_expected_account(*DEFAULT_ACCOUNT_ADDR);
+    let nft_contract_key = account
+        .named_keys()
+        .get(CONTRACT_NAME)
+        .expect("must have key in named keys");
+
+    let actual_token_issuer = support::get_dictionary_value_from_key::<Key>(
+        &builder,
+        nft_contract_key,
+        TOKEN_ISSUERS,
+        &0u64.to_string(),
+    )
+    .into_account()
+    .unwrap();
+
+    assert_eq!(actual_token_issuer, DEFAULT_ACCOUNT_ADDR.clone());
+}
+
+#[test]
 fn should_track_token_balance_by_owner() {
     let mut builder = InMemoryWasmTestBuilder::default();
     builder.run_genesis(&DEFAULT_RUN_GENESIS_REQUEST).commit();
