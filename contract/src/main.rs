@@ -843,7 +843,7 @@ pub extern "C" fn set_approval_for_all() {
     for token_id in owned_tokens {
         // We assume a burned token cannot be approved
         if utils::is_token_burned(&token_id) {
-            runtime::revert(NFTCoreError::PreviouslyBurntToken)
+            continue;
         }
         let operator = if approve_all { Some(operator) } else { None };
         storage::dictionary_put(operator_uref, &token_id.get_dictionary_item_key(), operator);
