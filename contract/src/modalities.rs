@@ -1,13 +1,10 @@
 use alloc::{
     collections::BTreeMap,
     string::{String, ToString},
-    vec::Vec,
+    vec::{Vec}, vec
 };
 
-use casper_types::{
-    bytesrepr::{self, FromBytes, ToBytes, U64_SERIALIZED_LENGTH, U8_SERIALIZED_LENGTH},
-    CLTyped,
-};
+use casper_types::{CLTyped, CLType, bytesrepr::{FromBytes, ToBytes, U8_SERIALIZED_LENGTH, self, U64_SERIALIZED_LENGTH}};
 
 use core::convert::TryFrom;
 
@@ -343,9 +340,18 @@ impl FromBytes for TokenIdentifier {
     }
 }
 
+impl ToString for TokenIdentifier {
+    fn to_string(&self) -> String {
+        match self {
+            TokenIdentifier::Index(index) => index.to_string(),
+            TokenIdentifier::Hash(hash) => hash.to_string(),
+        }
+    }
+}
+
 impl CLTyped for TokenIdentifier {
     fn cl_type() -> casper_types::CLType {
-        casper_types::CLType::Any
+        casper_types::CLType::String
     }
 }
 

@@ -1,4 +1,4 @@
-use alloc::{string::String, vec::Vec};
+use alloc::{string::{String, ToString}, vec::Vec};
 
 use casper_event_standard::Event;
 use casper_types::Key;
@@ -8,7 +8,7 @@ use crate::modalities::TokenIdentifier;
 #[derive(Event, Debug, PartialEq, Eq)]
 pub struct Mint {
     recipient: Key,
-    token_id: TokenIdentifier,
+    token_id: String,
     data: String,
 }
 
@@ -16,7 +16,7 @@ impl Mint {
     pub fn new(recipient: Key, token_id: TokenIdentifier, data: String) -> Self {
         Self {
             recipient,
-            token_id,
+            token_id: token_id.to_string(),
             data,
         }
     }
@@ -25,12 +25,15 @@ impl Mint {
 #[derive(Event, Debug, PartialEq, Eq)]
 pub struct Burn {
     owner: Key,
-    token_id: TokenIdentifier,
+    token_id: String,
 }
 
 impl Burn {
     pub fn new(owner: Key, token_id: TokenIdentifier) -> Self {
-        Self { owner, token_id }
+        Self { 
+            owner, 
+            token_id: token_id.to_string(),
+        }
     }
 }
 
@@ -38,7 +41,7 @@ impl Burn {
 pub struct Approval {
     owner: Key,
     operator: Key,
-    token_id: TokenIdentifier,
+    token_id: String,
 }
 
 impl Approval {
@@ -46,7 +49,7 @@ impl Approval {
         Self {
             owner,
             operator,
-            token_id,
+            token_id: token_id.to_string(),
         }
     }
 }
@@ -55,7 +58,7 @@ impl Approval {
 pub struct ApprovalForAll {
     owner: Key,
     operator: Option<Key>,
-    token_ids: Vec<TokenIdentifier>,
+    token_ids: Vec<String>,
 }
 
 impl ApprovalForAll {
@@ -63,7 +66,7 @@ impl ApprovalForAll {
         Self {
             owner,
             operator,
-            token_ids,
+            token_ids: token_ids.iter().map(|token_id| token_id.to_string()).collect(),
         }
     }
 }
@@ -73,7 +76,7 @@ pub struct Transfer {
     owner: Key,
     operator: Option<Key>,
     recipient: Key,
-    token_id: TokenIdentifier,
+    token_id: String,
 }
 
 impl Transfer {
@@ -87,20 +90,23 @@ impl Transfer {
             owner,
             operator,
             recipient,
-            token_id,
+            token_id: token_id.to_string(),
         }
     }
 }
 
 #[derive(Event, Debug, PartialEq, Eq)]
 pub struct MetadataUpdated {
-    token_id: TokenIdentifier,
+    token_id: String,
     data: String,
 }
 
 impl MetadataUpdated {
     pub fn new(token_id: TokenIdentifier, data: String) -> Self {
-        Self { token_id, data }
+        Self { 
+            token_id: token_id.to_string(),
+            data 
+        }
     }
 }
 
