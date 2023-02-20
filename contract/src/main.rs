@@ -595,7 +595,7 @@ pub extern "C" fn mint() {
     utils::upsert_dictionary_value_from_key(
         TOKEN_ISSUERS,
         &token_identifier.get_dictionary_item_key(),
-        token_owner_key,
+        caller,
     );
 
     let owned_tokens_item_key = utils::get_owned_tokens_dictionary_item_key(token_owner_key);
