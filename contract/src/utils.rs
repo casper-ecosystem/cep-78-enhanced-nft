@@ -647,7 +647,7 @@ pub(crate) fn get_owned_token_ids_by_token_number() -> Vec<TokenIdentifier> {
 
     let mut token_identifiers: Vec<TokenIdentifier> = vec![];
 
-    for token_number in 0..=current_number_of_minted_tokens {
+    for token_number in 0..current_number_of_minted_tokens {
         let token_identifier = match identifier_mode {
             NFTIdentifierMode::Ordinal => TokenIdentifier::new_index(token_number),
             NFTIdentifierMode::Hash => {
