@@ -21,7 +21,7 @@ use crate::utility::{
         METADATA_RAW, MINTING_CONTRACT_WASM, MINT_SESSION_WASM, NFT_CONTRACT_WASM,
         NFT_TEST_COLLECTION, NUMBER_OF_MINTED_TOKENS, OPERATOR, OWNER_OF_SESSION_WASM, PAGE_SIZE,
         PAGE_TABLE, RECEIPT_NAME, TEST_COMPACT_META_DATA, TEST_PRETTY_721_META_DATA,
-        TEST_PRETTY_CEP78_METADATA, TOKEN_ISSUERS, TOKEN_OWNERS,
+        TEST_PRETTY_UPDATED_721_META_DATA, TEST_PRETTY_CEP78_METADATA, TOKEN_ISSUERS, TOKEN_OWNERS,
     },
     installer_request_builder::{
         InstallerRequestBuilder, MetadataMutability, MintingMode, NFTHolderMode, NFTIdentifierMode,
@@ -814,7 +814,111 @@ fn should_set_approval_for_all() {
         nft_contract_key,
         runtime_args! {
             ARG_IS_HASH_IDENTIFIER_MODE => false,
-            ARG_TOKEN_ID => 0u64,
+            ARG_TOKEN_ID => 1u64,
+        },
+        "get_approved_call.wasm",
+        "get_approved",
+    );
+
+    let expected_operator = Key::Account(operator_public_key.to_account_hash());
+    assert_eq!(
+        actual_operator,
+        Some(expected_operator),
+        "actual and expected operator should be equal"
+    );
+}
+
+
+#[test]
+fn should_set_approval_for_all_with_hash_identifier_mode() {
+    let mut builder = InMemoryWasmTestBuilder::default();
+    builder.run_genesis(&DEFAULT_RUN_GENESIS_REQUEST).commit();
+
+    let install_request = InstallerRequestBuilder::new(*DEFAULT_ACCOUNT_ADDR, NFT_CONTRACT_WASM)
+        .with_total_token_supply(100u64)
+        .with_identifier_mode(NFTIdentifierMode::Hash)
+        .with_metadata_mutability(MetadataMutability::Immutable)
+        .with_ownership_mode(OwnershipMode::Transferable)
+        .with_reporting_mode(OwnerReverseLookupMode::NoLookUp)
+        .build();
+    builder.exec(install_request).expect_success().commit();
+
+    let nft_contract_hash = get_nft_contract_hash(&builder);
+    let nft_contract_key: Key = nft_contract_hash.into();
+
+    let mint_call = ExecuteRequestBuilder::contract_call_by_name(
+        *DEFAULT_ACCOUNT_ADDR,
+        CONTRACT_NAME,
+        ENTRY_POINT_MINT,
+        runtime_args! {
+            ARG_TOKEN_OWNER => Key::Account(*DEFAULT_ACCOUNT_ADDR),
+            ARG_TOKEN_META_DATA => TEST_PRETTY_721_META_DATA.to_string(),
+        },
+    )
+    .build();
+    builder.exec(mint_call).expect_success().commit();
+
+    let mint_call = ExecuteRequestBuilder::contract_call_by_name(
+        *DEFAULT_ACCOUNT_ADDR,
+        CONTRACT_NAME,
+        ENTRY_POINT_MINT,
+        runtime_args! {
+            ARG_TOKEN_OWNER => Key::Account(*DEFAULT_ACCOUNT_ADDR),
+            ARG_TOKEN_META_DATA => TEST_PRETTY_UPDATED_721_META_DATA.to_string(),
+        },
+    )
+    .build();
+    builder.exec(mint_call).expect_success().commit();
+
+    let (_, operator_public_key) = create_dummy_key_pair(ACCOUNT_USER_1);
+    let set_approve_for_all_request = ExecuteRequestBuilder::contract_call_by_name(
+        *DEFAULT_ACCOUNT_ADDR,
+        CONTRACT_NAME,
+        ENTRY_POINT_SET_APPROVE_FOR_ALL,
+        runtime_args! {ARG_TOKEN_OWNER =>  Key::Account(*DEFAULT_ACCOUNT_ADDR),
+            ARG_APPROVE_ALL => true,
+            ARG_OPERATOR => Key::Account(operator_public_key.to_account_hash())
+        },
+    )
+    .build();
+
+    builder
+        .exec(set_approve_for_all_request)
+        .expect_success()
+        .commit();
+
+    let token_id_hash: String =
+        base16::encode_lower(&support::create_blake2b_hash(TEST_PRETTY_721_META_DATA));
+
+    let actual_operator: Option<Key> = call_entry_point_with_ret(
+        &mut builder,
+        *DEFAULT_ACCOUNT_ADDR,
+        nft_contract_key,
+        runtime_args! {
+            ARG_IS_HASH_IDENTIFIER_MODE => true,
+            ARG_TOKEN_HASH => token_id_hash,
+        },
+        "get_approved_call.wasm",
+        "get_approved",
+    );
+
+    let expected_operator = Key::Account(operator_public_key.to_account_hash());
+    assert_eq!(
+        actual_operator,
+        Some(expected_operator),
+        "actual and expected operator should be equal"
+    );
+
+    let token_id_hash: String =
+    base16::encode_lower(&support::create_blake2b_hash(TEST_PRETTY_UPDATED_721_META_DATA));
+
+    let actual_operator: Option<Key> = call_entry_point_with_ret(
+        &mut builder,
+        *DEFAULT_ACCOUNT_ADDR,
+        nft_contract_key,
+        runtime_args! {
+            ARG_IS_HASH_IDENTIFIER_MODE => true,
+            ARG_TOKEN_HASH => token_id_hash,
         },
         "get_approved_call.wasm",
         "get_approved",
