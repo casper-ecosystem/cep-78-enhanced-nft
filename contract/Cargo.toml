@@ -9,7 +9,7 @@ casper-types = "1.4.5"
 serde = { version = "1", features = ["derive", "alloc"], default-features = false }
 base16 = { version = "0.2", default-features = false, features = ["alloc"] }
 casper-serde-json-wasm = { git = "https://github.com/darthsiroftardis/casper-serde-json-wasm", branch = "casper-no-std", optional = true }
-casper-event-standard = "0.1.1"
+casper-event-standard = "0.2.0"
 
 [[bin]]
 name = "contract"

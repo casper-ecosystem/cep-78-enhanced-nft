@@ -1,12 +1,6 @@
-use alloc::{
-    string::{String, ToString},
-    vec::Vec,
-};
+use alloc::string::{String, ToString};
 
-use casper_types::{
-    bytesrepr::{self, FromBytes, ToBytes, U64_SERIALIZED_LENGTH, U8_SERIALIZED_LENGTH},
-    CLTyped,
-};
+use casper_types::CLTyped;
 
 use core::convert::TryFrom;
 
@@ -228,52 +222,9 @@ impl ToString for TokenIdentifier {
     }
 }
 
-impl ToBytes for TokenIdentifier {
-    fn to_bytes(&self) -> Result<Vec<u8>, bytesrepr::Error> {
-        let mut bytes = Vec::new();
-        match self {
-            TokenIdentifier::Index(index) => {
-                bytes.push(NFTIdentifierMode::Ordinal as u8);
-                bytes.append(&mut index.to_bytes()?);
-            }
-            TokenIdentifier::Hash(string) => {
-                bytes.push(NFTIdentifierMode::Hash as u8);
-                bytes.append(&mut string.to_bytes()?);
-            }
-        };
-        Ok(bytes)
-    }
-
-    fn serialized_length(&self) -> usize {
-        U8_SERIALIZED_LENGTH
-            + match self {
-                TokenIdentifier::Index(_) => U64_SERIALIZED_LENGTH,
-                TokenIdentifier::Hash(string) => string.serialized_length(),
-            }
-    }
-}
-
-impl FromBytes for TokenIdentifier {
-    fn from_bytes(bytes: &[u8]) -> Result<(Self, &[u8]), bytesrepr::Error> {
-        let (identifier_mode, bytes) = u8::from_bytes(bytes)?;
-        let identifier_mode = NFTIdentifierMode::try_from(identifier_mode)
-            .map_err(|_| bytesrepr::Error::Formatting)?;
-        match identifier_mode {
-            NFTIdentifierMode::Ordinal => {
-                let (index, bytes) = u64::from_bytes(bytes)?;
-                Ok((TokenIdentifier::Index(index), bytes))
-            }
-            NFTIdentifierMode::Hash => {
-                let (string, bytes) = String::from_bytes(bytes)?;
-                Ok((TokenIdentifier::Hash(string), bytes))
-            }
-        }
-    }
-}
-
 impl CLTyped for TokenIdentifier {
     fn cl_type() -> casper_types::CLType {
-        casper_types::CLType::Any
+        casper_types::CLType::String
     }
 }
 
