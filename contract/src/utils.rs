@@ -23,16 +23,18 @@ use casper_types::{
 
 use crate::{
     constants::{
-        ARG_TOKEN_HASH, ARG_TOKEN_ID, HOLDER_MODE, OWNERSHIP_MODE, PAGE_DICTIONARY_PREFIX,
-        PAGE_LIMIT, RECEIPT_NAME, REPORTING_MODE, BURNT_TOKENS, BURN_MODE, HASH_BY_INDEX, IDENTIFIER_MODE, INDEX_BY_HASH,
-        NUMBER_OF_MINTED_TOKENS, OWNED_TOKENS, PAGE_TABLE, TOKEN_OWNERS, UNMATCHED_HASH_COUNT,
+        ARG_TOKEN_HASH, ARG_TOKEN_ID, BURNT_TOKENS, BURN_MODE, HASH_BY_INDEX, HOLDER_MODE,
+        IDENTIFIER_MODE, INDEX_BY_HASH, NUMBER_OF_MINTED_TOKENS, OWNED_TOKENS, OWNERSHIP_MODE,
+        PAGE_DICTIONARY_PREFIX, PAGE_LIMIT, PAGE_TABLE, RECEIPT_NAME, REPORTING_MODE, TOKEN_OWNERS,
+        UNMATCHED_HASH_COUNT,
     },
     error::NFTCoreError,
     events::events_ces::{
         Approval, ApprovalForAll, Burn, MetadataUpdated, Migration, Mint, Transfer, VariablesSet,
     },
     modalities::{
-        NFTHolderMode, NFTIdentifierMode, OwnerReverseLookupMode, OwnershipMode, TokenIdentifier,BurnMode,
+        BurnMode, NFTHolderMode, NFTIdentifierMode, OwnerReverseLookupMode, OwnershipMode,
+        TokenIdentifier,
     },
     utils,
 };
@@ -169,11 +171,7 @@ pub fn get_named_arg_with_user_errors<T: FromBytes>(
     bytesrepr::deserialize(arg_bytes).map_err(|_| invalid)
 }
 
-pub fn get_account_hash(
-    name: &str,
-    missing: NFTCoreError,
-    invalid: NFTCoreError,
-) -> AccountHash {
+pub fn get_account_hash(name: &str, missing: NFTCoreError, invalid: NFTCoreError) -> AccountHash {
     let key = get_key_with_user_errors(name, missing, invalid);
     key.into_account()
         .unwrap_or_revert_with(NFTCoreError::UnexpectedKeyVariant)

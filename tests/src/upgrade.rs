@@ -4,19 +4,17 @@ use casper_engine_test_support::{
 };
 use casper_execution_engine::storage::global_state::in_memory::InMemoryGlobalState;
 use casper_types::{account::AccountHash, runtime_args, CLValue, ContractHash, Key, RuntimeArgs};
-use contract::events::events_ces::Migration;
-use contract::modalities::EventsMode;
+use contract::{events::events_ces::Migration, modalities::EventsMode};
 
 use crate::utility::{
     constants::{
         ACCESS_KEY_NAME_1_0_0, ACCOUNT_USER_1, ARG_ACCESS_KEY_NAME_1_0_0, ARG_COLLECTION_NAME,
-        ARG_HASH_KEY_NAME_1_0_0, ARG_IS_HASH_IDENTIFIER_MODE, ARG_NAMED_KEY_CONVENTION,
-        ARG_NFT_CONTRACT_HASH, ARG_NFT_PACKAGE_HASH, ARG_SOURCE_KEY, ARG_TARGET_KEY,
-        ARG_TOKEN_HASH, ARG_TOKEN_META_DATA, ARG_TOKEN_OWNER, CONTRACT_1_0_0_WASM,
+        ARG_EVENTS_MODE, ARG_HASH_KEY_NAME_1_0_0, ARG_IS_HASH_IDENTIFIER_MODE,
+        ARG_NAMED_KEY_CONVENTION, ARG_NFT_CONTRACT_HASH, ARG_NFT_PACKAGE_HASH, ARG_SOURCE_KEY,
+        ARG_TARGET_KEY, ARG_TOKEN_HASH, ARG_TOKEN_META_DATA, ARG_TOKEN_OWNER, CONTRACT_1_0_0_WASM,
         ENTRY_POINT_REGISTER_OWNER, MANGLE_NAMED_KEYS, MINT_1_0_0_WASM, MINT_SESSION_WASM,
         NFT_CONTRACT_WASM, NFT_TEST_COLLECTION, NFT_TEST_SYMBOL, PAGE_LIMIT, PAGE_SIZE,
         RECEIPT_NAME, TRANSFER_SESSION_WASM, UNMATCHED_HASH_COUNT, UPDATED_RECEIPTS_WASM,
-        ARG_EVENTS_MODE
     },
     installer_request_builder::{
         InstallerRequestBuilder, MetadataMutability, NFTIdentifierMode, NFTMetadataKind,

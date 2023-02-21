@@ -17,9 +17,9 @@ use crate::utility::constants::{
 
 // Modalities reexports.
 pub use contract::modalities::{
-    BurnMode, MetadataMutability, MintingMode, NFTHolderMode, NFTIdentifierMode, NFTKind,
-    NFTMetadataKind, NamedKeyConventionMode, OwnerReverseLookupMode, OwnershipMode,
-    TokenIdentifier, WhitelistMode, EventsMode
+    BurnMode, EventsMode, MetadataMutability, MintingMode, NFTHolderMode, NFTIdentifierMode,
+    NFTKind, NFTMetadataKind, NamedKeyConventionMode, OwnerReverseLookupMode, OwnershipMode,
+    TokenIdentifier, WhitelistMode,
 };
 
 pub(crate) static TEST_CUSTOM_METADATA_SCHEMA: Lazy<CustomMetadataSchema> = Lazy::new(|| {
