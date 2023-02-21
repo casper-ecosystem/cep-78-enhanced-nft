@@ -6,7 +6,7 @@ use casper_engine_test_support::{
 };
 use casper_types::{account::AccountHash, runtime_args, Key, RuntimeArgs};
 
-use contract::modalities::EventsMode;
+use contract::{modalities::{EventsMode, NamedKeyConventionMode}, constants::{ARG_NFT_PACKAGE_HASH, ARG_NAMED_KEY_CONVENTION, ARG_ACCESS_KEY_NAME_1_0_0, ARG_EVENTS_MODE}};
 
 use crate::utility::{
     constants::{
@@ -29,6 +29,7 @@ use crate::utility::{
         query_stored_value,
     },
 };
+use crate::utility::constants::{ACCESS_KEY_NAME_1_0_0, CONTRACT_1_0_0_WASM, MINT_1_0_0_WASM, NFT_TEST_SYMBOL};
 
 // cep47 event style
 #[test]
@@ -567,4 +568,177 @@ fn should_cep47_dictionary_style_approve_event_in_hash_identifier_mode() {
         "69fe422f3b0d0ba4d911323451a490bdd679c437e889127700b7bf83123b2d0c".to_string(),
     );
     assert_eq!(event, expected_event);
+}
+
+#[test]
+fn should_record_migration_event_in_cep47() {
+    const OWNED_TOKENS: &str = "owned_tokens";
+
+    let mut builder = InMemoryWasmTestBuilder::default();
+    builder.run_genesis(&DEFAULT_RUN_GENESIS_REQUEST).commit();
+
+    let install_request = InstallerRequestBuilder::new(*DEFAULT_ACCOUNT_ADDR, CONTRACT_1_0_0_WASM)
+        .with_collection_name(NFT_TEST_COLLECTION.to_string())
+        .with_collection_symbol(NFT_TEST_SYMBOL.to_string())
+        .with_total_token_supply(1000u64)
+        .with_ownership_mode(OwnershipMode::Minter)
+        .with_identifier_mode(NFTIdentifierMode::Ordinal)
+        .with_nft_metadata_kind(NFTMetadataKind::Raw)
+        .build();
+
+    builder.exec(install_request).expect_success().commit();
+
+    let nft_contract_hash_1_0_0 = support::get_nft_contract_hash_1_0_0(&builder);
+    let nft_contract_key_1_0_0: Key = nft_contract_hash_1_0_0.into();
+
+    let number_of_tokens_pre_migration = 3usize;
+
+    for _ in 0..number_of_tokens_pre_migration {
+        let mint_request = ExecuteRequestBuilder::standard(
+            *DEFAULT_ACCOUNT_ADDR,
+            MINT_1_0_0_WASM,
+            runtime_args! {
+                ARG_NFT_CONTRACT_HASH => nft_contract_key_1_0_0,
+                ARG_TOKEN_OWNER => Key::Account(*DEFAULT_ACCOUNT_ADDR),
+                ARG_TOKEN_META_DATA => "",
+            },
+        )
+            .build();
+
+        builder.exec(mint_request).expect_success().commit();
+    }
+
+    let previous_token_representation = support::get_dictionary_value_from_key::<Vec<u64>>(
+        &builder,
+        &nft_contract_key_1_0_0,
+        OWNED_TOKENS,
+        &DEFAULT_ACCOUNT_ADDR.clone().to_string(),
+    );
+
+    assert_eq!(previous_token_representation, vec![0, 1, 2]);
+
+    let maybe_access_named_key = builder
+        .query(None, Key::Account(*DEFAULT_ACCOUNT_ADDR), &[])
+        .unwrap()
+        .as_account()
+        .unwrap()
+        .named_keys()
+        .get(ACCESS_KEY_NAME_1_0_0)
+        .is_some();
+
+    assert!(maybe_access_named_key);
+
+    let package_hash = support::get_nft_contract_package_hash(&builder);
+
+    let upgrade_request = ExecuteRequestBuilder::standard(
+        *DEFAULT_ACCOUNT_ADDR,
+        NFT_CONTRACT_WASM,
+        runtime_args! {
+            ARG_NFT_PACKAGE_HASH => package_hash,
+            ARG_COLLECTION_NAME => NFT_TEST_COLLECTION.to_string(),
+            ARG_NAMED_KEY_CONVENTION => NamedKeyConventionMode::V1_0Standard as u8,
+            ARG_ACCESS_KEY_NAME_1_0_0 => ACCESS_KEY_NAME_1_0_0.to_string(),
+            ARG_EVENTS_MODE => EventsMode::CEP47 as u8
+        },
+    )
+        .build();
+
+    builder.exec(upgrade_request).expect_success().commit();
+
+    let nft_contract_hash = support::get_nft_contract_hash(&builder);
+    let nft_contract_key: Key = nft_contract_hash.into();
+
+    let latest_cep47_event_id = get_dictionary_value_from_key::<u64>(
+        &builder,
+        &nft_contract_key,
+        "events",
+        "len",
+    ) - 1u64;
+
+    let event = get_dictionary_value_from_key::<BTreeMap<String, String>>(
+        &builder,
+        &nft_contract_key,
+        "events",
+        &latest_cep47_event_id.to_string(),
+    );
+
+    let collection_name: String = query_stored_value(
+        &builder,
+        nft_contract_key,
+        vec![ARG_COLLECTION_NAME.to_string()],
+    );
+
+    let package = query_stored_value::<String>(
+        &builder,
+        nft_contract_key,
+        vec![format!("cep78_{}", collection_name)],
+    );
+    let mut expected_event: BTreeMap<String, String> = BTreeMap::new();
+    expected_event.insert("event_type".to_string(), "Migration".to_string());
+    expected_event.insert("cep78_contract_package".to_string(), package);
+    assert_eq!(event, expected_event);
+}
+
+
+#[test]
+#[should_panic]
+fn should_not_record_events_in_no_events_mode() {
+    let mut builder = InMemoryWasmTestBuilder::default();
+    builder.run_genesis(&DEFAULT_RUN_GENESIS_REQUEST).commit();
+
+    let install_request_builder =
+        InstallerRequestBuilder::new(*DEFAULT_ACCOUNT_ADDR, NFT_CONTRACT_WASM)
+            .with_total_token_supply(100u64)
+            .with_ownership_mode(OwnershipMode::Transferable)
+            .with_reporting_mode(OwnerReverseLookupMode::Complete)
+            .with_events_mode(EventsMode::NoEvents)
+            .build();
+
+    builder
+        .exec(install_request_builder)
+        .expect_success()
+        .commit();
+
+    let installing_account = builder.get_expected_account(*DEFAULT_ACCOUNT_ADDR);
+    let nft_contract_key = installing_account
+        .named_keys()
+        .get(CONTRACT_NAME)
+        .expect("must have key in named keys");
+
+    let nft_contract_hash = get_nft_contract_hash(&builder);
+
+    let mint_session_call = ExecuteRequestBuilder::standard(
+        *DEFAULT_ACCOUNT_ADDR,
+        MINT_SESSION_WASM,
+        runtime_args! {
+            ARG_NFT_CONTRACT_HASH => Key::Hash(nft_contract_hash.value()),
+            ARG_TOKEN_OWNER => Key::Account(*DEFAULT_ACCOUNT_ADDR),
+            ARG_TOKEN_META_DATA => TEST_PRETTY_721_META_DATA.to_string(),
+            ARG_COLLECTION_NAME => NFT_TEST_COLLECTION.to_string()
+        },
+    )
+        .build();
+
+    builder.exec(mint_session_call).expect_success().commit();
+
+
+    // This will error of token is not registered as
+    let actual_balance = get_dictionary_value_from_key::<u64>(
+        &builder,
+        nft_contract_key,
+        BALANCES,
+        &DEFAULT_ACCOUNT_ADDR.clone().to_string(),
+    );
+
+    let expected_balance = 0u64;
+    assert_eq!(actual_balance, expected_balance);
+
+    // Query for the Mint event here and expect failure
+    // as no events are being written to global state.
+    get_dictionary_value_from_key::<BTreeMap<String, String>>(
+        &builder,
+        nft_contract_key,
+        "events",
+        "1",
+    );
 }

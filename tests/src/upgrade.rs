@@ -1,9 +1,9 @@
 use casper_engine_test_support::{
-    ExecuteRequestBuilder, InMemoryWasmTestBuilder, WasmTestBuilder, DEFAULT_ACCOUNT_ADDR,
+    ExecuteRequestBuilder, InMemoryWasmTestBuilder, DEFAULT_ACCOUNT_ADDR,
     DEFAULT_RUN_GENESIS_REQUEST,
 };
-use casper_execution_engine::storage::global_state::in_memory::InMemoryGlobalState;
-use casper_types::{account::AccountHash, runtime_args, CLValue, ContractHash, Key, RuntimeArgs};
+
+use casper_types::{account::AccountHash, runtime_args, CLValue, Key, RuntimeArgs};
 use contract::{events::events_ces::Migration, modalities::EventsMode};
 
 use crate::utility::{
@@ -27,17 +27,7 @@ const OWNED_TOKENS: &str = "owned_tokens";
 const MANGLED_ACCESS_KEY_NAME: &str = "mangled_access_key";
 const MANGLED_HASH_KEY_NAME: &str = "mangled_hash_key";
 
-fn get_nft_contract_hash_1_0_0(builder: &WasmTestBuilder<InMemoryGlobalState>) -> ContractHash {
-    let nft_hash_addr = builder
-        .get_expected_account(*DEFAULT_ACCOUNT_ADDR)
-        .named_keys()
-        .get("nft_contract")
-        .expect("must have this entry in named keys")
-        .into_hash()
-        .expect("must get hash_addr");
 
-    ContractHash::new(nft_hash_addr)
-}
 
 #[test]
 fn should_safely_upgrade_in_ordinal_identifier_mode() {
@@ -55,7 +45,7 @@ fn should_safely_upgrade_in_ordinal_identifier_mode() {
 
     builder.exec(install_request).expect_success().commit();
 
-    let nft_contract_hash_1_0_0 = get_nft_contract_hash_1_0_0(&builder);
+    let nft_contract_hash_1_0_0 = support::get_nft_contract_hash_1_0_0(&builder);
     let nft_contract_key_1_0_0: Key = nft_contract_hash_1_0_0.into();
 
     let number_of_tokens_pre_migration = 3usize;
@@ -180,7 +170,7 @@ fn should_safely_upgrade_in_hash_identifier_mode() {
 
     builder.exec(install_request).expect_success().commit();
 
-    let nft_contract_hash_1_0_0 = get_nft_contract_hash_1_0_0(&builder);
+    let nft_contract_hash_1_0_0 = support::get_nft_contract_hash_1_0_0(&builder);
     let nft_contract_key_1_0_0: Key = nft_contract_hash_1_0_0.into();
 
     let mut expected_metadata: Vec<String> = vec![];
@@ -360,7 +350,7 @@ fn should_update_receipts_post_upgrade_paged() {
 
     builder.exec(install_request).expect_success().commit();
 
-    let nft_contract_hash_1_0_0 = get_nft_contract_hash_1_0_0(&builder);
+    let nft_contract_hash_1_0_0 = support::get_nft_contract_hash_1_0_0(&builder);
     let nft_contract_key_1_0_0: Key = nft_contract_hash_1_0_0.into();
 
     let number_of_tokens_pre_migration = 20usize;
@@ -539,7 +529,7 @@ fn should_upgrade_with_custom_named_keys() {
 
     builder.exec(install_request).expect_success().commit();
 
-    let nft_contract_hash_1_0_0 = get_nft_contract_hash_1_0_0(&builder);
+    let nft_contract_hash_1_0_0 = support::get_nft_contract_hash_1_0_0(&builder);
     let nft_contract_key_1_0_0: Key = nft_contract_hash_1_0_0.into();
 
     let number_of_tokens_pre_migration = 3usize;

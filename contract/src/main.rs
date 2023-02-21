@@ -21,7 +21,7 @@ use alloc::{
     vec::Vec,
 };
 
-use constants::{ARG_EVENTS_MODE, EVENTS, EVENTS_MODE, EVENT_ID_TRACKER};
+use constants::{ARG_EVENTS_MODE, EVENTS, EVENTS_MODE};
 use modalities::EventsMode;
 
 use core::convert::{TryFrom, TryInto};
@@ -366,8 +366,6 @@ pub extern "C" fn init() {
     storage::new_dictionary(PAGE_TABLE)
         .unwrap_or_revert_with(NFTCoreError::FailedToCreateDictionary);
     storage::new_dictionary(EVENTS).unwrap_or_revert_with(NFTCoreError::FailedToCreateDictionary);
-    storage::new_dictionary(EVENT_ID_TRACKER)
-        .unwrap_or_revert_with(NFTCoreError::FailedToCreateDictionary);
     if reporting_mode == OwnerReverseLookupMode::Complete {
         let page_table_width = utils::max_number_of_pages(total_token_supply);
         runtime::put_key(PAGE_LIMIT, storage::new_uref(page_table_width).into());
