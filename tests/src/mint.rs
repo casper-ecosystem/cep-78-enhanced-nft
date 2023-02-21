@@ -30,7 +30,7 @@ use crate::utility::{
         TEST_CUSTOM_METADATA, TEST_CUSTOM_METADATA_SCHEMA,
     },
     support::{
-        self, assert_expected_error, call_entry_point_with_ret, create_dummy_key_pair,
+        self, assert_expected_error, call_session_code_with_ret, create_dummy_key_pair,
         get_dictionary_value_from_key, get_minting_contract_hash, get_nft_contract_hash,
         get_token_page_by_hash, query_stored_value,
     },
@@ -123,7 +123,7 @@ fn entry_points_with_ret_should_return_correct_value() {
     let nft_contract_hash = get_nft_contract_hash(&builder);
     let account_hash = *DEFAULT_ACCOUNT_ADDR;
 
-    let actual_balance: u64 = call_entry_point_with_ret(
+    let actual_balance: u64 = call_session_code_with_ret(
         &mut builder,
         account_hash,
         nft_contract_key,
@@ -140,7 +140,7 @@ fn entry_points_with_ret_should_return_correct_value() {
         "actual and expected balances should be equal"
     );
 
-    let actual_owner: Key = call_entry_point_with_ret(
+    let actual_owner: Key = call_session_code_with_ret(
         &mut builder,
         account_hash,
         nft_contract_key,
@@ -170,7 +170,7 @@ fn entry_points_with_ret_should_return_correct_value() {
     .build();
     builder.exec(approve_request).expect_success().commit();
 
-    let actual_operator: Option<Key> = call_entry_point_with_ret(
+    let actual_operator: Option<Key> = call_session_code_with_ret(
         &mut builder,
         account_hash,
         nft_contract_key,
@@ -790,7 +790,7 @@ fn should_set_approval_for_all() {
         .expect_success()
         .commit();
 
-    let actual_operator: Option<Key> = call_entry_point_with_ret(
+    let actual_operator: Option<Key> = call_session_code_with_ret(
         &mut builder,
         *DEFAULT_ACCOUNT_ADDR,
         nft_contract_key,
@@ -809,7 +809,7 @@ fn should_set_approval_for_all() {
         "actual and expected operator should be equal"
     );
 
-    let actual_operator: Option<Key> = call_entry_point_with_ret(
+    let actual_operator: Option<Key> = call_session_code_with_ret(
         &mut builder,
         *DEFAULT_ACCOUNT_ADDR,
         nft_contract_key,
@@ -890,7 +890,7 @@ fn should_set_approval_for_all_with_hash_identifier_mode() {
     let token_id_hash: String =
         base16::encode_lower(&support::create_blake2b_hash(TEST_PRETTY_721_META_DATA));
 
-    let actual_operator: Option<Key> = call_entry_point_with_ret(
+    let actual_operator: Option<Key> = call_session_code_with_ret(
         &mut builder,
         *DEFAULT_ACCOUNT_ADDR,
         nft_contract_key,
@@ -913,7 +913,7 @@ fn should_set_approval_for_all_with_hash_identifier_mode() {
         TEST_PRETTY_UPDATED_721_META_DATA,
     ));
 
-    let actual_operator: Option<Key> = call_entry_point_with_ret(
+    let actual_operator: Option<Key> = call_session_code_with_ret(
         &mut builder,
         *DEFAULT_ACCOUNT_ADDR,
         nft_contract_key,
