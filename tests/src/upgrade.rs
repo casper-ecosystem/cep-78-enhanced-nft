@@ -27,8 +27,6 @@ const OWNED_TOKENS: &str = "owned_tokens";
 const MANGLED_ACCESS_KEY_NAME: &str = "mangled_access_key";
 const MANGLED_HASH_KEY_NAME: &str = "mangled_hash_key";
 
-
-
 #[test]
 fn should_safely_upgrade_in_ordinal_identifier_mode() {
     let mut builder = InMemoryWasmTestBuilder::default();

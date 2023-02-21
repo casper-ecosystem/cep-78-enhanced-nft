@@ -6,16 +6,22 @@ use casper_engine_test_support::{
 };
 use casper_types::{account::AccountHash, runtime_args, Key, RuntimeArgs};
 
-use contract::{modalities::{EventsMode, NamedKeyConventionMode}, constants::{ARG_NFT_PACKAGE_HASH, ARG_NAMED_KEY_CONVENTION, ARG_ACCESS_KEY_NAME_1_0_0, ARG_EVENTS_MODE}};
+use contract::{
+    constants::{
+        ARG_ACCESS_KEY_NAME_1_0_0, ARG_EVENTS_MODE, ARG_NAMED_KEY_CONVENTION, ARG_NFT_PACKAGE_HASH,
+    },
+    modalities::{EventsMode, NamedKeyConventionMode},
+};
 
 use crate::utility::{
     constants::{
-        ARG_COLLECTION_NAME, ARG_IS_HASH_IDENTIFIER_MODE, ARG_NFT_CONTRACT_HASH, ARG_OPERATOR,
-        ARG_SOURCE_KEY, ARG_TARGET_KEY, ARG_TOKEN_HASH, ARG_TOKEN_ID, ARG_TOKEN_META_DATA,
-        ARG_TOKEN_OWNER, BALANCES, BURNT_TOKENS, CONTRACT_NAME, ENTRY_POINT_APPROVE,
-        ENTRY_POINT_BURN, ENTRY_POINT_REGISTER_OWNER, ENTRY_POINT_SET_TOKEN_METADATA,
-        METADATA_CEP78, METADATA_CUSTOM_VALIDATED, METADATA_NFT721, METADATA_RAW,
-        MINT_SESSION_WASM, NFT_CONTRACT_WASM, NFT_TEST_COLLECTION, OPERATOR,
+        ACCESS_KEY_NAME_1_0_0, ARG_COLLECTION_NAME, ARG_IS_HASH_IDENTIFIER_MODE,
+        ARG_NFT_CONTRACT_HASH, ARG_OPERATOR, ARG_SOURCE_KEY, ARG_TARGET_KEY, ARG_TOKEN_HASH,
+        ARG_TOKEN_ID, ARG_TOKEN_META_DATA, ARG_TOKEN_OWNER, BALANCES, BURNT_TOKENS,
+        CONTRACT_1_0_0_WASM, CONTRACT_NAME, ENTRY_POINT_APPROVE, ENTRY_POINT_BURN,
+        ENTRY_POINT_REGISTER_OWNER, ENTRY_POINT_SET_TOKEN_METADATA, METADATA_CEP78,
+        METADATA_CUSTOM_VALIDATED, METADATA_NFT721, METADATA_RAW, MINT_1_0_0_WASM,
+        MINT_SESSION_WASM, NFT_CONTRACT_WASM, NFT_TEST_COLLECTION, NFT_TEST_SYMBOL, OPERATOR,
         TEST_PRETTY_721_META_DATA, TEST_PRETTY_CEP78_METADATA, TEST_PRETTY_UPDATED_721_META_DATA,
         TEST_PRETTY_UPDATED_CEP78_METADATA, TRANSFER_SESSION_WASM,
     },
@@ -29,7 +35,6 @@ use crate::utility::{
         query_stored_value,
     },
 };
-use crate::utility::constants::{ACCESS_KEY_NAME_1_0_0, CONTRACT_1_0_0_WASM, MINT_1_0_0_WASM, NFT_TEST_SYMBOL};
 
 // cep47 event style
 #[test]
@@ -603,7 +608,7 @@ fn should_record_migration_event_in_cep47() {
                 ARG_TOKEN_META_DATA => "",
             },
         )
-            .build();
+        .build();
 
         builder.exec(mint_request).expect_success().commit();
     }
@@ -641,19 +646,15 @@ fn should_record_migration_event_in_cep47() {
             ARG_EVENTS_MODE => EventsMode::CEP47 as u8
         },
     )
-        .build();
+    .build();
 
     builder.exec(upgrade_request).expect_success().commit();
 
     let nft_contract_hash = support::get_nft_contract_hash(&builder);
     let nft_contract_key: Key = nft_contract_hash.into();
 
-    let latest_cep47_event_id = get_dictionary_value_from_key::<u64>(
-        &builder,
-        &nft_contract_key,
-        "events",
-        "len",
-    ) - 1u64;
+    let latest_cep47_event_id =
+        get_dictionary_value_from_key::<u64>(&builder, &nft_contract_key, "events", "len") - 1u64;
 
     let event = get_dictionary_value_from_key::<BTreeMap<String, String>>(
         &builder,
@@ -678,7 +679,6 @@ fn should_record_migration_event_in_cep47() {
     expected_event.insert("cep78_contract_package".to_string(), package);
     assert_eq!(event, expected_event);
 }
-
 
 #[test]
 #[should_panic]
@@ -717,10 +717,9 @@ fn should_not_record_events_in_no_events_mode() {
             ARG_COLLECTION_NAME => NFT_TEST_COLLECTION.to_string()
         },
     )
-        .build();
+    .build();
 
     builder.exec(mint_session_call).expect_success().commit();
-
 
     // This will error of token is not registered as
     let actual_balance = get_dictionary_value_from_key::<u64>(
