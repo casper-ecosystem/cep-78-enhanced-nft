@@ -20,9 +20,9 @@ use crate::utility::{
         TEST_PRETTY_UPDATED_CEP78_METADATA, TRANSFER_SESSION_WASM,
     },
     installer_request_builder::{
-        InstallerRequestBuilder, MetadataMutability, NFTIdentifierMode,
-        NFTMetadataKind, OwnerReverseLookupMode, OwnershipMode, TEST_CUSTOM_METADATA,
-        TEST_CUSTOM_METADATA_SCHEMA, TEST_CUSTOM_UPDATED_METADATA,
+        InstallerRequestBuilder, MetadataMutability, NFTIdentifierMode, NFTMetadataKind,
+        OwnerReverseLookupMode, OwnershipMode, TEST_CUSTOM_METADATA, TEST_CUSTOM_METADATA_SCHEMA,
+        TEST_CUSTOM_UPDATED_METADATA,
     },
     support::{
         self, get_dictionary_value_from_key, get_nft_contract_hash, get_token_page_by_id,
@@ -71,13 +71,13 @@ fn should_record_cep47_dictionary_style_mint_event() {
     );
 
     let collection_name: String = query_stored_value(
-        &mut builder,
+        &builder,
         nft_contract_key,
         vec![ARG_COLLECTION_NAME.to_string()],
     );
 
     let package = query_stored_value::<String>(
-        &mut builder,
+        &builder,
         nft_contract_key,
         vec![format!("cep78_{}", collection_name)],
     );
@@ -164,13 +164,13 @@ fn should_record_cep47_dictionary_style_transfer_token_event_in_hash_identifier_
     );
 
     let collection_name: String = query_stored_value(
-        &mut builder,
+        &builder,
         nft_contract_key,
         vec![ARG_COLLECTION_NAME.to_string()],
     );
 
     let package = query_stored_value::<String>(
-        &mut builder,
+        &builder,
         nft_contract_key,
         vec![format!("cep78_{}", collection_name)],
     );
@@ -333,13 +333,13 @@ fn should_record_cep47_dictionary_style_metadata_update_event_for_nft721_using_t
     );
 
     let collection_name: String = query_stored_value(
-        &mut builder,
+        &builder,
         nft_contract_key,
         vec![ARG_COLLECTION_NAME.to_string()],
     );
 
     let package = query_stored_value::<String>(
-        &mut builder,
+        &builder,
         nft_contract_key,
         vec![format!("cep78_{}", collection_name)],
     );
@@ -449,13 +449,13 @@ fn should_cep47_dictionary_style_burn_event() {
     );
 
     let collection_name: String = query_stored_value(
-        &mut builder,
+        &builder,
         *nft_contract_key,
         vec![ARG_COLLECTION_NAME.to_string()],
     );
 
     let package = query_stored_value::<String>(
-        &mut builder,
+        &builder,
         *nft_contract_key,
         vec![format!("cep78_{}", collection_name)],
     );
@@ -539,13 +539,13 @@ fn should_cep47_dictionary_style_approve_event_in_hash_identifier_mode() {
     );
 
     let collection_name: String = query_stored_value(
-        &mut builder,
+        &builder,
         nft_contract_key,
         vec![ARG_COLLECTION_NAME.to_string()],
     );
 
     let package = query_stored_value::<String>(
-        &mut builder,
+        &builder,
         nft_contract_key,
         vec![format!("cep78_{}", collection_name)],
     );

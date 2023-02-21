@@ -27,11 +27,13 @@ use constants::{ARG_EVENTS_MODE, EVENTS, EVENTS_MODE, EVENT_ID_TRACKER, ARG_ADDI
 use modalities::EventsMode;
 
 use core::convert::{TryFrom, TryInto};
-use utils::get_stored_value_with_user_errors;
 use events::{
-    events_ces::{Approval, ApprovalForAll, Burn, MetadataUpdated, Migration, Mint, Transfer, VariablesSet,},
-    events_cep47::{CEP47Event, record_cep47_event_dictionary}
+    events_cep47::{record_cep47_event_dictionary, CEP47Event},
+    events_ces::{
+        Approval, ApprovalForAll, Burn, MetadataUpdated, Migration, Mint, Transfer, VariablesSet,
+    },
 };
+use utils::get_stored_value_with_user_errors;
 
 use casper_types::{
     contracts::NamedKeys, runtime_args, CLType, CLValue, ContractHash, ContractPackageHash,
@@ -78,7 +80,6 @@ use crate::{
         TokenIdentifier, WhitelistMode,
     },
 };
-
 
 #[no_mangle]
 pub extern "C" fn init() {
@@ -463,18 +464,16 @@ pub extern "C" fn set_variables() {
     let events_mode: EventsMode = utils::get_stored_value_with_user_errors::<u8>(
         EVENTS_MODE,
         NFTCoreError::MissingEventsMode,
-        NFTCoreError::InvalidEventsMode
-    ).try_into().unwrap_or_revert();
+        NFTCoreError::InvalidEventsMode,
+    )
+    .try_into()
+    .unwrap_or_revert();
 
     // Emit VariablesSet event.
     match events_mode {
         EventsMode::NoEvents => {}
-        EventsMode::CEP47 => {
-            record_cep47_event_dictionary(&CEP47Event::VariablesSet)
-        }
-        EventsMode::CES => {
-            casper_event_standard::emit(VariablesSet::new())
-        }
+        EventsMode::CEP47 => record_cep47_event_dictionary(&CEP47Event::VariablesSet),
+        EventsMode::CES => casper_event_standard::emit(VariablesSet::new()),
     }
 }
 
@@ -677,10 +676,12 @@ pub extern "C" fn mint() {
                 token_id: token_identifier.clone(),
             };
             record_cep47_event_dictionary(&cep47_event)
-        },
-        EventsMode::CES => {
-            casper_event_standard::emit(Mint::new(token_owner_key, token_identifier.clone(), metadata))
-        },
+        }
+        EventsMode::CES => casper_event_standard::emit(Mint::new(
+            token_owner_key,
+            token_identifier.clone(),
+            metadata,
+        )),
     }
 
     if let OwnerReverseLookupMode::Complete = utils::get_reporting_mode() {
@@ -813,7 +814,7 @@ pub extern "C" fn burn() {
         NFTCoreError::MissingEventsMode,
         NFTCoreError::InvalidEventsMode,
     ))
-        .unwrap_or_revert();
+    .unwrap_or_revert();
 
     match events_mode {
         EventsMode::NoEvents => {}
@@ -823,10 +824,8 @@ pub extern "C" fn burn() {
                 token_id: token_identifier,
             };
             record_cep47_event_dictionary(&cep47_event)
-        },
-        EventsMode::CES => {
-            casper_event_standard::emit(Burn::new(token_owner, token_identifier))
-        },
+        }
+        EventsMode::CES => casper_event_standard::emit(Burn::new(token_owner, token_identifier)),
     }
 }
 
@@ -918,7 +917,6 @@ pub extern "C" fn approve() {
     ))
     .unwrap_or_revert();
 
-
     // Emit Approval event.
     match events_mode {
         EventsMode::NoEvents => {}
@@ -926,13 +924,13 @@ pub extern "C" fn approve() {
             let cep47_event = CEP47Event::Approve {
                 owner: token_owner_key,
                 spender: operator,
-                token_id: token_identifier
+                token_id: token_identifier,
             };
             record_cep47_event_dictionary(&cep47_event)
-        },
+        }
         EventsMode::CES => {
             casper_event_standard::emit(Approval::new(token_owner_key, operator, token_identifier))
-        },
+        }
     };
 }
 
@@ -1187,7 +1185,7 @@ pub extern "C" fn transfer() {
     .unwrap_or_revert();
 
     match events_mode {
-        EventsMode::NoEvents => {},
+        EventsMode::NoEvents => {}
         EventsMode::CEP47 => {
             let cep47_event = CEP47Event::Transfer {
                 sender: token_owner_key,
@@ -1195,7 +1193,7 @@ pub extern "C" fn transfer() {
                 token_id: token_identifier.clone(),
             };
             record_cep47_event_dictionary(&cep47_event)
-        },
+        }
         EventsMode::CES => {
             // Emit Transfer event.
             let operator = if caller == token_owner_key {
@@ -1508,13 +1506,13 @@ pub extern "C" fn set_token_metadata() {
 
     // Emit MetadataUpdate event.
     match events_mode {
-        EventsMode::NoEvents => {},
+        EventsMode::NoEvents => {}
         EventsMode::CEP47 => {
             let cep47_event = CEP47Event::MetadataUpdate {
                 token_id: token_identifier,
             };
             record_cep47_event_dictionary(&cep47_event)
-        },
+        }
         EventsMode::CES => {
             casper_event_standard::emit(MetadataUpdated::new(token_identifier, updated_metadata));
         }
@@ -1621,8 +1619,11 @@ pub extern "C" fn migrate() {
     utils::init_events();
     let events_mode: EventsMode = utils::get_optional_named_arg_with_user_errors::<u8>(
         ARG_EVENTS_MODE,
-        NFTCoreError::InvalidEventsMode
-    ).unwrap_or(EventsMode::NoEvents as u8).try_into().unwrap_or_revert();
+        NFTCoreError::InvalidEventsMode,
+    )
+    .unwrap_or(EventsMode::NoEvents as u8)
+    .try_into()
+    .unwrap_or_revert();
 
     match events_mode {
         EventsMode::NoEvents => {
@@ -1639,10 +1640,7 @@ pub extern "C" fn migrate() {
             record_cep47_event_dictionary(&CEP47Event::Migrate)
         }
         EventsMode::CES => {
-            runtime::put_key(
-                EVENTS_MODE,
-                storage::new_uref(EventsMode::CES as u8).into(),
-            );
+            runtime::put_key(EVENTS_MODE, storage::new_uref(EventsMode::CES as u8).into());
             // Initialize events structures.
             utils::init_events();
 
@@ -2280,7 +2278,8 @@ fn migrate_contract(access_key_name: String, package_key_name: String) {
     let events_mode = utils::get_optional_named_arg_with_user_errors::<u8>(
         ARG_EVENTS_MODE,
         NFTCoreError::InvalidEventsMode,
-    ).unwrap_or(0u8);
+    )
+    .unwrap_or(0u8);
 
     runtime::put_key(
         &format!("{HASH_KEY_NAME_PREFIX}{collection_name}"),

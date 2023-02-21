@@ -1,10 +1,21 @@
-use alloc::{string::{String, ToString}, format, collections::BTreeMap };
+use alloc::{
+    collections::BTreeMap,
+    format,
+    string::{String, ToString},
+};
 
-use casper_contract::contract_api::{storage, runtime};
-use casper_contract::unwrap_or_revert::UnwrapOrRevert;
+use casper_contract::{
+    contract_api::{runtime, storage},
+    unwrap_or_revert::UnwrapOrRevert,
+};
 use casper_types::Key;
 
-use crate::{modalities::TokenIdentifier, constants::{HASH_KEY_NAME_PREFIX, CEP78_PREFIX}, error::NFTCoreError, utils};
+use crate::{
+    constants::{CEP78_PREFIX, HASH_KEY_NAME_PREFIX},
+    error::NFTCoreError,
+    modalities::TokenIdentifier,
+    utils,
+};
 
 pub enum CEP47Event {
     Mint {
@@ -29,7 +40,7 @@ pub enum CEP47Event {
         token_id: TokenIdentifier,
     },
     VariablesSet,
-    Migrate
+    Migrate,
 }
 
 pub fn record_cep47_event_dictionary(event: &CEP47Event) {
