@@ -23,10 +23,10 @@ use casper_types::{
 
 use crate::{
     constants::{
-        ARG_TOKEN_HASH, ARG_TOKEN_ID, BURNT_TOKENS, BURN_MODE, HASH_BY_INDEX, HOLDER_MODE,
-        IDENTIFIER_MODE, INDEX_BY_HASH, NUMBER_OF_MINTED_TOKENS, OWNED_TOKENS, OWNERSHIP_MODE,
-        PAGE_DICTIONARY_PREFIX, PAGE_LIMIT, PAGE_TABLE, RECEIPT_NAME, REPORTING_MODE, TOKEN_OWNERS,
-        UNMATCHED_HASH_COUNT,MIGRATION_VERSION, CURRENT_VERSION, MIGRATION_FLAG
+        ARG_TOKEN_HASH, ARG_TOKEN_ID, BURNT_TOKENS, BURN_MODE, CURRENT_VERSION, HASH_BY_INDEX,
+        HOLDER_MODE, IDENTIFIER_MODE, INDEX_BY_HASH, MIGRATION_FLAG, MIGRATION_VERSION,
+        NUMBER_OF_MINTED_TOKENS, OWNED_TOKENS, OWNERSHIP_MODE, PAGE_DICTIONARY_PREFIX, PAGE_LIMIT,
+        PAGE_TABLE, RECEIPT_NAME, REPORTING_MODE, TOKEN_OWNERS, UNMATCHED_HASH_COUNT,
     },
     error::NFTCoreError,
     events::events_ces::{
@@ -878,16 +878,20 @@ pub fn init_events() {
     casper_event_standard::init(schemas);
 }
 
-
 pub fn has_migration_flag() -> bool {
     match runtime::get_key(MIGRATION_FLAG) {
         Some(migration_key) => {
             let migration_uref = migration_key
                 .into_uref()
                 .unwrap_or_revert_with(NFTCoreError::InvalidKey);
-            storage::read::<bool>(migration_uref).unwrap_or_revert().unwrap_or_revert()
+            storage::read::<bool>(migration_uref)
+                .unwrap_or_revert()
+                .unwrap_or_revert()
         }
-        None => {runtime::put_key(MIGRATION_FLAG, storage::new_uref(true).into()); false},
+        None => {
+            runtime::put_key(MIGRATION_FLAG, storage::new_uref(true).into());
+            false
+        }
     }
 }
 
@@ -897,11 +901,17 @@ pub fn has_migration_version() -> bool {
             let migration_uref = migration_key
                 .into_uref()
                 .unwrap_or_revert_with(NFTCoreError::InvalidKey);
-            storage::read::<String>(migration_uref).unwrap_or_revert().unwrap_or_revert() == *CURRENT_VERSION
+            storage::read::<String>(migration_uref)
+                .unwrap_or_revert()
+                .unwrap_or_revert()
+                == *CURRENT_VERSION
         }
         None => {
-            runtime::put_key(MIGRATION_VERSION, storage::new_uref(CURRENT_VERSION.to_string()).into());
+            runtime::put_key(
+                MIGRATION_VERSION,
+                storage::new_uref(CURRENT_VERSION.to_string()).into(),
+            );
             false
-        },
+        }
     }
 }

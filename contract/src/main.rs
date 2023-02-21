@@ -1527,8 +1527,7 @@ pub extern "C" fn migrate() {
     let migration_flag = utils::has_migration_flag();
     let migration_version = utils::has_migration_version();
 
-
-    if  migration_flag && migration_version{
+    if migration_flag && migration_version {
         runtime::revert(NFTCoreError::ContractAlreadyMigrated)
     }
 
@@ -1572,7 +1571,8 @@ pub extern "C" fn migrate() {
         let new_receipt_string_representation = format!("{CEP78_PREFIX}{collection_name}");
         runtime::put_key(
             &new_receipt_string_representation,
-            storage::new_uref(new_contract_package_hash_representation.to_formatted_string()).into(),
+            storage::new_uref(new_contract_package_hash_representation.to_formatted_string())
+                .into(),
         );
         storage::write(receipt_uref, new_receipt_string_representation);
 
@@ -1581,8 +1581,8 @@ pub extern "C" fn migrate() {
             NFTCoreError::MissingIdentifierMode,
             NFTCoreError::InvalidIdentifierMode,
         )
-            .try_into()
-            .unwrap_or_revert();
+        .try_into()
+        .unwrap_or_revert();
 
         match identifier {
             NFTIdentifierMode::Ordinal => utils::migrate_owned_tokens_in_ordinal_mode(),
