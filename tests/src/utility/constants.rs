@@ -97,6 +97,7 @@ pub(crate) const MALFORMED_META_DATA: &str = r#"{
 pub(crate) const ACCESS_KEY_NAME_1_0_0: &str = "nft_contract_package_access";
 pub(crate) const CONTRACT_1_0_0_WASM: &str = "1_0_0/contract.wasm";
 pub(crate) const MINT_1_0_0_WASM: &str = "1_0_0/mint_call.wasm";
+pub(crate) const CONTRACT_1_1_O_WASM: &str = "1_1_0/contract.wasm";
 pub(crate) const PAGE_SIZE: u64 = 1000;
 pub(crate) const UNMATCHED_HASH_COUNT: &str = "unmatched_hash_count";
 pub(crate) const PAGE_DICTIONARY_PREFIX: &str = "page_";

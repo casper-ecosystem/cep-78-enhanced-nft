@@ -14,7 +14,7 @@ use crate::utility::{
         ARG_TARGET_KEY, ARG_TOKEN_HASH, ARG_TOKEN_META_DATA, ARG_TOKEN_OWNER, CONTRACT_1_0_0_WASM,
         ENTRY_POINT_REGISTER_OWNER, MANGLE_NAMED_KEYS, MINT_1_0_0_WASM, MINT_SESSION_WASM,
         NFT_CONTRACT_WASM, NFT_TEST_COLLECTION, NFT_TEST_SYMBOL, PAGE_LIMIT, PAGE_SIZE,
-        RECEIPT_NAME, TRANSFER_SESSION_WASM, UNMATCHED_HASH_COUNT, UPDATED_RECEIPTS_WASM,
+        RECEIPT_NAME, TRANSFER_SESSION_WASM, UNMATCHED_HASH_COUNT, UPDATED_RECEIPTS_WASM, CONTRACT_1_1_O_WASM
     },
     installer_request_builder::{
         InstallerRequestBuilder, MetadataMutability, NFTIdentifierMode, NFTMetadataKind,
@@ -443,14 +443,28 @@ fn should_not_be_able_to_reinvoke_migrate_entrypoint() {
 
     builder.exec(install_request).expect_success().commit();
 
-    let upgrade_request = ExecuteRequestBuilder::standard(
+    let upgrade_to_1_1_request = ExecuteRequestBuilder::standard(
         *DEFAULT_ACCOUNT_ADDR,
-        NFT_CONTRACT_WASM,
+        CONTRACT_1_1_O_WASM,
         runtime_args! {
             ARG_NFT_PACKAGE_HASH => support::get_nft_contract_package_hash(&builder),
             ARG_COLLECTION_NAME => NFT_TEST_COLLECTION.to_string(),
             ARG_NAMED_KEY_CONVENTION => NamedKeyConventionMode::V1_0Standard as u8,
             ARG_ACCESS_KEY_NAME_1_0_0 => ACCESS_KEY_NAME_1_0_0.to_string()
+        },
+    )
+        .build();
+
+    builder.exec(upgrade_to_1_1_request).expect_success().commit();
+
+    let upgrade_request = ExecuteRequestBuilder::standard(
+        *DEFAULT_ACCOUNT_ADDR,
+        NFT_CONTRACT_WASM,
+        runtime_args! {
+            ARG_COLLECTION_NAME => NFT_TEST_COLLECTION.to_string(),
+            ARG_NAMED_KEY_CONVENTION => NamedKeyConventionMode::V1_0Standard as u8,
+            ARG_ACCESS_KEY_NAME_1_0_0 => ACCESS_KEY_NAME_1_0_0.to_string(),
+            ARG_EVENTS_MODE => EventsMode::CES as u8
         },
     )
     .build();
@@ -459,18 +473,18 @@ fn should_not_be_able_to_reinvoke_migrate_entrypoint() {
 
     // Once the new contract version has been added to the package
     // calling the updated_receipts entrypoint should cause an error to be returned.
-    let upgrade_request = ExecuteRequestBuilder::standard(
+    let incorrect_upgrade_request = ExecuteRequestBuilder::standard(
         *DEFAULT_ACCOUNT_ADDR,
         NFT_CONTRACT_WASM,
         runtime_args! {
-            ARG_NFT_PACKAGE_HASH => support::get_nft_contract_package_hash(&builder),
             ARG_COLLECTION_NAME => NFT_TEST_COLLECTION.to_string(),
             ARG_NAMED_KEY_CONVENTION => NamedKeyConventionMode::V1_0Standard as u8,
-            ARG_ACCESS_KEY_NAME_1_0_0 => ACCESS_KEY_NAME_1_0_0.to_string()
+            ARG_ACCESS_KEY_NAME_1_0_0 => ACCESS_KEY_NAME_1_0_0.to_string(),
+            ARG_EVENTS_MODE => EventsMode::CES as u8
         },
     )
     .build();
-    builder.exec(upgrade_request).expect_failure();
+    builder.exec(incorrect_upgrade_request).expect_failure();
 
     let error = builder.get_error().expect("must have error");
 
@@ -616,3 +630,4 @@ fn should_upgrade_with_custom_named_keys() {
         .expect_success()
         .commit();
 }
+
