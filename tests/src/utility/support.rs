@@ -280,3 +280,15 @@ pub fn get_event<T: FromBytes + CLTyped + Debug>(
     assert!(bytes.is_empty());
     event
 }
+
+pub(crate) fn get_nft_contract_hash_1_0_0(builder: &WasmTestBuilder<InMemoryGlobalState>) -> ContractHash {
+    let nft_hash_addr = builder
+        .get_expected_account(*DEFAULT_ACCOUNT_ADDR)
+        .named_keys()
+        .get("nft_contract")
+        .expect("must have this entry in named keys")
+        .into_hash()
+        .expect("must get hash_addr");
+
+    ContractHash::new(nft_hash_addr)
+}

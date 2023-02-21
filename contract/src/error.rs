@@ -150,6 +150,8 @@ pub enum NFTCoreError {
     MissingAdditionalNFTMetadataKind = 145,
     InvalidAdditionalNFTMetadataKind = 146,
     InvalidRequirement = 147,
+    MissingEventsMode = 148,
+    InvalidEventsMode = 149,
 }
 
 impl From<NFTCoreError> for ApiError {
