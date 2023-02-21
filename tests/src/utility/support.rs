@@ -281,7 +281,9 @@ pub fn get_event<T: FromBytes + CLTyped + Debug>(
     event
 }
 
-pub(crate) fn get_nft_contract_hash_1_0_0(builder: &WasmTestBuilder<InMemoryGlobalState>) -> ContractHash {
+pub(crate) fn get_nft_contract_hash_1_0_0(
+    builder: &WasmTestBuilder<InMemoryGlobalState>,
+) -> ContractHash {
     let nft_hash_addr = builder
         .get_expected_account(*DEFAULT_ACCOUNT_ADDR)
         .named_keys()
