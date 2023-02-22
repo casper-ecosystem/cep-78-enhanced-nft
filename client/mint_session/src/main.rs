@@ -35,7 +35,7 @@ pub extern "C" fn call() {
             nft_contract_hash,
             ENTRY_POINT_REGISTER_OWNER,
             runtime_args! {
-                ARG_TOKEN_OWNER => token_owner
+                        ARG_TOKEN_OWNER => token_owner,
             },
         );
         runtime::put_key(&register_name, package_uref.into())

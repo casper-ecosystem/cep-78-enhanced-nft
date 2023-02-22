@@ -347,7 +347,7 @@ fn should_disallow_installation_of_contract_with_empty_locked_account_whitelist(
 
     support::assert_expected_invalid_installer_request(
         install_request_builder,
-        146,
+        150,
         "should fail execution since whitelist mode is locked and the provided whitelist is empty",
     );
 }
@@ -365,7 +365,7 @@ fn should_disallow_installation_of_contract_with_empty_locked_mixed_whitelist() 
 
     support::assert_expected_invalid_installer_request(
         install_request_builder,
-        147,
+        151,
         "should fail execution since whitelist mode is locked and the provided whitelist is empty",
     );
 }
@@ -461,7 +461,7 @@ fn should_prevent_installation_with_ownership_minter_and_owner_reverse_lookup_mo
 
     support::assert_expected_error(
         error,
-        143u16,
+        140u16,
         "cannot install when Ownership::Minter and OwnerReverseLookupMode::TransfersOnly",
     );
 }
@@ -487,7 +487,7 @@ fn should_prevent_installation_with_ownership_assigned_and_owner_reverse_lookup_
 
     support::assert_expected_error(
         error,
-        143u16,
+        140u16,
         "cannot install when Ownership::Assigned and OwnerReverseLookupMode::TransfersOnly",
     );
 }

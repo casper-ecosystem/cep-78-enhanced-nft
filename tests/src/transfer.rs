@@ -494,7 +494,7 @@ fn should_be_able_to_transfer_token_using_approved_operator() {
 }
 
 #[test]
-fn should_dissallow_same_operator_to_transfer_token_twice() {
+fn should_dissallow_same_operator_to_tranfer_token_twice() {
     let mut builder = InMemoryWasmTestBuilder::default();
     builder.run_genesis(&DEFAULT_RUN_GENESIS_REQUEST).commit();
 
@@ -855,7 +855,7 @@ fn should_transfer_token_in_hash_identifier_mode() {
     builder.exec(mint_session_call).expect_success().commit();
 
     let token_hash: String =
-        base16::encode_lower(&support::create_blake2b_hash(&TEST_PRETTY_721_META_DATA));
+        base16::encode_lower(&support::create_blake2b_hash(TEST_PRETTY_721_META_DATA));
 
     let register_request = ExecuteRequestBuilder::contract_call_by_hash(
         *DEFAULT_ACCOUNT_ADDR,
