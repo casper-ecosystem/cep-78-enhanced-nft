@@ -23,14 +23,14 @@ const ARG_COLLECTION_NAME: &str = "collection_name";
 pub extern "C" fn call() {
     let nft_contract_hash: ContractHash = runtime::get_named_arg::<Key>(ARG_NFT_CONTRACT_HASH)
         .into_hash()
-        .map(|hash| ContractHash::new(hash))
+        .map(ContractHash::new)
         .unwrap();
 
     let token_owner = runtime::get_named_arg::<Key>(ARG_TOKEN_OWNER);
     let token_metadata: String = runtime::get_named_arg(ARG_TOKEN_META_DATA);
     let collection_name: String = runtime::get_named_arg(ARG_COLLECTION_NAME);
 
-    if runtime::get_key(&format!("cep78_{}", collection_name)).is_none() {
+    if runtime::get_key(&format!("cep78_{collection_name}")).is_none() {
         let (register_name, package_uref) = runtime::call_contract::<(String, URef)>(
             nft_contract_hash,
             ENTRY_POINT_REGISTER_OWNER,

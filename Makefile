@@ -42,17 +42,49 @@ test: setup-test
 
 clippy:
 	cd contract && cargo clippy --all-targets -- -D warnings
+	cd client/mint_session && cargo clippy --release --target wasm32-unknown-unknown -- -D warnings
+	cd client/balance_of_session && cargo clippy --release --target wasm32-unknown-unknown -- -D warnings
+	cd client/owner_of_session && cargo clippy --release --target wasm32-unknown-unknown -- -D warnings
+	cd client/get_approved_session && cargo clippy --release --target wasm32-unknown-unknown -- -D warnings
+	cd client/transfer_session && cargo clippy --release --target wasm32-unknown-unknown -- -D warnings
+	cd client/updated_receipts && cargo clippy --release --target wasm32-unknown-unknown -- -D warnings
+	cd test-contracts/minting_contract && cargo clippy --release --target wasm32-unknown-unknown -- -D warnings
+	cd test-contracts/mangle_named_keys && cargo clippy --release --target wasm32-unknown-unknown -- -D warnings
 	cd tests && cargo clippy --all-targets -- -D warnings
 
 check-lint: clippy
 	cd contract && cargo fmt -- --check
+	cd client/mint_session && cargo fmt -- --check
+	cd client/balance_of_session && cargo fmt -- --check
+	cd client/owner_of_session && cargo fmt -- --check
+	cd client/get_approved_session && cargo fmt -- --check
+	cd client/transfer_session && cargo fmt -- --check
+	cd client/updated_receipts && cargo fmt -- --check
+	cd test-contracts/minting_contract && cargo fmt -- --check
+	cd test-contracts/mangle_named_keys && cargo fmt -- --check
 	cd tests && cargo fmt -- --check
 
 lint: clippy
 	cd contract && cargo fmt
+	cd client/mint_session && cargo fmt
+	cd client/balance_of_session && cargo fmt
+	cd client/owner_of_session && cargo fmt
+	cd client/get_approved_session && cargo fmt
+	cd client/transfer_session && cargo fmt
+	cd client/updated_receipts && cargo fmt
+	cd test-contracts/minting_contract
+	cd test-contracts/mangle_named_keys
 	cd tests && cargo fmt
 
 clean:
 	cd contract && cargo clean
+	cd client/mint_session && cargo clean
+	cd client/balance_of_session && cargo clean
+	cd client/owner_of_session && cargo clean
+	cd client/get_approved_session && cargo clean
+	cd client/transfer_session && cargo clean
+	cd client/updated_receipts && cargo clean
+	cd test-contracts/minting_contract && cargo clean
+	cd test-contracts/mangle_named_keys && cargo clean
 	cd tests && cargo clean
 	rm -rf tests/wasm
