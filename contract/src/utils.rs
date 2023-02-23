@@ -26,7 +26,7 @@ use crate::{
         ARG_TOKEN_HASH, ARG_TOKEN_ID, BURNT_TOKENS, BURN_MODE, HASH_BY_INDEX, HOLDER_MODE,
         IDENTIFIER_MODE, INDEX_BY_HASH, MIGRATION_FLAG, NUMBER_OF_MINTED_TOKENS, OWNED_TOKENS,
         OWNERSHIP_MODE, PAGE_DICTIONARY_PREFIX, PAGE_LIMIT, PAGE_TABLE, RECEIPT_NAME,
-        REPORTING_MODE, TOKEN_OWNERS, UNMATCHED_HASH_COUNT,
+        REPORTING_MODE, RLO_MFLAG, TOKEN_OWNERS, UNMATCHED_HASH_COUNT,
     },
     error::NFTCoreError,
     events::events_ces::{
@@ -763,6 +763,16 @@ pub fn requires_rlo_migration() -> bool {
             runtime::remove_key(MIGRATION_FLAG);
             !has_rlo_migration
         }
-        None => true,
+        None => match runtime::get_key(RLO_MFLAG) {
+            Some(rlo_flag_key) => {
+                let rlo_flag_uref = rlo_flag_key
+                    .into_uref()
+                    .unwrap_or_revert_with(NFTCoreError::InvalidKey);
+                storage::read::<bool>(rlo_flag_uref)
+                    .unwrap_or_revert()
+                    .unwrap_or_revert()
+            }
+            None => true,
+        },
     }
 }
