@@ -159,7 +159,7 @@ pub(crate) fn query_stored_value<T: CLTyped + FromBytes>(
         .expect("must get value")
 }
 
-pub(crate) fn call_entry_point_with_ret<T: CLTyped + FromBytes>(
+pub(crate) fn call_session_code_with_ret<T: CLTyped + FromBytes>(
     builder: &mut InMemoryWasmTestBuilder,
     account_hash: AccountHash,
     nft_contract_key: Key,
