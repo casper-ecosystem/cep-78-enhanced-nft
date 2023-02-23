@@ -26,9 +26,13 @@ pub enum CEP47Event {
         owner: Key,
         token_id: TokenIdentifier,
     },
-    Approve {
+    ApprovalGranted {
         owner: Key,
         spender: Key,
+        token_id: TokenIdentifier,
+    },
+    ApprovalRevoked {
+        owner: Key,
         token_id: TokenIdentifier,
     },
     Transfer {
@@ -43,7 +47,7 @@ pub enum CEP47Event {
     Migrate,
 }
 
-pub fn record_cep47_event_dictionary(event: &CEP47Event) {
+pub fn record_cep47_event_dictionary(event: CEP47Event) {
     let collection_name: String = utils::get_stored_value_with_user_errors(
         crate::constants::COLLECTION_NAME,
         NFTCoreError::MissingCollectionName,
@@ -76,7 +80,7 @@ pub fn record_cep47_event_dictionary(event: &CEP47Event) {
             event.insert("token_id", token_id.to_string());
             event
         }
-        CEP47Event::Approve {
+        CEP47Event::ApprovalGranted {
             owner,
             spender,
             token_id,
@@ -86,6 +90,14 @@ pub fn record_cep47_event_dictionary(event: &CEP47Event) {
             event.insert("event_type", "Approve".to_string());
             event.insert("owner", owner.to_string());
             event.insert("spender", spender.to_string());
+            event.insert("token_id", token_id.to_string());
+            event
+        }
+        CEP47Event::ApprovalRevoked { owner, token_id } => {
+            let mut event = BTreeMap::new();
+            event.insert(HASH_KEY_NAME_PREFIX, package);
+            event.insert("event_type", "ApprovalRevoked".to_string());
+            event.insert("owner", owner.to_string());
             event.insert("token_id", token_id.to_string());
             event
         }

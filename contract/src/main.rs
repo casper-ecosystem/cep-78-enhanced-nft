@@ -46,18 +46,18 @@ use constants::{
     ARG_OPERATOR, ARG_OWNERSHIP_MODE, ARG_OWNER_LOOKUP_MODE, ARG_RECEIPT_NAME, ARG_SOURCE_KEY,
     ARG_TARGET_KEY, ARG_TOKEN_META_DATA, ARG_TOKEN_OWNER, ARG_TOTAL_TOKEN_SUPPLY,
     ARG_WHITELIST_MODE, BURNT_TOKENS, BURN_MODE, CEP78_PREFIX, COLLECTION_NAME, COLLECTION_SYMBOL,
-    CONTRACT_NAME_PREFIX, CONTRACT_VERSION_PREFIX, CONTRACT_WHITELIST, CURRENT_VERSION,
-    ENTRY_POINT_APPROVE, ENTRY_POINT_BALANCE_OF, ENTRY_POINT_BURN, ENTRY_POINT_GET_APPROVED,
-    ENTRY_POINT_INIT, ENTRY_POINT_METADATA, ENTRY_POINT_MIGRATE, ENTRY_POINT_MINT,
-    ENTRY_POINT_OWNER_OF, ENTRY_POINT_REGISTER_OWNER, ENTRY_POINT_SET_APPROVE_FOR_ALL,
-    ENTRY_POINT_SET_TOKEN_METADATA, ENTRY_POINT_SET_VARIABLES, ENTRY_POINT_TRANSFER,
-    ENTRY_POINT_UPDATED_RECEIPTS, EVENTS, EVENTS_MODE, HASH_BY_INDEX, HASH_KEY_NAME_1_0_0,
-    HASH_KEY_NAME_PREFIX, HOLDER_MODE, IDENTIFIER_MODE, INDEX_BY_HASH, INSTALLER, JSON_SCHEMA,
-    MAX_TOTAL_TOKEN_SUPPLY, METADATA_CEP78, METADATA_CUSTOM_VALIDATED, METADATA_MUTABILITY,
-    METADATA_NFT721, METADATA_RAW, MIGRATION_FLAG, MIGRATION_VERSION, MINTING_MODE, NFT_KIND,
-    NFT_METADATA_KIND, NUMBER_OF_MINTED_TOKENS, OPERATOR, OWNED_TOKENS, OWNERSHIP_MODE,
-    PAGE_DICTIONARY_PREFIX, PAGE_LIMIT, PAGE_TABLE, RECEIPT_NAME, REPORTING_MODE, TOKEN_COUNTS,
-    TOKEN_ISSUERS, TOKEN_OWNERS, TOTAL_TOKEN_SUPPLY, UNMATCHED_HASH_COUNT, WHITELIST_MODE,
+    CONTRACT_NAME_PREFIX, CONTRACT_VERSION_PREFIX, CONTRACT_WHITELIST, ENTRY_POINT_APPROVE,
+    ENTRY_POINT_BALANCE_OF, ENTRY_POINT_BURN, ENTRY_POINT_GET_APPROVED, ENTRY_POINT_INIT,
+    ENTRY_POINT_METADATA, ENTRY_POINT_MIGRATE, ENTRY_POINT_MINT, ENTRY_POINT_OWNER_OF,
+    ENTRY_POINT_REGISTER_OWNER, ENTRY_POINT_SET_APPROVE_FOR_ALL, ENTRY_POINT_SET_TOKEN_METADATA,
+    ENTRY_POINT_SET_VARIABLES, ENTRY_POINT_TRANSFER, ENTRY_POINT_UPDATED_RECEIPTS, EVENTS,
+    EVENTS_MODE, HASH_BY_INDEX, HASH_KEY_NAME_1_0_0, HASH_KEY_NAME_PREFIX, HOLDER_MODE,
+    IDENTIFIER_MODE, INDEX_BY_HASH, INSTALLER, JSON_SCHEMA, MAX_TOTAL_TOKEN_SUPPLY, METADATA_CEP78,
+    METADATA_CUSTOM_VALIDATED, METADATA_MUTABILITY, METADATA_NFT721, METADATA_RAW, MINTING_MODE,
+    NFT_KIND, NFT_METADATA_KIND, NUMBER_OF_MINTED_TOKENS, OPERATOR, OWNED_TOKENS, OWNERSHIP_MODE,
+    PAGE_DICTIONARY_PREFIX, PAGE_LIMIT, PAGE_TABLE, RECEIPT_NAME, REPORTING_MODE, RLO_MFLAG,
+    TOKEN_COUNTS, TOKEN_ISSUERS, TOKEN_OWNERS, TOTAL_TOKEN_SUPPLY, UNMATCHED_HASH_COUNT,
+    WHITELIST_MODE,
 };
 
 use error::NFTCoreError;
@@ -369,11 +369,7 @@ pub extern "C" fn init() {
         REPORTING_MODE,
         storage::new_uref(reporting_mode as u8).into(),
     );
-    runtime::put_key(MIGRATION_FLAG, storage::new_uref(true).into());
-    runtime::put_key(
-        MIGRATION_VERSION,
-        storage::new_uref(CURRENT_VERSION.to_string()).into(),
-    )
+    runtime::put_key(RLO_MFLAG, storage::new_uref(false).into())
 }
 
 // set_variables allows the user to set any variable or any combination of variables simultaneously.
@@ -440,7 +436,7 @@ pub extern "C" fn set_variables() {
     // Emit VariablesSet event.
     match events_mode {
         EventsMode::NoEvents => {}
-        EventsMode::CEP47 => record_cep47_event_dictionary(&CEP47Event::VariablesSet),
+        EventsMode::CEP47 => record_cep47_event_dictionary(CEP47Event::VariablesSet),
         EventsMode::CES => casper_event_standard::emit(VariablesSet::new()),
     }
 }
@@ -621,18 +617,15 @@ pub extern "C" fn mint() {
 
     match events_mode {
         EventsMode::NoEvents => {}
-        EventsMode::CEP47 => {
-            let cep47_event = CEP47Event::Mint {
-                recipient: token_owner_key,
-                token_id: token_identifier.clone(),
-            };
-            record_cep47_event_dictionary(&cep47_event)
-        }
         EventsMode::CES => casper_event_standard::emit(Mint::new(
             token_owner_key,
             token_identifier.clone(),
             metadata,
         )),
+        EventsMode::CEP47 => record_cep47_event_dictionary(CEP47Event::Mint {
+            recipient: token_owner_key,
+            token_id: token_identifier.clone(),
+        }),
     }
 
     if let OwnerReverseLookupMode::Complete = utils::get_reporting_mode() {
@@ -774,14 +767,11 @@ pub extern "C" fn burn() {
 
     match events_mode {
         EventsMode::NoEvents => {}
-        EventsMode::CEP47 => {
-            let cep47_event = CEP47Event::Burn {
-                owner: token_owner,
-                token_id: token_identifier,
-            };
-            record_cep47_event_dictionary(&cep47_event)
-        }
         EventsMode::CES => casper_event_standard::emit(Burn::new(token_owner, token_identifier)),
+        EventsMode::CEP47 => record_cep47_event_dictionary(CEP47Event::Burn {
+            owner: token_owner,
+            token_id: token_identifier,
+        }),
     }
 }
 
@@ -876,17 +866,14 @@ pub extern "C" fn approve() {
     // Emit Approval event.
     match events_mode {
         EventsMode::NoEvents => {}
-        EventsMode::CEP47 => {
-            let cep47_event = CEP47Event::Approve {
-                owner: token_owner_key,
-                spender: operator,
-                token_id: token_identifier,
-            };
-            record_cep47_event_dictionary(&cep47_event)
-        }
         EventsMode::CES => {
             casper_event_standard::emit(Approval::new(token_owner_key, operator, token_identifier))
         }
+        EventsMode::CEP47 => record_cep47_event_dictionary(CEP47Event::ApprovalGranted {
+            owner: token_owner_key,
+            spender: operator,
+            token_id: token_identifier,
+        }),
     };
 }
 
@@ -900,6 +887,15 @@ pub extern "C" fn set_approval_for_all() {
     {
         runtime::revert(NFTCoreError::InvalidOwnershipMode)
     }
+
+    let events_mode: EventsMode = utils::get_stored_value_with_user_errors::<u8>(
+        EVENTS_MODE,
+        NFTCoreError::MissingEventsMode,
+        NFTCoreError::InvalidEventsMode,
+    )
+    .try_into()
+    .unwrap_or_revert();
+
     // If approve_all is true we approve operator for all caller_owned tokens.
     // If false we set operator to None for all caller_owned_tokens
     let approve_all = utils::get_named_arg_with_user_errors::<bool>(
@@ -918,56 +914,61 @@ pub extern "C" fn set_approval_for_all() {
     )
     .unwrap_or_revert();
 
-    let operator_uref = utils::get_uref(
+    let operators_seed_uref = utils::get_uref(
         OPERATOR,
         NFTCoreError::MissingStorageUref,
         NFTCoreError::InvalidStorageUref,
     );
 
-    let owned_tokens = match utils::get_reporting_mode() {
+    let callers_owned_tokens = match utils::get_reporting_mode() {
         OwnerReverseLookupMode::NoLookUp => utils::get_owned_token_ids_by_token_number(),
         OwnerReverseLookupMode::Complete => utils::get_owned_token_ids_by_page(),
     };
 
     // Depending on approve_all we either approve all or disapprove all.
     let operator = if approve_all { Some(operator) } else { None };
-    for token_id in &owned_tokens {
+    for token_id in &callers_owned_tokens {
         // We assume a burned token cannot be approved
         if utils::is_token_burned(token_id) {
-            runtime::revert(NFTCoreError::PreviouslyBurntToken)
+            continue;
         }
-        let token_identifier_dictionary_key = token_id.get_dictionary_item_key();
+
         storage::dictionary_put(
-            operator_uref,
-            &token_identifier_dictionary_key,
-            if approve_all { Some(operator) } else { None },
+            operators_seed_uref,
+            &token_id.get_dictionary_item_key(),
+            operator,
         );
-        let events_mode: u8 = utils::get_stored_value_with_user_errors(
-            EVENTS_MODE,
-            NFTCoreError::MissingEventsMode,
-            NFTCoreError::InvalidEventsMode,
-        );
-        let events_mode = EventsMode::try_from(events_mode).unwrap_or_revert();
-        if let EventsMode::CEP47 = events_mode {
-            let token_owner_key = match utils::get_dictionary_value_from_key::<Key>(
-                TOKEN_OWNERS,
-                &token_identifier_dictionary_key,
-            ) {
-                Some(token_owner) => token_owner,
-                None => runtime::revert(NFTCoreError::InvalidAccountHash),
-            };
-            let cep47_event = CEP47Event::Approve {
-                owner: token_owner_key,
-                spender: operator.unwrap(),
-                token_id: token_id.clone(),
-            };
-            record_cep47_event_dictionary(&cep47_event)
-        }
-        storage::dictionary_put(operator_uref, &token_id.get_dictionary_item_key(), operator);
     }
 
-    // Emit ApprovalForAll event.
-    casper_event_standard::emit(ApprovalForAll::new(token_owner, operator, owned_tokens));
+    match events_mode {
+        EventsMode::NoEvents => {}
+        EventsMode::CES => {
+            casper_event_standard::emit(ApprovalForAll::new(
+                token_owner,
+                operator,
+                callers_owned_tokens,
+            ));
+        }
+        EventsMode::CEP47 => {
+            for callers_owned_token in callers_owned_tokens {
+                match operator {
+                    Some(operator) => {
+                        record_cep47_event_dictionary(CEP47Event::ApprovalGranted {
+                            owner: token_owner,
+                            spender: operator,
+                            token_id: callers_owned_token.clone(),
+                        });
+                    }
+                    None => {
+                        record_cep47_event_dictionary(CEP47Event::ApprovalRevoked {
+                            owner: token_owner,
+                            token_id: callers_owned_token.clone(),
+                        });
+                    }
+                }
+            }
+        }
+    }
 }
 
 // Transfers token from token_owner to specified account. Transfer will go through if caller is
@@ -1125,14 +1126,11 @@ pub extern "C" fn transfer() {
 
     match events_mode {
         EventsMode::NoEvents => {}
-        EventsMode::CEP47 => {
-            let cep47_event = CEP47Event::Transfer {
-                sender: token_owner_key,
-                recipient: target_owner_key,
-                token_id: token_identifier.clone(),
-            };
-            record_cep47_event_dictionary(&cep47_event)
-        }
+        EventsMode::CEP47 => record_cep47_event_dictionary(CEP47Event::Transfer {
+            sender: token_owner_key,
+            recipient: target_owner_key,
+            token_id: token_identifier.clone(),
+        }),
         EventsMode::CES => {
             // Emit Transfer event.
             let operator = if caller == token_owner_key {
@@ -1430,7 +1428,7 @@ pub extern "C" fn set_token_metadata() {
     );
 
     let events_mode = EventsMode::try_from(utils::get_stored_value_with_user_errors::<u8>(
-        crate::constants::EVENTS_MODE,
+        EVENTS_MODE,
         NFTCoreError::MissingEventsMode,
         NFTCoreError::InvalidEventsMode,
     ))
@@ -1439,24 +1437,20 @@ pub extern "C" fn set_token_metadata() {
     // Emit MetadataUpdate event.
     match events_mode {
         EventsMode::NoEvents => {}
-        EventsMode::CEP47 => {
-            let cep47_event = CEP47Event::MetadataUpdate {
-                token_id: token_identifier,
-            };
-            record_cep47_event_dictionary(&cep47_event)
-        }
         EventsMode::CES => {
             casper_event_standard::emit(MetadataUpdated::new(token_identifier, updated_metadata));
         }
+        EventsMode::CEP47 => record_cep47_event_dictionary(CEP47Event::MetadataUpdate {
+            token_id: token_identifier,
+        }),
     }
 }
 
 #[no_mangle]
 pub extern "C" fn migrate() {
-    let migration_flag = utils::has_migration_flag();
-    let migration_version = utils::has_migration_version();
+    let requires_rlo_migration = utils::requires_rlo_migration();
 
-    if migration_flag && migration_version {
+    if !requires_rlo_migration && runtime::get_key(RLO_MFLAG).is_some() {
         runtime::revert(NFTCoreError::ContractAlreadyMigrated)
     }
 
@@ -1470,17 +1464,23 @@ pub extern "C" fn migrate() {
         runtime::revert(NFTCoreError::CannotUpgradeWithZeroSupply)
     }
 
-    if !migration_flag {
-        if runtime::get_key(REPORTING_MODE).is_none() {
-            storage::new_dictionary(PAGE_TABLE)
-                .unwrap_or_revert_with(NFTCoreError::FailedToCreateDictionary);
-            let page_table_width = utils::max_number_of_pages(total_token_supply);
-            runtime::put_key(PAGE_LIMIT, storage::new_uref(page_table_width).into());
-            runtime::put_key(
-                REPORTING_MODE,
-                storage::new_uref(OwnerReverseLookupMode::Complete as u8).into(),
-            );
-        }
+    let events_mode: EventsMode = utils::get_optional_named_arg_with_user_errors::<u8>(
+        ARG_EVENTS_MODE,
+        NFTCoreError::InvalidEventsMode,
+    )
+    .unwrap_or(EventsMode::NoEvents as u8)
+    .try_into()
+    .unwrap_or_revert();
+
+    if requires_rlo_migration {
+        storage::new_dictionary(PAGE_TABLE)
+            .unwrap_or_revert_with(NFTCoreError::FailedToCreateDictionary);
+        let page_table_width = utils::max_number_of_pages(total_token_supply);
+        runtime::put_key(PAGE_LIMIT, storage::new_uref(page_table_width).into());
+        runtime::put_key(
+            REPORTING_MODE,
+            storage::new_uref(OwnerReverseLookupMode::Complete as u8).into(),
+        );
 
         let collection_name = utils::get_stored_value_with_user_errors::<String>(
             COLLECTION_NAME,
@@ -1533,13 +1533,7 @@ pub extern "C" fn migrate() {
         }
     }
 
-    let events_mode: EventsMode = utils::get_optional_named_arg_with_user_errors::<u8>(
-        ARG_EVENTS_MODE,
-        NFTCoreError::InvalidEventsMode,
-    )
-    .unwrap_or(EventsMode::NoEvents as u8)
-    .try_into()
-    .unwrap_or_revert();
+    runtime::put_key(RLO_MFLAG, storage::new_uref(false).into());
 
     match events_mode {
         EventsMode::NoEvents => {
@@ -1548,13 +1542,6 @@ pub extern "C" fn migrate() {
                 storage::new_uref(EventsMode::NoEvents as u8).into(),
             );
         }
-        EventsMode::CEP47 => {
-            runtime::put_key(
-                EVENTS_MODE,
-                storage::new_uref(EventsMode::CEP47 as u8).into(),
-            );
-            record_cep47_event_dictionary(&CEP47Event::Migrate)
-        }
         EventsMode::CES => {
             runtime::put_key(EVENTS_MODE, storage::new_uref(EventsMode::CES as u8).into());
             // Initialize events structures.
@@ -1562,6 +1549,13 @@ pub extern "C" fn migrate() {
 
             // Emit Migration event.
             casper_event_standard::emit(Migration::new());
+        }
+        EventsMode::CEP47 => {
+            runtime::put_key(
+                EVENTS_MODE,
+                storage::new_uref(EventsMode::CEP47 as u8).into(),
+            );
+            record_cep47_event_dictionary(CEP47Event::Migrate)
         }
     }
 }
