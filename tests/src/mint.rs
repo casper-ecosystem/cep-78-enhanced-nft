@@ -135,7 +135,7 @@ fn entry_points_with_ret_should_return_correct_value() {
             ARG_TOKEN_OWNER => Key::Account(*DEFAULT_ACCOUNT_ADDR),
         },
         BALANCE_OF_SESSION_WASM,
-        "balance_of",
+        RETURNED_VALUE_STORAGE_KEY,
     );
 
     let expected_balance = 1u64;
@@ -153,7 +153,7 @@ fn entry_points_with_ret_should_return_correct_value() {
             ARG_TOKEN_ID => 0u64,
         },
         OWNER_OF_SESSION_WASM,
-        "owner_of",
+        RETURNED_VALUE_STORAGE_KEY,
     );
 
     let expected_owner = Key::Account(*DEFAULT_ACCOUNT_ADDR);
@@ -183,7 +183,7 @@ fn entry_points_with_ret_should_return_correct_value() {
             ARG_TOKEN_ID => 0u64,
         },
         GET_APPROVED_WASM,
-        "get_approved",
+        RETURNED_VALUE_STORAGE_KEY,
     );
 
     let expected_operator = Key::Account(AccountHash::new(ACCOUNT_USER_1));
@@ -813,8 +813,8 @@ fn should_set_approval_for_all() {
             ARG_IS_HASH_IDENTIFIER_MODE => false,
             ARG_TOKEN_ID => 0u64,
         },
-        "get_approved_call.wasm",
-        "get_approved",
+        GET_APPROVED_WASM,
+        RETURNED_VALUE_STORAGE_KEY,
     );
 
     assert_eq!(
@@ -831,8 +831,8 @@ fn should_set_approval_for_all() {
             ARG_IS_HASH_IDENTIFIER_MODE => false,
             ARG_TOKEN_ID => 1u64,
         },
-        "get_approved_call.wasm",
-        "get_approved",
+        GET_APPROVED_WASM,
+        RETURNED_VALUE_STORAGE_KEY,
     );
 
     assert_eq!(
