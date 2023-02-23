@@ -23,10 +23,10 @@ use casper_types::{
 
 use crate::{
     constants::{
-        ARG_TOKEN_HASH, ARG_TOKEN_ID, BURNT_TOKENS, BURN_MODE, CURRENT_VERSION, HASH_BY_INDEX,
-        HOLDER_MODE, IDENTIFIER_MODE, INDEX_BY_HASH, MIGRATION_FLAG, MIGRATION_VERSION,
-        NUMBER_OF_MINTED_TOKENS, OWNED_TOKENS, OWNERSHIP_MODE, PAGE_DICTIONARY_PREFIX, PAGE_LIMIT,
-        PAGE_TABLE, RECEIPT_NAME, REPORTING_MODE, TOKEN_OWNERS, UNMATCHED_HASH_COUNT,
+        ARG_TOKEN_HASH, ARG_TOKEN_ID, BURNT_TOKENS, BURN_MODE, HASH_BY_INDEX, HOLDER_MODE,
+        IDENTIFIER_MODE, INDEX_BY_HASH, MIGRATION_FLAG, NUMBER_OF_MINTED_TOKENS, OWNED_TOKENS,
+        OWNERSHIP_MODE, PAGE_DICTIONARY_PREFIX, PAGE_LIMIT, PAGE_TABLE, RECEIPT_NAME,
+        REPORTING_MODE, TOKEN_OWNERS, UNMATCHED_HASH_COUNT,
     },
     error::NFTCoreError,
     events::events_ces::{
@@ -646,7 +646,7 @@ pub fn get_owned_token_ids_by_token_number() -> Vec<TokenIdentifier> {
 
     let mut token_identifiers: Vec<TokenIdentifier> = vec![];
 
-    for token_number in 0..=current_number_of_minted_tokens {
+    for token_number in 0..current_number_of_minted_tokens {
         let token_identifier = match identifier_mode {
             NFTIdentifierMode::Ordinal => TokenIdentifier::new_index(token_number),
             NFTIdentifierMode::Hash => {
@@ -878,40 +878,18 @@ pub fn init_events() {
     casper_event_standard::init(schemas);
 }
 
-pub fn has_migration_flag() -> bool {
+pub fn requires_rlo_migration() -> bool {
     match runtime::get_key(MIGRATION_FLAG) {
-        Some(migration_key) => {
-            let migration_uref = migration_key
+        Some(migration_flag_key) => {
+            let migration_uref = migration_flag_key
                 .into_uref()
                 .unwrap_or_revert_with(NFTCoreError::InvalidKey);
-            storage::read::<bool>(migration_uref)
+            let has_rlo_migration = storage::read::<bool>(migration_uref)
                 .unwrap_or_revert()
-                .unwrap_or_revert()
+                .unwrap_or_revert();
+            runtime::remove_key(MIGRATION_FLAG);
+            !has_rlo_migration
         }
-        None => {
-            runtime::put_key(MIGRATION_FLAG, storage::new_uref(true).into());
-            false
-        }
-    }
-}
-
-pub fn has_migration_version() -> bool {
-    match runtime::get_key(MIGRATION_VERSION) {
-        Some(migration_key) => {
-            let migration_uref = migration_key
-                .into_uref()
-                .unwrap_or_revert_with(NFTCoreError::InvalidKey);
-            storage::read::<String>(migration_uref)
-                .unwrap_or_revert()
-                .unwrap_or_revert()
-                == *CURRENT_VERSION
-        }
-        None => {
-            runtime::put_key(
-                MIGRATION_VERSION,
-                storage::new_uref(CURRENT_VERSION.to_string()).into(),
-            );
-            false
-        }
+        None => true,
     }
 }
