@@ -63,9 +63,10 @@ pub(crate) const ARG_IS_HASH_IDENTIFIER_MODE: &str = "is_hash_identifier_mode";
 pub(crate) const ARG_NAMED_KEY_CONVENTION: &str = "named_key_convention";
 pub(crate) const ARG_ACCESS_KEY_NAME_1_0_0: &str = "access_key_name";
 pub(crate) const ARG_HASH_KEY_NAME_1_0_0: &str = "hash_key_name";
+pub(crate) const ARG_EVENTS_MODE: &str = "events_mode";
 pub(crate) const ACCOUNT_USER_1: [u8; 32] = [1u8; 32];
 pub(crate) const ACCOUNT_USER_2: [u8; 32] = [2u8; 32];
-pub(crate) const ACCOUNT_USER_3: [u8; 32] = [2u8; 32];
+pub(crate) const ACCOUNT_USER_3: [u8; 32] = [3u8; 32];
 pub(crate) const TEST_PRETTY_721_META_DATA: &str = r#"{
   "name": "John Doe",
   "symbol": "abc",
@@ -96,6 +97,7 @@ pub(crate) const MALFORMED_META_DATA: &str = r#"{
 pub(crate) const ACCESS_KEY_NAME_1_0_0: &str = "nft_contract_package_access";
 pub(crate) const CONTRACT_1_0_0_WASM: &str = "1_0_0/contract.wasm";
 pub(crate) const MINT_1_0_0_WASM: &str = "1_0_0/mint_call.wasm";
+pub(crate) const CONTRACT_1_1_O_WASM: &str = "1_1_0/contract.wasm";
 pub(crate) const PAGE_SIZE: u64 = 1000;
 pub(crate) const UNMATCHED_HASH_COUNT: &str = "unmatched_hash_count";
 pub(crate) const PAGE_DICTIONARY_PREFIX: &str = "page_";

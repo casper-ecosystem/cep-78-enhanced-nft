@@ -142,6 +142,8 @@ pub enum NFTCoreError {
     InvalidAccessKeyName = 137,
     InvalidCheckForUpgrade = 138,
     InvalidNamedKeyConvention = 139,
+    MissingEventsMode = 140,
+    InvalidEventsMode = 141,
 }
 
 impl From<NFTCoreError> for ApiError {

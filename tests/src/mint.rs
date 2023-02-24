@@ -1,5 +1,5 @@
 use contract::{
-    events::{ApprovalForAll, Mint},
+    events::events_ces::{ApprovalForAll, Mint},
     modalities::TokenIdentifier,
 };
 use serde::{Deserialize, Serialize};
@@ -25,7 +25,8 @@ use crate::utility::{
         METADATA_RAW, MINTING_CONTRACT_WASM, MINT_SESSION_WASM, NFT_CONTRACT_WASM,
         NFT_TEST_COLLECTION, NUMBER_OF_MINTED_TOKENS, OPERATOR, OWNER_OF_SESSION_WASM, PAGE_SIZE,
         PAGE_TABLE, RECEIPT_NAME, TEST_COMPACT_META_DATA, TEST_PRETTY_721_META_DATA,
-        TEST_PRETTY_CEP78_METADATA, TOKEN_ISSUERS, TOKEN_OWNERS,
+        TEST_PRETTY_CEP78_METADATA, TEST_PRETTY_UPDATED_CEP78_METADATA, TOKEN_ISSUERS,
+        TOKEN_OWNERS,
     },
     installer_request_builder::{
         InstallerRequestBuilder, MetadataMutability, MintingMode, NFTHolderMode, NFTIdentifierMode,
@@ -538,7 +539,7 @@ fn should_allow_public_minting_with_flag_set_to_true() {
 
     let install_request = InstallerRequestBuilder::new(*DEFAULT_ACCOUNT_ADDR, NFT_CONTRACT_WASM)
         .with_total_token_supply(100u64)
-        .with_minting_mode(MintingMode::Public as u8)
+        .with_minting_mode(MintingMode::Public)
         .build();
     builder.exec(install_request).expect_success().commit();
 
@@ -613,7 +614,7 @@ fn should_disallow_public_minting_with_flag_set_to_false() {
 
     let install_request = InstallerRequestBuilder::new(*DEFAULT_ACCOUNT_ADDR, NFT_CONTRACT_WASM)
         .with_total_token_supply(100u64)
-        .with_minting_mode(MintingMode::Installer as u8)
+        .with_minting_mode(MintingMode::Installer)
         .with_ownership_mode(OwnershipMode::Transferable)
         .build();
     builder.exec(install_request).expect_success().commit();
@@ -676,7 +677,7 @@ fn should_allow_minting_for_different_public_key_with_minting_mode_set_to_public
 
     let install_request = InstallerRequestBuilder::new(*DEFAULT_ACCOUNT_ADDR, NFT_CONTRACT_WASM)
         .with_total_token_supply(100u64)
-        .with_minting_mode(MintingMode::Public as u8)
+        .with_minting_mode(MintingMode::Public)
         .build();
     builder.exec(install_request).expect_success().commit();
 
@@ -879,7 +880,7 @@ fn should_allow_whitelisted_contract_to_mint() {
         .with_holder_mode(NFTHolderMode::Contracts)
         .with_whitelist_mode(WhitelistMode::Locked)
         .with_ownership_mode(OwnershipMode::Minter)
-        .with_minting_mode(MintingMode::Installer as u8)
+        .with_minting_mode(MintingMode::Installer)
         .with_reporting_mode(OwnerReverseLookupMode::NoLookUp)
         .with_contract_whitelist(contract_whitelist.clone())
         .build();
@@ -955,7 +956,7 @@ fn should_disallow_unlisted_contract_from_minting() {
         .with_holder_mode(NFTHolderMode::Contracts)
         .with_whitelist_mode(WhitelistMode::Locked)
         .with_ownership_mode(OwnershipMode::Minter)
-        .with_minting_mode(MintingMode::Installer as u8)
+        .with_minting_mode(MintingMode::Installer)
         .with_reporting_mode(OwnerReverseLookupMode::NoLookUp)
         .with_contract_whitelist(contract_whitelist)
         .build();
@@ -1013,7 +1014,7 @@ fn should_be_able_to_update_whitelist_for_minting() {
         .with_holder_mode(NFTHolderMode::Contracts)
         .with_whitelist_mode(WhitelistMode::Unlocked)
         .with_ownership_mode(OwnershipMode::Minter)
-        .with_minting_mode(MintingMode::Installer as u8)
+        .with_minting_mode(MintingMode::Installer)
         .with_reporting_mode(OwnerReverseLookupMode::NoLookUp)
         .with_contract_whitelist(vec![])
         .build();
@@ -1598,4 +1599,65 @@ fn should_prevent_mint_to_unregistered_owner() {
     let error = builder.get_error().expect("must have error");
 
     assert_expected_error(error, 127u16, "must raise unregistered owner in mint");
+}
+
+#[test]
+fn should_approve_all_in_hash_identifier_mode() {
+    let mut builder = InMemoryWasmTestBuilder::default();
+    builder.run_genesis(&DEFAULT_RUN_GENESIS_REQUEST).commit();
+
+    let install_request = InstallerRequestBuilder::new(*DEFAULT_ACCOUNT_ADDR, NFT_CONTRACT_WASM)
+        .with_total_token_supply(1000u64)
+        .with_identifier_mode(NFTIdentifierMode::Hash)
+        .with_metadata_mutability(MetadataMutability::Immutable)
+        .with_ownership_mode(OwnershipMode::Transferable)
+        .with_reporting_mode(OwnerReverseLookupMode::NoLookUp)
+        .with_nft_metadata_kind(NFTMetadataKind::CEP78)
+        .build();
+
+    builder.exec(install_request).expect_success().commit();
+
+    let nft_contract_hash = get_nft_contract_hash(&builder);
+    let nft_contract_key: Key = nft_contract_hash.into();
+
+    let mint_session_call = ExecuteRequestBuilder::contract_call_by_hash(
+        *DEFAULT_ACCOUNT_ADDR,
+        nft_contract_hash,
+        ENTRY_POINT_MINT,
+        runtime_args! {
+            ARG_NFT_CONTRACT_HASH => nft_contract_key,
+            ARG_TOKEN_OWNER => Key::Account(*DEFAULT_ACCOUNT_ADDR),
+            ARG_TOKEN_META_DATA => TEST_PRETTY_CEP78_METADATA,
+        },
+    )
+    .build();
+
+    builder.exec(mint_session_call).expect_success().commit();
+
+    let mint_session_call = ExecuteRequestBuilder::contract_call_by_hash(
+        *DEFAULT_ACCOUNT_ADDR,
+        nft_contract_hash,
+        ENTRY_POINT_MINT,
+        runtime_args! {
+            ARG_NFT_CONTRACT_HASH => nft_contract_key,
+            ARG_TOKEN_OWNER => Key::Account(*DEFAULT_ACCOUNT_ADDR),
+            ARG_TOKEN_META_DATA => TEST_PRETTY_UPDATED_CEP78_METADATA,
+        },
+    )
+    .build();
+
+    builder.exec(mint_session_call).expect_success().commit();
+
+    let approval_all_request = ExecuteRequestBuilder::contract_call_by_hash(
+        *DEFAULT_ACCOUNT_ADDR,
+        nft_contract_hash,
+        ENTRY_POINT_SET_APPROVE_FOR_ALL,
+        runtime_args! {
+            ARG_APPROVE_ALL => true,
+            ARG_OPERATOR => Key::Account(AccountHash::new([7u8;32])),
+        },
+    )
+    .build();
+
+    builder.exec(approval_all_request).expect_success().commit();
 }

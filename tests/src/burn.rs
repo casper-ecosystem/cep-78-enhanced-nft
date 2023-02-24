@@ -5,7 +5,7 @@ use casper_engine_test_support::{
 use casper_types::{
     account::AccountHash, runtime_args, system::mint, ContractHash, Key, RuntimeArgs,
 };
-use contract::{events::Burn, modalities::TokenIdentifier};
+use contract::{events::events_ces::Burn, modalities::TokenIdentifier};
 
 use crate::utility::{
     constants::{
@@ -424,7 +424,7 @@ fn should_allow_contract_to_burn_token() {
         .with_holder_mode(NFTHolderMode::Contracts)
         .with_whitelist_mode(WhitelistMode::Locked)
         .with_ownership_mode(OwnershipMode::Minter)
-        .with_minting_mode(MintingMode::Installer as u8)
+        .with_minting_mode(MintingMode::Installer)
         .with_reporting_mode(OwnerReverseLookupMode::NoLookUp)
         .with_contract_whitelist(contract_whitelist)
         .build();
@@ -545,7 +545,7 @@ fn should_not_burn_in_non_burn_mode() {
 }
 
 #[test]
-fn should_check_for_burnt_tokens_during_approve_all() {
+fn should_let_approve_all_with_burnt_tokens() {
     let mut builder = InMemoryWasmTestBuilder::default();
     builder.run_genesis(&DEFAULT_RUN_GENESIS_REQUEST).commit();
 
@@ -602,10 +602,7 @@ fn should_check_for_burnt_tokens_during_approve_all() {
     )
     .build();
 
-    builder.exec(approve_all_request).expect_failure();
-
-    let error = builder.get_error().expect("burn must have failed");
-    support::assert_expected_error(error, 42, "PreviouslyBurntToken(42) must have been raised");
+    builder.exec(approve_all_request).expect_success().commit();
 }
 
 #[test]

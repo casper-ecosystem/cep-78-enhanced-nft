@@ -3,7 +3,7 @@ use casper_engine_test_support::{
     DEFAULT_RUN_GENESIS_REQUEST,
 };
 use casper_types::{account::AccountHash, runtime_args, ContractHash, Key, RuntimeArgs};
-use contract::{events::MetadataUpdated, modalities::TokenIdentifier};
+use contract::{events::events_ces::MetadataUpdated, modalities::TokenIdentifier};
 
 use crate::utility::{
     constants::{
@@ -410,7 +410,7 @@ fn should_get_metadata_using_token_id() {
         .with_holder_mode(NFTHolderMode::Contracts)
         .with_whitelist_mode(WhitelistMode::Locked)
         .with_ownership_mode(OwnershipMode::Transferable)
-        .with_minting_mode(MintingMode::Installer as u8)
+        .with_minting_mode(MintingMode::Installer)
         .with_reporting_mode(OwnerReverseLookupMode::NoLookUp)
         .with_contract_whitelist(contract_whitelist.clone())
         .build();

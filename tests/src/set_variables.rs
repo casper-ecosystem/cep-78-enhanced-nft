@@ -3,7 +3,7 @@ use casper_engine_test_support::{
     DEFAULT_RUN_GENESIS_REQUEST,
 };
 use casper_types::{runtime_args, ContractHash, Key, RuntimeArgs};
-use contract::events::VariablesSet;
+use contract::events::events_ces::VariablesSet;
 
 use crate::utility::{
     constants::{

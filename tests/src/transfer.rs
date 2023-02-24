@@ -7,7 +7,7 @@ use casper_types::{
     SecretKey, U512,
 };
 use contract::{
-    events::{Approval, Transfer},
+    events::events_ces::{Approval, Transfer},
     modalities::TokenIdentifier,
 };
 
@@ -42,7 +42,7 @@ fn should_dissallow_transfer_with_minter_or_assigned_ownership_mode() {
         .with_collection_symbol(NFT_TEST_SYMBOL.to_string())
         .with_total_token_supply(1u64)
         .with_ownership_mode(OwnershipMode::Assigned)
-        .with_minting_mode(MintingMode::Installer as u8)
+        .with_minting_mode(MintingMode::Installer)
         .with_reporting_mode(OwnerReverseLookupMode::Complete)
         .build();
 
@@ -514,7 +514,7 @@ fn should_be_able_to_transfer_token_using_approved_operator() {
 }
 
 #[test]
-fn should_dissallow_same_operator_to_tranfer_token_twice() {
+fn should_dissallow_same_operator_to_transfer_token_twice() {
     let mut builder = InMemoryWasmTestBuilder::default();
     builder.run_genesis(&DEFAULT_RUN_GENESIS_REQUEST).commit();
 
@@ -679,7 +679,7 @@ fn should_transfer_between_contract_to_account() {
         .with_holder_mode(NFTHolderMode::Contracts)
         .with_whitelist_mode(WhitelistMode::Locked)
         .with_ownership_mode(OwnershipMode::Transferable)
-        .with_minting_mode(MintingMode::Installer as u8)
+        .with_minting_mode(MintingMode::Installer)
         .with_contract_whitelist(contract_whitelist.clone())
         .build();
 

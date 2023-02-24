@@ -4,7 +4,7 @@ use casper_engine_test_support::{
 };
 use casper_event_standard::Schemas;
 use casper_types::{runtime_args, CLValue, ContractHash, RuntimeArgs};
-use contract::events::{
+use contract::events::events_ces::{
     Approval, ApprovalForAll, Burn, MetadataUpdated, Migration, Mint, Transfer, VariablesSet,
 };
 
@@ -352,7 +352,7 @@ fn should_prevent_installation_with_ownership_and_minting_modality_conflict() {
         .with_collection_name(NFT_TEST_COLLECTION.to_string())
         .with_collection_symbol(NFT_TEST_SYMBOL.to_string())
         .with_total_token_supply(1_000u64)
-        .with_minting_mode(MintingMode::Installer as u8)
+        .with_minting_mode(MintingMode::Installer)
         .with_ownership_mode(OwnershipMode::Minter)
         .with_reporting_mode(OwnerReverseLookupMode::Complete)
         .build();
