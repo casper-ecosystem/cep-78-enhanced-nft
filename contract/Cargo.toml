@@ -4,7 +4,9 @@ version = "1.1.1"
 edition = "2018"
 
 [dependencies]
-casper-contract = { version = "1.4.3", features = ["test-support"] }
+casper-contract = { version = "1.4.3", features = [
+  "test-support",
+], optional = true }
 casper-types = "1.4.5"
 serde = { version = "1", features = [
   "derive",
