@@ -24,6 +24,7 @@ use alloc::{
 use constants::{ARG_ADDITIONAL_REQUIRED_METADATA, ARG_OPTIONAL_METADATA, NFT_METADATA_KINDS};
 use core::convert::TryInto;
 use modalities::Requirement;
+use utils::{get_optional_named_arg_with_user_errors, get_uref};
 
 use casper_types::{
     contracts::NamedKeys, runtime_args, CLType, CLValue, ContractHash, ContractPackageHash,
@@ -33,7 +34,7 @@ use casper_types::{
 
 use casper_contract::{
     contract_api::{
-        runtime,
+        runtime::{self},
         storage::{self},
     },
     unwrap_or_revert::UnwrapOrRevert,
@@ -1273,14 +1274,37 @@ pub extern "C" fn migrate() {
         None => runtime::put_key(MIGRATION_FLAG, storage::new_uref(true).into()),
     }
 
-    let total_token_supply = utils::get_stored_value_with_user_errors::<u64>(
-        TOTAL_TOKEN_SUPPLY,
-        NFTCoreError::MissingTotalTokenSupply,
+    let total_token_supply: u64 = match utils::get_optional_named_arg_with_user_errors(
+        ARG_TOTAL_TOKEN_SUPPLY,
         NFTCoreError::InvalidTotalTokenSupply,
-    );
-
+    ) {
+        Some(total_token_supply_arg) => {
+            let total_token_supply_uref = get_uref(
+                ARG_TOTAL_TOKEN_SUPPLY,
+                NFTCoreError::MissingTotalTokenSupply,
+                NFTCoreError::InvalidTotalTokenSupply,
+            );
+            storage::write(total_token_supply_uref, total_token_supply_arg);
+            total_token_supply_arg
+        }
+        None => utils::get_stored_value_with_user_errors::<u64>(
+            TOTAL_TOKEN_SUPPLY,
+            NFTCoreError::MissingTotalTokenSupply,
+            NFTCoreError::InvalidTotalTokenSupply,
+        ),
+    };
     if total_token_supply == 0 {
         runtime::revert(NFTCoreError::CannotUpgradeWithZeroSupply)
+    }
+
+    let current_number_of_minted_tokens = utils::get_stored_value_with_user_errors::<u64>(
+        NUMBER_OF_MINTED_TOKENS,
+        NFTCoreError::MissingNumberOfMintedTokens,
+        NFTCoreError::InvalidNumberOfMintedTokens,
+    );
+
+    if total_token_supply < current_number_of_minted_tokens {
+        runtime::revert(NFTCoreError::ExceededMaxTotalSupply)
     }
 
     storage::new_dictionary(PAGE_TABLE)
@@ -1329,11 +1353,6 @@ pub extern "C" fn migrate() {
                 .unwrap_or_revert_with(NFTCoreError::FailedToCreateDictionary);
             storage::new_dictionary(INDEX_BY_HASH)
                 .unwrap_or_revert_with(NFTCoreError::FailedToCreateDictionary);
-            let current_number_of_minted_tokens = utils::get_stored_value_with_user_errors::<u64>(
-                NUMBER_OF_MINTED_TOKENS,
-                NFTCoreError::MissingNumberOfMintedTokens,
-                NFTCoreError::InvalidNumberOfMintedTokens,
-            );
             runtime::put_key(
                 UNMATCHED_HASH_COUNT,
                 storage::new_uref(current_number_of_minted_tokens).into(),
@@ -2006,13 +2025,20 @@ fn migrate_contract(access_key_name: String, package_key_name: String) {
         storage::new_uref(contract_version).into(),
     );
 
-    runtime::call_contract::<()>(
-        contract_hash,
-        ENTRY_POINT_MIGRATE,
-        runtime_args! {
-            ARG_NFT_PACKAGE_HASH => nft_contact_package_hash
-        },
-    );
+    let mut runtime_args = runtime_args! {
+        ARG_NFT_PACKAGE_HASH => nft_contact_package_hash
+    };
+
+    if let Some(new_token_supply) = get_optional_named_arg_with_user_errors::<u64>(
+        ARG_TOTAL_TOKEN_SUPPLY,
+        NFTCoreError::InvalidTotalTokenSupply,
+    ) {
+        runtime_args
+            .insert(ARG_TOTAL_TOKEN_SUPPLY, new_token_supply)
+            .unwrap_or_revert();
+    }
+
+    runtime::call_contract::<()>(contract_hash, ENTRY_POINT_MIGRATE, runtime_args);
 }
 
 #[no_mangle]

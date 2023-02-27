@@ -10,10 +10,11 @@ use crate::utility::{
         ACCESS_KEY_NAME_1_0_0, ACCOUNT_USER_1, ARG_ACCESS_KEY_NAME_1_0_0, ARG_COLLECTION_NAME,
         ARG_HASH_KEY_NAME_1_0_0, ARG_IS_HASH_IDENTIFIER_MODE, ARG_NAMED_KEY_CONVENTION,
         ARG_NFT_CONTRACT_HASH, ARG_NFT_PACKAGE_HASH, ARG_SOURCE_KEY, ARG_TARGET_KEY,
-        ARG_TOKEN_HASH, ARG_TOKEN_META_DATA, ARG_TOKEN_OWNER, CONTRACT_1_0_0_WASM,
-        ENTRY_POINT_REGISTER_OWNER, MANGLE_NAMED_KEYS, MINT_1_0_0_WASM, MINT_SESSION_WASM,
-        NFT_CONTRACT_WASM, NFT_TEST_COLLECTION, NFT_TEST_SYMBOL, PAGE_LIMIT, PAGE_SIZE,
-        RECEIPT_NAME, TRANSFER_SESSION_WASM, UNMATCHED_HASH_COUNT, UPDATED_RECEIPTS_WASM,
+        ARG_TOKEN_HASH, ARG_TOKEN_META_DATA, ARG_TOKEN_OWNER, ARG_TOTAL_TOKEN_SUPPLY,
+        CONTRACT_1_0_0_WASM, ENTRY_POINT_REGISTER_OWNER, MANGLE_NAMED_KEYS, MINT_1_0_0_WASM,
+        MINT_SESSION_WASM, NFT_CONTRACT_WASM, NFT_TEST_COLLECTION, NFT_TEST_SYMBOL, PAGE_LIMIT,
+        PAGE_SIZE, RECEIPT_NAME, TRANSFER_SESSION_WASM, UNMATCHED_HASH_COUNT,
+        UPDATED_RECEIPTS_WASM,
     },
     installer_request_builder::{
         InstallerRequestBuilder, MetadataMutability, NFTIdentifierMode, NFTMetadataKind,
@@ -235,7 +236,8 @@ fn should_safely_upgrade_in_hash_identifier_mode() {
             ARG_NFT_PACKAGE_HASH => support::get_nft_contract_package_hash(&builder),
             ARG_COLLECTION_NAME => NFT_TEST_COLLECTION.to_string(),
             ARG_NAMED_KEY_CONVENTION => NamedKeyConventionMode::V1_0Standard as u8,
-            ARG_ACCESS_KEY_NAME_1_0_0 => ACCESS_KEY_NAME_1_0_0.to_string()
+            ARG_ACCESS_KEY_NAME_1_0_0 => ACCESS_KEY_NAME_1_0_0.to_string(),
+            ARG_TOTAL_TOKEN_SUPPLY => 10u64
         },
     )
     .build();
@@ -253,6 +255,15 @@ fn should_safely_upgrade_in_hash_identifier_mode() {
     .expect("must get u64 value");
 
     assert_eq!(number_of_tokens_at_upgrade, 3);
+
+    let total_token_supply_post_upgrade = support::get_stored_value_from_global_state::<u64>(
+        &builder,
+        nft_contract_key,
+        vec![ARG_TOTAL_TOKEN_SUPPLY.to_string()],
+    )
+    .expect("must get u64 value");
+
+    assert_eq!(total_token_supply_post_upgrade, 10);
 
     let token_metadata = support::CEP78Metadata::with_random_checksum(
         "Some Name".to_string(),
