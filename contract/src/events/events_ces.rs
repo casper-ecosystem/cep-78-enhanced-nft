@@ -1,4 +1,7 @@
-use alloc::{string::{String, ToString}, vec::Vec};
+use alloc::{
+    string::{String, ToString},
+    vec::Vec,
+};
 
 use casper_event_standard::Event;
 use casper_types::Key;
@@ -30,8 +33,8 @@ pub struct Burn {
 
 impl Burn {
     pub fn new(owner: Key, token_id: TokenIdentifier) -> Self {
-        Self { 
-            owner, 
+        Self {
+            owner,
             token_id: token_id.to_string(),
         }
     }
@@ -66,7 +69,10 @@ impl ApprovalForAll {
         Self {
             owner,
             operator,
-            token_ids: token_ids.iter().map(|token_id| token_id.to_string()).collect(),
+            token_ids: token_ids
+                .iter()
+                .map(|token_id| token_id.to_string())
+                .collect(),
         }
     }
 }
@@ -103,9 +109,9 @@ pub struct MetadataUpdated {
 
 impl MetadataUpdated {
     pub fn new(token_id: TokenIdentifier, data: String) -> Self {
-        Self { 
+        Self {
             token_id: token_id.to_string(),
-            data 
+            data,
         }
     }
 }
