@@ -23,16 +23,18 @@ use casper_types::{
 
 use crate::{
     constants::{
-        ARG_TOKEN_HASH, ARG_TOKEN_ID, HOLDER_MODE, OWNERSHIP_MODE, PAGE_DICTIONARY_PREFIX,
-        PAGE_LIMIT, RECEIPT_NAME, REPORTING_MODE, BURNT_TOKENS, BURN_MODE, HASH_BY_INDEX, IDENTIFIER_MODE, INDEX_BY_HASH,
-        NUMBER_OF_MINTED_TOKENS, OWNED_TOKENS, PAGE_TABLE, TOKEN_OWNERS, UNMATCHED_HASH_COUNT,
+        ARG_TOKEN_HASH, ARG_TOKEN_ID, BURNT_TOKENS, BURN_MODE, HASH_BY_INDEX, HOLDER_MODE,
+        IDENTIFIER_MODE, INDEX_BY_HASH, MIGRATION_FLAG, NUMBER_OF_MINTED_TOKENS, OWNED_TOKENS,
+        OWNERSHIP_MODE, PAGE_DICTIONARY_PREFIX, PAGE_LIMIT, PAGE_TABLE, RECEIPT_NAME,
+        REPORTING_MODE, RLO_MFLAG, TOKEN_OWNERS, UNMATCHED_HASH_COUNT,
     },
     error::NFTCoreError,
     events::events_ces::{
         Approval, ApprovalForAll, Burn, MetadataUpdated, Migration, Mint, Transfer, VariablesSet,
     },
     modalities::{
-        NFTHolderMode, NFTIdentifierMode, OwnerReverseLookupMode, OwnershipMode, TokenIdentifier,BurnMode,
+        BurnMode, NFTHolderMode, NFTIdentifierMode, OwnerReverseLookupMode, OwnershipMode,
+        TokenIdentifier,
     },
     utils,
 };
@@ -169,11 +171,7 @@ pub fn get_named_arg_with_user_errors<T: FromBytes>(
     bytesrepr::deserialize(arg_bytes).map_err(|_| invalid)
 }
 
-pub fn get_account_hash(
-    name: &str,
-    missing: NFTCoreError,
-    invalid: NFTCoreError,
-) -> AccountHash {
+pub fn get_account_hash(name: &str, missing: NFTCoreError, invalid: NFTCoreError) -> AccountHash {
     let key = get_key_with_user_errors(name, missing, invalid);
     key.into_account()
         .unwrap_or_revert_with(NFTCoreError::UnexpectedKeyVariant)
@@ -648,7 +646,7 @@ pub fn get_owned_token_ids_by_token_number() -> Vec<TokenIdentifier> {
 
     let mut token_identifiers: Vec<TokenIdentifier> = vec![];
 
-    for token_number in 0..=current_number_of_minted_tokens {
+    for token_number in 0..current_number_of_minted_tokens {
         let token_identifier = match identifier_mode {
             NFTIdentifierMode::Ordinal => TokenIdentifier::new_index(token_number),
             NFTIdentifierMode::Hash => {
@@ -751,4 +749,30 @@ pub fn init_events() {
         .with::<VariablesSet>()
         .with::<Migration>();
     casper_event_standard::init(schemas);
+}
+
+pub fn requires_rlo_migration() -> bool {
+    match runtime::get_key(MIGRATION_FLAG) {
+        Some(migration_flag_key) => {
+            let migration_uref = migration_flag_key
+                .into_uref()
+                .unwrap_or_revert_with(NFTCoreError::InvalidKey);
+            let has_rlo_migration = storage::read::<bool>(migration_uref)
+                .unwrap_or_revert()
+                .unwrap_or_revert();
+            runtime::remove_key(MIGRATION_FLAG);
+            !has_rlo_migration
+        }
+        None => match runtime::get_key(RLO_MFLAG) {
+            Some(rlo_flag_key) => {
+                let rlo_flag_uref = rlo_flag_key
+                    .into_uref()
+                    .unwrap_or_revert_with(NFTCoreError::InvalidKey);
+                storage::read::<bool>(rlo_flag_uref)
+                    .unwrap_or_revert()
+                    .unwrap_or_revert()
+            }
+            None => true,
+        },
+    }
 }

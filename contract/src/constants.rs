@@ -71,9 +71,9 @@ pub const PAGE_DICTIONARY_PREFIX: &str = "page_";
 pub const PAGE_LIMIT: &str = "page_limit";
 pub const UNMATCHED_HASH_COUNT: &str = "unmatched_hash_count";
 pub const MIGRATION_FLAG: &str = "migration_flag";
+pub const RLO_MFLAG: &str = "rlo_mflag";
 pub const REPORTING_MODE: &str = "reporting_mode";
 pub const EVENTS: &str = "events";
-pub const EVENT_ID_TRACKER: &str = "id_tracker";
 pub const EVENTS_MODE: &str = "events_mode";
 
 pub const ENTRY_POINT_INIT: &str = "init";

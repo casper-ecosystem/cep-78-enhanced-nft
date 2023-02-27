@@ -545,7 +545,7 @@ fn should_not_burn_in_non_burn_mode() {
 }
 
 #[test]
-fn should_check_for_burnt_tokens_during_approve_all() {
+fn should_let_approve_all_with_burnt_tokens() {
     let mut builder = InMemoryWasmTestBuilder::default();
     builder.run_genesis(&DEFAULT_RUN_GENESIS_REQUEST).commit();
 
@@ -602,10 +602,7 @@ fn should_check_for_burnt_tokens_during_approve_all() {
     )
     .build();
 
-    builder.exec(approve_all_request).expect_failure();
-
-    let error = builder.get_error().expect("burn must have failed");
-    support::assert_expected_error(error, 42, "PreviouslyBurntToken(42) must have been raised");
+    builder.exec(approve_all_request).expect_success().commit();
 }
 
 #[test]
