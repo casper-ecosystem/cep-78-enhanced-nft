@@ -135,7 +135,7 @@ pub(crate) fn get_metadata_schema(kind: &NFTMetadataKind) -> CustomMetadataSchem
                 NFTCoreError::InvalidJsonSchema,
             );
 
-            casper_serde_json_wasm::from_str::<CustomMetadataSchema>(&custom_schema_json)
+            serde_json_wasm::from_str::<CustomMetadataSchema>(&custom_schema_json)
                 .map_err(|_| NFTCoreError::InvalidJsonSchema)
                 .unwrap_or_revert()
         }
@@ -197,7 +197,7 @@ pub(crate) fn validate_metadata(
     let token_schema = get_metadata_schema(metadata_kind);
     match metadata_kind {
         NFTMetadataKind::CEP78 => {
-            let metadata = casper_serde_json_wasm::from_str::<MetadataCEP78>(&token_metadata)
+            let metadata = serde_json_wasm::from_str::<MetadataCEP78>(&token_metadata)
                 .map_err(|_| NFTCoreError::FailedToParseCep99Metadata)?;
 
             if let Some(name_property) = token_schema.properties.get("name") {
@@ -215,11 +215,11 @@ pub(crate) fn validate_metadata(
                     runtime::revert(NFTCoreError::InvalidCEP99Metadata)
                 }
             }
-            casper_serde_json_wasm::to_string_pretty(&metadata)
+            serde_json::to_string_pretty(&metadata)
                 .map_err(|_| NFTCoreError::FailedToJsonifyCEP99Metadata)
         }
         NFTMetadataKind::NFT721 => {
-            let metadata = casper_serde_json_wasm::from_str::<MetadataNFT721>(&token_metadata)
+            let metadata = serde_json_wasm::from_str::<MetadataNFT721>(&token_metadata)
                 .map_err(|_| NFTCoreError::FailedToParse721Metadata)?;
 
             if let Some(name_property) = token_schema.properties.get("name") {
@@ -237,13 +237,13 @@ pub(crate) fn validate_metadata(
                     runtime::revert(NFTCoreError::InvalidNFT721Metadata)
                 }
             }
-            casper_serde_json_wasm::to_string_pretty(&metadata)
+            serde_json::to_string_pretty(&metadata)
                 .map_err(|_| NFTCoreError::FailedToJsonifyNFT721Metadata)
         }
         NFTMetadataKind::Raw => Ok(token_metadata),
         NFTMetadataKind::CustomValidated => {
             let custom_metadata =
-                casper_serde_json_wasm::from_str::<BTreeMap<String, String>>(&token_metadata)
+                serde_json_wasm::from_str::<BTreeMap<String, String>>(&token_metadata)
                     .map(|attributes| CustomMetadata { attributes })
                     .map_err(|_| NFTCoreError::FailedToParseCustomMetadata)?;
 
@@ -253,7 +253,7 @@ pub(crate) fn validate_metadata(
                     runtime::revert(NFTCoreError::InvalidCustomMetadata)
                 }
             }
-            casper_serde_json_wasm::to_string_pretty(&custom_metadata.attributes)
+            serde_json::to_string_pretty(&custom_metadata.attributes)
                 .map_err(|_| NFTCoreError::FailedToJsonifyCustomMetadata)
         }
     }
