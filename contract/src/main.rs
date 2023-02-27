@@ -240,7 +240,7 @@ pub extern "C" fn init() {
         if required_or_optional == &Requirement::Required
             || required_or_optional == &Requirement::Optional
         {
-            casper_serde_json_wasm::from_str::<CustomMetadataSchema>(&json_schema)
+            serde_json_wasm::from_str::<CustomMetadataSchema>(&json_schema)
                 .map_err(|_| NFTCoreError::InvalidJsonSchema)
                 .unwrap_or_revert();
         }
