@@ -152,6 +152,7 @@ pub enum NFTCoreError {
     InvalidRequirement = 147,
     MissingEventsMode = 148,
     InvalidEventsMode = 149,
+    CannotUpgradeToMoreSupply = 150,
 }
 
 impl From<NFTCoreError> for ApiError {
