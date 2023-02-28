@@ -5,7 +5,8 @@ use casper_engine_test_support::{
 use casper_event_standard::Schemas;
 use casper_types::{runtime_args, CLValue, ContractHash, RuntimeArgs};
 use contract::events::events_ces::{
-    Approval, ApprovalForAll, Burn, MetadataUpdated, Migration, Mint, Transfer, VariablesSet,
+    Approval, ApprovalForAll, ApprovalRevoked, Burn, MetadataUpdated, Migration, Mint, Transfer,
+    VariablesSet,
 };
 
 use crate::utility::{
@@ -112,6 +113,7 @@ fn should_install_contract() {
         .with::<Mint>()
         .with::<Burn>()
         .with::<Approval>()
+        .with::<ApprovalRevoked>()
         .with::<ApprovalForAll>()
         .with::<Transfer>()
         .with::<MetadataUpdated>()

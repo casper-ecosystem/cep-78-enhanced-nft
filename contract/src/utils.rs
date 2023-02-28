@@ -30,7 +30,8 @@ use crate::{
     },
     error::NFTCoreError,
     events::events_ces::{
-        Approval, ApprovalForAll, Burn, MetadataUpdated, Migration, Mint, Transfer, VariablesSet,
+        Approval, ApprovalForAll, ApprovalRevoked, Burn, MetadataUpdated, Migration, Mint,
+        Transfer, VariablesSet,
     },
     modalities::{
         BurnMode, NFTHolderMode, NFTIdentifierMode, OwnerReverseLookupMode, OwnershipMode,
@@ -743,6 +744,7 @@ pub fn init_events() {
         .with::<Mint>()
         .with::<Burn>()
         .with::<Approval>()
+        .with::<ApprovalRevoked>()
         .with::<ApprovalForAll>()
         .with::<Transfer>()
         .with::<MetadataUpdated>()

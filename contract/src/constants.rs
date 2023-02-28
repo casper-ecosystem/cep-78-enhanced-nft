@@ -30,6 +30,7 @@ pub const ARG_HASH_KEY_NAME_1_0_0: &str = "hash_key_name";
 pub const ARG_EVENTS_MODE: &str = "events_mode";
 
 pub const OPERATOR: &str = "operator";
+pub const APPROVED: &str = "approved";
 pub const NUMBER_OF_MINTED_TOKENS: &str = "number_of_minted_tokens";
 pub const INSTALLER: &str = "installer";
 pub const JSON_SCHEMA: &str = "json_schema";
@@ -82,6 +83,7 @@ pub const ENTRY_POINT_MINT: &str = "mint";
 pub const ENTRY_POINT_BURN: &str = "burn";
 pub const ENTRY_POINT_TRANSFER: &str = "transfer";
 pub const ENTRY_POINT_APPROVE: &str = "approve";
+pub const ENTRY_POINT_REVOKE: &str = "revoke";
 pub const ENTRY_POINT_BALANCE_OF: &str = "balance_of";
 pub const ENTRY_POINT_OWNER_OF: &str = "owner_of";
 pub const ENTRY_POINT_GET_APPROVED: &str = "get_approved";

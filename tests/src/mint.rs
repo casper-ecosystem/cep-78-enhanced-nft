@@ -1,4 +1,5 @@
 use contract::{
+    constants::APPROVED,
     events::events_ces::{ApprovalForAll, Mint},
     modalities::TokenIdentifier,
 };
@@ -174,7 +175,7 @@ fn entry_points_with_ret_should_return_correct_value() {
     .build();
     builder.exec(approve_request).expect_success().commit();
 
-    let actual_operator: Option<Key> = call_session_code_with_ret(
+    let actual_approved_account: Option<Key> = call_session_code_with_ret(
         &mut builder,
         account_hash,
         nft_contract_key,
@@ -186,11 +187,11 @@ fn entry_points_with_ret_should_return_correct_value() {
         RETURNED_VALUE_STORAGE_KEY,
     );
 
-    let expected_operator = Key::Account(AccountHash::new(ACCOUNT_USER_1));
+    let expected_approved_account = Key::Account(AccountHash::new(ACCOUNT_USER_1));
     assert_eq!(
-        actual_operator,
-        Some(expected_operator),
-        "actual and expected operator should be equal"
+        actual_approved_account,
+        Some(expected_approved_account),
+        "actual and expected approved account should be equal"
     );
 }
 
@@ -1415,7 +1416,7 @@ fn should_approve_in_hash_identifier_mode() {
     let token_hash: String =
         base16::encode_lower(&support::create_blake2b_hash(TEST_PRETTY_721_META_DATA));
 
-    let operator = Key::Account(AccountHash::new([7u8; 32]));
+    let spender = Key::Account(AccountHash::new([7u8; 32]));
 
     let approve_request = ExecuteRequestBuilder::contract_call_by_hash(
         *DEFAULT_ACCOUNT_ADDR,
@@ -1423,21 +1424,21 @@ fn should_approve_in_hash_identifier_mode() {
         ENTRY_POINT_APPROVE,
         runtime_args! {
             ARG_TOKEN_HASH => token_hash.clone(),
-            ARG_OPERATOR => operator
+            ARG_OPERATOR => spender
         },
     )
     .build();
 
     builder.exec(approve_request).expect_success().commit();
 
-    let maybe_approved_operator = support::get_dictionary_value_from_key::<Option<Key>>(
+    let maybe_approved_account = support::get_dictionary_value_from_key::<Option<Key>>(
         &builder,
         &nft_contract_key,
-        OPERATOR,
+        APPROVED,
         &token_hash,
     );
 
-    assert_eq!(maybe_approved_operator, Some(operator))
+    assert_eq!(maybe_approved_account, Some(spender))
 }
 
 #[test]

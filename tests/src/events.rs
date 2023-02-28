@@ -8,7 +8,8 @@ use casper_types::{account::AccountHash, runtime_args, Key, RuntimeArgs};
 
 use contract::{
     constants::{
-        ARG_ACCESS_KEY_NAME_1_0_0, ARG_EVENTS_MODE, ARG_NAMED_KEY_CONVENTION, ARG_NFT_PACKAGE_HASH,
+        APPROVED, ARG_ACCESS_KEY_NAME_1_0_0, ARG_EVENTS_MODE, ARG_NAMED_KEY_CONVENTION,
+        ARG_NFT_PACKAGE_HASH,
     },
     modalities::{EventsMode, NamedKeyConventionMode},
 };
@@ -513,7 +514,7 @@ fn should_cep47_dictionary_style_approve_event_in_hash_identifier_mode() {
     let token_hash: String =
         base16::encode_lower(&support::create_blake2b_hash(TEST_PRETTY_721_META_DATA));
 
-    let operator = Key::Account(AccountHash::new([7u8; 32]));
+    let spender = Key::Account(AccountHash::new([7u8; 32]));
 
     let approve_request = ExecuteRequestBuilder::contract_call_by_hash(
         *DEFAULT_ACCOUNT_ADDR,
@@ -521,21 +522,21 @@ fn should_cep47_dictionary_style_approve_event_in_hash_identifier_mode() {
         ENTRY_POINT_APPROVE,
         runtime_args! {
             ARG_TOKEN_HASH => token_hash.clone(),
-            ARG_OPERATOR => operator
+            ARG_OPERATOR => spender
         },
     )
     .build();
 
     builder.exec(approve_request).expect_success().commit();
 
-    let maybe_approved_operator = get_dictionary_value_from_key::<Option<Key>>(
+    let maybe_approved_spender = get_dictionary_value_from_key::<Option<Key>>(
         &builder,
         &nft_contract_key,
-        OPERATOR,
+        APPROVED,
         &token_hash,
     );
 
-    assert_eq!(maybe_approved_operator, Some(operator));
+    assert_eq!(maybe_approved_spender, Some(spender));
 
     let event = get_dictionary_value_from_key::<BTreeMap<String, String>>(
         &builder,
