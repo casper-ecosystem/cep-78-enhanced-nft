@@ -8,23 +8,23 @@ use casper_types::{account::AccountHash, runtime_args, Key, RuntimeArgs};
 
 use contract::{
     constants::{
-        APPROVED, ARG_ACCESS_KEY_NAME_1_0_0, ARG_EVENTS_MODE, ARG_NAMED_KEY_CONVENTION,
-        ARG_NFT_PACKAGE_HASH,
+        ACCESS_KEY_NAME_1_0_0, APPROVED, ARG_ACCESS_KEY_NAME_1_0_0, ARG_COLLECTION_NAME,
+        ARG_EVENTS_MODE, ARG_NAMED_KEY_CONVENTION, ARG_NFT_PACKAGE_HASH, ARG_OPERATOR,
+        ARG_SOURCE_KEY, ARG_TARGET_KEY, ARG_TOKEN_HASH, ARG_TOKEN_ID, ARG_TOKEN_META_DATA,
+        ARG_TOKEN_OWNER, BURNT_TOKENS, ENTRY_POINT_APPROVE, ENTRY_POINT_BURN,
+        ENTRY_POINT_REGISTER_OWNER, ENTRY_POINT_SET_TOKEN_METADATA, METADATA_CEP78,
+        METADATA_CUSTOM_VALIDATED, METADATA_NFT721, METADATA_RAW, TOKEN_COUNTS,
     },
     modalities::{EventsMode, NamedKeyConventionMode},
 };
 
 use crate::utility::{
     constants::{
-        ACCESS_KEY_NAME_1_0_0, ARG_COLLECTION_NAME, ARG_IS_HASH_IDENTIFIER_MODE,
-        ARG_NFT_CONTRACT_HASH, ARG_OPERATOR, ARG_SOURCE_KEY, ARG_TARGET_KEY, ARG_TOKEN_HASH,
-        ARG_TOKEN_ID, ARG_TOKEN_META_DATA, ARG_TOKEN_OWNER, BALANCES, BURNT_TOKENS,
-        CONTRACT_1_0_0_WASM, CONTRACT_NAME, ENTRY_POINT_APPROVE, ENTRY_POINT_BURN,
-        ENTRY_POINT_REGISTER_OWNER, ENTRY_POINT_SET_TOKEN_METADATA, METADATA_CEP78,
-        METADATA_CUSTOM_VALIDATED, METADATA_NFT721, METADATA_RAW, MINT_1_0_0_WASM,
-        MINT_SESSION_WASM, NFT_CONTRACT_WASM, NFT_TEST_COLLECTION, NFT_TEST_SYMBOL, OPERATOR,
-        TEST_PRETTY_721_META_DATA, TEST_PRETTY_CEP78_METADATA, TEST_PRETTY_UPDATED_721_META_DATA,
-        TEST_PRETTY_UPDATED_CEP78_METADATA, TRANSFER_SESSION_WASM,
+        ARG_IS_HASH_IDENTIFIER_MODE, ARG_NFT_CONTRACT_HASH, CONTRACT_1_0_0_WASM, CONTRACT_NAME,
+        MINT_1_0_0_WASM, MINT_SESSION_WASM, NFT_CONTRACT_WASM, NFT_TEST_COLLECTION,
+        NFT_TEST_SYMBOL, TEST_PRETTY_721_META_DATA, TEST_PRETTY_CEP78_METADATA,
+        TEST_PRETTY_UPDATED_721_META_DATA, TEST_PRETTY_UPDATED_CEP78_METADATA,
+        TRANSFER_SESSION_WASM,
     },
     installer_request_builder::{
         InstallerRequestBuilder, MetadataMutability, NFTIdentifierMode, NFTMetadataKind,
@@ -411,7 +411,7 @@ fn should_cep47_dictionary_style_burn_event() {
     let actual_balance_before_burn = get_dictionary_value_from_key::<u64>(
         &builder,
         nft_contract_key,
-        BALANCES,
+        TOKEN_COUNTS,
         &DEFAULT_ACCOUNT_ADDR.clone().to_string(),
     );
 
@@ -441,7 +441,7 @@ fn should_cep47_dictionary_style_burn_event() {
     let actual_balance = get_dictionary_value_from_key::<u64>(
         &builder,
         nft_contract_key,
-        BALANCES,
+        TOKEN_COUNTS,
         &DEFAULT_ACCOUNT_ADDR.clone().to_string(),
     );
 
@@ -726,7 +726,7 @@ fn should_not_record_events_in_no_events_mode() {
     let actual_balance = get_dictionary_value_from_key::<u64>(
         &builder,
         nft_contract_key,
-        BALANCES,
+        TOKEN_COUNTS,
         &DEFAULT_ACCOUNT_ADDR.clone().to_string(),
     );
 

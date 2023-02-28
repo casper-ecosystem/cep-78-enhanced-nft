@@ -7,20 +7,22 @@ use casper_types::{
     SecretKey, U512,
 };
 use contract::{
+    constants::{
+        APPROVED, ARG_COLLECTION_NAME, ARG_CONTRACT_WHITELIST, ARG_OPERATOR, ARG_SOURCE_KEY,
+        ARG_TARGET_KEY, ARG_TOKEN_HASH, ARG_TOKEN_ID, ARG_TOKEN_META_DATA, ARG_TOKEN_OWNER,
+        ENTRY_POINT_APPROVE, ENTRY_POINT_MINT, ENTRY_POINT_REGISTER_OWNER, ENTRY_POINT_REVOKE,
+        ENTRY_POINT_TRANSFER, PAGE_TABLE, TOKEN_COUNTS, TOKEN_OWNERS,
+    },
     events::events_ces::{Approval, ApprovalRevoked, Transfer},
     modalities::TokenIdentifier,
 };
 
 use crate::utility::{
     constants::{
-        ACCOUNT_USER_1, ACCOUNT_USER_2, ACCOUNT_USER_3, APPROVED, ARG_COLLECTION_NAME,
-        ARG_CONTRACT_WHITELIST, ARG_IS_HASH_IDENTIFIER_MODE, ARG_MINTING_CONTRACT_REVERSE_LOOKUP,
-        ARG_NFT_CONTRACT_HASH, ARG_OPERATOR, ARG_SOURCE_KEY, ARG_TARGET_KEY, ARG_TOKEN_HASH,
-        ARG_TOKEN_ID, ARG_TOKEN_META_DATA, ARG_TOKEN_OWNER, BALANCES, CONTRACT_NAME,
-        ENTRY_POINT_APPROVE, ENTRY_POINT_MINT, ENTRY_POINT_REGISTER_OWNER, ENTRY_POINT_REVOKE,
-        ENTRY_POINT_TRANSFER, MINTING_CONTRACT_WASM, MINT_SESSION_WASM, NFT_CONTRACT_WASM,
-        NFT_TEST_COLLECTION, NFT_TEST_SYMBOL, OPERATOR, PAGE_TABLE, TEST_PRETTY_721_META_DATA,
-        TOKEN_OWNERS, TRANSFER_SESSION_WASM,
+        ACCOUNT_USER_1, ACCOUNT_USER_2, ACCOUNT_USER_3, ARG_IS_HASH_IDENTIFIER_MODE,
+        ARG_MINTING_CONTRACT_REVERSE_LOOKUP, ARG_NFT_CONTRACT_HASH, CONTRACT_NAME,
+        MINTING_CONTRACT_WASM, MINT_SESSION_WASM, NFT_CONTRACT_WASM, NFT_TEST_COLLECTION,
+        NFT_TEST_SYMBOL, TEST_PRETTY_721_META_DATA, TRANSFER_SESSION_WASM,
     },
     installer_request_builder::{
         InstallerRequestBuilder, MetadataMutability, MintingMode, NFTHolderMode, NFTIdentifierMode,
@@ -84,7 +86,7 @@ fn should_dissallow_transfer_with_minter_or_assigned_ownership_mode() {
     let actual_owner_balance: u64 = support::get_dictionary_value_from_key(
         &builder,
         nft_contract_key,
-        BALANCES,
+        TOKEN_COUNTS,
         &token_owner.to_string(),
     );
     let expected_owner_balance = 1u64;
@@ -171,7 +173,7 @@ fn should_transfer_token_from_sender_to_receiver() {
     let actual_owner_balance: u64 = support::get_dictionary_value_from_key(
         &builder,
         &nft_contract_key,
-        BALANCES,
+        TOKEN_COUNTS,
         &token_owner.to_string(),
     );
     let expected_owner_balance = 1u64;
@@ -228,7 +230,7 @@ fn should_transfer_token_from_sender_to_receiver() {
     let actual_sender_balance: u64 = support::get_dictionary_value_from_key(
         &builder,
         &nft_contract_key,
-        BALANCES,
+        TOKEN_COUNTS,
         &token_owner.to_string(),
     );
     let expected_sender_balance = 0u64;
@@ -237,7 +239,7 @@ fn should_transfer_token_from_sender_to_receiver() {
     let actual_receiver_balance: u64 = support::get_dictionary_value_from_key(
         &builder,
         &nft_contract_key,
-        BALANCES,
+        TOKEN_COUNTS,
         &token_receiver.to_string(),
     );
     let expected_receiver_balance = 1u64;

@@ -5,15 +5,20 @@ use casper_engine_test_support::{
 use casper_types::{
     account::AccountHash, runtime_args, system::mint, ContractHash, Key, RuntimeArgs,
 };
-use contract::{events::events_ces::Burn, modalities::TokenIdentifier};
+use contract::{
+    constants::{
+        ARG_APPROVE_ALL, ARG_COLLECTION_NAME, ARG_OPERATOR, ARG_TOKEN_HASH, ARG_TOKEN_ID,
+        ARG_TOKEN_META_DATA, ARG_TOKEN_OWNER, BURNT_TOKENS, ENTRY_POINT_BURN, ENTRY_POINT_MINT,
+        ENTRY_POINT_SET_APPROVE_FOR_ALL, TOKEN_COUNTS,
+    },
+    events::events_ces::Burn,
+    modalities::TokenIdentifier,
+};
 
 use crate::utility::{
     constants::{
-        ACCOUNT_USER_1, ARG_APPROVE_ALL, ARG_COLLECTION_NAME, ARG_NFT_CONTRACT_HASH, ARG_OPERATOR,
-        ARG_TOKEN_HASH, ARG_TOKEN_ID, ARG_TOKEN_META_DATA, ARG_TOKEN_OWNER, BALANCES, BURNT_TOKENS,
-        CONTRACT_NAME, ENTRY_POINT_BURN, ENTRY_POINT_MINT, ENTRY_POINT_SET_APPROVE_FOR_ALL,
-        MINTING_CONTRACT_WASM, MINT_SESSION_WASM, NFT_CONTRACT_WASM, NFT_TEST_COLLECTION,
-        TEST_PRETTY_721_META_DATA, TOKEN_COUNTS,
+        ACCOUNT_USER_1, ARG_NFT_CONTRACT_HASH, CONTRACT_NAME, MINTING_CONTRACT_WASM,
+        MINT_SESSION_WASM, NFT_CONTRACT_WASM, NFT_TEST_COLLECTION, TEST_PRETTY_721_META_DATA,
     },
     installer_request_builder::{
         BurnMode, InstallerRequestBuilder, MetadataMutability, MintingMode, NFTHolderMode,
@@ -73,7 +78,7 @@ fn should_burn_minted_token() {
     let actual_balance_before_burn = support::get_dictionary_value_from_key::<u64>(
         &builder,
         nft_contract_key,
-        BALANCES,
+        TOKEN_COUNTS,
         &DEFAULT_ACCOUNT_ADDR.clone().to_string(),
     );
 
@@ -103,7 +108,7 @@ fn should_burn_minted_token() {
     let actual_balance = support::get_dictionary_value_from_key::<u64>(
         &builder,
         nft_contract_key,
-        BALANCES,
+        TOKEN_COUNTS,
         &DEFAULT_ACCOUNT_ADDR.clone().to_string(),
     );
 

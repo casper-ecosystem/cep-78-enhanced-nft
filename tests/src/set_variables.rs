@@ -3,12 +3,14 @@ use casper_engine_test_support::{
     DEFAULT_RUN_GENESIS_REQUEST,
 };
 use casper_types::{runtime_args, ContractHash, Key, RuntimeArgs};
-use contract::events::events_ces::VariablesSet;
+use contract::{
+    constants::{ARG_ALLOW_MINTING, ENTRY_POINT_SET_VARIABLES},
+    events::events_ces::VariablesSet,
+};
 
 use crate::utility::{
     constants::{
-        ACCOUNT_USER_1, ARG_ALLOW_MINTING, CONTRACT_NAME, ENTRY_POINT_SET_VARIABLES,
-        NFT_CONTRACT_WASM, NFT_TEST_COLLECTION, NFT_TEST_SYMBOL,
+        ACCOUNT_USER_1, CONTRACT_NAME, NFT_CONTRACT_WASM, NFT_TEST_COLLECTION, NFT_TEST_SYMBOL,
     },
     installer_request_builder::{InstallerRequestBuilder, OwnerReverseLookupMode},
     support,

@@ -1,18 +1,21 @@
 use std::fmt::Debug;
 
 use crate::utility::constants::{
-    ARG_KEY_NAME, ARG_NFT_CONTRACT_HASH, HASH_KEY_NAME, INDEX_BY_HASH, MINTING_CONTRACT_NAME,
-    PAGE_DICTIONARY_PREFIX, PAGE_SIZE,
+    ARG_KEY_NAME, ARG_NFT_CONTRACT_HASH, MINTING_CONTRACT_NAME, PAGE_SIZE,
 };
 use blake2::{
     digest::{Update, VariableOutput},
     VarBlake2b,
 };
+use contract::constants::{INDEX_BY_HASH, PAGE_DICTIONARY_PREFIX};
 use rand::prelude::*;
 use serde::{Deserialize, Serialize};
 use sha256::digest;
 
-use super::{constants::CONTRACT_NAME, installer_request_builder::InstallerRequestBuilder};
+use super::{
+    constants::{CONTRACT_NAME, HASH_KEY_NAME},
+    installer_request_builder::InstallerRequestBuilder,
+};
 use casper_engine_test_support::{
     ExecuteRequestBuilder, InMemoryWasmTestBuilder, WasmTestBuilder, DEFAULT_ACCOUNT_ADDR,
     DEFAULT_RUN_GENESIS_REQUEST,

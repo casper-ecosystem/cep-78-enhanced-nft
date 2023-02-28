@@ -1,5 +1,12 @@
 use std::collections::BTreeMap;
 
+use contract::constants::{
+    ARG_ALLOW_MINTING, ARG_BURN_MODE, ARG_COLLECTION_NAME, ARG_COLLECTION_SYMBOL,
+    ARG_CONTRACT_WHITELIST, ARG_EVENTS_MODE, ARG_HOLDER_MODE, ARG_IDENTIFIER_MODE, ARG_JSON_SCHEMA,
+    ARG_METADATA_MUTABILITY, ARG_MINTING_MODE, ARG_NAMED_KEY_CONVENTION, ARG_NFT_KIND,
+    ARG_NFT_METADATA_KIND, ARG_OWNERSHIP_MODE, ARG_OWNER_LOOKUP_MODE, ARG_TOTAL_TOKEN_SUPPLY,
+    ARG_WHITELIST_MODE,
+};
 use once_cell::sync::Lazy;
 use serde::{Deserialize, Serialize};
 
@@ -7,13 +14,7 @@ use casper_engine_test_support::ExecuteRequestBuilder;
 use casper_execution_engine::core::engine_state::ExecuteRequest;
 use casper_types::{account::AccountHash, CLValue, ContractHash, RuntimeArgs};
 
-use crate::utility::constants::{
-    ARG_ALLOW_MINTING, ARG_BURN_MODE, ARG_COLLECTION_NAME, ARG_COLLECTION_SYMBOL,
-    ARG_CONTRACT_WHITELIST, ARG_EVENTS_MODE, ARG_HOLDER_MODE, ARG_IDENTIFIER_MODE, ARG_JSON_SCHEMA,
-    ARG_METADATA_MUTABILITY, ARG_MINTING_MODE, ARG_NAMED_KEY_CONVENTION, ARG_NFT_KIND,
-    ARG_NFT_METADATA_KIND, ARG_OWNERSHIP_MODE, ARG_OWNER_LOOKUP_MODE, ARG_TOTAL_TOKEN_SUPPLY,
-    ARG_WHITELIST_MODE, NFT_TEST_COLLECTION, NFT_TEST_SYMBOL,
-};
+use crate::utility::constants::{NFT_TEST_COLLECTION, NFT_TEST_SYMBOL};
 
 // Modalities reexports.
 pub use contract::modalities::{
