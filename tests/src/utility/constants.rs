@@ -13,6 +13,7 @@ pub(crate) const CONTRACT_1_1_O_WASM: &str = "1_1_0/contract.wasm";
 
 pub(crate) const CONTRACT_NAME: &str = "cep78_contract_hash_nft-test";
 pub(crate) const HASH_KEY_NAME: &str = "nft_contract_package";
+pub(crate) const ARG_NFT_PACKAGE_HASH: &str = "nft_package_hash";
 pub(crate) const MINTING_CONTRACT_NAME: &str = "minting_contract_hash";
 pub(crate) const NFT_TEST_COLLECTION: &str = "nft-test";
 pub(crate) const NFT_TEST_SYMBOL: &str = "TEST";
