@@ -9,9 +9,9 @@ use casper_types::{
 use contract::{
     constants::{
         APPROVED, ARG_COLLECTION_NAME, ARG_CONTRACT_WHITELIST, ARG_OPERATOR, ARG_SOURCE_KEY,
-        ARG_TARGET_KEY, ARG_TOKEN_HASH, ARG_TOKEN_ID, ARG_TOKEN_META_DATA, ARG_TOKEN_OWNER,
-        ENTRY_POINT_APPROVE, ENTRY_POINT_MINT, ENTRY_POINT_REGISTER_OWNER, ENTRY_POINT_REVOKE,
-        ENTRY_POINT_TRANSFER, PAGE_TABLE, TOKEN_COUNTS, TOKEN_OWNERS,
+        ARG_SPENDER, ARG_TARGET_KEY, ARG_TOKEN_HASH, ARG_TOKEN_ID, ARG_TOKEN_META_DATA,
+        ARG_TOKEN_OWNER, ENTRY_POINT_APPROVE, ENTRY_POINT_MINT, ENTRY_POINT_REGISTER_OWNER,
+        ENTRY_POINT_REVOKE, ENTRY_POINT_TRANSFER, PAGE_TABLE, TOKEN_COUNTS, TOKEN_OWNERS,
     },
     events::events_ces::{Approval, ApprovalRevoked, Transfer},
     modalities::TokenIdentifier,
@@ -315,7 +315,7 @@ fn approve_token_for_transfer_should_add_entry_to_approved_dictionary(
         ENTRY_POINT_APPROVE,
         runtime_args! {
             ARG_TOKEN_ID => token_id,
-            ARG_OPERATOR => spender_key
+            ARG_SPENDER => spender_key
         },
     )
     .build();
@@ -412,7 +412,7 @@ fn revoke_token_for_transfer_should_remove_entry_to_approved_dictionary(
         ENTRY_POINT_APPROVE,
         runtime_args! {
             ARG_TOKEN_ID => token_id,
-            ARG_OPERATOR => spender_key
+            ARG_SPENDER => spender_key
         },
     )
     .build();
@@ -527,7 +527,7 @@ fn should_dissallow_approving_when_ownership_mode_is_minter_or_assigned() {
         ENTRY_POINT_APPROVE,
         runtime_args! {
             ARG_TOKEN_ID => 0u64,
-            ARG_OPERATOR => spender_key
+            ARG_SPENDER => spender_key
         },
     )
     .build();
@@ -555,7 +555,6 @@ fn should_be_able_to_transfer_token(approving_account: AccountHash, _is_operator
     builder.exec(install_request).expect_success().commit();
 
     // mint token for DEFAULT_ACCOUNT_ADDR
-    let token_owner = DEFAULT_ACCOUNT_PUBLIC_KEY.clone().to_account_hash();
     let nft_contract_hash = get_nft_contract_hash(&builder);
     let nft_contract_key: Key = nft_contract_hash.into();
     let mint_session_call = ExecuteRequestBuilder::standard(
@@ -597,7 +596,7 @@ fn should_be_able_to_transfer_token(approving_account: AccountHash, _is_operator
         ENTRY_POINT_APPROVE,
         runtime_args! {
             ARG_TOKEN_ID => token_id,
-            ARG_OPERATOR => spender_key
+            ARG_SPENDER => spender_key
         },
     )
     .build();
@@ -646,6 +645,7 @@ fn should_be_able_to_transfer_token(approving_account: AccountHash, _is_operator
     builder.exec(register_owner).expect_success().commit();
 
     let token_id = 0u64;
+    let token_owner = DEFAULT_ACCOUNT_PUBLIC_KEY.clone().to_account_hash();
 
     let transfer_request = ExecuteRequestBuilder::standard(
         *DEFAULT_ACCOUNT_ADDR,
@@ -705,7 +705,6 @@ fn should_dissallow_same_approved_account_to_transfer_token_twice() {
         .expect("failed to find nft contract");
 
     // mint token for DEFAULT_ACCOUNT_ADDR
-    let token_owner = DEFAULT_ACCOUNT_PUBLIC_KEY.clone().to_account_hash();
     let nft_contract_key: Key = get_nft_contract_hash(&builder).into();
     let mint_session_call = ExecuteRequestBuilder::standard(
         *DEFAULT_ACCOUNT_ADDR,
@@ -746,7 +745,7 @@ fn should_dissallow_same_approved_account_to_transfer_token_twice() {
         ENTRY_POINT_APPROVE,
         runtime_args! {
             ARG_TOKEN_ID => token_id,
-            ARG_OPERATOR => spender_key
+            ARG_SPENDER => spender_key
         },
     )
     .build();
@@ -790,6 +789,8 @@ fn should_dissallow_same_approved_account_to_transfer_token_twice() {
     )
     .build();
     builder.exec(register_request).expect_success().commit();
+
+    let token_owner = DEFAULT_ACCOUNT_PUBLIC_KEY.clone().to_account_hash();
 
     let transfer_request = ExecuteRequestBuilder::standard(
         spender,
@@ -871,7 +872,6 @@ fn should_disallow_to_transfer_token_using_revoked_hash(
     builder.exec(install_request).expect_success().commit();
 
     // mint token for DEFAULT_ACCOUNT_ADDR
-    let token_owner = DEFAULT_ACCOUNT_PUBLIC_KEY.clone().to_account_hash();
     let nft_contract_hash = get_nft_contract_hash(&builder);
     let nft_contract_key: Key = nft_contract_hash.into();
     let mint_session_call = ExecuteRequestBuilder::standard(
@@ -913,7 +913,7 @@ fn should_disallow_to_transfer_token_using_revoked_hash(
         ENTRY_POINT_APPROVE,
         runtime_args! {
             ARG_TOKEN_ID => token_id,
-            ARG_OPERATOR => spender_key
+            ARG_SPENDER => spender_key
         },
     )
     .build();
@@ -973,6 +973,8 @@ fn should_disallow_to_transfer_token_using_revoked_hash(
     .build();
     builder.exec(revoke_request).expect_success().commit();
 
+    let token_owner = DEFAULT_ACCOUNT_PUBLIC_KEY.clone().to_account_hash();
+
     let unauthorized_transfer = ExecuteRequestBuilder::standard(
         spender,
         TRANSFER_SESSION_WASM,
@@ -1015,6 +1017,85 @@ fn should_disallow_to_transfer_token_using_revoked_account() {
 fn _should_disallow_to_transfer_token_using_revoked_operator() {
     let operator: AccountHash = AccountHash::new(ACCOUNT_USER_3); // get_operator();
     should_disallow_to_transfer_token_using_revoked_hash(operator, true)
+}
+
+// This test intends to test that the approve entry_point still behaves correctly with "operator"
+// deprecated argument (now "spender")
+#[test]
+fn should_be_able_to_approve_with_deprecated_operator_argument() {
+    let mut builder = InMemoryWasmTestBuilder::default();
+    builder.run_genesis(&DEFAULT_RUN_GENESIS_REQUEST).commit();
+
+    let install_request = InstallerRequestBuilder::new(*DEFAULT_ACCOUNT_ADDR, NFT_CONTRACT_WASM)
+        .with_collection_name(NFT_TEST_COLLECTION.to_string())
+        .with_collection_symbol(NFT_TEST_SYMBOL.to_string())
+        .with_total_token_supply(1u64)
+        .with_ownership_mode(OwnershipMode::Transferable)
+        .build();
+
+    builder.exec(install_request).expect_success().commit();
+
+    // mint token for DEFAULT_ACCOUNT_ADDR
+    let nft_contract_hash = get_nft_contract_hash(&builder);
+    let nft_contract_key: Key = nft_contract_hash.into();
+    let mint_session_call = ExecuteRequestBuilder::standard(
+        *DEFAULT_ACCOUNT_ADDR,
+        MINT_SESSION_WASM,
+        runtime_args! {
+            ARG_NFT_CONTRACT_HASH => nft_contract_key,
+            ARG_TOKEN_OWNER => Key::Account(*DEFAULT_ACCOUNT_ADDR),
+            ARG_TOKEN_META_DATA => TEST_PRETTY_721_META_DATA.to_string(),
+            ARG_COLLECTION_NAME => NFT_TEST_COLLECTION.to_string()
+        },
+    )
+    .build();
+
+    builder.exec(mint_session_call).expect_success().commit();
+
+    // Create a "to approve" spender account account and transfer funds
+    let (_, spender_public_key) = support::create_dummy_key_pair(ACCOUNT_USER_1);
+    let spender = spender_public_key.to_account_hash();
+    let spender_key = Key::Account(spender);
+
+    let transfer_to_spender = ExecuteRequestBuilder::transfer(
+        *DEFAULT_ACCOUNT_ADDR,
+        runtime_args! {
+            mint::ARG_AMOUNT => 100_000_000_000_000u64,
+            mint::ARG_TARGET => spender,
+            mint::ARG_ID => Option::<u64>::None,
+        },
+    )
+    .build();
+    builder.exec(transfer_to_spender).expect_success().commit();
+
+    let token_id = 0u64;
+
+    // Approve spender
+    let approve_request = ExecuteRequestBuilder::contract_call_by_hash(
+        *DEFAULT_ACCOUNT_ADDR,
+        nft_contract_hash,
+        ENTRY_POINT_APPROVE,
+        runtime_args! {
+            ARG_TOKEN_ID => token_id,
+            ARG_OPERATOR => spender_key // ARG_OPERATOR argument is deprecated and replaced by ARG_SPENDER
+        },
+    )
+    .build();
+    builder.exec(approve_request).expect_success().commit();
+
+    let installing_account = builder.get_expected_account(*DEFAULT_ACCOUNT_ADDR);
+    let nft_contract_key = *installing_account
+        .named_keys()
+        .get(CONTRACT_NAME)
+        .expect("must have key in named keys");
+    let actual_approved_account: Option<Key> =
+        get_dictionary_value_from_key(&builder, &nft_contract_key, APPROVED, &token_id.to_string());
+
+    let expected_approved_account = Some(spender_key);
+    assert_eq!(
+        actual_approved_account, expected_approved_account,
+        "approved account should have been set in dictionary when approved"
+    );
 }
 
 #[test]
@@ -1362,7 +1443,7 @@ fn should_not_allow_non_approved_contract_to_transfer() {
         ENTRY_POINT_APPROVE,
         runtime_args! {
             ARG_TOKEN_ID => 0u64,
-            ARG_OPERATOR => minting_contract_key
+            ARG_SPENDER => minting_contract_key
         },
     )
     .build();

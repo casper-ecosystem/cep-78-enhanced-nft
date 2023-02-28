@@ -1,8 +1,8 @@
 use contract::{
     constants::{
         APPROVED, ARG_APPROVE_ALL, ARG_COLLECTION_NAME, ARG_CONTRACT_WHITELIST, ARG_MINTING_MODE,
-        ARG_OPERATOR, ARG_TOKEN_HASH, ARG_TOKEN_ID, ARG_TOKEN_META_DATA, ARG_TOKEN_OWNER,
-        ENTRY_POINT_APPROVE, ENTRY_POINT_MINT, ENTRY_POINT_REGISTER_OWNER,
+        ARG_OPERATOR, ARG_SPENDER, ARG_TOKEN_HASH, ARG_TOKEN_ID, ARG_TOKEN_META_DATA,
+        ARG_TOKEN_OWNER, ENTRY_POINT_APPROVE, ENTRY_POINT_MINT, ENTRY_POINT_REGISTER_OWNER,
         ENTRY_POINT_SET_APPROVE_FOR_ALL, ENTRY_POINT_SET_VARIABLES, METADATA_CEP78,
         METADATA_CUSTOM_VALIDATED, METADATA_NFT721, METADATA_RAW, NUMBER_OF_MINTED_TOKENS,
         PAGE_TABLE, RECEIPT_NAME, TOKEN_COUNTS, TOKEN_ISSUERS, TOKEN_OWNERS,
@@ -170,7 +170,7 @@ fn entry_points_with_ret_should_return_correct_value() {
         ENTRY_POINT_APPROVE,
         runtime_args! {
             ARG_TOKEN_ID => 0u64,
-            ARG_OPERATOR => Key::Account(AccountHash::new(ACCOUNT_USER_1))
+            ARG_SPENDER => Key::Account(AccountHash::new(ACCOUNT_USER_1))
         },
     )
     .build();
@@ -1425,7 +1425,7 @@ fn should_approve_in_hash_identifier_mode() {
         ENTRY_POINT_APPROVE,
         runtime_args! {
             ARG_TOKEN_HASH => token_hash.clone(),
-            ARG_OPERATOR => spender
+            ARG_SPENDER => spender
         },
     )
     .build();

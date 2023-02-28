@@ -11,6 +11,7 @@ pub const ARG_MINTING_MODE: &str = "minting_mode";
 pub const ARG_TOKEN_META_DATA: &str = "token_meta_data";
 pub const ARG_APPROVE_ALL: &str = "approve_all";
 pub const ARG_OPERATOR: &str = "operator";
+pub const ARG_SPENDER: &str = "spender";
 pub const ARG_OWNERSHIP_MODE: &str = "ownership_mode";
 pub const ARG_HOLDER_MODE: &str = "holder_mode";
 pub const ARG_WHITELIST_MODE: &str = "whitelist_mode";

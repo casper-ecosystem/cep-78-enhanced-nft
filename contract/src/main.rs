@@ -44,9 +44,9 @@ use constants::{
     ARG_HASH_KEY_NAME_1_0_0, ARG_HOLDER_MODE, ARG_IDENTIFIER_MODE, ARG_JSON_SCHEMA,
     ARG_METADATA_MUTABILITY, ARG_MINTING_MODE, ARG_NAMED_KEY_CONVENTION, ARG_NFT_KIND,
     ARG_NFT_METADATA_KIND, ARG_NFT_PACKAGE_HASH, ARG_OPERATOR, ARG_OWNERSHIP_MODE,
-    ARG_OWNER_LOOKUP_MODE, ARG_RECEIPT_NAME, ARG_SOURCE_KEY, ARG_TARGET_KEY, ARG_TOKEN_META_DATA,
-    ARG_TOKEN_OWNER, ARG_TOTAL_TOKEN_SUPPLY, ARG_WHITELIST_MODE, BURNT_TOKENS, BURN_MODE,
-    CEP78_PREFIX, COLLECTION_NAME, COLLECTION_SYMBOL, CONTRACT_NAME_PREFIX,
+    ARG_OWNER_LOOKUP_MODE, ARG_RECEIPT_NAME, ARG_SOURCE_KEY, ARG_SPENDER, ARG_TARGET_KEY,
+    ARG_TOKEN_META_DATA, ARG_TOKEN_OWNER, ARG_TOTAL_TOKEN_SUPPLY, ARG_WHITELIST_MODE, BURNT_TOKENS,
+    BURN_MODE, CEP78_PREFIX, COLLECTION_NAME, COLLECTION_SYMBOL, CONTRACT_NAME_PREFIX,
     CONTRACT_VERSION_PREFIX, CONTRACT_WHITELIST, ENTRY_POINT_APPROVE, ENTRY_POINT_BALANCE_OF,
     ENTRY_POINT_BURN, ENTRY_POINT_GET_APPROVED, ENTRY_POINT_INIT, ENTRY_POINT_METADATA,
     ENTRY_POINT_MIGRATE, ENTRY_POINT_MINT, ENTRY_POINT_OWNER_OF, ENTRY_POINT_REGISTER_OWNER,
@@ -839,12 +839,18 @@ pub extern "C" fn approve() {
         runtime::revert(NFTCoreError::PreviouslyBurntToken)
     }
 
-    let spender = utils::get_named_arg_with_user_errors::<Key>(
-        ARG_OPERATOR,
-        NFTCoreError::MissingApprovedAccountHash,
-        NFTCoreError::InvalidApprovedAccountHash,
-    )
-    .unwrap_or_revert();
+    let spender = match utils::get_optional_named_arg_with_user_errors::<Key>(
+        ARG_OPERATOR, // Deprecated in favor of ARG_SPENDER
+        NFTCoreError::MissingContractWhiteList,
+    ) {
+        Some(deprecated_operator) => deprecated_operator,
+        None => utils::get_named_arg_with_user_errors::<Key>(
+            ARG_SPENDER,
+            NFTCoreError::MissingApprovedAccountHash,
+            NFTCoreError::InvalidApprovedAccountHash,
+        )
+        .unwrap_or_revert(),
+    };
 
     // If token_owner tries to approve themselves that's probably a mistake and we revert.
     if owner == spender {
@@ -1898,7 +1904,10 @@ fn generate_entry_points() -> EntryPoints {
     // been burnt, or if caller tries to approve themselves as an approved account.
     let approve = EntryPoint::new(
         ENTRY_POINT_APPROVE,
-        vec![Parameter::new(ARG_OPERATOR, CLType::Key)],
+        vec![
+            Parameter::new(ARG_OPERATOR, CLType::Key), // deprecated
+            Parameter::new(ARG_SPENDER, CLType::Key),
+        ],
         CLType::Unit,
         EntryPointAccess::Public,
         EntryPointType::Contract,
