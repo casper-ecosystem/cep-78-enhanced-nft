@@ -989,14 +989,6 @@ pub extern "C" fn set_approval_for_all() {
         runtime::revert(NFTCoreError::InvalidOwnershipMode)
     }
 
-    let events_mode: EventsMode = utils::get_stored_value_with_user_errors::<u8>(
-        EVENTS_MODE,
-        NFTCoreError::MissingEventsMode,
-        NFTCoreError::InvalidEventsMode,
-    )
-    .try_into()
-    .unwrap_or_revert();
-
     // If approve_all is true we approve operator for all caller_owned tokens.
     // If false we set operator to None for all caller_owned_tokens
     let approve_all = utils::get_named_arg_with_user_errors::<bool>(
@@ -1040,6 +1032,14 @@ pub extern "C" fn set_approval_for_all() {
             operator,
         );
     }
+
+    let events_mode: EventsMode = utils::get_stored_value_with_user_errors::<u8>(
+        EVENTS_MODE,
+        NFTCoreError::MissingEventsMode,
+        NFTCoreError::InvalidEventsMode,
+    )
+    .try_into()
+    .unwrap_or_revert();
 
     match events_mode {
         EventsMode::NoEvents => {}
@@ -1576,14 +1576,6 @@ pub extern "C" fn migrate() {
         runtime::revert(NFTCoreError::CannotUpgradeWithZeroSupply)
     }
 
-    let events_mode: EventsMode = utils::get_optional_named_arg_with_user_errors::<u8>(
-        ARG_EVENTS_MODE,
-        NFTCoreError::InvalidEventsMode,
-    )
-    .unwrap_or(EventsMode::NoEvents as u8)
-    .try_into()
-    .unwrap_or_revert();
-
     if requires_rlo_migration {
         storage::new_dictionary(PAGE_TABLE)
             .unwrap_or_revert_with(NFTCoreError::FailedToCreateDictionary);
@@ -1646,6 +1638,14 @@ pub extern "C" fn migrate() {
     }
 
     runtime::put_key(RLO_MFLAG, storage::new_uref(false).into());
+
+    let events_mode: EventsMode = utils::get_optional_named_arg_with_user_errors::<u8>(
+        ARG_EVENTS_MODE,
+        NFTCoreError::InvalidEventsMode,
+    )
+    .unwrap_or(EventsMode::NoEvents as u8)
+    .try_into()
+    .unwrap_or_revert();
 
     match events_mode {
         EventsMode::NoEvents => {
@@ -2315,12 +2315,6 @@ fn migrate_contract(access_key_name: String, package_key_name: String) {
     )
     .unwrap_or_revert();
 
-    let events_mode = utils::get_optional_named_arg_with_user_errors::<u8>(
-        ARG_EVENTS_MODE,
-        NFTCoreError::InvalidEventsMode,
-    )
-    .unwrap_or(0u8);
-
     runtime::put_key(
         &format!("{HASH_KEY_NAME_PREFIX}_{collection_name}"),
         nft_contact_package_hash.into(),
@@ -2348,6 +2342,12 @@ fn migrate_contract(access_key_name: String, package_key_name: String) {
         &format!("{CONTRACT_VERSION_PREFIX}{collection_name}"),
         storage::new_uref(contract_version).into(),
     );
+
+    let events_mode = utils::get_optional_named_arg_with_user_errors::<u8>(
+        ARG_EVENTS_MODE,
+        NFTCoreError::InvalidEventsMode,
+    )
+    .unwrap_or(0u8);
 
     runtime::call_contract::<()>(
         contract_hash,
