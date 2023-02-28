@@ -318,7 +318,7 @@ The `EventsMode` modality allows the deployers of the contract to decide on sche
 
 0. `NoEvents`: No events will be recorded during the operation, this is the default mode.
 1. `CEP47`: The event schema from the CEP47 contract has been implemented as a possibility.
-2. `CES` : Events will be recorded during the operation of the contract using an event schema in compliance with the Casper Event Schema. Refer to  section [Casper Event Standard](#casper-event-standard) for more information.
+2. `CES` : Events will be recorded during the operation of the contract using an event schema in compliance with the Casper Event Schema. Refer to section [Casper Event Standard](#casper-event-standard) for more information.
 
 ### Usage
 
@@ -350,7 +350,7 @@ The following are the optional parameters that can be passed in at the time of i
 - `"contract_whitelist"`: The contract whitelist is a list of contract hashes that specifies which contracts can call the `mint()` entrypoint to mint NFTs. This is an optional parameter which will default to an empty whitelist. This value can be changed via the `set_variables` post installation. If the whitelist mode is set to locked, a non-empty whitelist must be passed; else, installation of the contract will fail.
 - `"burn_mode"`: The [`BurnMode`](#burnmode) modality dictates whether minted NFTs can be burnt. This is an optional parameter and will allow tokens to be burnt by default. This parameter cannot be changed once the contract has been installed.
 - `"owner_reverse_lookup_mode"`: The [`OwnerReverseLookupMode`](#reportingmode) modality dictates whether the lookup for owners to token identifiers is available. This is an optional parameter and will not provide the lookup by default. This parameter cannot be changed once the contract has been installed.
-- `"events_mode"`: During installation of the contract the deployer can set the [`EventsMode`](#eventsmode) that selects the event schema that will be recorded when changes happen to the NFT tokens. 
+- `"events_mode"`: During installation of the contract the deployer can set the [`EventsMode`](#eventsmode) that selects the event schema that will be recorded when changes happen to the NFT tokens.
 
 ##### Example deploy
 
@@ -669,8 +669,8 @@ The emitted events are encoded according to the [Casper Event Standard](https://
 
 For this CEP-78 reference implementation in particular, the events schema is the following:
 
-| Event name      | Included values and type                                   |
-|-----------------|----------------------------------------------------------------------|
+| Event name      | Included values and type                                             |
+| --------------- | -------------------------------------------------------------------- |
 | Mint            | recipient (Key), token_id (Any), data (String)                       |
 | Transfer        | owner (Key), operator (Option<Key>), recipient (Key), token_id (Any) |
 | Burn            | owner (Key), token_id (Any)                                          |
@@ -682,13 +682,13 @@ For this CEP-78 reference implementation in particular, the events schema is the
 
 Token identifiers are stored under the `CLType` `Any` and the encoding depends on `NFTIdentifierMode`:.
 
-* `NFTIdentifierMode::Ordinal`: the `token id` is encoded as a byte `0x00` followed by a `u64` number.
-* `NFTIdentifierMode::Hash`: the `token_id` is encoded as a byte `0x01` followed by a `String`.
+- `NFTIdentifierMode::Ordinal`: the `token id` is encoded as a byte `0x00` followed by a `u64` number.
+- `NFTIdentifierMode::Hash`: the `token_id` is encoded as a byte `0x01` followed by a `String`.
 
 ## Error Codes
 
 | Code | Error                             |
-|------|-----------------------------------|
+| ---- | --------------------------------- |
 | 1    | InvalidAccount                    |
 | 2    | MissingInstaller                  |
 | 3    | InvalidInstaller                  |
@@ -828,6 +828,7 @@ Token identifiers are stored under the `CLType` `Any` and the encoding depends o
 | 137  | InvalidAccessKeyName              |
 | 138  | InvalidCheckForUpgrade            |
 | 139  | InvalidNamedKeyConvention         |
-| 140  | InvalidTokenEvent                 |
-| 141  | MissingEventsMode                 |
-| 142  | InvalidEventsMode                 |
+| 140  | MissingEventsMode                 |
+| 141  | InvalidEventsMode                 |
+| 142  | MissingOperatorDict               |
+| 143  | MissingApprovedDict               |
