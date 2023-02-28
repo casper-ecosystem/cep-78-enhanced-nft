@@ -55,9 +55,9 @@ use constants::{
     EVENTS_MODE, HASH_BY_INDEX, HASH_KEY_NAME_1_0_0, HASH_KEY_NAME_PREFIX, HOLDER_MODE,
     IDENTIFIER_MODE, INDEX_BY_HASH, INSTALLER, JSON_SCHEMA, MAX_TOTAL_TOKEN_SUPPLY, METADATA_CEP78,
     METADATA_CUSTOM_VALIDATED, METADATA_MUTABILITY, METADATA_NFT721, METADATA_RAW, MINTING_MODE,
-    NFT_KIND, NFT_METADATA_KIND, NUMBER_OF_MINTED_TOKENS, OPERATOR, OWNED_TOKENS, OWNERSHIP_MODE,
-    PAGE_DICTIONARY_PREFIX, PAGE_LIMIT, PAGE_TABLE, RECEIPT_NAME, REPORTING_MODE, RLO_MFLAG,
-    TOKEN_COUNTS, TOKEN_ISSUERS, TOKEN_OWNERS, TOTAL_TOKEN_SUPPLY, UNMATCHED_HASH_COUNT,
+    NFT_KIND, NFT_METADATA_KIND, NUMBER_OF_MINTED_TOKENS, OPERATOR, OPERATORS, OWNED_TOKENS,
+    OWNERSHIP_MODE, PAGE_DICTIONARY_PREFIX, PAGE_LIMIT, PAGE_TABLE, RECEIPT_NAME, REPORTING_MODE,
+    RLO_MFLAG, TOKEN_COUNTS, TOKEN_ISSUERS, TOKEN_OWNERS, TOTAL_TOKEN_SUPPLY, UNMATCHED_HASH_COUNT,
     WHITELIST_MODE,
 };
 
@@ -344,6 +344,8 @@ pub extern "C" fn init() {
     storage::new_dictionary(OWNED_TOKENS)
         .unwrap_or_revert_with(NFTCoreError::FailedToCreateDictionary);
     storage::new_dictionary(APPROVED).unwrap_or_revert_with(NFTCoreError::FailedToCreateDictionary);
+    storage::new_dictionary(OPERATORS)
+        .unwrap_or_revert_with(NFTCoreError::FailedToCreateDictionary);
     storage::new_dictionary(BURNT_TOKENS)
         .unwrap_or_revert_with(NFTCoreError::FailedToCreateDictionary);
     storage::new_dictionary(TOKEN_COUNTS)
@@ -1680,6 +1682,11 @@ pub extern "C" fn migrate() {
     if runtime::get_key(APPROVED).is_none() {
         runtime::revert(NFTCoreError::MissingApprovedDict)
     }
+    // Add OPERATORS dict
+    if runtime::get_key(OPERATORS).is_none() {
+        storage::new_dictionary(OPERATORS)
+            .unwrap_or_revert_with(NFTCoreError::FailedToCreateDictionary);
+    }
 }
 
 #[no_mangle]
@@ -1904,10 +1911,7 @@ fn generate_entry_points() -> EntryPoints {
     // been burnt, or if caller tries to approve themselves as an approved account.
     let approve = EntryPoint::new(
         ENTRY_POINT_APPROVE,
-        vec![
-            Parameter::new(ARG_OPERATOR, CLType::Key), // deprecated
-            Parameter::new(ARG_SPENDER, CLType::Key),
-        ],
+        vec![Parameter::new(ARG_SPENDER, CLType::Key)],
         CLType::Unit,
         EntryPointAccess::Public,
         EntryPointType::Contract,

@@ -31,6 +31,7 @@ pub const ARG_HASH_KEY_NAME_1_0_0: &str = "hash_key_name";
 pub const ARG_EVENTS_MODE: &str = "events_mode";
 
 pub const OPERATOR: &str = "operator";
+pub const OPERATORS: &str = "operators";
 pub const APPROVED: &str = "approved";
 pub const NUMBER_OF_MINTED_TOKENS: &str = "number_of_minted_tokens";
 pub const INSTALLER: &str = "installer";
