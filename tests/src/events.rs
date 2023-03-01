@@ -9,9 +9,9 @@ use casper_types::{account::AccountHash, runtime_args, Key, RuntimeArgs};
 use contract::{
     constants::{
         ACCESS_KEY_NAME_1_0_0, APPROVED, ARG_ACCESS_KEY_NAME_1_0_0, ARG_COLLECTION_NAME,
-        ARG_EVENTS_MODE, ARG_NAMED_KEY_CONVENTION, ARG_NFT_PACKAGE_HASH, ARG_OPERATOR,
-        ARG_SOURCE_KEY, ARG_SPENDER, ARG_TARGET_KEY, ARG_TOKEN_HASH, ARG_TOKEN_ID,
-        ARG_TOKEN_META_DATA, ARG_TOKEN_OWNER, BURNT_TOKENS, ENTRY_POINT_APPROVE, ENTRY_POINT_BURN,
+        ARG_EVENTS_MODE, ARG_NAMED_KEY_CONVENTION, ARG_NFT_PACKAGE_HASH, ARG_SOURCE_KEY,
+        ARG_SPENDER, ARG_TARGET_KEY, ARG_TOKEN_HASH, ARG_TOKEN_ID, ARG_TOKEN_META_DATA,
+        ARG_TOKEN_OWNER, BURNT_TOKENS, ENTRY_POINT_APPROVE, ENTRY_POINT_BURN,
         ENTRY_POINT_REGISTER_OWNER, ENTRY_POINT_SET_TOKEN_METADATA, METADATA_CEP78,
         METADATA_CUSTOM_VALIDATED, METADATA_NFT721, METADATA_RAW, TOKEN_COUNTS,
     },
@@ -575,6 +575,8 @@ fn should_cep47_dictionary_style_approve_event_in_hash_identifier_mode() {
     );
     assert_eq!(event, expected_event);
 }
+
+// TODO test set_approval_for_all event
 
 #[test]
 fn should_record_migration_event_in_cep47() {

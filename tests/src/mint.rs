@@ -25,10 +25,10 @@ use crate::utility::{
     constants::{
         ACCOUNT_USER_1, ACCOUNT_USER_2, ARG_IS_HASH_IDENTIFIER_MODE,
         ARG_MINTING_CONTRACT_REVERSE_LOOKUP, ARG_NFT_CONTRACT_HASH, BALANCE_OF_SESSION_WASM,
-        CONTRACT_NAME, GET_APPROVED_WASM, MALFORMED_META_DATA, MINTING_CONTRACT_WASM,
-        MINT_SESSION_WASM, NFT_CONTRACT_WASM, NFT_TEST_COLLECTION, OWNER_OF_SESSION_WASM,
-        PAGE_SIZE, RETURNED_VALUE_STORAGE_KEY, TEST_COMPACT_META_DATA, TEST_PRETTY_721_META_DATA,
-        TEST_PRETTY_CEP78_METADATA, TEST_PRETTY_UPDATED_CEP78_METADATA,
+        CONTRACT_NAME, GET_APPROVED_WASM, IS_APPROVED_FOR_ALL_WASM, MALFORMED_META_DATA,
+        MINTING_CONTRACT_WASM, MINT_SESSION_WASM, NFT_CONTRACT_WASM, NFT_TEST_COLLECTION,
+        OWNER_OF_SESSION_WASM, PAGE_SIZE, RETURNED_VALUE_STORAGE_KEY, TEST_COMPACT_META_DATA,
+        TEST_PRETTY_721_META_DATA, TEST_PRETTY_CEP78_METADATA, TEST_PRETTY_UPDATED_CEP78_METADATA,
     },
     installer_request_builder::{
         InstallerRequestBuilder, MetadataMutability, MintingMode, NFTHolderMode, NFTIdentifierMode,
@@ -775,18 +775,18 @@ fn should_set_approval_for_all() {
     .build();
     builder.exec(mint_session_call).expect_success().commit();
 
-    let mint_session_call = ExecuteRequestBuilder::standard(
-        *DEFAULT_ACCOUNT_ADDR,
-        MINT_SESSION_WASM,
-        runtime_args! {
-            ARG_NFT_CONTRACT_HASH => nft_contract_key,
-            ARG_TOKEN_OWNER => owner_key,
-            ARG_TOKEN_META_DATA => TEST_PRETTY_721_META_DATA.to_string(),
-            ARG_COLLECTION_NAME => NFT_TEST_COLLECTION.to_string()
-        },
-    )
-    .build();
-    builder.exec(mint_session_call).expect_success().commit();
+    // let mint_session_call = ExecuteRequestBuilder::standard(
+    //     *DEFAULT_ACCOUNT_ADDR,
+    //     MINT_SESSION_WASM,
+    //     runtime_args! {
+    //         ARG_NFT_CONTRACT_HASH => nft_contract_key,
+    //         ARG_TOKEN_OWNER => owner_key,
+    //         ARG_TOKEN_META_DATA => TEST_PRETTY_721_META_DATA.to_string(),
+    //         ARG_COLLECTION_NAME => NFT_TEST_COLLECTION.to_string()
+    //     },
+    // )
+    // .build();
+    // builder.exec(mint_session_call).expect_success().commit();
 
     let (_, operator_public_key) = create_dummy_key_pair(ACCOUNT_USER_1);
     let operator_key = Key::Account(operator_public_key.to_account_hash());
@@ -795,7 +795,7 @@ fn should_set_approval_for_all() {
         *DEFAULT_ACCOUNT_ADDR,
         CONTRACT_NAME,
         ENTRY_POINT_SET_APPROVE_FOR_ALL,
-        runtime_args! {ARG_TOKEN_OWNER =>  owner_key,
+        runtime_args! {
             ARG_APPROVE_ALL => true,
             ARG_OPERATOR => operator_key
         },
@@ -807,49 +807,53 @@ fn should_set_approval_for_all() {
         .expect_success()
         .commit();
 
-    let actual_operator: Option<Key> = call_session_code_with_ret(
+    // let actual_operator: Option<Key> = call_session_code_with_ret(
+    //     &mut builder,
+    //     *DEFAULT_ACCOUNT_ADDR,
+    //     nft_contract_key,
+    //     runtime_args! {
+    //         ARG_IS_HASH_IDENTIFIER_MODE => false,
+    //         ARG_TOKEN_ID => 0u64,
+    //     },
+    //     GET_APPROVED_WASM,
+    //     RETURNED_VALUE_STORAGE_KEY,
+    // );
+
+    // assert_eq!(
+    //     actual_operator,
+    //     Some(operator_key),
+    //     "actual and expected operator should be equal"
+    // );
+
+    // let actual_operator: Option<Key> = call_session_code_with_ret(
+    //     &mut builder,
+    //     *DEFAULT_ACCOUNT_ADDR,
+    //     nft_contract_key,
+    //     runtime_args! {
+    //         ARG_IS_HASH_IDENTIFIER_MODE => false,
+    //         ARG_TOKEN_ID => 1u64,
+    //     },
+    //     GET_APPROVED_WASM,
+    //     RETURNED_VALUE_STORAGE_KEY,
+    // );
+
+    let is_operator = call_session_code_with_ret::<bool>(
         &mut builder,
         *DEFAULT_ACCOUNT_ADDR,
         nft_contract_key,
         runtime_args! {
-            ARG_IS_HASH_IDENTIFIER_MODE => false,
-            ARG_TOKEN_ID => 0u64,
+            ARG_TOKEN_OWNER => owner_key,
+            ARG_OPERATOR => operator_key,
         },
-        GET_APPROVED_WASM,
+        IS_APPROVED_FOR_ALL_WASM,
         RETURNED_VALUE_STORAGE_KEY,
     );
 
-    assert_eq!(
-        actual_operator,
-        Some(operator_key),
-        "actual and expected operator should be equal"
-    );
-
-    let actual_operator: Option<Key> = call_session_code_with_ret(
-        &mut builder,
-        *DEFAULT_ACCOUNT_ADDR,
-        nft_contract_key,
-        runtime_args! {
-            ARG_IS_HASH_IDENTIFIER_MODE => false,
-            ARG_TOKEN_ID => 1u64,
-        },
-        GET_APPROVED_WASM,
-        RETURNED_VALUE_STORAGE_KEY,
-    );
-
-    assert_eq!(
-        actual_operator,
-        Some(operator_key),
-        "actual and expected operator should be equal"
-    );
+    assert!(is_operator, "expected operator to be approved for all");
 
     // Expect ApprovalForAll event.
-    let expected_event = ApprovalForAll::new(
-        owner_key,
-        Some(operator_key),
-        vec![TokenIdentifier::Index(0), TokenIdentifier::Index(1)],
-    );
-    let actual_event: ApprovalForAll = support::get_event(&builder, &nft_contract_key, 2);
+    let expected_event = ApprovalForAll::new(owner_key, Some(operator_key));
+    let actual_event: ApprovalForAll = support::get_event(&builder, &nft_contract_key, 1);
     assert_eq!(
         actual_event, expected_event,
         "Expected ApprovalForAll event."

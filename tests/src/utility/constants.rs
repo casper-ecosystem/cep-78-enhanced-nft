@@ -5,6 +5,7 @@ pub(crate) const TRANSFER_SESSION_WASM: &str = "transfer_call.wasm";
 pub(crate) const BALANCE_OF_SESSION_WASM: &str = "balance_of_call.wasm";
 pub(crate) const OWNER_OF_SESSION_WASM: &str = "owner_of_call.wasm";
 pub(crate) const GET_APPROVED_WASM: &str = "get_approved_call.wasm";
+pub(crate) const IS_APPROVED_FOR_ALL_WASM: &str = "is_approved_for_all_call.wasm";
 pub(crate) const UPDATED_RECEIPTS_WASM: &str = "updated_receipts.wasm";
 pub(crate) const MANGLE_NAMED_KEYS: &str = "mangle_named_keys.wasm";
 pub(crate) const CONTRACT_1_0_0_WASM: &str = "1_0_0/contract.wasm";

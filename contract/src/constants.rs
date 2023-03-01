@@ -91,6 +91,7 @@ pub const ENTRY_POINT_OWNER_OF: &str = "owner_of";
 pub const ENTRY_POINT_GET_APPROVED: &str = "get_approved";
 pub const ENTRY_POINT_METADATA: &str = "metadata";
 pub const ENTRY_POINT_SET_APPROVE_FOR_ALL: &str = "set_approval_for_all";
+pub const ENTRY_POINT_IS_APPROVED_FOR_ALL: &str = "is_approved_for_all";
 pub const ENTRY_POINT_SET_TOKEN_METADATA: &str = "set_token_metadata";
 pub const ENTRY_POINT_MIGRATE: &str = "migrate";
 pub const ENTRY_POINT_UPDATED_RECEIPTS: &str = "updated_receipts";

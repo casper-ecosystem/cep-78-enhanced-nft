@@ -1,7 +1,4 @@
-use alloc::{
-    string::{String, ToString},
-    vec::Vec,
-};
+use alloc::string::{String, ToString};
 
 use casper_event_standard::Event;
 use casper_types::Key;
@@ -76,19 +73,11 @@ impl ApprovalRevoked {
 pub struct ApprovalForAll {
     owner: Key,
     operator: Option<Key>,
-    token_ids: Vec<String>,
 }
 
 impl ApprovalForAll {
-    pub fn new(owner: Key, operator: Option<Key>, token_ids: Vec<TokenIdentifier>) -> Self {
-        Self {
-            owner,
-            operator,
-            token_ids: token_ids
-                .iter()
-                .map(|token_id| token_id.to_string())
-                .collect(),
-        }
+    pub fn new(owner: Key, operator: Option<Key>) -> Self {
+        Self { owner, operator }
     }
 }
 

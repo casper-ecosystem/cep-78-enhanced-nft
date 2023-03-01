@@ -20,6 +20,7 @@ use alloc::{
     vec,
     vec::Vec,
 };
+use contract::utils::upsert_dictionary_value_from_key;
 
 use core::convert::{TryFrom, TryInto};
 
@@ -48,16 +49,17 @@ use constants::{
     ARG_TOKEN_META_DATA, ARG_TOKEN_OWNER, ARG_TOTAL_TOKEN_SUPPLY, ARG_WHITELIST_MODE, BURNT_TOKENS,
     BURN_MODE, CEP78_PREFIX, COLLECTION_NAME, COLLECTION_SYMBOL, CONTRACT_NAME_PREFIX,
     CONTRACT_VERSION_PREFIX, CONTRACT_WHITELIST, ENTRY_POINT_APPROVE, ENTRY_POINT_BALANCE_OF,
-    ENTRY_POINT_BURN, ENTRY_POINT_GET_APPROVED, ENTRY_POINT_INIT, ENTRY_POINT_METADATA,
-    ENTRY_POINT_MIGRATE, ENTRY_POINT_MINT, ENTRY_POINT_OWNER_OF, ENTRY_POINT_REGISTER_OWNER,
-    ENTRY_POINT_REVOKE, ENTRY_POINT_SET_APPROVE_FOR_ALL, ENTRY_POINT_SET_TOKEN_METADATA,
-    ENTRY_POINT_SET_VARIABLES, ENTRY_POINT_TRANSFER, ENTRY_POINT_UPDATED_RECEIPTS, EVENTS,
-    EVENTS_MODE, HASH_BY_INDEX, HASH_KEY_NAME_1_0_0, HASH_KEY_NAME_PREFIX, HOLDER_MODE,
-    IDENTIFIER_MODE, INDEX_BY_HASH, INSTALLER, JSON_SCHEMA, MAX_TOTAL_TOKEN_SUPPLY, METADATA_CEP78,
-    METADATA_CUSTOM_VALIDATED, METADATA_MUTABILITY, METADATA_NFT721, METADATA_RAW, MINTING_MODE,
-    NFT_KIND, NFT_METADATA_KIND, NUMBER_OF_MINTED_TOKENS, OPERATOR, OPERATORS, OWNED_TOKENS,
-    OWNERSHIP_MODE, PAGE_DICTIONARY_PREFIX, PAGE_LIMIT, PAGE_TABLE, RECEIPT_NAME, REPORTING_MODE,
-    RLO_MFLAG, TOKEN_COUNTS, TOKEN_ISSUERS, TOKEN_OWNERS, TOTAL_TOKEN_SUPPLY, UNMATCHED_HASH_COUNT,
+    ENTRY_POINT_BURN, ENTRY_POINT_GET_APPROVED, ENTRY_POINT_INIT, ENTRY_POINT_IS_APPROVED_FOR_ALL,
+    ENTRY_POINT_METADATA, ENTRY_POINT_MIGRATE, ENTRY_POINT_MINT, ENTRY_POINT_OWNER_OF,
+    ENTRY_POINT_REGISTER_OWNER, ENTRY_POINT_REVOKE, ENTRY_POINT_SET_APPROVE_FOR_ALL,
+    ENTRY_POINT_SET_TOKEN_METADATA, ENTRY_POINT_SET_VARIABLES, ENTRY_POINT_TRANSFER,
+    ENTRY_POINT_UPDATED_RECEIPTS, EVENTS, EVENTS_MODE, HASH_BY_INDEX, HASH_KEY_NAME_1_0_0,
+    HASH_KEY_NAME_PREFIX, HOLDER_MODE, IDENTIFIER_MODE, INDEX_BY_HASH, INSTALLER, JSON_SCHEMA,
+    MAX_TOTAL_TOKEN_SUPPLY, METADATA_CEP78, METADATA_CUSTOM_VALIDATED, METADATA_MUTABILITY,
+    METADATA_NFT721, METADATA_RAW, MINTING_MODE, NFT_KIND, NFT_METADATA_KIND,
+    NUMBER_OF_MINTED_TOKENS, OPERATOR, OPERATORS, OWNED_TOKENS, OWNERSHIP_MODE,
+    PAGE_DICTIONARY_PREFIX, PAGE_LIMIT, PAGE_TABLE, RECEIPT_NAME, REPORTING_MODE, RLO_MFLAG,
+    TOKEN_COUNTS, TOKEN_ISSUERS, TOKEN_OWNERS, TOTAL_TOKEN_SUPPLY, UNMATCHED_HASH_COUNT,
     WHITELIST_MODE,
 };
 
@@ -583,7 +585,7 @@ pub extern "C" fn mint() {
         metadata.clone(),
     );
 
-    let owned_tokens_item_key = utils::get_owned_tokens_dictionary_item_key(token_owner_key);
+    let owned_tokens_item_key = utils::get_stringified_token_owner_item_key(token_owner_key);
 
     if let NFTIdentifierMode::Hash = identifier_mode {
         // Update the forward and reverse trackers
@@ -710,7 +712,7 @@ pub extern "C" fn burn() {
 
     let token_identifier = utils::get_token_identifier_from_runtime_args(&identifier_mode);
 
-    let expected_token_owner: Key = utils::get_verified_caller().unwrap_or_revert();
+    let caller: Key = utils::get_verified_caller().unwrap_or_revert();
 
     // Revert if caller is not token_owner. This seems to be the only check we need to do.
     let token_owner = match utils::get_dictionary_value_from_key::<Key>(
@@ -718,7 +720,7 @@ pub extern "C" fn burn() {
         &token_identifier.get_dictionary_item_key(),
     ) {
         Some(token_owner_key) => {
-            if token_owner_key != expected_token_owner {
+            if token_owner_key != caller {
                 runtime::revert(NFTCoreError::InvalidTokenOwner)
             }
             token_owner_key
@@ -740,7 +742,7 @@ pub extern "C" fn burn() {
         (),
     );
 
-    let owned_tokens_item_key = utils::get_owned_tokens_dictionary_item_key(token_owner);
+    let owned_tokens_item_key = utils::get_stringified_token_owner_item_key(token_owner);
 
     let updated_balance =
         match utils::get_dictionary_value_from_key::<u64>(TOKEN_COUNTS, &owned_tokens_item_key) {
@@ -779,7 +781,7 @@ pub extern "C" fn burn() {
     }
 }
 
-// approve marks an account as approved for an identified token transfer
+// Marks an account as approved for an identified token transfer
 // Approves `spender` to operate on `token_id`
 #[no_mangle]
 pub extern "C" fn approve() {
@@ -823,16 +825,23 @@ pub extern "C" fn approve() {
         TOKEN_OWNERS,
         &token_identifier_dictionary_key,
     ) {
-        Some(token_owner) => token_owner,
+        Some(owner) => owner,
         None => runtime::revert(NFTCoreError::InvalidAccountHash),
     };
 
     // Revert if caller is not token owner nor operator.
     // Only the token owner or an operator can approve an account
-    // TODO check caller is operator
-    if owner != caller
-    // && operator != caller
-    {
+    let is_owner = caller == owner;
+    let is_operator = !is_owner
+        && match utils::get_dictionary_value_from_key::<Option<Key>>(
+            OPERATORS,
+            &utils::get_stringified_token_owner_item_key(owner),
+        ) {
+            Some(Some(maybe_operator)) => caller == maybe_operator,
+            Some(None) | None => false,
+        };
+
+    if !is_owner && !is_operator {
         runtime::revert(NFTCoreError::InvalidAccountHash);
     }
 
@@ -854,22 +863,12 @@ pub extern "C" fn approve() {
         .unwrap_or_revert(),
     };
 
-    // If token_owner tries to approve themselves that's probably a mistake and we revert.
-    if owner == spender {
+    // If token owner tries to approve itself that's probably a mistake and we revert.
+    if spender == owner {
         runtime::revert(NFTCoreError::InvalidAccount);
     }
 
-    let spender_uref = utils::get_uref(
-        APPROVED,
-        NFTCoreError::MissingStorageUref,
-        NFTCoreError::InvalidStorageUref,
-    );
-
-    storage::dictionary_put(
-        spender_uref,
-        &token_identifier_dictionary_key,
-        Some(spender),
-    );
+    upsert_dictionary_value_from_key(APPROVED, &token_identifier_dictionary_key, Some(spender));
 
     let events_mode = EventsMode::try_from(utils::get_stored_value_with_user_errors::<u8>(
         crate::constants::EVENTS_MODE,
@@ -890,7 +889,7 @@ pub extern "C" fn approve() {
     };
 }
 
-// revoke removes an account as approved for an identified token transfer
+// Revokes an account as approved for an identified token transfer
 // Revokes `spender` to operate on `token_id`
 #[no_mangle]
 pub extern "C" fn revoke() {
@@ -934,11 +933,11 @@ pub extern "C" fn revoke() {
         TOKEN_OWNERS,
         &token_identifier_dictionary_key,
     ) {
-        Some(token_owner) => token_owner,
+        Some(owner) => owner,
         None => runtime::revert(NFTCoreError::InvalidAccountHash),
     };
 
-    // Revert if caller is not the token_owner. Only the token owner can revoke an approved account
+    // Revert if caller is not the token owner. Only the token owner can revoke an approved account
     if owner != caller {
         runtime::revert(NFTCoreError::InvalidAccountHash);
     }
@@ -948,14 +947,8 @@ pub extern "C" fn revoke() {
         runtime::revert(NFTCoreError::PreviouslyBurntToken)
     }
 
-    let spender_uref = utils::get_uref(
+    upsert_dictionary_value_from_key(
         APPROVED,
-        NFTCoreError::MissingStorageUref,
-        NFTCoreError::InvalidStorageUref,
-    );
-
-    storage::dictionary_put(
-        spender_uref,
         &token_identifier_dictionary_key,
         Option::<Key>::None,
     );
@@ -977,7 +970,7 @@ pub extern "C" fn revoke() {
     };
 }
 
-// set_approval_for_all approves the specified operator(s) for transfer of token owner's tokens.
+// Approves the specified operator(s) for transfer of token owner's tokens.
 // Approves `operator(s)` to operate on all of (and future) `owner` tokens
 #[no_mangle]
 pub extern "C" fn set_approval_for_all() {
@@ -989,8 +982,8 @@ pub extern "C" fn set_approval_for_all() {
         runtime::revert(NFTCoreError::InvalidOwnershipMode)
     }
 
-    // If approve_all is true we approve operator for all caller_owned tokens.
-    // If false we set operator to None for all caller_owned_tokens
+    // If approve_all is true we approve operator for all caller owned tokens.
+    // If false we set operator to None for all caller owned tokens
     let approve_all = utils::get_named_arg_with_user_errors::<bool>(
         ARG_APPROVE_ALL,
         NFTCoreError::MissingApproveAll,
@@ -998,40 +991,25 @@ pub extern "C" fn set_approval_for_all() {
     )
     .unwrap_or_revert();
 
-    let token_owner: Key = utils::get_verified_caller().unwrap_or_revert();
+    let owner: Key = utils::get_verified_caller().unwrap_or_revert();
 
-    let operator = utils::get_named_arg_with_user_errors::<Key>(
+    let operator: Key = utils::get_named_arg_with_user_errors(
         ARG_OPERATOR,
         NFTCoreError::MissingOperator,
         NFTCoreError::InvalidOperator,
     )
     .unwrap_or_revert();
 
-    let operators_seed_uref = utils::get_uref(
-        APPROVED,
-        NFTCoreError::MissingStorageUref,
-        NFTCoreError::InvalidStorageUref,
-    );
-
-    let callers_owned_tokens = match utils::get_reporting_mode() {
-        OwnerReverseLookupMode::NoLookUp => utils::get_owned_token_ids_by_token_number(),
-        OwnerReverseLookupMode::Complete => utils::get_owned_token_ids_by_page(),
-    };
+    // If token owner tries to approve itself as operator that's probably a mistake and we revert.
+    if owner == operator {
+        runtime::revert(NFTCoreError::InvalidAccount);
+    }
 
     // Depending on approve_all we either approve all or disapprove all.
-    let operator = if approve_all { Some(operator) } else { None };
-    for token_id in &callers_owned_tokens {
-        // We assume a burned token cannot be approved
-        if utils::is_token_burned(token_id) {
-            continue;
-        }
+    let operator: Option<Key> = if approve_all { Some(operator) } else { None };
+    let owner_item_key = utils::get_stringified_token_owner_item_key(owner);
 
-        storage::dictionary_put(
-            operators_seed_uref,
-            &token_id.get_dictionary_item_key(),
-            operator,
-        );
-    }
+    upsert_dictionary_value_from_key(OPERATORS, &owner_item_key, operator);
 
     let events_mode: EventsMode = utils::get_stored_value_with_user_errors::<u8>(
         EVENTS_MODE,
@@ -1044,25 +1022,25 @@ pub extern "C" fn set_approval_for_all() {
     match events_mode {
         EventsMode::NoEvents => {}
         EventsMode::CES => {
-            casper_event_standard::emit(ApprovalForAll::new(
-                token_owner,
-                operator,
-                callers_owned_tokens,
-            ));
+            casper_event_standard::emit(ApprovalForAll::new(owner, operator));
         }
         EventsMode::CEP47 => {
-            for callers_owned_token in callers_owned_tokens {
+            let caller_owned_tokens = match utils::get_reporting_mode() {
+                OwnerReverseLookupMode::NoLookUp => utils::get_owned_token_ids_by_token_number(),
+                OwnerReverseLookupMode::Complete => utils::get_owned_token_ids_by_page(),
+            };
+            for callers_owned_token in caller_owned_tokens {
                 match operator {
                     Some(operator) => {
                         record_cep47_event_dictionary(CEP47Event::ApprovalGranted {
-                            owner: token_owner,
+                            owner,
                             spender: operator,
                             token_id: callers_owned_token.clone(),
                         });
                     }
                     None => {
                         record_cep47_event_dictionary(CEP47Event::ApprovalRevoked {
-                            owner: token_owner,
+                            owner,
                             token_id: callers_owned_token.clone(),
                         });
                     }
@@ -1072,7 +1050,38 @@ pub extern "C" fn set_approval_for_all() {
     }
 }
 
-// Transfers token from token_owner to specified account. Transfer will go through if caller is
+// Returns a boolean state if an account is operator for an owner
+#[no_mangle]
+pub extern "C" fn is_approved_for_all() {
+    let owner_key = utils::get_named_arg_with_user_errors::<Key>(
+        ARG_TOKEN_OWNER,
+        NFTCoreError::MissingAccountHash,
+        NFTCoreError::InvalidAccountHash,
+    )
+    .unwrap_or_revert();
+
+    let operator = utils::get_named_arg_with_user_errors::<Key>(
+        ARG_OPERATOR,
+        NFTCoreError::MissingOperator,
+        NFTCoreError::InvalidOperator,
+    )
+    .unwrap_or_revert();
+
+    let owner_item_key = utils::get_stringified_token_owner_item_key(owner_key);
+
+    let is_operator =
+        match utils::get_dictionary_value_from_key::<Option<Key>>(OPERATORS, &owner_item_key) {
+            Some(Some(maybe_operator)) => operator == maybe_operator,
+            Some(None) | None => false,
+        };
+
+    let operator_cl_value =
+        CLValue::from_t(is_operator).unwrap_or_revert_with(NFTCoreError::FailedToConvertToCLValue);
+
+    runtime::ret(operator_cl_value);
+}
+
+// Transfers token from token owner to specified account. Transfer will go through if caller is
 // owner or an approved account or an operator. Transfer will fail if OwnershipMode is Minter or
 // Assigned.
 #[no_mangle]
@@ -1100,11 +1109,11 @@ pub extern "C" fn transfer() {
         runtime::revert(NFTCoreError::PreviouslyBurntToken)
     }
 
-    let token_owner_key = match utils::get_dictionary_value_from_key::<Key>(
+    let owner = match utils::get_dictionary_value_from_key::<Key>(
         TOKEN_OWNERS,
         &token_identifier.get_dictionary_item_key(),
     ) {
-        Some(token_owner) => token_owner,
+        Some(owner) => owner,
         None => runtime::revert(NFTCoreError::InvalidTokenIdentifier),
     };
 
@@ -1115,30 +1124,43 @@ pub extern "C" fn transfer() {
     )
     .unwrap_or_revert();
 
-    if source_owner_key != token_owner_key {
+    if source_owner_key != owner {
         runtime::revert(NFTCoreError::InvalidAccount);
     }
 
     let caller = utils::get_verified_caller().unwrap_or_revert();
+
+    // Check if caller is owner
+    let is_owner = owner == caller;
 
     // Check if caller is approved to execute transfer
     let is_approved = match utils::get_dictionary_value_from_key::<Option<Key>>(
         APPROVED,
         &token_identifier.get_dictionary_item_key(),
     ) {
-        Some(Some(approved_key)) => approved_key == caller,
+        Some(Some(maybe_approved)) => caller == maybe_approved,
         Some(None) | None => false,
     };
 
+    // Check if caller is operator to execute transfer
+    let source_owner_item_key = utils::get_stringified_token_owner_item_key(source_owner_key);
+    let is_operator = !is_approved
+        && match utils::get_dictionary_value_from_key::<Option<Key>>(
+            OPERATORS,
+            &source_owner_item_key,
+        ) {
+            Some(Some(maybe_operator)) => caller == maybe_operator,
+            Some(None) | None => false,
+        };
+
     // Revert if caller is not owner nor approved nor an operator.
-    if caller != token_owner_key && !is_approved
-    // TODO check if !is_operator + test
+    if !is_owner && !is_approved && !is_operator
     // && !is_operator
     {
         runtime::revert(NFTCoreError::InvalidTokenOwner);
     }
 
-    let target_owner_key: Key = utils::get_named_arg_with_user_errors(
+    let target_owner_key = utils::get_named_arg_with_user_errors::<Key>(
         ARG_TARGET_KEY,
         NFTCoreError::MissingAccountHash,
         NFTCoreError::InvalidAccountHash,
@@ -1155,8 +1177,7 @@ pub extern "C" fn transfer() {
         }
     }
 
-    let source_owner_item_key = utils::get_owned_tokens_dictionary_item_key(source_owner_key);
-    let target_owner_item_key = utils::get_owned_tokens_dictionary_item_key(target_owner_key);
+    let target_owner_item_key = utils::get_stringified_token_owner_item_key(target_owner_key);
 
     // Updated token_owners dictionary. Revert if token_owner not found.
     match utils::get_dictionary_value_from_key::<Key>(
@@ -1211,14 +1232,8 @@ pub extern "C" fn transfer() {
         updated_to_account_balance,
     );
 
-    let spender_uref = utils::get_uref(
+    upsert_dictionary_value_from_key(
         APPROVED,
-        NFTCoreError::MissingStorageUref,
-        NFTCoreError::InvalidStorageUref,
-    );
-
-    storage::dictionary_put(
-        spender_uref,
         &token_identifier.get_dictionary_item_key(),
         Option::<Key>::None,
     );
@@ -1233,19 +1248,15 @@ pub extern "C" fn transfer() {
     match events_mode {
         EventsMode::NoEvents => {}
         EventsMode::CEP47 => record_cep47_event_dictionary(CEP47Event::Transfer {
-            sender: token_owner_key,
+            sender: owner, // ODO check if this should be spender instead of owner
             recipient: target_owner_key,
             token_id: token_identifier.clone(),
         }),
         EventsMode::CES => {
             // Emit Transfer event.
-            let spender = if caller == token_owner_key {
-                None
-            } else {
-                Some(caller)
-            };
+            let spender = if caller == owner { None } else { Some(caller) };
             casper_event_standard::emit(Transfer::new(
-                token_owner_key,
+                owner,
                 spender,
                 target_owner_key,
                 token_identifier.clone(),
@@ -1327,7 +1338,7 @@ pub extern "C" fn balance_of() {
     )
     .unwrap_or_revert();
 
-    let owner_key_item_string = utils::get_owned_tokens_dictionary_item_key(owner_key);
+    let owner_key_item_string = utils::get_stringified_token_owner_item_key(owner_key);
 
     let balance = utils::get_dictionary_value_from_key::<u64>(TOKEN_COUNTS, &owner_key_item_string)
         .unwrap_or(0u64);
@@ -1337,6 +1348,7 @@ pub extern "C" fn balance_of() {
     runtime::ret(balance_cl_value);
 }
 
+// Returns the owner for a specified token identifier, throws error if token id is not valid
 #[no_mangle]
 pub extern "C" fn owner_of() {
     let identifier_mode: NFTIdentifierMode = utils::get_stored_value_with_user_errors::<u8>(
@@ -1425,7 +1437,8 @@ pub extern "C" fn metadata() {
     }
 }
 
-// Returns approved account_hash from token_id, throws error if token id is not valid
+// Returns approved account hash for a specified token identifier, throws error if token id is not
+// valid
 #[no_mangle]
 pub extern "C" fn get_approved() {
     let identifier_mode: NFTIdentifierMode = utils::get_stored_value_with_user_errors::<u8>(
@@ -1464,12 +1477,6 @@ pub extern "C" fn get_approved() {
         Some(maybe_approved) => maybe_approved,
         None => None,
     };
-
-    // TODO Check if maybe_operator (approved for all) + test
-    // let maybe_approved = match maybe_approved {
-    //     Some(maybe_approved) => maybe_approved,
-    //     None => maybe_operator_approved_for_all(),
-    // };
 
     let approved_cl_value = CLValue::from_t(maybe_approved)
         .unwrap_or_revert_with(NFTCoreError::FailedToConvertToCLValue);
@@ -1692,7 +1699,7 @@ pub extern "C" fn migrate() {
 #[no_mangle]
 pub extern "C" fn updated_receipts() {
     if let OwnerReverseLookupMode::Complete = utils::get_reporting_mode() {
-        let token_owner = utils::get_verified_caller().unwrap_or_revert();
+        let caller = utils::get_verified_caller().unwrap_or_revert();
 
         let identifier_mode: NFTIdentifierMode = utils::get_stored_value_with_user_errors::<u8>(
             IDENTIFIER_MODE,
@@ -1702,13 +1709,12 @@ pub extern "C" fn updated_receipts() {
         .try_into()
         .unwrap_or_revert();
 
-        if identifier_mode == NFTIdentifierMode::Hash
-            && utils::should_migrate_token_hashes(token_owner)
+        if identifier_mode == NFTIdentifierMode::Hash && utils::should_migrate_token_hashes(caller)
         {
-            utils::migrate_token_hashes(token_owner);
+            utils::migrate_token_hashes(caller);
         }
 
-        let token_owner_item_key = utils::get_owned_tokens_dictionary_item_key(token_owner);
+        let token_owner_item_key = utils::get_stringified_token_owner_item_key(caller);
 
         let page_table =
             utils::get_dictionary_value_from_key::<Vec<bool>>(PAGE_TABLE, &token_owner_item_key)
@@ -1756,7 +1762,7 @@ pub extern "C" fn register_owner() {
             NFTCoreError::InvalidPageTableURef,
         );
 
-        let owner_item_key = utils::get_owned_tokens_dictionary_item_key(owner_key);
+        let owner_item_key = utils::get_stringified_token_owner_item_key(owner_key);
 
         if storage::dictionary_get::<Vec<bool>>(page_table_uref, &owner_item_key)
             .unwrap_or_revert()
@@ -1930,16 +1936,26 @@ fn generate_entry_points() -> EntryPoints {
 
     // This entrypoint approves all tokens owned by the caller and future to another token holder
     // (an operator) to transfer tokens. It reverts if token_id is invalid, if caller is not the
-    // owner, if token has already been burnt, or if caller tries to approve themselves as an
-    // operator.
+    // owner, if caller tries to approve themselves as an operator.
     let set_approval_for_all = EntryPoint::new(
         ENTRY_POINT_SET_APPROVE_FOR_ALL,
         vec![
-            Parameter::new(ARG_TOKEN_OWNER, CLType::Key),
             Parameter::new(ARG_APPROVE_ALL, CLType::Bool),
             Parameter::new(ARG_OPERATOR, CLType::Key),
         ],
         CLType::Unit,
+        EntryPointAccess::Public,
+        EntryPointType::Contract,
+    );
+
+    // This entrypoint returns if an account is operator for a token owner
+    let is_approved_for_all = EntryPoint::new(
+        ENTRY_POINT_IS_APPROVED_FOR_ALL,
+        vec![
+            Parameter::new(ARG_TOKEN_OWNER, CLType::Key),
+            Parameter::new(ARG_OPERATOR, CLType::Key),
+        ],
+        CLType::Bool,
         EntryPointAccess::Public,
         EntryPointType::Contract,
     );
@@ -2045,6 +2061,7 @@ fn generate_entry_points() -> EntryPoints {
     entry_points.add_entry_point(get_approved);
     entry_points.add_entry_point(metadata);
     entry_points.add_entry_point(set_approval_for_all);
+    entry_points.add_entry_point(is_approved_for_all);
     entry_points.add_entry_point(set_token_metadata);
     entry_points.add_entry_point(migrate);
     entry_points.add_entry_point(updated_receipts);
