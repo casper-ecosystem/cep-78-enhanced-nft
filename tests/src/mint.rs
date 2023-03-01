@@ -3,7 +3,7 @@ use contract::{
         APPROVED, ARG_APPROVE_ALL, ARG_COLLECTION_NAME, ARG_CONTRACT_WHITELIST, ARG_MINTING_MODE,
         ARG_OPERATOR, ARG_SPENDER, ARG_TOKEN_HASH, ARG_TOKEN_ID, ARG_TOKEN_META_DATA,
         ARG_TOKEN_OWNER, ENTRY_POINT_APPROVE, ENTRY_POINT_MINT, ENTRY_POINT_REGISTER_OWNER,
-        ENTRY_POINT_SET_APPROVE_FOR_ALL, ENTRY_POINT_SET_VARIABLES, METADATA_CEP78,
+        ENTRY_POINT_SET_APPROVALL_FOR_ALL, ENTRY_POINT_SET_VARIABLES, METADATA_CEP78,
         METADATA_CUSTOM_VALIDATED, METADATA_NFT721, METADATA_RAW, NUMBER_OF_MINTED_TOKENS,
         PAGE_TABLE, RECEIPT_NAME, TOKEN_COUNTS, TOKEN_ISSUERS, TOKEN_OWNERS,
     },
@@ -794,7 +794,7 @@ fn should_set_approval_for_all() {
     let set_approve_for_all_request = ExecuteRequestBuilder::contract_call_by_name(
         *DEFAULT_ACCOUNT_ADDR,
         CONTRACT_NAME,
-        ENTRY_POINT_SET_APPROVE_FOR_ALL,
+        ENTRY_POINT_SET_APPROVALL_FOR_ALL,
         runtime_args! {
             ARG_APPROVE_ALL => true,
             ARG_OPERATOR => operator_key
@@ -1657,7 +1657,7 @@ fn should_approve_all_in_hash_identifier_mode() {
     let approval_all_request = ExecuteRequestBuilder::contract_call_by_hash(
         *DEFAULT_ACCOUNT_ADDR,
         nft_contract_hash,
-        ENTRY_POINT_SET_APPROVE_FOR_ALL,
+        ENTRY_POINT_SET_APPROVALL_FOR_ALL,
         runtime_args! {
             ARG_APPROVE_ALL => true,
             ARG_OPERATOR => Key::Account(AccountHash::new([7u8;32])),
