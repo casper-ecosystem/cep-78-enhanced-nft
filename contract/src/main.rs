@@ -712,7 +712,7 @@ pub extern "C" fn burn() {
 
     let token_identifier = utils::get_token_identifier_from_runtime_args(&identifier_mode);
 
-    let caller: Key = utils::get_verified_caller().unwrap_or_revert();
+    let caller = utils::get_verified_caller().unwrap_or_revert();
 
     // Revert if caller is not token_owner. This seems to be the only check we need to do.
     let token_owner = match utils::get_dictionary_value_from_key::<Key>(
@@ -793,7 +793,7 @@ pub extern "C" fn approve() {
         runtime::revert(NFTCoreError::InvalidOwnershipMode)
     }
 
-    let caller: Key = utils::get_verified_caller().unwrap_or_revert();
+    let caller = utils::get_verified_caller().unwrap_or_revert();
 
     let identifier_mode: NFTIdentifierMode = utils::get_stored_value_with_user_errors::<u8>(
         IDENTIFIER_MODE,
@@ -901,7 +901,7 @@ pub extern "C" fn revoke() {
         runtime::revert(NFTCoreError::InvalidOwnershipMode)
     }
 
-    let caller: Key = utils::get_verified_caller().unwrap_or_revert();
+    let caller = utils::get_verified_caller().unwrap_or_revert();
 
     let identifier_mode: NFTIdentifierMode = utils::get_stored_value_with_user_errors::<u8>(
         IDENTIFIER_MODE,
@@ -937,8 +937,19 @@ pub extern "C" fn revoke() {
         None => runtime::revert(NFTCoreError::InvalidAccountHash),
     };
 
-    // Revert if caller is not the token owner. Only the token owner can revoke an approved account
-    if owner != caller {
+    // Revert if caller is not the token owner or an operator. Only the token owner / operators can
+    // revoke an approved account
+    let is_owner = caller == owner;
+    let is_operator = !is_owner
+        && match utils::get_dictionary_value_from_key::<Option<Key>>(
+            OPERATORS,
+            &utils::get_stringified_token_owner_item_key(owner),
+        ) {
+            Some(Some(maybe_operator)) => caller == maybe_operator,
+            Some(None) | None => false,
+        };
+
+    if !is_owner && !is_operator {
         runtime::revert(NFTCoreError::InvalidAccountHash);
     }
 
@@ -991,23 +1002,23 @@ pub extern "C" fn set_approval_for_all() {
     )
     .unwrap_or_revert();
 
-    let owner: Key = utils::get_verified_caller().unwrap_or_revert();
+    let caller = utils::get_verified_caller().unwrap_or_revert();
 
-    let operator: Key = utils::get_named_arg_with_user_errors(
+    let operator = utils::get_named_arg_with_user_errors(
         ARG_OPERATOR,
         NFTCoreError::MissingOperator,
         NFTCoreError::InvalidOperator,
     )
     .unwrap_or_revert();
 
-    // If token owner tries to approve itself as operator that's probably a mistake and we revert.
-    if owner == operator {
+    // If caller tries to approve itself as operator that's probably a mistake and we revert.
+    if caller == operator {
         runtime::revert(NFTCoreError::InvalidAccount);
     }
 
     // Depending on approve_all we either approve all or disapprove all.
     let operator: Option<Key> = if approve_all { Some(operator) } else { None };
-    let owner_item_key = utils::get_stringified_token_owner_item_key(owner);
+    let owner_item_key = utils::get_stringified_token_owner_item_key(caller);
 
     upsert_dictionary_value_from_key(OPERATORS, &owner_item_key, operator);
 
@@ -1022,7 +1033,7 @@ pub extern "C" fn set_approval_for_all() {
     match events_mode {
         EventsMode::NoEvents => {}
         EventsMode::CES => {
-            casper_event_standard::emit(ApprovalForAll::new(owner, operator));
+            casper_event_standard::emit(ApprovalForAll::new(caller, operator));
         }
         EventsMode::CEP47 => {
             let caller_owned_tokens = match utils::get_reporting_mode() {
@@ -1033,14 +1044,14 @@ pub extern "C" fn set_approval_for_all() {
                 match operator {
                     Some(operator) => {
                         record_cep47_event_dictionary(CEP47Event::ApprovalGranted {
-                            owner,
+                            owner: caller,
                             spender: operator,
                             token_id: callers_owned_token.clone(),
                         });
                     }
                     None => {
                         record_cep47_event_dictionary(CEP47Event::ApprovalRevoked {
-                            owner,
+                            owner: caller,
                             token_id: callers_owned_token.clone(),
                         });
                     }
