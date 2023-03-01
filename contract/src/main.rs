@@ -1528,16 +1528,18 @@ pub extern "C" fn migrate() {
     let total_token_supply: u64 = match utils::get_optional_named_arg_with_user_errors(
         ARG_TOTAL_TOKEN_SUPPLY,
         NFTCoreError::InvalidTotalTokenSupply,
-    ){
+    ) {
         Some(total_token_supply_arg) => {
-            if total_token_supply_arg > utils::get_stored_value_with_user_errors::<u64>(
-                TOTAL_TOKEN_SUPPLY,
-                NFTCoreError::MissingTotalTokenSupply,
-                NFTCoreError::InvalidTotalTokenSupply,
-            ){
+            if total_token_supply_arg
+                > utils::get_stored_value_with_user_errors::<u64>(
+                    TOTAL_TOKEN_SUPPLY,
+                    NFTCoreError::MissingTotalTokenSupply,
+                    NFTCoreError::InvalidTotalTokenSupply,
+                )
+            {
                 runtime::revert(NFTCoreError::CannotUpgradeToMoreSupply)
             }
-            
+
             let total_token_supply_uref = utils::get_uref(
                 ARG_TOTAL_TOKEN_SUPPLY,
                 NFTCoreError::MissingTotalTokenSupply,
@@ -1566,7 +1568,7 @@ pub extern "C" fn migrate() {
     if total_token_supply < current_number_of_minted_tokens {
         runtime::revert(NFTCoreError::ExceededMaxTotalSupply)
     }
-    
+
     let events_mode: EventsMode = utils::get_optional_named_arg_with_user_errors::<u8>(
         ARG_EVENTS_MODE,
         NFTCoreError::InvalidEventsMode,
