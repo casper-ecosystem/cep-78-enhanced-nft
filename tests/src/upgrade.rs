@@ -11,11 +11,11 @@ use crate::utility::{
         ACCESS_KEY_NAME_1_0_0, ACCOUNT_USER_1, ARG_ACCESS_KEY_NAME_1_0_0, ARG_COLLECTION_NAME,
         ARG_EVENTS_MODE, ARG_HASH_KEY_NAME_1_0_0, ARG_IS_HASH_IDENTIFIER_MODE,
         ARG_NAMED_KEY_CONVENTION, ARG_NFT_CONTRACT_HASH, ARG_NFT_PACKAGE_HASH, ARG_SOURCE_KEY,
-        ARG_TARGET_KEY, ARG_TOKEN_HASH, ARG_TOKEN_META_DATA, ARG_TOKEN_OWNER, CONTRACT_1_0_0_WASM,
-        CONTRACT_1_1_O_WASM, ENTRY_POINT_REGISTER_OWNER, MANGLE_NAMED_KEYS, MINT_1_0_0_WASM,
-        MINT_SESSION_WASM, NFT_CONTRACT_WASM, NFT_TEST_COLLECTION, NFT_TEST_SYMBOL, PAGE_LIMIT,
-        PAGE_SIZE, RECEIPT_NAME, TRANSFER_SESSION_WASM, UNMATCHED_HASH_COUNT,
-        UPDATED_RECEIPTS_WASM, ARG_TOTAL_TOKEN_SUPPLY,
+        ARG_TARGET_KEY, ARG_TOKEN_HASH, ARG_TOKEN_META_DATA, ARG_TOKEN_OWNER,
+        ARG_TOTAL_TOKEN_SUPPLY, CONTRACT_1_0_0_WASM, CONTRACT_1_1_O_WASM,
+        ENTRY_POINT_REGISTER_OWNER, MANGLE_NAMED_KEYS, MINT_1_0_0_WASM, MINT_SESSION_WASM,
+        NFT_CONTRACT_WASM, NFT_TEST_COLLECTION, NFT_TEST_SYMBOL, PAGE_LIMIT, PAGE_SIZE,
+        RECEIPT_NAME, TRANSFER_SESSION_WASM, UNMATCHED_HASH_COUNT, UPDATED_RECEIPTS_WASM,
     },
     installer_request_builder::{
         InstallerRequestBuilder, MetadataMutability, NFTIdentifierMode, NFTMetadataKind,
@@ -647,7 +647,6 @@ fn should_upgrade_with_custom_named_keys() {
         .commit();
 }
 
-
 #[test]
 fn should_not_upgrade_with_larger_total_token_supply() {
     let mut builder = InMemoryWasmTestBuilder::default();
@@ -681,5 +680,9 @@ fn should_not_upgrade_with_larger_total_token_supply() {
     builder.exec(upgrade_request).expect_failure();
     let error = builder.get_error().expect("must have error");
 
-    support::assert_expected_error(error, 142u16, "cannot upgrade when new total token supply is larger than pre-migration one");
+    support::assert_expected_error(
+        error,
+        142u16,
+        "cannot upgrade when new total token supply is larger than pre-migration one",
+    );
 }
