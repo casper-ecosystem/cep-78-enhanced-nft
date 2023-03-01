@@ -782,7 +782,6 @@ pub extern "C" fn burn() {
 }
 
 // Marks an account as approved for an identified token transfer
-// Approves `spender` to operate on `token_id`
 #[no_mangle]
 pub extern "C" fn approve() {
     // If we are in minter or assigned mode it makes no sense to approve an account. Hence we
@@ -890,7 +889,6 @@ pub extern "C" fn approve() {
 }
 
 // Revokes an account as approved for an identified token transfer
-// Revokes `spender` to operate on `token_id`
 #[no_mangle]
 pub extern "C" fn revoke() {
     // If we are in minter or assigned mode it makes no sense to approve an account. Hence we
@@ -981,8 +979,7 @@ pub extern "C" fn revoke() {
     };
 }
 
-// Approves the specified operator(s) for transfer of token owner's tokens.
-// Approves `operator(s)` to operate on all of (and future) `owner` tokens
+// Approves the specified operator for transfer of token owner's tokens.
 #[no_mangle]
 pub extern "C" fn set_approval_for_all() {
     // If we are in minter or assigned mode it makes no sense to approve an operator. Hence we
