@@ -76,6 +76,10 @@ The command returns the deploy hash that you can use to verify whether or not th
 
 - When upgrading by installing a new version of the CEP-78 contract, you do not need to specify all the runtime arguments needed during the initial installation of version 1.0.0, such as `total_token_supply`, `ownership_mode`, etc.
 
+However, `total_token_supply` may be provided as an optional runtime argument if you wish to decrease the total supply during the upgrade. The provided argument cannot be larger than the previous total, but must be larger than the total number of minted tokens. It cannot be zero.
+
+Therefore, if the previous contract instance had a total token supply of 1,000 and 750 minted tokens, the `total_token_supply` optional argument must be between 751 and 1,000.
+
 **Example command to upgrade to v1.1.1:**
 
 The following is an example of upgrading and migrating to version 1.1.1 of a previously installed NFT collection using version 1.0.0 with standard NamedKeys.
