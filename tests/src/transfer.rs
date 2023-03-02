@@ -31,8 +31,8 @@ use crate::utility::{
         NFTMetadataKind, OwnerReverseLookupMode, OwnershipMode, WhitelistMode,
     },
     support::{
-        self, assert_expected_error, get_dictionary_value_from_key, get_minting_contract_hash,
-        get_nft_contract_hash, query_stored_value,
+        self, assert_expected_error, create_funded_dummy_account, get_dictionary_value_from_key,
+        get_minting_contract_hash, get_nft_contract_hash, query_stored_value,
     },
 };
 
@@ -368,21 +368,7 @@ fn approve_token_for_transfer_from_an_account_should_add_entry_to_approved_dicti
 fn approve_token_for_transfer_from_an_operator_should_add_entry_to_approved_dictionary() {
     let mut builder = InMemoryWasmTestBuilder::default();
     builder.run_genesis(&DEFAULT_RUN_GENESIS_REQUEST).commit();
-
-    // Create an operator account account and transfer funds
-    let (_, operator_public_key) = support::create_dummy_key_pair([7u8; 32]);
-    let operator = operator_public_key.to_account_hash();
-
-    let transfer_to_operator = ExecuteRequestBuilder::transfer(
-        *DEFAULT_ACCOUNT_ADDR,
-        runtime_args! {
-            mint::ARG_AMOUNT => 100_000_000_000_000u64,
-            mint::ARG_TARGET => operator,
-            mint::ARG_ID => Option::<u64>::None,
-        },
-    )
-    .build();
-    builder.exec(transfer_to_operator).expect_success().commit();
+    let operator = create_funded_dummy_account(&mut builder);
     approve_token_for_transfer_should_add_entry_to_approved_dictionary(builder, Some(operator))
 }
 
@@ -519,22 +505,7 @@ fn revoke_token_for_transfer_from_account_should_remove_entry_to_approved_dictio
 fn revoke_token_for_transfer_from_operator_should_remove_entry_to_approved_dictionary() {
     let mut builder = InMemoryWasmTestBuilder::default();
     builder.run_genesis(&DEFAULT_RUN_GENESIS_REQUEST).commit();
-
-    // Create an operator account account and transfer funds
-    let (_, operator_public_key) = support::create_dummy_key_pair([7u8; 32]);
-    let operator = operator_public_key.to_account_hash();
-
-    let transfer_to_operator = ExecuteRequestBuilder::transfer(
-        *DEFAULT_ACCOUNT_ADDR,
-        runtime_args! {
-            mint::ARG_AMOUNT => 100_000_000_000_000u64,
-            mint::ARG_TARGET => operator,
-            mint::ARG_ID => Option::<u64>::None,
-        },
-    )
-    .build();
-    builder.exec(transfer_to_operator).expect_success().commit();
-
+    let operator = create_funded_dummy_account(&mut builder);
     revoke_token_for_transfer_should_remove_entry_to_approved_dictionary(builder, Some(operator))
 }
 
@@ -757,21 +728,7 @@ fn should_be_able_to_transfer_token_using_approved_account() {
 fn should_be_able_to_transfer_token_using_operator() {
     let mut builder = InMemoryWasmTestBuilder::default();
     builder.run_genesis(&DEFAULT_RUN_GENESIS_REQUEST).commit();
-
-    // Create an operator account account and transfer funds
-    let (_, operator_public_key) = support::create_dummy_key_pair([7u8; 32]);
-    let operator = operator_public_key.to_account_hash();
-
-    let transfer_to_operator = ExecuteRequestBuilder::transfer(
-        *DEFAULT_ACCOUNT_ADDR,
-        runtime_args! {
-            mint::ARG_AMOUNT => 100_000_000_000_000u64,
-            mint::ARG_TARGET => operator,
-            mint::ARG_ID => Option::<u64>::None,
-        },
-    )
-    .build();
-    builder.exec(transfer_to_operator).expect_success().commit();
+    let operator = create_funded_dummy_account(&mut builder);
     should_be_able_to_transfer_token(builder, Some(operator))
 }
 
@@ -1126,21 +1083,7 @@ fn should_disallow_to_transfer_token_using_revoked_account() {
 fn should_disallow_to_transfer_token_using_revoked_operator() {
     let mut builder = InMemoryWasmTestBuilder::default();
     builder.run_genesis(&DEFAULT_RUN_GENESIS_REQUEST).commit();
-
-    // Create an operator account account and transfer funds
-    let (_, operator_public_key) = support::create_dummy_key_pair([7u8; 32]);
-    let operator = operator_public_key.to_account_hash();
-
-    let transfer_to_operator = ExecuteRequestBuilder::transfer(
-        *DEFAULT_ACCOUNT_ADDR,
-        runtime_args! {
-            mint::ARG_AMOUNT => 100_000_000_000_000u64,
-            mint::ARG_TARGET => operator,
-            mint::ARG_ID => Option::<u64>::None,
-        },
-    )
-    .build();
-    builder.exec(transfer_to_operator).expect_success().commit();
+    let operator = create_funded_dummy_account(&mut builder);
     should_disallow_to_transfer_token_using_revoked_hash(builder, Some(operator))
 }
 
