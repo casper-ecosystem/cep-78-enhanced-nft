@@ -4,17 +4,14 @@ version = "1.1.1"
 edition = "2018"
 
 [dependencies]
-casper-contract = { version = "1.4.3", features = ["test-support"] }
+casper-contract = { version = "1.4.3", features = [
+  "test-support",
+], default-features = false, optional = true }
 casper-types = "1.4.5"
-serde = { version = "1", features = [
-  "derive",
-  "alloc",
-], default-features = false }
-serde_json = { version = "^1.0.59", default-features = false, features = [
-  "alloc",
-] }
-serde-json-wasm = "0.5.0"
-base16 = { version = "0.2", default-features = false, features = ["alloc"] }
+serde = { version = "^1.0.80", default-features = false }
+serde_json = { version = "^1.0.59", default-features = false }
+serde-json-wasm = { version = "0.5.0", default-features = false }
+base16 = { version = "0.2.1", default-features = false }
 casper-event-standard = "0.2.0"
 
 [[bin]]
@@ -29,5 +26,6 @@ codegen-units = 1
 lto = true
 
 [features]
-default = ["std"]
-std = ["casper-contract/std", "casper-types/std"]
+default = ["std", "contract-support"]
+std = ["casper-types/std"]
+contract-support = ["dep:casper-contract"]
