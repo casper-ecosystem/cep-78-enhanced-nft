@@ -4,7 +4,7 @@ version = "1.1.1"
 edition = "2018"
 
 [dependencies]
-contract = { path = "../contract", default-features = false }
+contract = { path = "../contract" }
 casper-engine-test-support = { version = "2.2.0", features = ["test-support"] }
 casper-execution-engine = "2.0.0"
 casper-types = "1.4.5"
@@ -16,7 +16,3 @@ base16 = { version = "0.2.1", default-features = false }
 rand = "0.8.5"
 sha256 = "1.0.3"
 casper-event-standard = { version = "0.2.0", default-features = false }
-
-[features]
-default = ["std"]
-std = ["casper-types/std"]
