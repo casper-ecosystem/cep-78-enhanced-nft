@@ -8,12 +8,13 @@ use casper_types::{account::AccountHash, runtime_args, Key, RuntimeArgs};
 
 use contract::{
     constants::{
-        ACCESS_KEY_NAME_1_0_0, APPROVED, ARG_ACCESS_KEY_NAME_1_0_0, ARG_COLLECTION_NAME,
-        ARG_EVENTS_MODE, ARG_NAMED_KEY_CONVENTION, ARG_NFT_PACKAGE_HASH, ARG_SOURCE_KEY,
-        ARG_SPENDER, ARG_TARGET_KEY, ARG_TOKEN_HASH, ARG_TOKEN_ID, ARG_TOKEN_META_DATA,
-        ARG_TOKEN_OWNER, BURNT_TOKENS, ENTRY_POINT_APPROVE, ENTRY_POINT_BURN,
-        ENTRY_POINT_REGISTER_OWNER, ENTRY_POINT_SET_TOKEN_METADATA, METADATA_CEP78,
-        METADATA_CUSTOM_VALIDATED, METADATA_NFT721, METADATA_RAW, TOKEN_COUNTS,
+        ACCESS_KEY_NAME_1_0_0, APPROVED, ARG_ACCESS_KEY_NAME_1_0_0, ARG_APPROVE_ALL,
+        ARG_COLLECTION_NAME, ARG_EVENTS_MODE, ARG_NAMED_KEY_CONVENTION, ARG_NFT_PACKAGE_HASH,
+        ARG_OPERATOR, ARG_SOURCE_KEY, ARG_SPENDER, ARG_TARGET_KEY, ARG_TOKEN_HASH, ARG_TOKEN_ID,
+        ARG_TOKEN_META_DATA, ARG_TOKEN_OWNER, BURNT_TOKENS, ENTRY_POINT_APPROVE, ENTRY_POINT_BURN,
+        ENTRY_POINT_REGISTER_OWNER, ENTRY_POINT_SET_APPROVALL_FOR_ALL,
+        ENTRY_POINT_SET_TOKEN_METADATA, METADATA_CEP78, METADATA_CUSTOM_VALIDATED, METADATA_NFT721,
+        METADATA_RAW, TOKEN_COUNTS,
     },
     modalities::{EventsMode, NamedKeyConventionMode},
 };
@@ -21,10 +22,10 @@ use contract::{
 use crate::utility::{
     constants::{
         ARG_IS_HASH_IDENTIFIER_MODE, ARG_NFT_CONTRACT_HASH, CONTRACT_1_0_0_WASM, CONTRACT_NAME,
-        MINT_1_0_0_WASM, MINT_SESSION_WASM, NFT_CONTRACT_WASM, NFT_TEST_COLLECTION,
-        NFT_TEST_SYMBOL, TEST_PRETTY_721_META_DATA, TEST_PRETTY_CEP78_METADATA,
-        TEST_PRETTY_UPDATED_721_META_DATA, TEST_PRETTY_UPDATED_CEP78_METADATA,
-        TRANSFER_SESSION_WASM,
+        IS_APPROVED_FOR_ALL_WASM, MINT_1_0_0_WASM, MINT_SESSION_WASM, NFT_CONTRACT_WASM,
+        NFT_TEST_COLLECTION, NFT_TEST_SYMBOL, RETURNED_VALUE_STORAGE_KEY,
+        TEST_PRETTY_721_META_DATA, TEST_PRETTY_CEP78_METADATA, TEST_PRETTY_UPDATED_721_META_DATA,
+        TEST_PRETTY_UPDATED_CEP78_METADATA, TRANSFER_SESSION_WASM,
     },
     installer_request_builder::{
         InstallerRequestBuilder, MetadataMutability, NFTIdentifierMode, NFTMetadataKind,
@@ -32,7 +33,8 @@ use crate::utility::{
         TEST_CUSTOM_UPDATED_METADATA,
     },
     support::{
-        self, get_dictionary_value_from_key, get_nft_contract_hash, get_token_page_by_id,
+        self, call_session_code_with_ret, create_funded_dummy_account,
+        get_dictionary_value_from_key, get_nft_contract_hash, get_token_page_by_id,
         query_stored_value,
     },
 };
@@ -576,7 +578,105 @@ fn should_cep47_dictionary_style_approve_event_in_hash_identifier_mode() {
     assert_eq!(event, expected_event);
 }
 
-// TODO test set_approval_for_all event
+#[test]
+fn should_cep47_dictionary_style_approve_all_event() {
+    let mut builder = InMemoryWasmTestBuilder::default();
+    builder.run_genesis(&DEFAULT_RUN_GENESIS_REQUEST).commit();
+
+    let install_request_builder =
+        InstallerRequestBuilder::new(*DEFAULT_ACCOUNT_ADDR, NFT_CONTRACT_WASM)
+            .with_nft_metadata_kind(NFTMetadataKind::CEP78)
+            .with_ownership_mode(OwnershipMode::Transferable)
+            .with_total_token_supply(1u64)
+            .with_events_mode(EventsMode::CEP47);
+    builder
+        .exec(install_request_builder.build())
+        .expect_success()
+        .commit();
+
+    let nft_contract_hash = get_nft_contract_hash(&builder);
+    let nft_contract_key: Key = nft_contract_hash.into();
+
+    let mint_session_call = ExecuteRequestBuilder::standard(
+        *DEFAULT_ACCOUNT_ADDR,
+        MINT_SESSION_WASM,
+        runtime_args! {
+            ARG_NFT_CONTRACT_HASH => nft_contract_key,
+            ARG_TOKEN_OWNER => Key::Account(*DEFAULT_ACCOUNT_ADDR),
+            ARG_TOKEN_META_DATA => TEST_PRETTY_CEP78_METADATA,
+            ARG_COLLECTION_NAME => NFT_TEST_COLLECTION.to_string()
+        },
+    )
+    .build();
+
+    builder.exec(mint_session_call).expect_success().commit();
+
+    let operator = create_funded_dummy_account(&mut builder);
+
+    let set_approve_all_request = ExecuteRequestBuilder::contract_call_by_hash(
+        *DEFAULT_ACCOUNT_ADDR,
+        nft_contract_hash,
+        ENTRY_POINT_SET_APPROVALL_FOR_ALL,
+        runtime_args! {
+            ARG_APPROVE_ALL => true,
+            ARG_OPERATOR => Key::Account(operator),
+        },
+    )
+    .build();
+
+    builder
+        .exec(set_approve_all_request)
+        .expect_success()
+        .commit();
+
+    let is_operator = call_session_code_with_ret::<bool>(
+        &mut builder,
+        *DEFAULT_ACCOUNT_ADDR,
+        nft_contract_key,
+        runtime_args! {
+            ARG_TOKEN_OWNER => Key::Account(*DEFAULT_ACCOUNT_ADDR),
+            ARG_OPERATOR => Key::Account(operator),
+        },
+        IS_APPROVED_FOR_ALL_WASM,
+        RETURNED_VALUE_STORAGE_KEY,
+    );
+
+    assert!(is_operator, "expected operator to be approved for all");
+
+    let event = get_dictionary_value_from_key::<BTreeMap<String, String>>(
+        &builder,
+        &nft_contract_key,
+        "events",
+        "1",
+    );
+
+    let collection_name: String = query_stored_value(
+        &builder,
+        nft_contract_key,
+        vec![ARG_COLLECTION_NAME.to_string()],
+    );
+
+    let package = query_stored_value::<String>(
+        &builder,
+        nft_contract_key,
+        vec![format!("cep78_{}", collection_name)],
+    );
+    let mut expected_event: BTreeMap<String, String> = BTreeMap::new();
+    expected_event.insert("event_type".to_string(), "Approve".to_string());
+    expected_event.insert("cep78_contract_package".to_string(), package);
+    expected_event.insert(
+        "owner".to_string(),
+        "Key::Account(58b891759929bd4ed5a9cce20b9d6e3c96a66c21386bed96040e17dd07b79fa7)"
+            .to_string(),
+    );
+    expected_event.insert(
+        "spender".to_string(),
+        "Key::Account(3d5de8c609159a0954e773dd686fb7724428316cb30e00bdc899976127747f55)"
+            .to_string(),
+    );
+    expected_event.insert("token_id".to_string(), "0".to_string());
+    assert_eq!(event, expected_event);
+}
 
 #[test]
 fn should_record_migration_event_in_cep47() {
