@@ -1835,8 +1835,6 @@ fn disallow_owner_to_approve_for_all_itself() {
 
     builder.exec(mint_session_call).expect_success().commit();
 
-    let operator = create_funded_dummy_account(&mut builder);
-
     let approval_all_request = ExecuteRequestBuilder::contract_call_by_hash(
         *DEFAULT_ACCOUNT_ADDR,
         nft_contract_hash,
