@@ -1256,7 +1256,7 @@ pub extern "C" fn transfer() {
     match events_mode {
         EventsMode::NoEvents => {}
         EventsMode::CEP47 => record_cep47_event_dictionary(CEP47Event::Transfer {
-            sender: owner, // TODO check if this should be spender instead of owner
+            sender: caller, // TODO check this, is owner always caller here ?
             recipient: target_owner_key,
             token_id: token_identifier.clone(),
         }),
