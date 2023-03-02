@@ -365,7 +365,7 @@ fn approve_token_for_transfer_from_an_account_should_add_entry_to_approved_dicti
 }
 
 #[test]
-fn _approve_token_for_transfer_from_an_operator_should_add_entry_to_approved_dictionary() {
+fn approve_token_for_transfer_from_an_operator_should_add_entry_to_approved_dictionary() {
     let mut builder = InMemoryWasmTestBuilder::default();
     builder.run_genesis(&DEFAULT_RUN_GENESIS_REQUEST).commit();
 
@@ -750,14 +750,14 @@ fn should_be_able_to_transfer_token(
 }
 
 #[test]
-fn _should_be_able_to_transfer_token_using_approved_account() {
+fn should_be_able_to_transfer_token_using_approved_account() {
     let mut builder = InMemoryWasmTestBuilder::default();
     builder.run_genesis(&DEFAULT_RUN_GENESIS_REQUEST).commit();
     should_be_able_to_transfer_token(builder, None)
 }
 
 #[test]
-fn _should_be_able_to_transfer_token_using_operator() {
+fn should_be_able_to_transfer_token_using_operator() {
     let mut builder = InMemoryWasmTestBuilder::default();
     builder.run_genesis(&DEFAULT_RUN_GENESIS_REQUEST).commit();
 
@@ -1129,7 +1129,7 @@ fn should_disallow_to_transfer_token_using_revoked_account() {
 }
 
 #[test]
-fn _should_disallow_to_transfer_token_using_revoked_operator() {
+fn should_disallow_to_transfer_token_using_revoked_operator() {
     let mut builder = InMemoryWasmTestBuilder::default();
     builder.run_genesis(&DEFAULT_RUN_GENESIS_REQUEST).commit();
 
