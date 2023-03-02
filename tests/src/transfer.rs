@@ -697,7 +697,7 @@ fn should_be_able_to_transfer_token(
 
     // Create to_account and transfer minted token using spender
     let (_, to_account_public_key) = support::create_dummy_key_pair(ACCOUNT_USER_2);
-    let transfer_to_to_account = ExecuteRequestBuilder::transfer(
+    let fund_to_account = ExecuteRequestBuilder::transfer(
         *DEFAULT_ACCOUNT_ADDR,
         runtime_args! {
             mint::ARG_AMOUNT => 100_000_000_000_000u64,
@@ -706,10 +706,7 @@ fn should_be_able_to_transfer_token(
         },
     )
     .build();
-    builder
-        .exec(transfer_to_to_account)
-        .expect_success()
-        .commit();
+    builder.exec(fund_to_account).expect_success().commit();
 
     let register_owner = ExecuteRequestBuilder::contract_call_by_hash(
         *DEFAULT_ACCOUNT_ADDR,
@@ -1048,7 +1045,7 @@ fn should_disallow_to_transfer_token_using_revoked_hash(
 
     // Create to_account and transfer minted token using account
     let (_, to_account_public_key) = support::create_dummy_key_pair(ACCOUNT_USER_2);
-    let transfer_to_to_account = ExecuteRequestBuilder::transfer(
+    let fund_to_account = ExecuteRequestBuilder::transfer(
         *DEFAULT_ACCOUNT_ADDR,
         runtime_args! {
             mint::ARG_AMOUNT => 100_000_000_000_000u64,
@@ -1057,10 +1054,7 @@ fn should_disallow_to_transfer_token_using_revoked_hash(
         },
     )
     .build();
-    builder
-        .exec(transfer_to_to_account)
-        .expect_success()
-        .commit();
+    builder.exec(fund_to_account).expect_success().commit();
 
     let register_owner = ExecuteRequestBuilder::contract_call_by_hash(
         *DEFAULT_ACCOUNT_ADDR,
