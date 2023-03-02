@@ -314,11 +314,19 @@ The `MetadataMutability` option of `Mutable` cannot be used in conjunction with 
 
 #### EventsMode
 
-The `EventsMode` modality allows the deployers of the contract to decide on schemas for recording events during the operation of the contract where changes to the tokens happen.
+The `EventsMode` modality determines how the installed instance of CEP-78 will handle the recording of events that occur from interacting with the contract.
 
-0. `NoEvents`: No events will be recorded during the operation, this is the default mode.
-1. `CEP47`: The event schema from the CEP47 contract has been implemented as a possibility.
-2. `CES` : Events will be recorded during the operation of the contract using an event schema in compliance with the Casper Event Schema. Refer to section [Casper Event Standard](#casper-event-standard) for more information.
+The modality provides two options:
+
+1. `NoEvents`: This modality will signal the contract to not record events at all. This is the default mode.
+2. `CEP47`: This modality will signal the contract to record events using the CEP47 event schema. Events are stored as a `BTreeMap` within dictionary in the contract's context. The events can be retrieved directly via their dictionary entry using the JSON-RPC, with more information on this process available [here](https://docs.casperlabs.io/dapp-dev-guide/writing-contracts/dictionaries/).
+3. `CES`: This modality will signal the contract to record events using the [Casper Event Standard](#casper-event-standard).
+
+| EventsMode                | u8  |
+| ------------------------- | --- |
+| NoEvents                  | 0   |
+| CEP47                     | 1   |
+| CES                       | 2   |
 
 ### Usage
 
@@ -350,7 +358,7 @@ The following are the optional parameters that can be passed in at the time of i
 - `"contract_whitelist"`: The contract whitelist is a list of contract hashes that specifies which contracts can call the `mint()` entrypoint to mint NFTs. This is an optional parameter which will default to an empty whitelist. This value can be changed via the `set_variables` post installation. If the whitelist mode is set to locked, a non-empty whitelist must be passed; else, installation of the contract will fail.
 - `"burn_mode"`: The [`BurnMode`](#burnmode) modality dictates whether minted NFTs can be burnt. This is an optional parameter and will allow tokens to be burnt by default. This parameter cannot be changed once the contract has been installed.
 - `"owner_reverse_lookup_mode"`: The [`OwnerReverseLookupMode`](#reportingmode) modality dictates whether the lookup for owners to token identifiers is available. This is an optional parameter and will not provide the lookup by default. This parameter cannot be changed once the contract has been installed.
-- `"events_mode"`: During installation of the contract the deployer can set the [`EventsMode`](#eventsmode) that selects the event schema that will be recorded when changes happen to the NFT tokens.
+- `"events_mode"`: The [`EventsMode`](#eventsmode) modality selects the event schema used to record any changes that occur to tokens issued by the contract instance.
 
 ##### Example deploy
 
@@ -663,11 +671,11 @@ If it is set to `Hash`, you will need to reference the `HASH_BY_INDEX` dictionar
 
 ## Casper Event Standard
 
-When the `CES` events mode is enabled during contract installation, the operations that make changes on the tokens are recorded in the `__events` dictionary. Such event entries can be observed via a node's Server Side Events stream or querying the dictionary at any time using the RPC interface.
+`CES` is an option within the `EventsMode` modality that determines how changes to tokens issued by the contract instance will be recorded. Any changes are recorded in the `__events` dictionary and can be observed via a node's Server Side Events stream. They may also be viewed by querying the dictionary at any time using the JSON-RPC interface.
 
-The emitted events are encoded according to the [Casper Event Standard](https://github.com/make-software/casper-event-standard), and the schema can be known by an observer reading the `__events_schema` contract named key.
+The emitted events are encoded according to the [Casper Event Standard](https://github.com/make-software/casper-event-standard), and the schema is visible to an observer reading the `__events_schema` contract named key.
 
-For this CEP-78 reference implementation in particular, the events schema is the following:
+For this CEP-78 reference implementation, the events schema is as follows:
 
 | Event name      | Included values and type                                             |
 | --------------- | -------------------------------------------------------------------- |
@@ -680,7 +688,7 @@ For this CEP-78 reference implementation in particular, the events schema is the
 | Migration       | -                                                                    |
 | VariablesSet    | -                                                                    |
 
-Token identifiers are stored under the `CLType` `Any` and the encoding depends on `NFTIdentifierMode`:.
+Token identifiers are stored under the `CLType` `Any` and the encoding depends on the `NFTIdentifierMode` modality:
 
 - `NFTIdentifierMode::Ordinal`: the `token id` is encoded as a byte `0x00` followed by a `u64` number.
 - `NFTIdentifierMode::Hash`: the `token_id` is encoded as a byte `0x01` followed by a `String`.
