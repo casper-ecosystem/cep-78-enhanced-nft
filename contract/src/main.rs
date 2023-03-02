@@ -979,7 +979,7 @@ pub extern "C" fn revoke() {
     };
 }
 
-// Approves the specified operator for transfer of token owner's tokens.
+// Approves the specified operator for transfer of owner's tokens.
 #[no_mangle]
 pub extern "C" fn set_approval_for_all() {
     // If we are in minter or assigned mode it makes no sense to approve an operator. Hence we
@@ -1001,14 +1001,14 @@ pub extern "C" fn set_approval_for_all() {
 
     let caller = utils::get_verified_caller().unwrap_or_revert();
 
-    let operator = utils::get_named_arg_with_user_errors(
+    let operator = utils::get_named_arg_with_user_errors::<Key>(
         ARG_OPERATOR,
         NFTCoreError::MissingOperator,
         NFTCoreError::InvalidOperator,
     )
     .unwrap_or_revert();
 
-    // If caller tries to add itself as operator that's probably a mistake and we revert.
+    // If caller tries to approve itself as operator that's probably a mistake and we revert.
     if caller == operator {
         runtime::revert(NFTCoreError::InvalidAccount);
     }
@@ -1962,7 +1962,7 @@ fn generate_entry_points() -> EntryPoints {
 
     // This entrypoint revokes an approved account to transfer tokens. It reverts
     // if token_id is invalid, if caller is not the owner, if token has already
-    // been burnt.
+    // been burnt, if caller tries to approve itself.
     let revoke = EntryPoint::new(
         ENTRY_POINT_REVOKE,
         vec![],
@@ -1973,7 +1973,7 @@ fn generate_entry_points() -> EntryPoints {
 
     // This entrypoint approves all tokens owned by the caller and future to another token holder
     // (an operator) to transfer tokens. It reverts if token_id is invalid, if caller is not the
-    // owner, if caller tries to approve themselves as an operator.
+    // owner, if caller tries to approve itself as an operator.
     let set_approval_for_all = EntryPoint::new(
         ENTRY_POINT_SET_APPROVALL_FOR_ALL,
         vec![
