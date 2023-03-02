@@ -862,8 +862,8 @@ pub extern "C" fn approve() {
         .unwrap_or_revert(),
     };
 
-    // If token owner tries to approve itself that's probably a mistake and we revert.
-    if spender == owner {
+    // If token owner or operator tries to approve itself that's probably a mistake and we revert.
+    if caller == spender {
         runtime::revert(NFTCoreError::InvalidAccount);
     }
 
@@ -1008,7 +1008,7 @@ pub extern "C" fn set_approval_for_all() {
     )
     .unwrap_or_revert();
 
-    // If caller tries to approve itself as operator that's probably a mistake and we revert.
+    // If caller tries to add itself as operator that's probably a mistake and we revert.
     if caller == operator {
         runtime::revert(NFTCoreError::InvalidAccount);
     }

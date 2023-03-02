@@ -1656,3 +1656,203 @@ fn should_prevent_transfer_to_unregistered_owner() {
 
     assert_expected_error(error, 128u16, "must raise unregistered owner in transfer");
 }
+
+#[test]
+fn disallow_owner_to_approve_itself() {
+    let mut builder = InMemoryWasmTestBuilder::default();
+    builder.run_genesis(&DEFAULT_RUN_GENESIS_REQUEST).commit();
+
+    let install_request = InstallerRequestBuilder::new(*DEFAULT_ACCOUNT_ADDR, NFT_CONTRACT_WASM)
+        .with_collection_name(NFT_TEST_COLLECTION.to_string())
+        .with_collection_symbol(NFT_TEST_SYMBOL.to_string())
+        .with_total_token_supply(1u64)
+        .with_ownership_mode(OwnershipMode::Transferable)
+        .build();
+
+    builder.exec(install_request).expect_success().commit();
+
+    let account = builder.get_expected_account(*DEFAULT_ACCOUNT_ADDR);
+    let nft_contract_hash = account
+        .named_keys()
+        .get(CONTRACT_NAME)
+        .cloned()
+        .and_then(Key::into_hash)
+        .map(ContractHash::new)
+        .expect("failed to find nft contract");
+
+    let nft_contract_key: Key = get_nft_contract_hash(&builder).into();
+    let owner_key = Key::Account(*DEFAULT_ACCOUNT_ADDR);
+
+    let mint_session_call = ExecuteRequestBuilder::standard(
+        *DEFAULT_ACCOUNT_ADDR,
+        MINT_SESSION_WASM,
+        runtime_args! {
+            ARG_NFT_CONTRACT_HASH => nft_contract_key,
+            ARG_TOKEN_OWNER => owner_key,
+            ARG_TOKEN_META_DATA => TEST_PRETTY_721_META_DATA.to_string(),
+            ARG_COLLECTION_NAME => NFT_TEST_COLLECTION.to_string()
+        },
+    )
+    .build();
+
+    builder.exec(mint_session_call).expect_success().commit();
+
+    let token_id = 0u64;
+
+    let approve_request = ExecuteRequestBuilder::contract_call_by_hash(
+        *DEFAULT_ACCOUNT_ADDR,
+        nft_contract_hash,
+        ENTRY_POINT_APPROVE,
+        runtime_args! {
+            ARG_TOKEN_ID => token_id,
+            ARG_SPENDER => Key::Account(*DEFAULT_ACCOUNT_ADDR)
+        },
+    )
+    .build();
+    builder.exec(approve_request).expect_failure();
+
+    let actual_error = builder.get_error().expect("must have error");
+    support::assert_expected_error(
+        actual_error,
+        1u16,
+        "should not allow an owner to approve itself",
+    );
+}
+
+#[test]
+fn disallow_operator_to_approve_itself() {
+    let mut builder = InMemoryWasmTestBuilder::default();
+    builder.run_genesis(&DEFAULT_RUN_GENESIS_REQUEST).commit();
+
+    let install_request = InstallerRequestBuilder::new(*DEFAULT_ACCOUNT_ADDR, NFT_CONTRACT_WASM)
+        .with_collection_name(NFT_TEST_COLLECTION.to_string())
+        .with_collection_symbol(NFT_TEST_SYMBOL.to_string())
+        .with_total_token_supply(2u64)
+        .with_ownership_mode(OwnershipMode::Transferable)
+        .build();
+
+    builder.exec(install_request).expect_success().commit();
+
+    let account = builder.get_expected_account(*DEFAULT_ACCOUNT_ADDR);
+    let nft_contract_hash = account
+        .named_keys()
+        .get(CONTRACT_NAME)
+        .cloned()
+        .and_then(Key::into_hash)
+        .map(ContractHash::new)
+        .expect("failed to find nft contract");
+
+    let nft_contract_key: Key = get_nft_contract_hash(&builder).into();
+    let owner_key = Key::Account(*DEFAULT_ACCOUNT_ADDR);
+
+    let mint_session_call = ExecuteRequestBuilder::standard(
+        *DEFAULT_ACCOUNT_ADDR,
+        MINT_SESSION_WASM,
+        runtime_args! {
+            ARG_NFT_CONTRACT_HASH => nft_contract_key,
+            ARG_TOKEN_OWNER => owner_key,
+            ARG_TOKEN_META_DATA => TEST_PRETTY_721_META_DATA.to_string(),
+            ARG_COLLECTION_NAME => NFT_TEST_COLLECTION.to_string()
+        },
+    )
+    .build();
+
+    builder.exec(mint_session_call).expect_success().commit();
+
+    let token_id = 0u64;
+    let operator = create_funded_dummy_account(&mut builder);
+    let operator_key = Key::Account(operator);
+
+    let approval_all_request = ExecuteRequestBuilder::contract_call_by_hash(
+        *DEFAULT_ACCOUNT_ADDR,
+        nft_contract_hash,
+        ENTRY_POINT_SET_APPROVALL_FOR_ALL,
+        runtime_args! {
+            ARG_APPROVE_ALL => true,
+            ARG_OPERATOR => operator_key,
+        },
+    )
+    .build();
+    builder.exec(approval_all_request).expect_success().commit();
+
+    let approve_request = ExecuteRequestBuilder::contract_call_by_hash(
+        operator,
+        nft_contract_hash,
+        ENTRY_POINT_APPROVE,
+        runtime_args! {
+            ARG_TOKEN_ID => token_id,
+            ARG_SPENDER => operator_key
+        },
+    )
+    .build();
+    builder.exec(approve_request).expect_failure();
+
+    let actual_error = builder.get_error().expect("must have error");
+    support::assert_expected_error(
+        actual_error,
+        1u16,
+        "should not allow an operator to approve itself",
+    );
+}
+
+#[test]
+fn disallow_owner_to_approve_for_all_itself() {
+    let mut builder = InMemoryWasmTestBuilder::default();
+    builder.run_genesis(&DEFAULT_RUN_GENESIS_REQUEST).commit();
+
+    let install_request = InstallerRequestBuilder::new(*DEFAULT_ACCOUNT_ADDR, NFT_CONTRACT_WASM)
+        .with_collection_name(NFT_TEST_COLLECTION.to_string())
+        .with_collection_symbol(NFT_TEST_SYMBOL.to_string())
+        .with_total_token_supply(2u64)
+        .with_ownership_mode(OwnershipMode::Transferable)
+        .build();
+
+    builder.exec(install_request).expect_success().commit();
+
+    let account = builder.get_expected_account(*DEFAULT_ACCOUNT_ADDR);
+    let nft_contract_hash = account
+        .named_keys()
+        .get(CONTRACT_NAME)
+        .cloned()
+        .and_then(Key::into_hash)
+        .map(ContractHash::new)
+        .expect("failed to find nft contract");
+
+    let nft_contract_key: Key = get_nft_contract_hash(&builder).into();
+    let owner_key = Key::Account(*DEFAULT_ACCOUNT_ADDR);
+
+    let mint_session_call = ExecuteRequestBuilder::standard(
+        *DEFAULT_ACCOUNT_ADDR,
+        MINT_SESSION_WASM,
+        runtime_args! {
+            ARG_NFT_CONTRACT_HASH => nft_contract_key,
+            ARG_TOKEN_OWNER => owner_key,
+            ARG_TOKEN_META_DATA => TEST_PRETTY_721_META_DATA.to_string(),
+            ARG_COLLECTION_NAME => NFT_TEST_COLLECTION.to_string()
+        },
+    )
+    .build();
+
+    builder.exec(mint_session_call).expect_success().commit();
+
+    let operator = create_funded_dummy_account(&mut builder);
+
+    let approval_all_request = ExecuteRequestBuilder::contract_call_by_hash(
+        *DEFAULT_ACCOUNT_ADDR,
+        nft_contract_hash,
+        ENTRY_POINT_SET_APPROVALL_FOR_ALL,
+        runtime_args! {
+            ARG_APPROVE_ALL => true,
+            ARG_OPERATOR => Key::Account(*DEFAULT_ACCOUNT_ADDR),
+        },
+    )
+    .build();
+    builder.exec(approval_all_request).expect_failure();
+
+    let actual_error = builder.get_error().expect("must have error");
+    support::assert_expected_error(
+        actual_error,
+        1u16,
+        "should not allow an owner to approve_for_all itself",
+    );
+}
