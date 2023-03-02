@@ -1625,6 +1625,8 @@ fn should_approve_all_in_hash_identifier_mode() {
 
     let nft_contract_hash = get_nft_contract_hash(&builder);
     let nft_contract_key: Key = nft_contract_hash.into();
+    let owner_key = Key::Account(*DEFAULT_ACCOUNT_ADDR);
+    let operator_key = Key::Account(AccountHash::new([7u8; 32]));
 
     let mint_session_call = ExecuteRequestBuilder::contract_call_by_hash(
         *DEFAULT_ACCOUNT_ADDR,
@@ -1632,7 +1634,7 @@ fn should_approve_all_in_hash_identifier_mode() {
         ENTRY_POINT_MINT,
         runtime_args! {
             ARG_NFT_CONTRACT_HASH => nft_contract_key,
-            ARG_TOKEN_OWNER => Key::Account(*DEFAULT_ACCOUNT_ADDR),
+            ARG_TOKEN_OWNER => owner_key,
             ARG_TOKEN_META_DATA => TEST_PRETTY_CEP78_METADATA,
         },
     )
@@ -1646,7 +1648,7 @@ fn should_approve_all_in_hash_identifier_mode() {
         ENTRY_POINT_MINT,
         runtime_args! {
             ARG_NFT_CONTRACT_HASH => nft_contract_key,
-            ARG_TOKEN_OWNER => Key::Account(*DEFAULT_ACCOUNT_ADDR),
+            ARG_TOKEN_OWNER => owner_key,
             ARG_TOKEN_META_DATA => TEST_PRETTY_UPDATED_CEP78_METADATA,
         },
     )
@@ -1660,10 +1662,34 @@ fn should_approve_all_in_hash_identifier_mode() {
         ENTRY_POINT_SET_APPROVALL_FOR_ALL,
         runtime_args! {
             ARG_APPROVE_ALL => true,
-            ARG_OPERATOR => Key::Account(AccountHash::new([7u8;32])),
+            ARG_OPERATOR => operator_key,
         },
     )
     .build();
 
     builder.exec(approval_all_request).expect_success().commit();
+
+    let is_operator = call_session_code_with_ret::<bool>(
+        &mut builder,
+        *DEFAULT_ACCOUNT_ADDR,
+        nft_contract_key,
+        runtime_args! {
+            ARG_TOKEN_OWNER => owner_key,
+            ARG_OPERATOR => operator_key,
+        },
+        IS_APPROVED_FOR_ALL_WASM,
+        RETURNED_VALUE_STORAGE_KEY,
+    );
+
+    assert!(is_operator, "expected operator to be approved for all");
+
+    // Expect ApprovalForAll event.
+    let expected_event = ApprovalForAll::new(owner_key, Some(operator_key));
+    let expected_event_index = 2;
+    let actual_event: ApprovalForAll =
+        support::get_event(&builder, &nft_contract_key, expected_event_index);
+    assert_eq!(
+        actual_event, expected_event,
+        "Expected ApprovalForAll event."
+    );
 }

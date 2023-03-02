@@ -1,17 +1,19 @@
 use casper_engine_test_support::{
-    ExecuteRequestBuilder, InMemoryWasmTestBuilder, DEFAULT_ACCOUNT_ADDR,
+    ExecuteRequestBuilder, InMemoryWasmTestBuilder, WasmTestBuilder, DEFAULT_ACCOUNT_ADDR,
     DEFAULT_ACCOUNT_PUBLIC_KEY, DEFAULT_RUN_GENESIS_REQUEST, MINIMUM_ACCOUNT_CREATION_BALANCE,
 };
+use casper_execution_engine::storage::global_state::in_memory::InMemoryGlobalState;
 use casper_types::{
     account::AccountHash, runtime_args, system::mint, ContractHash, Key, PublicKey, RuntimeArgs,
     SecretKey, U512,
 };
 use contract::{
     constants::{
-        APPROVED, ARG_COLLECTION_NAME, ARG_CONTRACT_WHITELIST, ARG_OPERATOR, ARG_SOURCE_KEY,
-        ARG_SPENDER, ARG_TARGET_KEY, ARG_TOKEN_HASH, ARG_TOKEN_ID, ARG_TOKEN_META_DATA,
-        ARG_TOKEN_OWNER, ENTRY_POINT_APPROVE, ENTRY_POINT_MINT, ENTRY_POINT_REGISTER_OWNER,
-        ENTRY_POINT_REVOKE, ENTRY_POINT_TRANSFER, PAGE_TABLE, TOKEN_COUNTS, TOKEN_OWNERS,
+        APPROVED, ARG_APPROVE_ALL, ARG_COLLECTION_NAME, ARG_CONTRACT_WHITELIST, ARG_OPERATOR,
+        ARG_SOURCE_KEY, ARG_SPENDER, ARG_TARGET_KEY, ARG_TOKEN_HASH, ARG_TOKEN_ID,
+        ARG_TOKEN_META_DATA, ARG_TOKEN_OWNER, ENTRY_POINT_APPROVE, ENTRY_POINT_MINT,
+        ENTRY_POINT_REGISTER_OWNER, ENTRY_POINT_REVOKE, ENTRY_POINT_SET_APPROVALL_FOR_ALL,
+        ENTRY_POINT_TRANSFER, PAGE_TABLE, TOKEN_COUNTS, TOKEN_OWNERS,
     },
     events::events_ces::{Approval, ApprovalRevoked, Transfer},
     modalities::TokenIdentifier,
@@ -257,12 +259,9 @@ fn should_transfer_token_from_sender_to_receiver() {
 }
 
 fn approve_token_for_transfer_should_add_entry_to_approved_dictionary(
-    approving_account: AccountHash,
-    _is_operator: bool,
+    mut builder: WasmTestBuilder<InMemoryGlobalState>,
+    operator: Option<AccountHash>,
 ) {
-    let mut builder = InMemoryWasmTestBuilder::default();
-    builder.run_genesis(&DEFAULT_RUN_GENESIS_REQUEST).commit();
-
     let install_request = InstallerRequestBuilder::new(*DEFAULT_ACCOUNT_ADDR, NFT_CONTRACT_WASM)
         .with_collection_name(NFT_TEST_COLLECTION.to_string())
         .with_collection_symbol(NFT_TEST_SYMBOL.to_string())
@@ -298,16 +297,30 @@ fn approve_token_for_transfer_should_add_entry_to_approved_dictionary(
 
     builder.exec(mint_session_call).expect_success().commit();
 
-    // TODO
-    // if (is_operator) {
-    //     call approve_all entry point with approving_account as operator
-    // }
-
     let (_, spender_public_key) = support::create_dummy_key_pair(ACCOUNT_USER_1);
     let spender = spender_public_key.to_account_hash();
     let spender_key = Key::Account(spender);
 
     let token_id = 0u64;
+
+    if let Some(operator) = operator {
+        let approval_all_request = ExecuteRequestBuilder::contract_call_by_hash(
+            *DEFAULT_ACCOUNT_ADDR,
+            nft_contract_hash,
+            ENTRY_POINT_SET_APPROVALL_FOR_ALL,
+            runtime_args! {
+                ARG_APPROVE_ALL => true,
+                ARG_OPERATOR => Key::Account(operator),
+            },
+        )
+        .build();
+        builder.exec(approval_all_request).expect_success().commit();
+    }
+
+    let approving_account = match operator {
+        Some(operator) => operator,
+        None => *DEFAULT_ACCOUNT_ADDR,
+    };
 
     let approve_request = ExecuteRequestBuilder::contract_call_by_hash(
         approving_account,
@@ -338,28 +351,45 @@ fn approve_token_for_transfer_should_add_entry_to_approved_dictionary(
 
     // Expect Approval event.
     let expected_event = Approval::new(owner_key, spender_key, TokenIdentifier::Index(token_id));
-    let actual_event: Approval = support::get_event(&builder, nft_contract_key, 1);
+    let expected_event_index = if operator.is_some() { 2 } else { 1 };
+    let actual_event: Approval =
+        support::get_event(&builder, nft_contract_key, expected_event_index);
     assert_eq!(actual_event, expected_event, "Expected Approval event.");
 }
 
 #[test]
 fn approve_token_for_transfer_from_an_account_should_add_entry_to_approved_dictionary() {
-    approve_token_for_transfer_should_add_entry_to_approved_dictionary(*DEFAULT_ACCOUNT_ADDR, false)
+    let mut builder = InMemoryWasmTestBuilder::default();
+    builder.run_genesis(&DEFAULT_RUN_GENESIS_REQUEST).commit();
+    approve_token_for_transfer_should_add_entry_to_approved_dictionary(builder, None)
 }
 
-//TODO
+#[test]
 fn _approve_token_for_transfer_from_an_operator_should_add_entry_to_approved_dictionary() {
-    let operator: AccountHash = AccountHash::new(ACCOUNT_USER_2); // get_operator();
-    approve_token_for_transfer_should_add_entry_to_approved_dictionary(operator, true)
-}
-
-fn revoke_token_for_transfer_should_remove_entry_to_approved_dictionary(
-    approving_account: AccountHash,
-    _is_operator: bool,
-) {
     let mut builder = InMemoryWasmTestBuilder::default();
     builder.run_genesis(&DEFAULT_RUN_GENESIS_REQUEST).commit();
 
+    // Create an operator account account and transfer funds
+    let (_, operator_public_key) = support::create_dummy_key_pair([7u8; 32]);
+    let operator = operator_public_key.to_account_hash();
+
+    let transfer_to_operator = ExecuteRequestBuilder::transfer(
+        *DEFAULT_ACCOUNT_ADDR,
+        runtime_args! {
+            mint::ARG_AMOUNT => 100_000_000_000_000u64,
+            mint::ARG_TARGET => operator,
+            mint::ARG_ID => Option::<u64>::None,
+        },
+    )
+    .build();
+    builder.exec(transfer_to_operator).expect_success().commit();
+    approve_token_for_transfer_should_add_entry_to_approved_dictionary(builder, Some(operator))
+}
+
+fn revoke_token_for_transfer_should_remove_entry_to_approved_dictionary(
+    mut builder: WasmTestBuilder<InMemoryGlobalState>,
+    operator: Option<AccountHash>,
+) {
     let install_request = InstallerRequestBuilder::new(*DEFAULT_ACCOUNT_ADDR, NFT_CONTRACT_WASM)
         .with_collection_name(NFT_TEST_COLLECTION.to_string())
         .with_collection_symbol(NFT_TEST_SYMBOL.to_string())
@@ -395,16 +425,30 @@ fn revoke_token_for_transfer_should_remove_entry_to_approved_dictionary(
 
     builder.exec(mint_session_call).expect_success().commit();
 
-    // TODO
-    // if (is_operator) {
-    //     call approve_all entry point with approving_account as operator
-    // }
-
     let (_, spender_public_key) = support::create_dummy_key_pair(ACCOUNT_USER_1);
     let spender = spender_public_key.to_account_hash();
     let spender_key = Key::Account(spender);
 
     let token_id = 0u64;
+
+    if let Some(operator) = operator {
+        let approval_all_request = ExecuteRequestBuilder::contract_call_by_hash(
+            *DEFAULT_ACCOUNT_ADDR,
+            nft_contract_hash,
+            ENTRY_POINT_SET_APPROVALL_FOR_ALL,
+            runtime_args! {
+                ARG_APPROVE_ALL => true,
+                ARG_OPERATOR => Key::Account(operator),
+            },
+        )
+        .build();
+        builder.exec(approval_all_request).expect_success().commit();
+    }
+
+    let approving_account = match operator {
+        Some(operator) => operator,
+        None => *DEFAULT_ACCOUNT_ADDR,
+    };
 
     let approve_request = ExecuteRequestBuilder::contract_call_by_hash(
         approving_account,
@@ -434,7 +478,7 @@ fn revoke_token_for_transfer_should_remove_entry_to_approved_dictionary(
     assert_eq!(actual_approved_key, Some(spender_key));
 
     let revoke_request = ExecuteRequestBuilder::contract_call_by_hash(
-        approving_account,
+        *DEFAULT_ACCOUNT_ADDR,
         nft_contract_hash,
         ENTRY_POINT_REVOKE,
         runtime_args! {
@@ -455,7 +499,7 @@ fn revoke_token_for_transfer_should_remove_entry_to_approved_dictionary(
 
     // Expect ApprovalRevoked event.
     let expected_event = ApprovalRevoked::new(owner_key, TokenIdentifier::Index(token_id));
-    let expected_event_index = 2;
+    let expected_event_index = if operator.is_some() { 3 } else { 2 };
     let actual_event: ApprovalRevoked =
         support::get_event(&builder, nft_contract_key, expected_event_index);
     assert_eq!(
@@ -466,16 +510,32 @@ fn revoke_token_for_transfer_should_remove_entry_to_approved_dictionary(
 
 #[test]
 fn revoke_token_for_transfer_from_account_should_remove_entry_to_approved_dictionary() {
-    revoke_token_for_transfer_should_remove_entry_to_approved_dictionary(
-        *DEFAULT_ACCOUNT_ADDR,
-        false,
-    )
+    let mut builder = InMemoryWasmTestBuilder::default();
+    builder.run_genesis(&DEFAULT_RUN_GENESIS_REQUEST).commit();
+    revoke_token_for_transfer_should_remove_entry_to_approved_dictionary(builder, None)
 }
 
-// TODO
-fn _revoke_token_for_transfer_from_operator_should_remove_entry_to_approved_dictionary() {
-    let operator: AccountHash = AccountHash::new(ACCOUNT_USER_2); // get_operator();
-    revoke_token_for_transfer_should_remove_entry_to_approved_dictionary(operator, true)
+#[test]
+fn revoke_token_for_transfer_from_operator_should_remove_entry_to_approved_dictionary() {
+    let mut builder = InMemoryWasmTestBuilder::default();
+    builder.run_genesis(&DEFAULT_RUN_GENESIS_REQUEST).commit();
+
+    // Create an operator account account and transfer funds
+    let (_, operator_public_key) = support::create_dummy_key_pair([7u8; 32]);
+    let operator = operator_public_key.to_account_hash();
+
+    let transfer_to_operator = ExecuteRequestBuilder::transfer(
+        *DEFAULT_ACCOUNT_ADDR,
+        runtime_args! {
+            mint::ARG_AMOUNT => 100_000_000_000_000u64,
+            mint::ARG_TARGET => operator,
+            mint::ARG_ID => Option::<u64>::None,
+        },
+    )
+    .build();
+    builder.exec(transfer_to_operator).expect_success().commit();
+
+    revoke_token_for_transfer_should_remove_entry_to_approved_dictionary(builder, Some(operator))
 }
 
 #[test]
@@ -541,10 +601,10 @@ fn should_dissallow_approving_when_ownership_mode_is_minter_or_assigned() {
     );
 }
 
-fn should_be_able_to_transfer_token(approving_account: AccountHash, _is_operator: bool) {
-    let mut builder = InMemoryWasmTestBuilder::default();
-    builder.run_genesis(&DEFAULT_RUN_GENESIS_REQUEST).commit();
-
+fn should_be_able_to_transfer_token(
+    mut builder: WasmTestBuilder<InMemoryGlobalState>,
+    operator: Option<AccountHash>,
+) {
     let install_request = InstallerRequestBuilder::new(*DEFAULT_ACCOUNT_ADDR, NFT_CONTRACT_WASM)
         .with_collection_name(NFT_TEST_COLLECTION.to_string())
         .with_collection_symbol(NFT_TEST_SYMBOL.to_string())
@@ -588,6 +648,25 @@ fn should_be_able_to_transfer_token(approving_account: AccountHash, _is_operator
     builder.exec(transfer_to_spender).expect_success().commit();
 
     let token_id = 0u64;
+
+    if let Some(operator) = operator {
+        let approval_all_request = ExecuteRequestBuilder::contract_call_by_hash(
+            *DEFAULT_ACCOUNT_ADDR,
+            nft_contract_hash,
+            ENTRY_POINT_SET_APPROVALL_FOR_ALL,
+            runtime_args! {
+                ARG_APPROVE_ALL => true,
+                ARG_OPERATOR => Key::Account(operator),
+            },
+        )
+        .build();
+        builder.exec(approval_all_request).expect_success().commit();
+    }
+
+    let approving_account = match operator {
+        Some(operator) => operator,
+        None => *DEFAULT_ACCOUNT_ADDR,
+    };
 
     // Approve spender
     let approve_request = ExecuteRequestBuilder::contract_call_by_hash(
@@ -672,13 +751,31 @@ fn should_be_able_to_transfer_token(approving_account: AccountHash, _is_operator
 
 #[test]
 fn _should_be_able_to_transfer_token_using_approved_account() {
-    should_be_able_to_transfer_token(*DEFAULT_ACCOUNT_ADDR, false)
+    let mut builder = InMemoryWasmTestBuilder::default();
+    builder.run_genesis(&DEFAULT_RUN_GENESIS_REQUEST).commit();
+    should_be_able_to_transfer_token(builder, None)
 }
 
-// TODO
+#[test]
 fn _should_be_able_to_transfer_token_using_operator() {
-    let operator: AccountHash = AccountHash::new(ACCOUNT_USER_3); // get_operator();
-    should_be_able_to_transfer_token(operator, true)
+    let mut builder = InMemoryWasmTestBuilder::default();
+    builder.run_genesis(&DEFAULT_RUN_GENESIS_REQUEST).commit();
+
+    // Create an operator account account and transfer funds
+    let (_, operator_public_key) = support::create_dummy_key_pair([7u8; 32]);
+    let operator = operator_public_key.to_account_hash();
+
+    let transfer_to_operator = ExecuteRequestBuilder::transfer(
+        *DEFAULT_ACCOUNT_ADDR,
+        runtime_args! {
+            mint::ARG_AMOUNT => 100_000_000_000_000u64,
+            mint::ARG_TARGET => operator,
+            mint::ARG_ID => Option::<u64>::None,
+        },
+    )
+    .build();
+    builder.exec(transfer_to_operator).expect_success().commit();
+    should_be_able_to_transfer_token(builder, Some(operator))
 }
 
 #[test]
@@ -856,12 +953,9 @@ fn should_dissallow_same_approved_account_to_transfer_token_twice() {
 }
 
 fn should_disallow_to_transfer_token_using_revoked_hash(
-    approving_account: AccountHash,
-    _is_operator: bool,
+    mut builder: WasmTestBuilder<InMemoryGlobalState>,
+    operator: Option<AccountHash>,
 ) {
-    let mut builder = InMemoryWasmTestBuilder::default();
-    builder.run_genesis(&DEFAULT_RUN_GENESIS_REQUEST).commit();
-
     let install_request = InstallerRequestBuilder::new(*DEFAULT_ACCOUNT_ADDR, NFT_CONTRACT_WASM)
         .with_collection_name(NFT_TEST_COLLECTION.to_string())
         .with_collection_symbol(NFT_TEST_SYMBOL.to_string())
@@ -905,6 +999,25 @@ fn should_disallow_to_transfer_token_using_revoked_hash(
     builder.exec(transfer_to_spender).expect_success().commit();
 
     let token_id = 0u64;
+
+    if let Some(operator) = operator {
+        let approval_all_request = ExecuteRequestBuilder::contract_call_by_hash(
+            *DEFAULT_ACCOUNT_ADDR,
+            nft_contract_hash,
+            ENTRY_POINT_SET_APPROVALL_FOR_ALL,
+            runtime_args! {
+                ARG_APPROVE_ALL => true,
+                ARG_OPERATOR => Key::Account(operator),
+            },
+        )
+        .build();
+        builder.exec(approval_all_request).expect_success().commit();
+    }
+
+    let approving_account = match operator {
+        Some(operator) => operator,
+        None => *DEFAULT_ACCOUNT_ADDR,
+    };
 
     // Approve spender
     let approve_request = ExecuteRequestBuilder::contract_call_by_hash(
@@ -1010,13 +1123,31 @@ fn should_disallow_to_transfer_token_using_revoked_hash(
 
 #[test]
 fn should_disallow_to_transfer_token_using_revoked_account() {
-    should_disallow_to_transfer_token_using_revoked_hash(*DEFAULT_ACCOUNT_ADDR, false)
+    let mut builder = InMemoryWasmTestBuilder::default();
+    builder.run_genesis(&DEFAULT_RUN_GENESIS_REQUEST).commit();
+    should_disallow_to_transfer_token_using_revoked_hash(builder, None)
 }
 
-// TODO
+#[test]
 fn _should_disallow_to_transfer_token_using_revoked_operator() {
-    let operator: AccountHash = AccountHash::new(ACCOUNT_USER_3); // get_operator();
-    should_disallow_to_transfer_token_using_revoked_hash(operator, true)
+    let mut builder = InMemoryWasmTestBuilder::default();
+    builder.run_genesis(&DEFAULT_RUN_GENESIS_REQUEST).commit();
+
+    // Create an operator account account and transfer funds
+    let (_, operator_public_key) = support::create_dummy_key_pair([7u8; 32]);
+    let operator = operator_public_key.to_account_hash();
+
+    let transfer_to_operator = ExecuteRequestBuilder::transfer(
+        *DEFAULT_ACCOUNT_ADDR,
+        runtime_args! {
+            mint::ARG_AMOUNT => 100_000_000_000_000u64,
+            mint::ARG_TARGET => operator,
+            mint::ARG_ID => Option::<u64>::None,
+        },
+    )
+    .build();
+    builder.exec(transfer_to_operator).expect_success().commit();
+    should_disallow_to_transfer_token_using_revoked_hash(builder, Some(operator))
 }
 
 // This test intends to test that the approve entry_point still behaves correctly with "operator"
