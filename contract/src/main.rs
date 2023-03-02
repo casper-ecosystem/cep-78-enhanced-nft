@@ -1454,14 +1454,48 @@ pub extern "C" fn migrate() {
         runtime::revert(NFTCoreError::ContractAlreadyMigrated)
     }
 
-    let total_token_supply = utils::get_stored_value_with_user_errors::<u64>(
-        TOTAL_TOKEN_SUPPLY,
-        NFTCoreError::MissingTotalTokenSupply,
+    let total_token_supply: u64 = match utils::get_optional_named_arg_with_user_errors(
+        ARG_TOTAL_TOKEN_SUPPLY,
         NFTCoreError::InvalidTotalTokenSupply,
-    );
+    ) {
+        Some(total_token_supply_arg) => {
+            if total_token_supply_arg
+                > utils::get_stored_value_with_user_errors::<u64>(
+                    TOTAL_TOKEN_SUPPLY,
+                    NFTCoreError::MissingTotalTokenSupply,
+                    NFTCoreError::InvalidTotalTokenSupply,
+                )
+            {
+                runtime::revert(NFTCoreError::CannotUpgradeToMoreSupply)
+            }
+
+            let total_token_supply_uref = utils::get_uref(
+                ARG_TOTAL_TOKEN_SUPPLY,
+                NFTCoreError::MissingTotalTokenSupply,
+                NFTCoreError::InvalidTotalTokenSupply,
+            );
+            storage::write(total_token_supply_uref, total_token_supply_arg);
+            total_token_supply_arg
+        }
+        None => utils::get_stored_value_with_user_errors::<u64>(
+            TOTAL_TOKEN_SUPPLY,
+            NFTCoreError::MissingTotalTokenSupply,
+            NFTCoreError::InvalidTotalTokenSupply,
+        ),
+    };
 
     if total_token_supply == 0 {
         runtime::revert(NFTCoreError::CannotUpgradeWithZeroSupply)
+    }
+
+    let current_number_of_minted_tokens = utils::get_stored_value_with_user_errors::<u64>(
+        NUMBER_OF_MINTED_TOKENS,
+        NFTCoreError::MissingNumberOfMintedTokens,
+        NFTCoreError::InvalidNumberOfMintedTokens,
+    );
+
+    if total_token_supply < current_number_of_minted_tokens {
+        runtime::revert(NFTCoreError::ExceededMaxTotalSupply)
     }
 
     let events_mode: EventsMode = utils::get_optional_named_arg_with_user_errors::<u8>(
@@ -1520,11 +1554,6 @@ pub extern "C" fn migrate() {
                     .unwrap_or_revert_with(NFTCoreError::FailedToCreateDictionary);
                 storage::new_dictionary(INDEX_BY_HASH)
                     .unwrap_or_revert_with(NFTCoreError::FailedToCreateDictionary);
-                let current_number_of_minted_tokens = utils::get_stored_value_with_user_errors::<u64>(
-                    NUMBER_OF_MINTED_TOKENS,
-                    NFTCoreError::MissingNumberOfMintedTokens,
-                    NFTCoreError::InvalidNumberOfMintedTokens,
-                );
                 runtime::put_key(
                     UNMATCHED_HASH_COUNT,
                     storage::new_uref(current_number_of_minted_tokens).into(),
@@ -2207,14 +2236,21 @@ fn migrate_contract(access_key_name: String, package_key_name: String) {
         storage::new_uref(contract_version).into(),
     );
 
-    runtime::call_contract::<()>(
-        contract_hash,
-        ENTRY_POINT_MIGRATE,
-        runtime_args! {
-            ARG_NFT_PACKAGE_HASH => nft_contact_package_hash,
-            ARG_EVENTS_MODE => events_mode,
-        },
-    );
+    let mut runtime_args = runtime_args! {
+        ARG_NFT_PACKAGE_HASH => nft_contact_package_hash,
+        ARG_EVENTS_MODE => events_mode,
+    };
+
+    if let Some(new_token_supply) = utils::get_optional_named_arg_with_user_errors::<u64>(
+        ARG_TOTAL_TOKEN_SUPPLY,
+        NFTCoreError::InvalidTotalTokenSupply,
+    ) {
+        runtime_args
+            .insert(ARG_TOTAL_TOKEN_SUPPLY, new_token_supply)
+            .unwrap_or_revert();
+    }
+
+    runtime::call_contract::<()>(contract_hash, ENTRY_POINT_MIGRATE, runtime_args);
 }
 
 #[no_mangle]
