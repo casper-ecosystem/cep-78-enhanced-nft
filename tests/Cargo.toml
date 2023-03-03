@@ -7,7 +7,7 @@ edition = "2018"
 casper-engine-test-support = { version = "2.2.0", default-features = false, features = [
   "test-support",
 ] }
-contract = { path = "../contract" }
+contract = { path = "../contract", default-features = false }
 casper-execution-engine = "2.0.0"
 casper-types = "1.4.5"
 serde = { version = "^1.0.80", default-features = false }
