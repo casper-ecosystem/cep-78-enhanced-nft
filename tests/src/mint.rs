@@ -907,6 +907,114 @@ fn should_set_approval_for_all() {
 }
 
 #[test]
+fn should_revoke_approval_for_all() {
+    let mut builder = InMemoryWasmTestBuilder::default();
+    builder.run_genesis(&DEFAULT_RUN_GENESIS_REQUEST).commit();
+
+    let install_request = InstallerRequestBuilder::new(*DEFAULT_ACCOUNT_ADDR, NFT_CONTRACT_WASM)
+        .with_total_token_supply(100u64)
+        .with_ownership_mode(OwnershipMode::Transferable)
+        .build();
+    builder.exec(install_request).expect_success().commit();
+
+    let nft_contract_hash = get_nft_contract_hash(&builder);
+    let nft_contract_key: Key = nft_contract_hash.into();
+    let owner_key = Key::Account(*DEFAULT_ACCOUNT_ADDR);
+
+    let mint_session_call = ExecuteRequestBuilder::standard(
+        *DEFAULT_ACCOUNT_ADDR,
+        MINT_SESSION_WASM,
+        runtime_args! {
+            ARG_NFT_CONTRACT_HASH => nft_contract_key,
+            ARG_TOKEN_OWNER => owner_key,
+            ARG_TOKEN_META_DATA => TEST_PRETTY_721_META_DATA.to_string(),
+            ARG_COLLECTION_NAME => NFT_TEST_COLLECTION.to_string()
+        },
+    )
+    .build();
+    builder.exec(mint_session_call).expect_success().commit();
+
+    let operator = create_funded_dummy_account(&mut builder);
+    let operator_key = Key::Account(operator);
+
+    let set_approve_for_all_request = ExecuteRequestBuilder::contract_call_by_name(
+        *DEFAULT_ACCOUNT_ADDR,
+        CONTRACT_NAME,
+        ENTRY_POINT_SET_APPROVALL_FOR_ALL,
+        runtime_args! {
+            ARG_APPROVE_ALL => true,
+            ARG_OPERATOR => operator_key
+        },
+    )
+    .build();
+
+    builder
+        .exec(set_approve_for_all_request)
+        .expect_success()
+        .commit();
+
+    let is_operator = call_session_code_with_ret::<bool>(
+        &mut builder,
+        *DEFAULT_ACCOUNT_ADDR,
+        nft_contract_key,
+        runtime_args! {
+            ARG_TOKEN_OWNER => owner_key,
+            ARG_OPERATOR => operator_key,
+        },
+        IS_APPROVED_FOR_ALL_WASM,
+        RETURNED_VALUE_STORAGE_KEY,
+    );
+
+    assert!(is_operator, "expected operator to be approved for all");
+
+    // Expect ApprovalForAll event.
+    let expected_event = ApprovalForAll::new(owner_key, Some(operator_key));
+    let actual_event: ApprovalForAll = support::get_event(&builder, &nft_contract_key, 1);
+    assert_eq!(
+        actual_event, expected_event,
+        "Expected ApprovalForAll event."
+    );
+
+    let revoke_approve_for_all_request = ExecuteRequestBuilder::contract_call_by_name(
+        *DEFAULT_ACCOUNT_ADDR,
+        CONTRACT_NAME,
+        ENTRY_POINT_SET_APPROVALL_FOR_ALL,
+        runtime_args! {
+            ARG_APPROVE_ALL => false,
+            ARG_OPERATOR => operator_key
+        },
+    )
+    .build();
+
+    builder
+        .exec(revoke_approve_for_all_request)
+        .expect_success()
+        .commit();
+
+    let is_operator = call_session_code_with_ret::<bool>(
+        &mut builder,
+        *DEFAULT_ACCOUNT_ADDR,
+        nft_contract_key,
+        runtime_args! {
+            ARG_TOKEN_OWNER => owner_key,
+            ARG_OPERATOR => operator_key,
+        },
+        IS_APPROVED_FOR_ALL_WASM,
+        RETURNED_VALUE_STORAGE_KEY,
+    );
+
+    assert!(!is_operator, "expected operator not to be approved for all");
+
+    // Expect ApprovalForAll event.
+    let expected_event = ApprovalForAll::new(owner_key, None);
+    let actual_event: ApprovalForAll = support::get_event(&builder, &nft_contract_key, 2);
+    assert_eq!(
+        actual_event, expected_event,
+        "Expected ApprovalForAll event."
+    );
+}
+
+#[test]
 fn should_allow_whitelisted_contract_to_mint() {
     let mut builder = InMemoryWasmTestBuilder::default();
     builder.run_genesis(&DEFAULT_RUN_GENESIS_REQUEST).commit();

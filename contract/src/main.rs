@@ -1162,9 +1162,7 @@ pub extern "C" fn transfer() {
         };
 
     // Revert if caller is not owner nor approved nor an operator.
-    if !is_owner && !is_approved && !is_operator
-    // && !is_operator
-    {
+    if !is_owner && !is_approved && !is_operator {
         runtime::revert(NFTCoreError::InvalidTokenOwner);
     }
 
