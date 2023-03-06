@@ -851,13 +851,13 @@ pub extern "C" fn approve() {
 
     let spender = match utils::get_optional_named_arg_with_user_errors::<Key>(
         ARG_OPERATOR, // Deprecated in favor of ARG_SPENDER
-        NFTCoreError::MissingContractWhiteList,
+        NFTCoreError::InvalidApprovedAccountHash,
     ) {
         Some(deprecated_operator) => deprecated_operator,
         None => utils::get_named_arg_with_user_errors::<Key>(
             ARG_SPENDER,
-            NFTCoreError::MissingApprovedAccountHash,
-            NFTCoreError::InvalidApprovedAccountHash,
+            NFTCoreError::MissingSpenderAccountHash,
+            NFTCoreError::InvalidSpenderAccountHash,
         )
         .unwrap_or_revert(),
     };

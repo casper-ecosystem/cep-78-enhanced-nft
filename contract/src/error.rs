@@ -147,6 +147,8 @@ pub enum NFTCoreError {
     CannotUpgradeToMoreSupply = 142,
     MissingOperatorDict = 143,
     MissingApprovedDict = 144,
+    MissingSpenderAccountHash = 145,
+    InvalidSpenderAccountHash = 146,
 }
 
 impl From<NFTCoreError> for ApiError {
