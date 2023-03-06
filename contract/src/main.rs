@@ -622,7 +622,7 @@ pub extern "C" fn mint() {
     utils::upsert_dictionary_value_from_key(
         TOKEN_ISSUERS,
         &token_identifier.get_dictionary_item_key(),
-        token_owner_key,
+        caller,
     );
     utils::upsert_dictionary_value_from_key(
         &metadata::get_metadata_dictionary_name(&metadata_kind),
