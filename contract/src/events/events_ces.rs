@@ -72,11 +72,23 @@ impl ApprovalRevoked {
 #[derive(Event, Debug, PartialEq, Eq)]
 pub struct ApprovalForAll {
     owner: Key,
-    operator: Option<Key>,
+    operator: Key,
 }
 
 impl ApprovalForAll {
-    pub fn new(owner: Key, operator: Option<Key>) -> Self {
+    pub fn new(owner: Key, operator: Key) -> Self {
+        Self { owner, operator }
+    }
+}
+
+#[derive(Event, Debug, PartialEq, Eq)]
+pub struct RevokeForAll {
+    owner: Key,
+    operator: Key,
+}
+
+impl RevokeForAll {
+    pub fn new(owner: Key, operator: Key) -> Self {
         Self { owner, operator }
     }
 }

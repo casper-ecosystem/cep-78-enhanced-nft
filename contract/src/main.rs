@@ -20,7 +20,6 @@ use alloc::{
     vec,
     vec::Vec,
 };
-use contract::utils::upsert_dictionary_value_from_key;
 
 use core::convert::{TryFrom, TryInto};
 
@@ -68,7 +67,7 @@ use events::{
     events_cep47::{record_cep47_event_dictionary, CEP47Event},
     events_ces::{
         Approval, ApprovalForAll, ApprovalRevoked, Burn, MetadataUpdated, Migration, Mint,
-        Transfer, VariablesSet,
+        RevokeForAll, Transfer, VariablesSet,
     },
 };
 use metadata::CustomMetadataSchema;
@@ -867,7 +866,11 @@ pub extern "C" fn approve() {
         runtime::revert(NFTCoreError::InvalidAccount);
     }
 
-    upsert_dictionary_value_from_key(APPROVED, &token_identifier_dictionary_key, Some(spender));
+    utils::upsert_dictionary_value_from_key(
+        APPROVED,
+        &token_identifier_dictionary_key,
+        Some(spender),
+    );
 
     let events_mode = EventsMode::try_from(utils::get_stored_value_with_user_errors::<u8>(
         crate::constants::EVENTS_MODE,
@@ -956,7 +959,7 @@ pub extern "C" fn revoke() {
         runtime::revert(NFTCoreError::PreviouslyBurntToken)
     }
 
-    upsert_dictionary_value_from_key(
+    utils::upsert_dictionary_value_from_key(
         APPROVED,
         &token_identifier_dictionary_key,
         Option::<Key>::None,
@@ -1013,10 +1016,13 @@ pub extern "C" fn set_approval_for_all() {
         runtime::revert(NFTCoreError::InvalidAccount);
     }
 
-    let owner_operator_item_key = utils::key_and_value_to_str(&caller, &operator);
     // Depending on approve_all we either approve all or disapprove all.
-    let operator: Option<Key> = if approve_all { Some(operator) } else { None };
-    upsert_dictionary_value_from_key(OPERATORS, &owner_operator_item_key, operator);
+    let owner_operator_item_key = utils::key_and_value_to_str(&caller, &operator);
+    utils::upsert_dictionary_value_from_key(
+        OPERATORS,
+        &owner_operator_item_key,
+        if approve_all { Some(operator) } else { None },
+    );
 
     let events_mode: EventsMode = utils::get_stored_value_with_user_errors::<u8>(
         EVENTS_MODE,
@@ -1029,7 +1035,11 @@ pub extern "C" fn set_approval_for_all() {
     match events_mode {
         EventsMode::NoEvents => {}
         EventsMode::CES => {
-            casper_event_standard::emit(ApprovalForAll::new(caller, operator));
+            if approve_all {
+                casper_event_standard::emit(ApprovalForAll::new(caller, operator));
+            } else {
+                casper_event_standard::emit(RevokeForAll::new(caller, operator));
+            }
         }
         EventsMode::CEP47 => {
             let caller_owned_tokens = match utils::get_reporting_mode() {
@@ -1037,15 +1047,15 @@ pub extern "C" fn set_approval_for_all() {
                 OwnerReverseLookupMode::Complete => utils::get_owned_token_ids_by_page(),
             };
             for callers_owned_token in caller_owned_tokens {
-                match operator {
-                    Some(operator) => {
+                match approve_all {
+                    true => {
                         record_cep47_event_dictionary(CEP47Event::ApprovalGranted {
                             owner: caller,
                             spender: operator,
                             token_id: callers_owned_token.clone(),
                         });
                     }
-                    None => {
+                    false => {
                         record_cep47_event_dictionary(CEP47Event::ApprovalRevoked {
                             owner: caller,
                             token_id: callers_owned_token.clone(),
@@ -1241,7 +1251,7 @@ pub extern "C" fn transfer() {
         updated_to_account_balance,
     );
 
-    upsert_dictionary_value_from_key(
+    utils::upsert_dictionary_value_from_key(
         APPROVED,
         &token_identifier.get_dictionary_item_key(),
         Option::<Key>::None,

@@ -8,7 +8,7 @@ use contract::{
         NUMBER_OF_MINTED_TOKENS, PAGE_TABLE, RECEIPT_NAME, TOKEN_COUNTS, TOKEN_ISSUERS,
         TOKEN_OWNERS,
     },
-    events::events_ces::{ApprovalForAll, Mint},
+    events::events_ces::{ApprovalForAll, Mint, RevokeForAll},
     modalities::TokenIdentifier,
 };
 use serde::{Deserialize, Serialize};
@@ -878,7 +878,7 @@ fn should_set_approval_for_all() {
     assert!(is_operator, "expected operator to be approved for all");
 
     // Expect ApprovalForAll event.
-    let expected_event = ApprovalForAll::new(owner_key, Some(operator_key));
+    let expected_event = ApprovalForAll::new(owner_key, operator_key);
     let actual_event: ApprovalForAll = support::get_event(&builder, &nft_contract_key, 1);
     assert_eq!(
         actual_event, expected_event,
@@ -1035,7 +1035,7 @@ fn should_revoke_approval_for_all() {
     assert!(is_operator, "expected operator to be approved for all");
 
     // Expect ApprovalForAll event.
-    let expected_event = ApprovalForAll::new(owner_key, Some(operator_key));
+    let expected_event = ApprovalForAll::new(owner_key, operator_key);
     let actual_event: ApprovalForAll = support::get_event(&builder, &nft_contract_key, 1);
     assert_eq!(
         actual_event, expected_event,
@@ -1072,13 +1072,10 @@ fn should_revoke_approval_for_all() {
 
     assert!(!is_operator, "expected operator not to be approved for all");
 
-    // Expect ApprovalForAll event.
-    let expected_event = ApprovalForAll::new(owner_key, None);
-    let actual_event: ApprovalForAll = support::get_event(&builder, &nft_contract_key, 2);
-    assert_eq!(
-        actual_event, expected_event,
-        "Expected ApprovalForAll event."
-    );
+    // Expect RevokeForAll event.
+    let expected_event = RevokeForAll::new(owner_key, operator_key);
+    let actual_event: RevokeForAll = support::get_event(&builder, &nft_contract_key, 2);
+    assert_eq!(actual_event, expected_event, "Expected RevokeForAll event.");
 }
 
 #[test]
@@ -1905,7 +1902,7 @@ fn should_approve_all_in_hash_identifier_mode() {
     assert!(is_operator, "expected operator to be approved for all");
 
     // Expect ApprovalForAll event.
-    let expected_event = ApprovalForAll::new(owner_key, Some(operator_key));
+    let expected_event = ApprovalForAll::new(owner_key, operator_key);
     let expected_event_index = 2;
     let actual_event: ApprovalForAll =
         support::get_event(&builder, &nft_contract_key, expected_event_index);
