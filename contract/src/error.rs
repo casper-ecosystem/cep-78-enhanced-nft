@@ -149,6 +149,7 @@ pub enum NFTCoreError {
     MissingApprovedDict = 144,
     MissingSpenderAccountHash = 145,
     InvalidSpenderAccountHash = 146,
+    MissingOwnerTokenIdentifierKey = 147,
 }
 
 impl From<NFTCoreError> for ApiError {

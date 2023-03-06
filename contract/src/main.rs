@@ -824,7 +824,7 @@ pub extern "C" fn approve() {
         &token_identifier_dictionary_key,
     ) {
         Some(owner) => owner,
-        None => runtime::revert(NFTCoreError::InvalidAccountHash),
+        None => runtime::revert(NFTCoreError::MissingOwnerTokenIdentifierKey),
     };
 
     // Revert if caller is not token owner nor operator.
@@ -935,7 +935,7 @@ pub extern "C" fn revoke() {
         &token_identifier_dictionary_key,
     ) {
         Some(owner) => owner,
-        None => runtime::revert(NFTCoreError::InvalidAccountHash),
+        None => runtime::revert(NFTCoreError::MissingOwnerTokenIdentifierKey),
     };
 
     // Revert if caller is not the token owner or an operator. Only the token owner / operators can
