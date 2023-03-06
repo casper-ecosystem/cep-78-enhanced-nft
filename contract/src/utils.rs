@@ -79,7 +79,7 @@ pub fn get_holder_mode() -> Result<NFTHolderMode, NFTCoreError> {
     .try_into()
 }
 
-pub fn get_stringified_token_owner_item_key(key: Key) -> String {
+pub fn encode_dictionary_item_key(key: Key) -> String {
     match key {
         Key::Account(account_hash) => account_hash.to_string(),
         Key::Hash(hash_addr) => ContractHash::new(hash_addr).to_string(),
@@ -488,7 +488,7 @@ pub fn migrate_owned_tokens_in_ordinal_mode() {
                 &token_identifier.get_dictionary_item_key(),
             )
             .unwrap_or_revert_with(NFTCoreError::MissingNftKind);
-            let token_owner_item_key = get_stringified_token_owner_item_key(token_owner_key);
+            let token_owner_item_key = encode_dictionary_item_key(token_owner_key);
             let owned_tokens_list = get_token_identifiers_from_dictionary(
                 &NFTIdentifierMode::Ordinal,
                 &token_owner_item_key,
@@ -536,7 +536,7 @@ pub fn migrate_owned_tokens_in_ordinal_mode() {
 pub fn should_migrate_token_hashes(token_owner: Key) -> bool {
     if get_token_identifiers_from_dictionary(
         &NFTIdentifierMode::Hash,
-        &get_stringified_token_owner_item_key(token_owner),
+        &encode_dictionary_item_key(token_owner),
     )
     .is_none()
     {
@@ -551,7 +551,7 @@ pub fn should_migrate_token_hashes(token_owner: Key) -> bool {
     // but it will contain no bits set.
     let page_table = storage::dictionary_get::<Vec<bool>>(
         page_table_uref,
-        &get_stringified_token_owner_item_key(token_owner),
+        &encode_dictionary_item_key(token_owner),
     )
     .unwrap_or_revert()
     .unwrap_or_revert_with(NFTCoreError::UnregisteredOwnerFromMigration);
@@ -572,7 +572,7 @@ pub fn migrate_token_hashes(token_owner: Key) {
         runtime::revert(NFTCoreError::InvalidNumberOfMintedTokens)
     }
 
-    let token_owner_item_key = get_stringified_token_owner_item_key(token_owner);
+    let token_owner_item_key = encode_dictionary_item_key(token_owner);
     let owned_tokens_list =
         get_token_identifiers_from_dictionary(&NFTIdentifierMode::Hash, &token_owner_item_key)
             .unwrap_or_revert_with(NFTCoreError::InvalidTokenOwner);
@@ -674,7 +674,7 @@ pub fn get_owned_token_ids_by_token_number() -> Vec<TokenIdentifier> {
 
 pub fn get_owned_token_ids_by_page() -> Vec<TokenIdentifier> {
     let token_owner: Key = get_verified_caller().unwrap_or_revert();
-    let token_item_key = get_stringified_token_owner_item_key(token_owner);
+    let token_item_key = encode_dictionary_item_key(token_owner);
     let page_table = get_dictionary_value_from_key::<Vec<bool>>(PAGE_TABLE, &token_item_key)
         .unwrap_or_revert_with(NFTCoreError::InvalidTokenOwner);
     let identifier_mode: NFTIdentifierMode = get_stored_value_with_user_errors::<u8>(

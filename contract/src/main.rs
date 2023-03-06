@@ -585,7 +585,7 @@ pub extern "C" fn mint() {
         metadata.clone(),
     );
 
-    let owned_tokens_item_key = utils::get_stringified_token_owner_item_key(token_owner_key);
+    let owned_tokens_item_key = utils::encode_dictionary_item_key(token_owner_key);
 
     if let NFTIdentifierMode::Hash = identifier_mode {
         // Update the forward and reverse trackers
@@ -742,7 +742,7 @@ pub extern "C" fn burn() {
         (),
     );
 
-    let owned_tokens_item_key = utils::get_stringified_token_owner_item_key(token_owner);
+    let owned_tokens_item_key = utils::encode_dictionary_item_key(token_owner);
 
     let updated_balance =
         match utils::get_dictionary_value_from_key::<u64>(TOKEN_COUNTS, &owned_tokens_item_key) {
@@ -834,7 +834,7 @@ pub extern "C" fn approve() {
     let is_operator = !is_owner
         && match utils::get_dictionary_value_from_key::<Option<Key>>(
             OPERATORS,
-            &utils::get_stringified_token_owner_item_key(owner),
+            &utils::encode_dictionary_item_key(owner),
         ) {
             Some(Some(maybe_operator)) => caller == maybe_operator,
             Some(None) | None => false,
@@ -941,7 +941,7 @@ pub extern "C" fn revoke() {
     let is_operator = !is_owner
         && match utils::get_dictionary_value_from_key::<Option<Key>>(
             OPERATORS,
-            &utils::get_stringified_token_owner_item_key(owner),
+            &utils::encode_dictionary_item_key(owner),
         ) {
             Some(Some(maybe_operator)) => caller == maybe_operator,
             Some(None) | None => false,
@@ -1015,7 +1015,7 @@ pub extern "C" fn set_approval_for_all() {
 
     // Depending on approve_all we either approve all or disapprove all.
     let operator: Option<Key> = if approve_all { Some(operator) } else { None };
-    let owner_item_key = utils::get_stringified_token_owner_item_key(caller);
+    let owner_item_key = utils::encode_dictionary_item_key(caller);
 
     upsert_dictionary_value_from_key(OPERATORS, &owner_item_key, operator);
 
@@ -1075,7 +1075,7 @@ pub extern "C" fn is_approved_for_all() {
     )
     .unwrap_or_revert();
 
-    let owner_item_key = utils::get_stringified_token_owner_item_key(owner_key);
+    let owner_item_key = utils::encode_dictionary_item_key(owner_key);
 
     let is_operator =
         match utils::get_dictionary_value_from_key::<Option<Key>>(OPERATORS, &owner_item_key) {
@@ -1151,7 +1151,7 @@ pub extern "C" fn transfer() {
     };
 
     // Check if caller is operator to execute transfer
-    let source_owner_item_key = utils::get_stringified_token_owner_item_key(source_owner_key);
+    let source_owner_item_key = utils::encode_dictionary_item_key(source_owner_key);
     let is_operator = !is_approved
         && match utils::get_dictionary_value_from_key::<Option<Key>>(
             OPERATORS,
@@ -1183,7 +1183,7 @@ pub extern "C" fn transfer() {
         }
     }
 
-    let target_owner_item_key = utils::get_stringified_token_owner_item_key(target_owner_key);
+    let target_owner_item_key = utils::encode_dictionary_item_key(target_owner_key);
 
     // Updated token_owners dictionary. Revert if token_owner not found.
     match utils::get_dictionary_value_from_key::<Key>(
@@ -1344,7 +1344,7 @@ pub extern "C" fn balance_of() {
     )
     .unwrap_or_revert();
 
-    let owner_key_item_string = utils::get_stringified_token_owner_item_key(owner_key);
+    let owner_key_item_string = utils::encode_dictionary_item_key(owner_key);
 
     let balance = utils::get_dictionary_value_from_key::<u64>(TOKEN_COUNTS, &owner_key_item_string)
         .unwrap_or(0u64);
@@ -1749,7 +1749,7 @@ pub extern "C" fn updated_receipts() {
             utils::migrate_token_hashes(caller);
         }
 
-        let token_owner_item_key = utils::get_stringified_token_owner_item_key(caller);
+        let token_owner_item_key = utils::encode_dictionary_item_key(caller);
 
         let page_table =
             utils::get_dictionary_value_from_key::<Vec<bool>>(PAGE_TABLE, &token_owner_item_key)
@@ -1797,7 +1797,7 @@ pub extern "C" fn register_owner() {
             NFTCoreError::InvalidPageTableURef,
         );
 
-        let owner_item_key = utils::get_stringified_token_owner_item_key(owner_key);
+        let owner_item_key = utils::encode_dictionary_item_key(owner_key);
 
         if storage::dictionary_get::<Vec<bool>>(page_table_uref, &owner_item_key)
             .unwrap_or_revert()
