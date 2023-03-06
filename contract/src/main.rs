@@ -67,7 +67,7 @@ use events::{
     events_cep47::{record_cep47_event_dictionary, CEP47Event},
     events_ces::{
         Approval, ApprovalForAll, ApprovalRevoked, Burn, MetadataUpdated, Migration, Mint,
-        RevokeForAll, Transfer, VariablesSet,
+        RevokedForAll, Transfer, VariablesSet,
     },
 };
 use metadata::CustomMetadataSchema;
@@ -1038,7 +1038,7 @@ pub extern "C" fn set_approval_for_all() {
             if approve_all {
                 casper_event_standard::emit(ApprovalForAll::new(caller, operator));
             } else {
-                casper_event_standard::emit(RevokeForAll::new(caller, operator));
+                casper_event_standard::emit(RevokedForAll::new(caller, operator));
             }
         }
         EventsMode::CEP47 => {

@@ -82,12 +82,12 @@ impl ApprovalForAll {
 }
 
 #[derive(Event, Debug, PartialEq, Eq)]
-pub struct RevokeForAll {
+pub struct RevokedForAll {
     owner: Key,
     operator: Key,
 }
 
-impl RevokeForAll {
+impl RevokedForAll {
     pub fn new(owner: Key, operator: Key) -> Self {
         Self { owner, operator }
     }

@@ -682,9 +682,10 @@ For this CEP-78 reference implementation, the events schema is as follows:
 | Mint            | recipient (Key), token_id (String), data (String)                       |
 | Transfer        | owner (Key), operator (Option<Key>), recipient (Key), token_id (String) |
 | Burn            | owner (Key), token_id (String)                                          |
-| Approval        | owner (Key), spender (Option<Key>), token_id (String)                   |
+| Approval        | owner (Key), spender (Key), token_id (String)                           |
 | ApprovalRevoked | owner (Key), token_id (String)                                          |
-| ApprovalForAll  | owner (Key), operator (Option<Key>)                                     |
+| ApprovalForAll  | owner (Key), operator (Key)                                             |
+| RevokedForAll   | owner (Key), operator (Key)                                             |
 | MetadataUpdated | token_id (String), data (String)                                        |
 | Migration       | -                                                                       |
 | VariablesSet    | -                                                                       |
