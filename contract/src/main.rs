@@ -225,7 +225,7 @@ pub extern "C" fn init() {
     // Attempt to parse the provided schema and fail installation
     // if the schema cannot be parsed.
     if let NFTMetadataKind::CustomValidated = nft_metadata_kind {
-        casper_serde_json_wasm::from_str::<CustomMetadataSchema>(&json_schema)
+        serde_json_wasm::from_str::<CustomMetadataSchema>(&json_schema)
             .map_err(|_| NFTCoreError::InvalidJsonSchema)
             .unwrap_or_revert();
     }
@@ -577,7 +577,7 @@ pub extern "C" fn mint() {
     utils::upsert_dictionary_value_from_key(
         TOKEN_ISSUERS,
         &token_identifier.get_dictionary_item_key(),
-        token_owner_key,
+        caller,
     );
     utils::upsert_dictionary_value_from_key(
         &metadata::get_metadata_dictionary_name(&metadata_kind),
