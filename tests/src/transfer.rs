@@ -4,8 +4,7 @@ use casper_engine_test_support::{
 };
 use casper_execution_engine::storage::global_state::in_memory::InMemoryGlobalState;
 use casper_types::{
-    account::AccountHash, runtime_args, system::mint, ContractHash, Key, PublicKey, RuntimeArgs,
-    SecretKey, U512,
+    account::AccountHash, runtime_args, ContractHash, Key, PublicKey, RuntimeArgs, SecretKey, U512,
 };
 use contract::{
     constants::{
@@ -94,8 +93,7 @@ fn should_dissallow_transfer_with_minter_or_assigned_ownership_mode() {
     let expected_owner_balance = 1u64;
     assert_eq!(actual_owner_balance, expected_owner_balance);
 
-    let (_, token_receiver_public_key) = support::create_dummy_key_pair(ACCOUNT_USER_1);
-    let token_receiver = token_receiver_public_key.to_account_hash();
+    let token_receiver = support::create_funded_dummy_account(&mut builder, Some(ACCOUNT_USER_1));
     let token_receiver_key = Key::Account(token_receiver);
 
     let register_request = ExecuteRequestBuilder::contract_call_by_hash(
@@ -110,6 +108,8 @@ fn should_dissallow_transfer_with_minter_or_assigned_ownership_mode() {
 
     builder.exec(register_request).expect_success().commit();
 
+    let token_id = 0u64;
+
     let transfer_request = ExecuteRequestBuilder::contract_call_by_hash(
         *DEFAULT_ACCOUNT_ADDR,
         nft_contract_hash,
@@ -118,7 +118,7 @@ fn should_dissallow_transfer_with_minter_or_assigned_ownership_mode() {
             ARG_SOURCE_KEY => Key::Account(token_owner),
             ARG_TARGET_KEY =>  token_receiver_key,
             ARG_IS_HASH_IDENTIFIER_MODE => false,
-            ARG_TOKEN_ID => 0u64,
+            ARG_TOKEN_ID => token_id,
         },
     )
     .build();
@@ -181,8 +181,7 @@ fn should_transfer_token_from_sender_to_receiver() {
     let expected_owner_balance = 1u64;
     assert_eq!(actual_owner_balance, expected_owner_balance);
 
-    let (_, token_receiver_public_key) = support::create_dummy_key_pair(ACCOUNT_USER_1);
-    let token_receiver = token_receiver_public_key.to_account_hash();
+    let token_receiver = support::create_funded_dummy_account(&mut builder, Some(ACCOUNT_USER_1));
     let token_receiver_key = Key::Account(token_receiver);
 
     let register_request = ExecuteRequestBuilder::contract_call_by_hash(
@@ -217,7 +216,7 @@ fn should_transfer_token_from_sender_to_receiver() {
         &builder,
         &nft_contract_key,
         TOKEN_OWNERS,
-        &0u64.to_string(),
+        &token_id.to_string(),
     )
     .into_account()
     .unwrap();
@@ -235,6 +234,7 @@ fn should_transfer_token_from_sender_to_receiver() {
         TOKEN_COUNTS,
         &token_owner.to_string(),
     );
+
     let expected_sender_balance = 0u64;
     assert_eq!(actual_sender_balance, expected_sender_balance);
 
@@ -297,10 +297,8 @@ fn approve_token_for_transfer_should_add_entry_to_approved_dictionary(
 
     builder.exec(mint_session_call).expect_success().commit();
 
-    let (_, spender_public_key) = support::create_dummy_key_pair(ACCOUNT_USER_1);
-    let spender = spender_public_key.to_account_hash();
+    let spender = support::create_funded_dummy_account(&mut builder, Some(ACCOUNT_USER_1));
     let spender_key = Key::Account(spender);
-
     let token_id = 0u64;
 
     if let Some(operator) = operator {
@@ -368,7 +366,7 @@ fn approve_token_for_transfer_from_an_account_should_add_entry_to_approved_dicti
 fn approve_token_for_transfer_from_an_operator_should_add_entry_to_approved_dictionary() {
     let mut builder = InMemoryWasmTestBuilder::default();
     builder.run_genesis(&DEFAULT_RUN_GENESIS_REQUEST).commit();
-    let operator = create_funded_dummy_account(&mut builder);
+    let operator = create_funded_dummy_account(&mut builder, None);
     approve_token_for_transfer_should_add_entry_to_approved_dictionary(builder, Some(operator))
 }
 
@@ -411,10 +409,8 @@ fn revoke_token_for_transfer_should_remove_entry_to_approved_dictionary(
 
     builder.exec(mint_session_call).expect_success().commit();
 
-    let (_, spender_public_key) = support::create_dummy_key_pair(ACCOUNT_USER_1);
-    let spender = spender_public_key.to_account_hash();
+    let spender = support::create_funded_dummy_account(&mut builder, Some(ACCOUNT_USER_1));
     let spender_key = Key::Account(spender);
-
     let token_id = 0u64;
 
     if let Some(operator) = operator {
@@ -505,7 +501,7 @@ fn revoke_token_for_transfer_from_account_should_remove_entry_to_approved_dictio
 fn revoke_token_for_transfer_from_operator_should_remove_entry_to_approved_dictionary() {
     let mut builder = InMemoryWasmTestBuilder::default();
     builder.run_genesis(&DEFAULT_RUN_GENESIS_REQUEST).commit();
-    let operator = create_funded_dummy_account(&mut builder);
+    let operator = create_funded_dummy_account(&mut builder, None);
     revoke_token_for_transfer_should_remove_entry_to_approved_dictionary(builder, Some(operator))
 }
 
@@ -548,16 +544,16 @@ fn should_dissallow_approving_when_ownership_mode_is_minter_or_assigned() {
 
     builder.exec(mint_session_call).expect_success().commit();
 
-    let (_, spender_public_key) = support::create_dummy_key_pair(ACCOUNT_USER_1);
-    let spender = spender_public_key.to_account_hash();
+    let spender = support::create_funded_dummy_account(&mut builder, Some(ACCOUNT_USER_1));
     let spender_key = Key::Account(spender);
+    let token_id = 0u64;
 
     let approve_request = ExecuteRequestBuilder::contract_call_by_hash(
         *DEFAULT_ACCOUNT_ADDR,
         nft_contract_hash,
         ENTRY_POINT_APPROVE,
         runtime_args! {
-            ARG_TOKEN_ID => 0u64,
+            ARG_TOKEN_ID => token_id,
             ARG_SPENDER => spender_key
         },
     )
@@ -603,21 +599,8 @@ fn should_be_able_to_transfer_token(
     builder.exec(mint_session_call).expect_success().commit();
 
     // Create a "to approve" spender account account and transfer funds
-    let (_, spender_public_key) = support::create_dummy_key_pair(ACCOUNT_USER_1);
-    let spender = spender_public_key.to_account_hash();
+    let spender = support::create_funded_dummy_account(&mut builder, Some(ACCOUNT_USER_1));
     let spender_key = Key::Account(spender);
-
-    let transfer_to_spender = ExecuteRequestBuilder::transfer(
-        *DEFAULT_ACCOUNT_ADDR,
-        runtime_args! {
-            mint::ARG_AMOUNT => 100_000_000_000_000u64,
-            mint::ARG_TARGET => spender,
-            mint::ARG_ID => Option::<u64>::None,
-        },
-    )
-    .build();
-    builder.exec(transfer_to_spender).expect_success().commit();
-
     let token_id = 0u64;
 
     if let Some(operator) = operator {
@@ -646,7 +629,7 @@ fn should_be_able_to_transfer_token(
         ENTRY_POINT_APPROVE,
         runtime_args! {
             ARG_TOKEN_ID => token_id,
-            ARG_SPENDER => spender_key
+            ARG_SPENDER => Key::Account(spender)
         },
     )
     .build();
@@ -667,24 +650,14 @@ fn should_be_able_to_transfer_token(
     );
 
     // Create to_account and transfer minted token using spender
-    let (_, to_account_public_key) = support::create_dummy_key_pair(ACCOUNT_USER_2);
-    let fund_to_account = ExecuteRequestBuilder::transfer(
-        *DEFAULT_ACCOUNT_ADDR,
-        runtime_args! {
-            mint::ARG_AMOUNT => 100_000_000_000_000u64,
-            mint::ARG_TARGET => to_account_public_key.clone(),
-            mint::ARG_ID => Option::<u64>::None,
-        },
-    )
-    .build();
-    builder.exec(fund_to_account).expect_success().commit();
+    let to_account = support::create_funded_dummy_account(&mut builder, Some(ACCOUNT_USER_2));
 
     let register_owner = ExecuteRequestBuilder::contract_call_by_hash(
         *DEFAULT_ACCOUNT_ADDR,
         nft_contract_hash,
         ENTRY_POINT_REGISTER_OWNER,
         runtime_args! {
-            ARG_TOKEN_OWNER => Key::Account(to_account_public_key.to_account_hash())
+            ARG_TOKEN_OWNER => Key::Account(to_account)
         },
     )
     .build();
@@ -700,7 +673,7 @@ fn should_be_able_to_transfer_token(
         runtime_args! {
             ARG_NFT_CONTRACT_HASH => nft_contract_key,
             ARG_SOURCE_KEY =>  Key::Account(token_owner),
-            ARG_TARGET_KEY => Key::Account(to_account_public_key.to_account_hash()),
+            ARG_TARGET_KEY => Key::Account(to_account),
             ARG_IS_HASH_IDENTIFIER_MODE => false,
             ARG_TOKEN_ID => token_id,
         },
@@ -728,7 +701,7 @@ fn should_be_able_to_transfer_token_using_approved_account() {
 fn should_be_able_to_transfer_token_using_operator() {
     let mut builder = InMemoryWasmTestBuilder::default();
     builder.run_genesis(&DEFAULT_RUN_GENESIS_REQUEST).commit();
-    let operator = create_funded_dummy_account(&mut builder);
+    let operator = create_funded_dummy_account(&mut builder, None);
     should_be_able_to_transfer_token(builder, Some(operator))
 }
 
@@ -772,21 +745,8 @@ fn should_dissallow_same_approved_account_to_transfer_token_twice() {
     builder.exec(mint_session_call).expect_success().commit();
 
     // Create a "to approve" spender account and transfer funds
-    let (_, spender_public_key) = support::create_dummy_key_pair(ACCOUNT_USER_1);
-    let spender = spender_public_key.to_account_hash();
+    let spender = support::create_funded_dummy_account(&mut builder, Some(ACCOUNT_USER_1));
     let spender_key = Key::Account(spender);
-
-    let transfer_to_spender = ExecuteRequestBuilder::transfer(
-        *DEFAULT_ACCOUNT_ADDR,
-        runtime_args! {
-            mint::ARG_AMOUNT => 100_000_000_000_000u64,
-            mint::ARG_TARGET => spender,
-            mint::ARG_ID => Option::<u64>::None,
-        },
-    )
-    .build();
-    builder.exec(transfer_to_spender).expect_success().commit();
-
     let token_id = 0u64;
 
     // Approve spender
@@ -818,24 +778,14 @@ fn should_dissallow_same_approved_account_to_transfer_token_twice() {
     );
 
     // Create to_account and transfer minted token using spender
-    let (_, to_account_public_key) = support::create_dummy_key_pair(ACCOUNT_USER_2);
-    let fund_to_account = ExecuteRequestBuilder::transfer(
-        *DEFAULT_ACCOUNT_ADDR,
-        runtime_args! {
-            mint::ARG_AMOUNT => 100_000_000_000_000u64,
-            mint::ARG_TARGET => to_account_public_key.clone(),
-            mint::ARG_ID => Option::<u64>::None,
-        },
-    )
-    .build();
-    builder.exec(fund_to_account).expect_success().commit();
+    let to_account = support::create_funded_dummy_account(&mut builder, Some(ACCOUNT_USER_2));
 
     let register_request = ExecuteRequestBuilder::contract_call_by_hash(
         *DEFAULT_ACCOUNT_ADDR,
         nft_contract_hash,
         ENTRY_POINT_REGISTER_OWNER,
         runtime_args! {
-            ARG_TOKEN_OWNER => Key::Account(to_account_public_key.to_account_hash())
+            ARG_TOKEN_OWNER => Key::Account(to_account)
         },
     )
     .build();
@@ -851,33 +801,21 @@ fn should_dissallow_same_approved_account_to_transfer_token_twice() {
             ARG_TOKEN_ID => token_id,
             ARG_IS_HASH_IDENTIFIER_MODE => false,
             ARG_SOURCE_KEY =>  Key::Account(token_owner),
-            ARG_TARGET_KEY => Key::Account(to_account_public_key.to_account_hash()),
+            ARG_TARGET_KEY => Key::Account(to_account),
         },
     )
     .build();
     builder.exec(transfer_request).expect_success().commit();
 
-    let (_, to_other_account_public_key) = support::create_dummy_key_pair(ACCOUNT_USER_3);
-    let fund_to_other_account_public = ExecuteRequestBuilder::transfer(
-        *DEFAULT_ACCOUNT_ADDR,
-        runtime_args! {
-            mint::ARG_AMOUNT => 100_000_000_000_000u64,
-            mint::ARG_TARGET => to_other_account_public_key.clone(),
-            mint::ARG_ID => Option::<u64>::None,
-        },
-    )
-    .build();
-    builder
-        .exec(fund_to_other_account_public)
-        .expect_success()
-        .commit();
+    // Create to_other_account and transfer minted token using spender
+    let to_other_account = support::create_funded_dummy_account(&mut builder, Some(ACCOUNT_USER_3));
 
     let register_request = ExecuteRequestBuilder::contract_call_by_hash(
         *DEFAULT_ACCOUNT_ADDR,
         nft_contract_hash,
         ENTRY_POINT_REGISTER_OWNER,
         runtime_args! {
-            ARG_TOKEN_OWNER => Key::Account(to_other_account_public_key.to_account_hash())
+            ARG_TOKEN_OWNER => Key::Account(to_other_account)
         },
     )
     .build();
@@ -891,8 +829,8 @@ fn should_dissallow_same_approved_account_to_transfer_token_twice() {
             ARG_NFT_CONTRACT_HASH => nft_contract_key,
             ARG_TOKEN_ID => token_id,
             ARG_IS_HASH_IDENTIFIER_MODE => false,
-            ARG_SOURCE_KEY =>  Key::Account(to_account_public_key.to_account_hash()), // token owner is now ACCOUNT_USER_2
-            ARG_TARGET_KEY => Key::Account(to_other_account_public_key.to_account_hash()),
+            ARG_SOURCE_KEY =>  Key::Account(to_account), // token owner is now ACCOUNT_USER_2
+            ARG_TARGET_KEY => Key::Account(to_other_account),
         },
     )
     .build();
@@ -937,21 +875,8 @@ fn should_disallow_to_transfer_token_using_revoked_hash(
     builder.exec(mint_session_call).expect_success().commit();
 
     // Create a "to approve" spender and transfer funds
-    let (_, spender_public_key) = support::create_dummy_key_pair(ACCOUNT_USER_1);
-    let spender = spender_public_key.to_account_hash();
+    let spender = support::create_funded_dummy_account(&mut builder, Some(ACCOUNT_USER_1));
     let spender_key = Key::Account(spender);
-
-    let transfer_to_spender = ExecuteRequestBuilder::transfer(
-        *DEFAULT_ACCOUNT_ADDR,
-        runtime_args! {
-            mint::ARG_AMOUNT => 100_000_000_000_000u64,
-            mint::ARG_TARGET => spender,
-            mint::ARG_ID => Option::<u64>::None,
-        },
-    )
-    .build();
-    builder.exec(transfer_to_spender).expect_success().commit();
-
     let token_id = 0u64;
 
     if let Some(operator) = operator {
@@ -1001,24 +926,14 @@ fn should_disallow_to_transfer_token_using_revoked_hash(
     );
 
     // Create to_account and transfer minted token using account
-    let (_, to_account_public_key) = support::create_dummy_key_pair(ACCOUNT_USER_2);
-    let fund_to_account = ExecuteRequestBuilder::transfer(
-        *DEFAULT_ACCOUNT_ADDR,
-        runtime_args! {
-            mint::ARG_AMOUNT => 100_000_000_000_000u64,
-            mint::ARG_TARGET => to_account_public_key.clone(),
-            mint::ARG_ID => Option::<u64>::None,
-        },
-    )
-    .build();
-    builder.exec(fund_to_account).expect_success().commit();
+    let to_account = support::create_funded_dummy_account(&mut builder, Some(ACCOUNT_USER_2));
 
     let register_owner = ExecuteRequestBuilder::contract_call_by_hash(
         *DEFAULT_ACCOUNT_ADDR,
         nft_contract_hash,
         ENTRY_POINT_REGISTER_OWNER,
         runtime_args! {
-            ARG_TOKEN_OWNER => Key::Account(to_account_public_key.to_account_hash())
+            ARG_TOKEN_OWNER => Key::Account(to_account)
         },
     )
     .build();
@@ -1045,7 +960,7 @@ fn should_disallow_to_transfer_token_using_revoked_hash(
         runtime_args! {
             ARG_NFT_CONTRACT_HASH => nft_contract_key,
             ARG_SOURCE_KEY =>  Key::Account(token_owner),
-            ARG_TARGET_KEY => Key::Account(to_account_public_key.to_account_hash()),
+            ARG_TARGET_KEY => Key::Account(to_account),
             ARG_IS_HASH_IDENTIFIER_MODE => false,
             ARG_TOKEN_ID => token_id,
         },
@@ -1083,7 +998,7 @@ fn should_disallow_to_transfer_token_using_revoked_account() {
 fn should_disallow_to_transfer_token_using_revoked_operator() {
     let mut builder = InMemoryWasmTestBuilder::default();
     builder.run_genesis(&DEFAULT_RUN_GENESIS_REQUEST).commit();
-    let operator = create_funded_dummy_account(&mut builder);
+    let operator = create_funded_dummy_account(&mut builder, None);
     should_disallow_to_transfer_token_using_revoked_hash(builder, Some(operator))
 }
 
@@ -1121,21 +1036,8 @@ fn should_be_able_to_approve_with_deprecated_operator_argument() {
     builder.exec(mint_session_call).expect_success().commit();
 
     // Create a "to approve" spender account account and transfer funds
-    let (_, spender_public_key) = support::create_dummy_key_pair(ACCOUNT_USER_1);
-    let spender = spender_public_key.to_account_hash();
+    let spender = support::create_funded_dummy_account(&mut builder, Some(ACCOUNT_USER_1));
     let spender_key = Key::Account(spender);
-
-    let transfer_to_spender = ExecuteRequestBuilder::transfer(
-        *DEFAULT_ACCOUNT_ADDR,
-        runtime_args! {
-            mint::ARG_AMOUNT => 100_000_000_000_000u64,
-            mint::ARG_TARGET => spender,
-            mint::ARG_ID => Option::<u64>::None,
-        },
-    )
-    .build();
-    builder.exec(transfer_to_spender).expect_success().commit();
-
     let token_id = 0u64;
 
     // Approve spender
@@ -1227,10 +1129,14 @@ fn should_transfer_between_contract_to_account() {
 
     builder.exec(minting_request).expect_success().commit();
 
-    let token_id = 0u64.to_string();
+    let token_id = 0u64;
 
-    let actual_token_owner: Key =
-        get_dictionary_value_from_key(&builder, &nft_contract_key, TOKEN_OWNERS, &token_id);
+    let actual_token_owner: Key = get_dictionary_value_from_key(
+        &builder,
+        &nft_contract_key,
+        TOKEN_OWNERS,
+        &token_id.to_string(),
+    );
 
     assert_eq!(minting_contract_key, actual_token_owner);
 
@@ -1248,7 +1154,7 @@ fn should_transfer_between_contract_to_account() {
 
     let transfer_runtime_arguments = runtime_args! {
         ARG_NFT_CONTRACT_HASH => nft_contract_key,
-        ARG_TOKEN_ID => 0u64,
+        ARG_TOKEN_ID => token_id,
         ARG_SOURCE_KEY => minting_contract_key,
         ARG_TARGET_KEY => Key::Account(*DEFAULT_ACCOUNT_ADDR),
     };
@@ -1263,8 +1169,12 @@ fn should_transfer_between_contract_to_account() {
 
     builder.exec(transfer_request).expect_success().commit();
 
-    let updated_token_owner: Key =
-        get_dictionary_value_from_key(&builder, &nft_contract_key, TOKEN_OWNERS, &token_id);
+    let updated_token_owner: Key = get_dictionary_value_from_key(
+        &builder,
+        &nft_contract_key,
+        TOKEN_OWNERS,
+        &token_id.to_string(),
+    );
 
     assert_eq!(Key::Account(*DEFAULT_ACCOUNT_ADDR), updated_token_owner);
 }
@@ -1482,9 +1392,11 @@ fn should_not_allow_non_approved_contract_to_transfer() {
 
     builder.exec(register_request).expect_success().commit();
 
+    let token_id = 0u64;
+
     let transfer_runtime_arguments = runtime_args! {
         ARG_NFT_CONTRACT_HASH => nft_contract_key,
-        ARG_TOKEN_ID => 0u64,
+        ARG_TOKEN_ID => token_id,
         ARG_SOURCE_KEY => Key::Account(*DEFAULT_ACCOUNT_ADDR),
         ARG_TARGET_KEY => Key::Account(AccountHash::new([7u8;32])),
     };
@@ -1510,7 +1422,7 @@ fn should_not_allow_non_approved_contract_to_transfer() {
         nft_contract_hash,
         ENTRY_POINT_APPROVE,
         runtime_args! {
-            ARG_TOKEN_ID => 0u64,
+            ARG_TOKEN_ID => token_id,
             ARG_SPENDER => minting_contract_key
         },
     )
@@ -1637,12 +1549,14 @@ fn should_prevent_transfer_to_unregistered_owner() {
 
     builder.exec(mint_session_call).expect_success().commit();
 
+    let token_id = 0u64;
+
     let transfer_request = ExecuteRequestBuilder::standard(
         *DEFAULT_ACCOUNT_ADDR,
         TRANSFER_SESSION_WASM,
         runtime_args! {
             ARG_NFT_CONTRACT_HASH => nft_contract_key,
-            ARG_TOKEN_ID => 0u64,
+            ARG_TOKEN_ID => token_id,
             ARG_SOURCE_KEY => Key::Account(*DEFAULT_ACCOUNT_ADDR),
             ARG_TARGET_KEY => Key::Account(AccountHash::new([7u8;32])),
             ARG_IS_HASH_IDENTIFIER_MODE => false
@@ -1760,7 +1674,7 @@ fn disallow_operator_to_approve_itself() {
     builder.exec(mint_session_call).expect_success().commit();
 
     let token_id = 0u64;
-    let operator = create_funded_dummy_account(&mut builder);
+    let operator = create_funded_dummy_account(&mut builder, None);
     let operator_key = Key::Account(operator);
 
     let approval_all_request = ExecuteRequestBuilder::contract_call_by_hash(

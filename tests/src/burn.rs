@@ -2,9 +2,7 @@ use casper_engine_test_support::{
     ExecuteRequestBuilder, InMemoryWasmTestBuilder, DEFAULT_ACCOUNT_ADDR,
     DEFAULT_RUN_GENESIS_REQUEST,
 };
-use casper_types::{
-    account::AccountHash, runtime_args, system::mint, ContractHash, Key, RuntimeArgs,
-};
+use casper_types::{account::AccountHash, runtime_args, ContractHash, Key, RuntimeArgs};
 use contract::{
     constants::{
         ARG_APPROVE_ALL, ARG_COLLECTION_NAME, ARG_OPERATOR, ARG_TOKEN_HASH, ARG_TOKEN_ID,
@@ -260,22 +258,7 @@ fn should_return_expected_error_burning_of_others_users_token() {
         .into_hash()
         .expect("must convert to hash addr");
 
-    let (_, account_user_1) = support::create_dummy_key_pair(ACCOUNT_USER_1);
-
-    let transfer_to_account_1 = ExecuteRequestBuilder::transfer(
-        *DEFAULT_ACCOUNT_ADDR,
-        runtime_args! {
-            mint::ARG_AMOUNT => 100_000_000_000_000u64,
-            mint::ARG_TARGET => account_user_1.to_account_hash(),
-            mint::ARG_ID => Option::<u64>::None,
-        },
-    )
-    .build();
-
-    builder
-        .exec(transfer_to_account_1)
-        .expect_success()
-        .commit();
+    let account_user_1 = support::create_funded_dummy_account(&mut builder, Some(ACCOUNT_USER_1));
 
     let mint_session_call = ExecuteRequestBuilder::standard(
         *DEFAULT_ACCOUNT_ADDR,
@@ -301,7 +284,7 @@ fn should_return_expected_error_burning_of_others_users_token() {
     assert!(token_page[0]);
 
     let incorrect_burn_request = ExecuteRequestBuilder::contract_call_by_hash(
-        account_user_1.to_account_hash(),
+        account_user_1,
         ContractHash::new(nft_contract_hash),
         ENTRY_POINT_BURN,
         runtime_args! {
@@ -343,22 +326,7 @@ fn should_return_expected_error_when_burning_not_owned_token() {
         .into_hash()
         .expect("must convert to hash addr");
 
-    let (_, account_user_1) = support::create_dummy_key_pair(ACCOUNT_USER_1);
-
-    let transfer_to_account_1 = ExecuteRequestBuilder::transfer(
-        *DEFAULT_ACCOUNT_ADDR,
-        runtime_args! {
-            mint::ARG_AMOUNT => 100_000_000_000_000u64,
-            mint::ARG_TARGET => account_user_1.to_account_hash(),
-            mint::ARG_ID => Option::<u64>::None,
-        },
-    )
-    .build();
-
-    builder
-        .exec(transfer_to_account_1)
-        .expect_success()
-        .commit();
+    let account_user_1 = support::create_funded_dummy_account(&mut builder, Some(ACCOUNT_USER_1));
 
     let mint_session_call = ExecuteRequestBuilder::standard(
         *DEFAULT_ACCOUNT_ADDR,
@@ -384,7 +352,7 @@ fn should_return_expected_error_when_burning_not_owned_token() {
     assert!(token_page[0]);
 
     let incorrect_burn_request = ExecuteRequestBuilder::contract_call_by_hash(
-        account_user_1.to_account_hash(),
+        account_user_1,
         ContractHash::new(nft_contract_hash),
         ENTRY_POINT_BURN,
         runtime_args! {

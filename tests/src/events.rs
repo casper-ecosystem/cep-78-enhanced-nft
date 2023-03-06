@@ -611,7 +611,7 @@ fn should_cep47_dictionary_style_approve_all_event() {
 
     builder.exec(mint_session_call).expect_success().commit();
 
-    let operator = create_funded_dummy_account(&mut builder);
+    let operator = create_funded_dummy_account(&mut builder, None);
 
     let set_approve_all_request = ExecuteRequestBuilder::contract_call_by_hash(
         *DEFAULT_ACCOUNT_ADDR,
