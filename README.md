@@ -322,11 +322,11 @@ The modality provides two options:
 2. `CEP47`: This modality will signal the contract to record events using the CEP47 event schema. Events are stored as a `BTreeMap` within dictionary in the contract's context. The events can be retrieved directly via their dictionary entry using the JSON-RPC, with more information on this process available [here](https://docs.casperlabs.io/dapp-dev-guide/writing-contracts/dictionaries/).
 3. `CES`: This modality will signal the contract to record events using the [Casper Event Standard](#casper-event-standard).
 
-| EventsMode                | u8  |
-| ------------------------- | --- |
-| NoEvents                  | 0   |
-| CEP47                     | 1   |
-| CES                       | 2   |
+| EventsMode | u8  |
+| ---------- | --- |
+| NoEvents   | 0   |
+| CEP47      | 1   |
+| CES        | 2   |
 
 ### Usage
 
@@ -677,21 +677,17 @@ The emitted events are encoded according to the [Casper Event Standard](https://
 
 For this CEP-78 reference implementation, the events schema is as follows:
 
-| Event name      | Included values and type                                             |
-| --------------- | -------------------------------------------------------------------- |
-| Mint            | recipient (Key), token_id (Any), data (String)                       |
-| Transfer        | owner (Key), operator (Option<Key>), recipient (Key), token_id (Any) |
-| Burn            | owner (Key), token_id (Any)                                          |
-| Approval        | owner (Key), operator (Option<Key>), token_id (Any)                  |
-| ApprovalForAll  | owner (Key), operator (Option<Key>), token_ids (List<Any>)           |
-| MetadataUpdated | token_id (Any), data (String)                                        |
-| Migration       | -                                                                    |
-| VariablesSet    | -                                                                    |
-
-Token identifiers are stored under the `CLType` `Any` and the encoding depends on the `NFTIdentifierMode` modality:
-
-- `NFTIdentifierMode::Ordinal`: the `token id` is encoded as a byte `0x00` followed by a `u64` number.
-- `NFTIdentifierMode::Hash`: the `token_id` is encoded as a byte `0x01` followed by a `String`.
+| Event name      | Included values and type                                                |
+| --------------- | ----------------------------------------------------------------------- |
+| Mint            | recipient (Key), token_id (String), data (String)                       |
+| Transfer        | owner (Key), operator (Option<Key>), recipient (Key), token_id (String) |
+| Burn            | owner (Key), token_id (String)                                          |
+| Approval        | owner (Key), spender (Option<Key>), token_id (String)                   |
+| ApprovalRevoked | owner (Key), token_id (String)                                          |
+| ApprovalForAll  | owner (Key), operator (Option<Key>), token_ids (List<String>)           |
+| MetadataUpdated | token_id (String), data (String)                                        |
+| Migration       | -                                                                       |
+| VariablesSet    | -                                                                       |
 
 ## Error Codes
 
