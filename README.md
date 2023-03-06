@@ -684,7 +684,7 @@ For this CEP-78 reference implementation, the events schema is as follows:
 | Burn            | owner (Key), token_id (String)                                          |
 | Approval        | owner (Key), spender (Option<Key>), token_id (String)                   |
 | ApprovalRevoked | owner (Key), token_id (String)                                          |
-| ApprovalForAll  | owner (Key), operator (Option<Key>), token_ids (List<String>)           |
+| ApprovalForAll  | owner (Key), operator (Option<Key>)                                     |
 | MetadataUpdated | token_id (String), data (String)                                        |
 | Migration       | -                                                                       |
 | VariablesSet    | -                                                                       |
