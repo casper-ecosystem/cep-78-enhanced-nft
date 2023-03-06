@@ -834,7 +834,7 @@ pub extern "C" fn approve() {
     let is_operator = !is_owner
         && match utils::get_dictionary_value_from_key::<Option<Key>>(
             OPERATORS,
-            &utils::encode_dictionary_item_key(owner),
+            &utils::key_and_value_to_str(&owner, &caller),
         ) {
             Some(Some(maybe_operator)) => caller == maybe_operator,
             Some(None) | None => false,
@@ -941,7 +941,7 @@ pub extern "C" fn revoke() {
     let is_operator = !is_owner
         && match utils::get_dictionary_value_from_key::<Option<Key>>(
             OPERATORS,
-            &utils::encode_dictionary_item_key(owner),
+            &utils::key_and_value_to_str(&owner, &caller),
         ) {
             Some(Some(maybe_operator)) => caller == maybe_operator,
             Some(None) | None => false,
@@ -1015,7 +1015,7 @@ pub extern "C" fn set_approval_for_all() {
 
     // Depending on approve_all we either approve all or disapprove all.
     let operator: Option<Key> = if approve_all { Some(operator) } else { None };
-    let owner_item_key = utils::encode_dictionary_item_key(caller);
+    let owner_item_key = utils::key_and_value_to_str(&caller, &operator);
 
     upsert_dictionary_value_from_key(OPERATORS, &owner_item_key, operator);
 
@@ -1075,7 +1075,7 @@ pub extern "C" fn is_approved_for_all() {
     )
     .unwrap_or_revert();
 
-    let owner_item_key = utils::encode_dictionary_item_key(owner_key);
+    let owner_item_key = utils::key_and_value_to_str(&owner_key, &operator);
 
     let is_operator =
         match utils::get_dictionary_value_from_key::<Option<Key>>(OPERATORS, &owner_item_key) {
@@ -1151,7 +1151,7 @@ pub extern "C" fn transfer() {
     };
 
     // Check if caller is operator to execute transfer
-    let source_owner_item_key = utils::encode_dictionary_item_key(source_owner_key);
+    let source_owner_item_key = utils::key_and_value_to_str(&source_owner_key, &caller);
     let is_operator = !is_approved
         && match utils::get_dictionary_value_from_key::<Option<Key>>(
             OPERATORS,
