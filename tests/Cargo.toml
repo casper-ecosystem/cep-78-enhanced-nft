@@ -4,7 +4,7 @@ version = "1.1.1"
 edition = "2018"
 
 [dependencies]
-casper-engine-test-support = { version = "2.2.0", default-features = false, features = [
+casper-engine-test-support = { version = "=2.2.0", default-features = false, features = [
   "test-support",
 ] }
 contract = { path = "../contract", default-features = false }
