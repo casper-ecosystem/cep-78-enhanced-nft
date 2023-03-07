@@ -63,7 +63,6 @@ fn should_safely_upgrade_in_ordinal_identifier_mode() {
 
         builder.exec(mint_request).expect_success().commit();
     }
-
     let previous_token_representation = support::get_dictionary_value_from_key::<Vec<u64>>(
         &builder,
         &nft_contract_key_1_0_0,
@@ -100,6 +99,7 @@ fn should_safely_upgrade_in_ordinal_identifier_mode() {
     .build();
 
     builder.exec(upgrade_request).expect_success().commit();
+
 
     let nft_contract_hash = support::get_nft_contract_hash(&builder);
     let nft_contract_key: Key = nft_contract_hash.into();
@@ -682,7 +682,7 @@ fn should_not_upgrade_with_larger_total_token_supply() {
 
     support::assert_expected_error(
         error,
-        142u16,
+        150u16,
         "cannot upgrade when new total token supply is larger than pre-migration one",
     );
 }

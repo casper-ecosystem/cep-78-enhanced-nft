@@ -1,5 +1,6 @@
 use std::collections::BTreeMap;
 
+use contract::constants::ARG_EVENTS_MODE;
 use once_cell::sync::Lazy;
 use serde::{Deserialize, Serialize};
 
@@ -17,8 +18,8 @@ use crate::utility::constants::{
 
 // Modalities reexports.
 pub use contract::modalities::{
-    BurnMode, EventsMode, MetadataMutability, MintingMode, NFTHolderMode, NFTIdentifierMode,
-    NFTKind, NFTMetadataKind, NamedKeyConventionMode, OwnerReverseLookupMode, OwnershipMode,
+    EventsMode, MintingMode, NFTHolderMode,
+    NFTKind, OwnershipMode,
     TokenIdentifier, WhitelistMode,
 };
 

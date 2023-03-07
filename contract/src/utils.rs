@@ -34,7 +34,7 @@ use crate::{
     },
     modalities::{
         BurnMode, NFTHolderMode, NFTIdentifierMode, OwnerReverseLookupMode, OwnershipMode,
-        TokenIdentifier, MetadataRequirement, Requirement
+        TokenIdentifier, MetadataRequirement, Requirement, NFTMetadataKind
     },
     utils,
 };

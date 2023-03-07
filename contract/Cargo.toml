@@ -6,7 +6,7 @@ edition = "2018"
 [dependencies]
 casper-contract = { version = "1.4.4", default-features = false, features = [
   "test-support",
-], optional = true }
+]}
 casper-types = "1.5"
 serde = { version = "1.0.80", default-features = false }
 serde_json = { version = "1.0.59", default-features = false }
@@ -26,6 +26,5 @@ codegen-units = 1
 lto = true
 
 [features]
-default = ["std", "contract-support"]
+default = ["std"]
 std = ["casper-types/std"]
-contract-support = ["dep:casper-contract"]

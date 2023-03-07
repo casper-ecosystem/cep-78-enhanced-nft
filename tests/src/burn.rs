@@ -94,7 +94,7 @@ fn should_burn_minted_token(reporting: OwnerReverseLookupMode) {
     let token_page =
         support::get_token_page_by_id(&builder, nft_contract_key, &token_owner, token_id);
 
-    assert!(token_page[0]);(Integration tests for events. Making 'contract' a library.)
+    assert!(token_page[0]);
 
     let actual_balance_before_burn = support::get_dictionary_value_from_key::<u64>(
         &builder,

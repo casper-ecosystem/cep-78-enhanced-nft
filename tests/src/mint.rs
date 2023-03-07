@@ -1877,6 +1877,9 @@ fn should_mint_with_transfer_only_reporting() {
 
     let expected_balance_after_mint = 1u64;
     assert_eq!(actual_balance_after_mint, expected_balance_after_mint);
+
+}
+
 fn should_approve_all_in_hash_identifier_mode() {
     let mut builder = InMemoryWasmTestBuilder::default();
     builder.run_genesis(&DEFAULT_RUN_GENESIS_REQUEST).commit();
