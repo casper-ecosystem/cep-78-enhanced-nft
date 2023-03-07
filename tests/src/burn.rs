@@ -520,7 +520,7 @@ fn should_not_burn_in_non_burn_mode() {
     support::assert_expected_error(error, 106, "InvalidBurnMode(106) must have been raised");
 }
 
-// This test is not really relevant anymore as approve_for_all does not check burnt tokens anymore
+// This test is no longer relevant as approve_for_all does not check burnt tokens anymore
 #[test]
 fn should_let_approve_all_with_burnt_tokens() {
     let mut builder = InMemoryWasmTestBuilder::default();
