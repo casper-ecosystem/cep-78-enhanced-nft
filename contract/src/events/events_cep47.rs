@@ -35,6 +35,14 @@ pub enum CEP47Event {
         owner: Key,
         token_id: TokenIdentifier,
     },
+    ApprovalForAll {
+        owner: Key,
+        operator: Key,
+    },
+    RevokedForAll {
+        owner: Key,
+        operator: Key,
+    },
     Transfer {
         sender: Key,
         recipient: Key,
@@ -99,6 +107,22 @@ pub fn record_cep47_event_dictionary(event: CEP47Event) {
             event.insert("event_type", "ApprovalRevoked".to_string());
             event.insert("owner", owner.to_string());
             event.insert("token_id", token_id.to_string());
+            event
+        }
+        CEP47Event::ApprovalForAll { owner, operator } => {
+            let mut event = BTreeMap::new();
+            event.insert(HASH_KEY_NAME_PREFIX, package);
+            event.insert("event_type", "ApprovalForAll".to_string());
+            event.insert("owner", owner.to_string());
+            event.insert("operator", operator.to_string());
+            event
+        }
+        CEP47Event::RevokedForAll { owner, operator } => {
+            let mut event = BTreeMap::new();
+            event.insert(HASH_KEY_NAME_PREFIX, package);
+            event.insert("event_type", "RevokedForAll".to_string());
+            event.insert("owner", owner.to_string());
+            event.insert("operator", operator.to_string());
             event
         }
         CEP47Event::Transfer {

@@ -579,7 +579,7 @@ fn should_cep47_dictionary_style_approve_event_in_hash_identifier_mode() {
 }
 
 #[test]
-fn should_cep47_dictionary_style_approve_all_event() {
+fn should_cep47_dictionary_style_approvall_for_all_event() {
     let mut builder = InMemoryWasmTestBuilder::default();
     builder.run_genesis(&DEFAULT_RUN_GENESIS_REQUEST).commit();
 
@@ -612,6 +612,7 @@ fn should_cep47_dictionary_style_approve_all_event() {
     builder.exec(mint_session_call).expect_success().commit();
 
     let operator = create_funded_dummy_account(&mut builder, None);
+    let operator_key = Key::Account(operator);
 
     let set_approve_all_request = ExecuteRequestBuilder::contract_call_by_hash(
         *DEFAULT_ACCOUNT_ADDR,
@@ -619,7 +620,7 @@ fn should_cep47_dictionary_style_approve_all_event() {
         ENTRY_POINT_SET_APPROVALL_FOR_ALL,
         runtime_args! {
             ARG_APPROVE_ALL => true,
-            ARG_OPERATOR => Key::Account(operator),
+            ARG_OPERATOR => operator_key,
         },
     )
     .build();
@@ -635,7 +636,7 @@ fn should_cep47_dictionary_style_approve_all_event() {
         nft_contract_key,
         runtime_args! {
             ARG_TOKEN_OWNER => Key::Account(*DEFAULT_ACCOUNT_ADDR),
-            ARG_OPERATOR => Key::Account(operator),
+            ARG_OPERATOR => operator_key,
         },
         IS_APPROVED_FOR_ALL_WASM,
         RETURNED_VALUE_STORAGE_KEY,
@@ -662,7 +663,7 @@ fn should_cep47_dictionary_style_approve_all_event() {
         vec![format!("cep78_{}", collection_name)],
     );
     let mut expected_event: BTreeMap<String, String> = BTreeMap::new();
-    expected_event.insert("event_type".to_string(), "Approve".to_string());
+    expected_event.insert("event_type".to_string(), "ApprovalForAll".to_string());
     expected_event.insert("cep78_contract_package".to_string(), package);
     expected_event.insert(
         "owner".to_string(),
@@ -670,11 +671,126 @@ fn should_cep47_dictionary_style_approve_all_event() {
             .to_string(),
     );
     expected_event.insert(
-        "spender".to_string(),
+        "operator".to_string(),
         "Key::Account(3d5de8c609159a0954e773dd686fb7724428316cb30e00bdc899976127747f55)"
             .to_string(),
     );
-    expected_event.insert("token_id".to_string(), "0".to_string());
+    assert_eq!(event, expected_event);
+}
+
+#[test]
+fn should_cep47_dictionary_style_revoked_for_all_event() {
+    let mut builder = InMemoryWasmTestBuilder::default();
+    builder.run_genesis(&DEFAULT_RUN_GENESIS_REQUEST).commit();
+
+    let install_request_builder =
+        InstallerRequestBuilder::new(*DEFAULT_ACCOUNT_ADDR, NFT_CONTRACT_WASM)
+            .with_nft_metadata_kind(NFTMetadataKind::CEP78)
+            .with_ownership_mode(OwnershipMode::Transferable)
+            .with_total_token_supply(1u64)
+            .with_events_mode(EventsMode::CEP47);
+    builder
+        .exec(install_request_builder.build())
+        .expect_success()
+        .commit();
+
+    let nft_contract_hash = get_nft_contract_hash(&builder);
+    let nft_contract_key: Key = nft_contract_hash.into();
+
+    let mint_session_call = ExecuteRequestBuilder::standard(
+        *DEFAULT_ACCOUNT_ADDR,
+        MINT_SESSION_WASM,
+        runtime_args! {
+            ARG_NFT_CONTRACT_HASH => nft_contract_key,
+            ARG_TOKEN_OWNER => Key::Account(*DEFAULT_ACCOUNT_ADDR),
+            ARG_TOKEN_META_DATA => TEST_PRETTY_CEP78_METADATA,
+            ARG_COLLECTION_NAME => NFT_TEST_COLLECTION.to_string()
+        },
+    )
+    .build();
+
+    builder.exec(mint_session_call).expect_success().commit();
+
+    let operator = create_funded_dummy_account(&mut builder, None);
+    let operator_key = Key::Account(operator);
+
+    let set_approve_all_request = ExecuteRequestBuilder::contract_call_by_hash(
+        *DEFAULT_ACCOUNT_ADDR,
+        nft_contract_hash,
+        ENTRY_POINT_SET_APPROVALL_FOR_ALL,
+        runtime_args! {
+            ARG_APPROVE_ALL => true,
+            ARG_OPERATOR => operator_key,
+        },
+    )
+    .build();
+
+    builder
+        .exec(set_approve_all_request)
+        .expect_success()
+        .commit();
+
+    let is_operator = call_session_code_with_ret::<bool>(
+        &mut builder,
+        *DEFAULT_ACCOUNT_ADDR,
+        nft_contract_key,
+        runtime_args! {
+            ARG_TOKEN_OWNER => Key::Account(*DEFAULT_ACCOUNT_ADDR),
+            ARG_OPERATOR => operator_key,
+        },
+        IS_APPROVED_FOR_ALL_WASM,
+        RETURNED_VALUE_STORAGE_KEY,
+    );
+
+    assert!(is_operator, "expected operator to be approved for all");
+
+    let revoke_approve_for_all_request = ExecuteRequestBuilder::contract_call_by_name(
+        *DEFAULT_ACCOUNT_ADDR,
+        CONTRACT_NAME,
+        ENTRY_POINT_SET_APPROVALL_FOR_ALL,
+        runtime_args! {
+            ARG_APPROVE_ALL => false,
+            ARG_OPERATOR => operator_key
+        },
+    )
+    .build();
+
+    builder
+        .exec(revoke_approve_for_all_request)
+        .expect_success()
+        .commit();
+
+    let event = get_dictionary_value_from_key::<BTreeMap<String, String>>(
+        &builder,
+        &nft_contract_key,
+        "events",
+        "2",
+    );
+
+    let collection_name: String = query_stored_value(
+        &builder,
+        nft_contract_key,
+        vec![ARG_COLLECTION_NAME.to_string()],
+    );
+
+    let package = query_stored_value::<String>(
+        &builder,
+        nft_contract_key,
+        vec![format!("cep78_{}", collection_name)],
+    );
+    let mut expected_event: BTreeMap<String, String> = BTreeMap::new();
+    expected_event.insert("event_type".to_string(), "RevokedForAll".to_string());
+    expected_event.insert("cep78_contract_package".to_string(), package);
+    expected_event.insert(
+        "owner".to_string(),
+        "Key::Account(58b891759929bd4ed5a9cce20b9d6e3c96a66c21386bed96040e17dd07b79fa7)"
+            .to_string(),
+    );
+    expected_event.insert(
+        "operator".to_string(),
+        "Key::Account(3d5de8c609159a0954e773dd686fb7724428316cb30e00bdc899976127747f55)"
+            .to_string(),
+    );
     assert_eq!(event, expected_event);
 }
 

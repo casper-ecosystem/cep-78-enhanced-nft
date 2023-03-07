@@ -1034,26 +1034,16 @@ pub extern "C" fn set_approval_for_all() {
             }
         }
         EventsMode::CEP47 => {
-            let caller_owned_tokens = match utils::get_reporting_mode() {
-                OwnerReverseLookupMode::NoLookUp => utils::get_owned_token_ids_by_token_number(),
-                OwnerReverseLookupMode::Complete => utils::get_owned_token_ids_by_page(),
-            };
-            for callers_owned_token in caller_owned_tokens {
-                match approve_all {
-                    true => {
-                        record_cep47_event_dictionary(CEP47Event::ApprovalGranted {
-                            owner: caller,
-                            spender: operator,
-                            token_id: callers_owned_token.clone(),
-                        });
-                    }
-                    false => {
-                        record_cep47_event_dictionary(CEP47Event::ApprovalRevoked {
-                            owner: caller,
-                            token_id: callers_owned_token.clone(),
-                        });
-                    }
-                }
+            if approve_all {
+                record_cep47_event_dictionary(CEP47Event::ApprovalForAll {
+                    owner: caller,
+                    operator,
+                });
+            } else {
+                record_cep47_event_dictionary(CEP47Event::RevokedForAll {
+                    owner: caller,
+                    operator,
+                });
             }
         }
     }

@@ -24,9 +24,9 @@ use casper_types::{
 use crate::{
     constants::{
         ARG_TOKEN_HASH, ARG_TOKEN_ID, BURNT_TOKENS, BURN_MODE, HASH_BY_INDEX, HOLDER_MODE,
-        IDENTIFIER_MODE, INDEX_BY_HASH, MIGRATION_FLAG, NUMBER_OF_MINTED_TOKENS, OWNED_TOKENS,
-        OWNERSHIP_MODE, PAGE_DICTIONARY_PREFIX, PAGE_LIMIT, PAGE_TABLE, RECEIPT_NAME,
-        REPORTING_MODE, RLO_MFLAG, TOKEN_OWNERS, UNMATCHED_HASH_COUNT,
+        INDEX_BY_HASH, MIGRATION_FLAG, NUMBER_OF_MINTED_TOKENS, OWNED_TOKENS, OWNERSHIP_MODE,
+        PAGE_DICTIONARY_PREFIX, PAGE_LIMIT, PAGE_TABLE, RECEIPT_NAME, REPORTING_MODE, RLO_MFLAG,
+        TOKEN_OWNERS, UNMATCHED_HASH_COUNT,
     },
     error::NFTCoreError,
     events::events_ces::{
@@ -636,97 +636,6 @@ pub fn migrate_token_hashes(token_owner: Key) {
     );
 
     storage::write(unmatched_hash_count_uref, unmatched_hash_count);
-}
-
-pub fn get_owned_token_ids_by_token_number() -> Vec<TokenIdentifier> {
-    let token_owner: Key = get_verified_caller().unwrap_or_revert();
-
-    let identifier_mode: NFTIdentifierMode = get_stored_value_with_user_errors::<u8>(
-        IDENTIFIER_MODE,
-        NFTCoreError::MissingIdentifierMode,
-        NFTCoreError::InvalidIdentifierMode,
-    )
-    .try_into()
-    .unwrap_or_revert();
-
-    let current_number_of_minted_tokens = get_stored_value_with_user_errors::<u64>(
-        NUMBER_OF_MINTED_TOKENS,
-        NFTCoreError::MissingNumberOfMintedTokens,
-        NFTCoreError::InvalidNumberOfMintedTokens,
-    );
-
-    let mut token_identifiers: Vec<TokenIdentifier> = vec![];
-
-    for token_number in 0..current_number_of_minted_tokens {
-        let token_identifier = match identifier_mode {
-            NFTIdentifierMode::Ordinal => TokenIdentifier::new_index(token_number),
-            NFTIdentifierMode::Hash => {
-                let token_hash = get_dictionary_value_from_key::<String>(
-                    HASH_BY_INDEX,
-                    &token_number.to_string(),
-                )
-                .unwrap_or_revert_with(NFTCoreError::InvalidTokenIdentifier);
-                TokenIdentifier::new_hash(token_hash)
-            }
-        };
-        if let Some(owner) = get_dictionary_value_from_key::<Key>(
-            TOKEN_OWNERS,
-            &token_identifier.get_dictionary_item_key(),
-        ) {
-            if owner == token_owner {
-                token_identifiers.push(token_identifier)
-            }
-        }
-    }
-
-    token_identifiers
-}
-
-pub fn get_owned_token_ids_by_page() -> Vec<TokenIdentifier> {
-    let token_owner: Key = get_verified_caller().unwrap_or_revert();
-    let token_item_key = encode_dictionary_item_key(token_owner);
-    let page_table = get_dictionary_value_from_key::<Vec<bool>>(PAGE_TABLE, &token_item_key)
-        .unwrap_or_revert_with(NFTCoreError::InvalidTokenOwner);
-    let identifier_mode: NFTIdentifierMode = get_stored_value_with_user_errors::<u8>(
-        IDENTIFIER_MODE,
-        NFTCoreError::MissingIdentifierMode,
-        NFTCoreError::InvalidIdentifierMode,
-    )
-    .try_into()
-    .unwrap_or_revert();
-    let mut token_identifiers: Vec<TokenIdentifier> = vec![];
-    for (page_table_entry, allocated) in page_table.into_iter().enumerate() {
-        if !allocated {
-            continue;
-        }
-        let page_uref = get_uref(
-            &format!("{PAGE_DICTIONARY_PREFIX}{page_table_entry}"),
-            NFTCoreError::MissingStorageUref,
-            NFTCoreError::InvalidStorageUref,
-        );
-
-        let page = storage::dictionary_get::<Vec<bool>>(page_uref, &token_item_key)
-            .unwrap_or_revert()
-            .unwrap_or_revert_with(NFTCoreError::MissingPage);
-
-        for (page_address, is_token_owned) in page.into_iter().enumerate() {
-            if !is_token_owned {
-                continue;
-            }
-            let token_number = (page_table_entry as u64 * PAGE_SIZE) + (page_address as u64);
-            let token_identifier = match identifier_mode {
-                NFTIdentifierMode::Ordinal => TokenIdentifier::new_index(token_number),
-                NFTIdentifierMode::Hash => get_dictionary_value_from_key::<String>(
-                    HASH_BY_INDEX,
-                    &token_number.to_string(),
-                )
-                .map(TokenIdentifier::new_hash)
-                .unwrap_or_revert(),
-            };
-            token_identifiers.push(token_identifier)
-        }
-    }
-    token_identifiers
 }
 
 pub fn get_receipt_name(page_table_entry: u64) -> String {
