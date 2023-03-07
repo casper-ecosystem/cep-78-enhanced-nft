@@ -724,7 +724,7 @@ pub extern "C" fn burn() {
             }
             token_owner_key
         }
-        None => runtime::revert(NFTCoreError::InvalidTokenIdentifier),
+        None => runtime::revert(NFTCoreError::MissingOwnerTokenIdentifierKey),
     };
 
     // It makes sense to keep this token as owned by the caller. It just happens that the caller
@@ -831,13 +831,11 @@ pub extern "C" fn approve() {
     // Only the token owner or an operator can approve an account
     let is_owner = caller == owner;
     let is_operator = !is_owner
-        && match utils::get_dictionary_value_from_key::<Option<Key>>(
+        && utils::get_dictionary_value_from_key::<bool>(
             OPERATORS,
             &utils::key_and_value_to_str(&owner, &caller),
-        ) {
-            Some(Some(maybe_operator)) => caller == maybe_operator,
-            Some(None) | None => false,
-        };
+        )
+        .unwrap_or_default();
 
     if !is_owner && !is_operator {
         runtime::revert(NFTCoreError::InvalidAccountHash);
@@ -942,13 +940,11 @@ pub extern "C" fn revoke() {
     // revoke an approved account
     let is_owner = caller == owner;
     let is_operator = !is_owner
-        && match utils::get_dictionary_value_from_key::<Option<Key>>(
+        && utils::get_dictionary_value_from_key::<bool>(
             OPERATORS,
             &utils::key_and_value_to_str(&owner, &caller),
-        ) {
-            Some(Some(maybe_operator)) => caller == maybe_operator,
-            Some(None) | None => false,
-        };
+        )
+        .unwrap_or_default();
 
     if !is_owner && !is_operator {
         runtime::revert(NFTCoreError::InvalidAccountHash);
@@ -1018,11 +1014,7 @@ pub extern "C" fn set_approval_for_all() {
 
     // Depending on approve_all we either approve all or disapprove all.
     let owner_operator_item_key = utils::key_and_value_to_str(&caller, &operator);
-    utils::upsert_dictionary_value_from_key(
-        OPERATORS,
-        &owner_operator_item_key,
-        if approve_all { Some(operator) } else { None },
-    );
+    utils::upsert_dictionary_value_from_key(OPERATORS, &owner_operator_item_key, approve_all);
 
     let events_mode: EventsMode = utils::get_stored_value_with_user_errors::<u8>(
         EVENTS_MODE,
@@ -1086,13 +1078,9 @@ pub extern "C" fn is_approved_for_all() {
 
     let owner_operator_item_key = utils::key_and_value_to_str(&owner_key, &operator);
 
-    let is_operator = match utils::get_dictionary_value_from_key::<Option<Key>>(
-        OPERATORS,
-        &owner_operator_item_key,
-    ) {
-        Some(Some(maybe_operator)) => operator == maybe_operator,
-        Some(None) | None => false,
-    };
+    let is_operator =
+        utils::get_dictionary_value_from_key::<bool>(OPERATORS, &owner_operator_item_key)
+            .unwrap_or_default();
 
     let operator_cl_value =
         CLValue::from_t(is_operator).unwrap_or_revert_with(NFTCoreError::FailedToConvertToCLValue);
@@ -1133,7 +1121,7 @@ pub extern "C" fn transfer() {
         &token_identifier.get_dictionary_item_key(),
     ) {
         Some(owner) => owner,
-        None => runtime::revert(NFTCoreError::InvalidTokenIdentifier),
+        None => runtime::revert(NFTCoreError::MissingOwnerTokenIdentifierKey),
     };
 
     let source_owner_key = utils::get_named_arg_with_user_errors::<Key>(
@@ -1163,14 +1151,10 @@ pub extern "C" fn transfer() {
 
     // Check if caller is operator to execute transfer
     let owner_operator_item_key = utils::key_and_value_to_str(&source_owner_key, &caller);
+
     let is_operator = !is_approved
-        && match utils::get_dictionary_value_from_key::<Option<Key>>(
-            OPERATORS,
-            &owner_operator_item_key,
-        ) {
-            Some(Some(maybe_operator)) => caller == maybe_operator,
-            Some(None) | None => false,
-        };
+        && utils::get_dictionary_value_from_key::<bool>(OPERATORS, &owner_operator_item_key)
+            .unwrap_or_default();
 
     // Revert if caller is not owner nor approved nor an operator.
     if !is_owner && !is_approved && !is_operator {
@@ -1211,7 +1195,7 @@ pub extern "C" fn transfer() {
                 target_owner_key,
             );
         }
-        None => runtime::revert(NFTCoreError::InvalidTokenIdentifier),
+        None => runtime::revert(NFTCoreError::MissingOwnerTokenIdentifierKey),
     }
 
     let source_owner_item_key = utils::encode_dictionary_item_key(source_owner_key);
@@ -1393,14 +1377,12 @@ pub extern "C" fn owner_of() {
         }
     }
 
-    let maybe_token_owner = utils::get_dictionary_value_from_key::<Key>(
+    let token_owner = match utils::get_dictionary_value_from_key::<Key>(
         TOKEN_OWNERS,
         &token_identifier.get_dictionary_item_key(),
-    );
-
-    let token_owner = match maybe_token_owner {
+    ) {
         Some(token_owner) => token_owner,
-        None => runtime::revert(NFTCoreError::InvalidTokenIdentifier),
+        None => runtime::revert(NFTCoreError::MissingOwnerTokenIdentifierKey),
     };
 
     let token_owner_cl_value =
@@ -1538,7 +1520,7 @@ pub extern "C" fn set_token_metadata() {
             runtime::revert(NFTCoreError::InvalidTokenOwner)
         }
     } else {
-        runtime::revert(NFTCoreError::InvalidTokenIdentifier)
+        runtime::revert(NFTCoreError::MissingOwnerTokenIdentifierKey)
     }
 
     let metadata_kind: NFTMetadataKind = utils::get_stored_value_with_user_errors::<u8>(

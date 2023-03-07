@@ -29,7 +29,6 @@ use crate::utility::{
 
 #[test]
 fn should_burn_minted_token() {
-    let token_id = 0u64;
     let mut builder = InMemoryWasmTestBuilder::default();
     builder.run_genesis(&DEFAULT_RUN_GENESIS_REQUEST).commit();
 
@@ -67,6 +66,8 @@ fn should_burn_minted_token() {
     .build();
 
     builder.exec(mint_session_call).expect_success().commit();
+
+    let token_id = 0u64;
 
     let token_page =
         support::get_token_page_by_id(&builder, nft_contract_key, &token_owner, token_id);
@@ -213,12 +214,14 @@ fn should_return_expected_error_when_burning_non_existing_token() {
         .expect_success()
         .commit();
 
+    let token_id = 0u64;
+
     let burn_request = ExecuteRequestBuilder::contract_call_by_name(
         *DEFAULT_ACCOUNT_ADDR,
         CONTRACT_NAME,
         ENTRY_POINT_BURN,
         runtime_args! {
-            ARG_TOKEN_ID => 0u64,
+            ARG_TOKEN_ID => token_id,
         },
     )
     .build();
@@ -228,7 +231,7 @@ fn should_return_expected_error_when_burning_non_existing_token() {
     let actual_error = builder.get_error().expect("must have error");
     support::assert_expected_error(
         actual_error,
-        28u16,
+        147u16,
         "should return InvalidTokenID error when trying to burn a non_existing token",
     );
 }
