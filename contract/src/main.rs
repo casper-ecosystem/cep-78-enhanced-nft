@@ -705,6 +705,13 @@ pub extern "C" fn mint() {
             NFTCoreError::InvalidPageTableURef,
         );
 
+        // Update the individual page record.
+        let page_uref = utils::get_uref(
+            &format!("{PAGE_DICTIONARY_PREFIX}{page_table_entry}"),
+            NFTCoreError::MissingPageUref,
+            NFTCoreError::InvalidPageUref,
+        );
+
         let mut page_table =
             match storage::dictionary_get::<Vec<bool>>(page_table_uref, &owned_tokens_item_key)
                 .unwrap_or_revert()

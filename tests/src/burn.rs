@@ -77,7 +77,7 @@ fn should_burn_minted_token(reporting: OwnerReverseLookupMode) {
     } else {
         let mint_runtime_args = runtime_args! {
             ARG_NFT_CONTRACT_HASH => Key::Hash(nft_contract_hash.value()),
-            ARG_TOKEN_OWNER => Key::Account(*DEFAULT_ACCOUNT_ADDR),
+            ARG_TOKEN_OWNER => token_owner,
             ARG_TOKEN_META_DATA => TEST_PRETTY_721_META_DATA.to_string(),
         };
 
