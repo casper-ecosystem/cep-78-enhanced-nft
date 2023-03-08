@@ -9,6 +9,7 @@ use casper_types::{account::AccountHash, runtime_args, Key, RuntimeArgs};
 use contract::{
     constants::{
         ARG_ACCESS_KEY_NAME_1_0_0, ARG_EVENTS_MODE, ARG_NAMED_KEY_CONVENTION, ARG_NFT_PACKAGE_HASH,
+        EVENTS,
     },
     modalities::{EventsMode, NamedKeyConventionMode},
 };
@@ -72,7 +73,7 @@ fn should_record_cep47_dictionary_style_mint_event() {
     let event = get_dictionary_value_from_key::<BTreeMap<String, String>>(
         &builder,
         &nft_contract_key,
-        "events",
+        EVENTS,
         "0",
     );
 
@@ -165,7 +166,7 @@ fn should_record_cep47_dictionary_style_transfer_token_event_in_hash_identifier_
     let event = get_dictionary_value_from_key::<BTreeMap<String, String>>(
         &builder,
         &nft_contract_key,
-        "events",
+        EVENTS,
         "1",
     );
 
@@ -334,7 +335,7 @@ fn should_record_cep47_dictionary_style_metadata_update_event_for_nft721_using_t
     let event = get_dictionary_value_from_key::<BTreeMap<String, String>>(
         &builder,
         &nft_contract_key,
-        "events",
+        EVENTS,
         "1",
     );
 
@@ -450,7 +451,7 @@ fn should_cep47_dictionary_style_burn_event() {
     let event = get_dictionary_value_from_key::<BTreeMap<String, String>>(
         &builder,
         nft_contract_key,
-        "events",
+        EVENTS,
         "1",
     );
 
@@ -540,7 +541,7 @@ fn should_cep47_dictionary_style_approve_event_in_hash_identifier_mode() {
     let event = get_dictionary_value_from_key::<BTreeMap<String, String>>(
         &builder,
         &nft_contract_key,
-        "events",
+        EVENTS,
         "1",
     );
 
@@ -654,12 +655,12 @@ fn should_record_migration_event_in_cep47() {
     let nft_contract_key: Key = nft_contract_hash.into();
 
     let latest_cep47_event_id =
-        get_dictionary_value_from_key::<u64>(&builder, &nft_contract_key, "events", "len") - 1u64;
+        get_dictionary_value_from_key::<u64>(&builder, &nft_contract_key, EVENTS, "len") - 1u64;
 
     let event = get_dictionary_value_from_key::<BTreeMap<String, String>>(
         &builder,
         &nft_contract_key,
-        "events",
+        EVENTS,
         &latest_cep47_event_id.to_string(),
     );
 
@@ -737,7 +738,7 @@ fn should_not_record_events_in_no_events_mode() {
     get_dictionary_value_from_key::<BTreeMap<String, String>>(
         &builder,
         nft_contract_key,
-        "events",
+        EVENTS,
         "1",
     );
 }

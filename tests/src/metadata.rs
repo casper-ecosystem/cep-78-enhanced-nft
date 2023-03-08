@@ -58,7 +58,7 @@ fn should_prevent_update_in_immutable_mode() {
     builder.exec(mint_token_request).expect_success().commit();
 
     let token_hash: String =
-        base16::encode_lower(&support::create_blake2b_hash(&TEST_PRETTY_721_META_DATA));
+        base16::encode_lower(&support::create_blake2b_hash(TEST_PRETTY_721_META_DATA));
 
     let update_token_metadata_request = ExecuteRequestBuilder::contract_call_by_hash(
         *DEFAULT_ACCOUNT_ADDR,
@@ -305,7 +305,7 @@ fn should_allow_update_for_valid_metadata_based_on_kind(
 
     let update_metadata_runtime_args = {
         let mut args = runtime_args! {
-            ARG_TOKEN_META_DATA => updated_metadata.to_string(),
+            ARG_TOKEN_META_DATA => updated_metadata,
         };
         match identifier_mode {
             NFTIdentifierMode::Ordinal => args.insert(ARG_TOKEN_ID, 0u64).expect("must get args"),

@@ -1,6 +1,14 @@
-use alloc::string::{String, ToString};
+use alloc::{
+    collections::BTreeMap,
+    string::{String, ToString},
+    vec,
+    vec::Vec,
+};
 
-use casper_types::CLTyped;
+use casper_types::{
+    bytesrepr::{self, FromBytes, ToBytes, U64_SERIALIZED_LENGTH, U8_SERIALIZED_LENGTH},
+    CLType, CLTyped,
+};
 
 use core::convert::TryFrom;
 
@@ -93,8 +101,59 @@ impl TryFrom<u8> for NFTKind {
     }
 }
 
+pub type MetadataRequirement = BTreeMap<NFTMetadataKind, Requirement>;
+
 #[repr(u8)]
-#[derive(Clone, Copy)]
+#[derive(PartialEq, Eq, PartialOrd, Ord, Clone, Copy)]
+pub enum Requirement {
+    Required = 0,
+    Optional = 1,
+    Unneeded = 2,
+}
+
+impl TryFrom<u8> for Requirement {
+    type Error = NFTCoreError;
+
+    fn try_from(value: u8) -> Result<Self, Self::Error> {
+        match value {
+            0 => Ok(Requirement::Required),
+            1 => Ok(Requirement::Optional),
+            2 => Ok(Requirement::Unneeded),
+            _ => Err(NFTCoreError::InvalidRequirement),
+        }
+    }
+}
+
+impl CLTyped for Requirement {
+    fn cl_type() -> casper_types::CLType {
+        CLType::U8
+    }
+}
+
+impl FromBytes for Requirement {
+    fn from_bytes(bytes: &[u8]) -> Result<(Self, &[u8]), casper_types::bytesrepr::Error> {
+        match bytes.split_first() {
+            None => Err(casper_types::bytesrepr::Error::EarlyEndOfStream),
+            Some((byte, rem)) => match Requirement::try_from(*byte) {
+                Ok(kind) => Ok((kind, rem)),
+                Err(_) => Err(casper_types::bytesrepr::Error::EarlyEndOfStream),
+            },
+        }
+    }
+}
+
+impl ToBytes for Requirement {
+    fn to_bytes(&self) -> Result<alloc::vec::Vec<u8>, casper_types::bytesrepr::Error> {
+        Ok(vec![*self as u8])
+    }
+
+    fn serialized_length(&self) -> usize {
+        U8_SERIALIZED_LENGTH
+    }
+}
+
+#[repr(u8)]
+#[derive(PartialEq, Eq, PartialOrd, Ord, Clone, Copy)]
 pub enum NFTMetadataKind {
     CEP78 = 0,
     NFT721 = 1,
@@ -116,7 +175,36 @@ impl TryFrom<u8> for NFTMetadataKind {
     }
 }
 
+impl CLTyped for NFTMetadataKind {
+    fn cl_type() -> casper_types::CLType {
+        CLType::U8
+    }
+}
+
+impl FromBytes for NFTMetadataKind {
+    fn from_bytes(bytes: &[u8]) -> Result<(Self, &[u8]), casper_types::bytesrepr::Error> {
+        match bytes.split_first() {
+            None => Err(casper_types::bytesrepr::Error::EarlyEndOfStream),
+            Some((byte, rem)) => match NFTMetadataKind::try_from(*byte) {
+                Ok(kind) => Ok((kind, rem)),
+                Err(_) => Err(casper_types::bytesrepr::Error::EarlyEndOfStream),
+            },
+        }
+    }
+}
+
+impl ToBytes for NFTMetadataKind {
+    fn to_bytes(&self) -> Result<alloc::vec::Vec<u8>, casper_types::bytesrepr::Error> {
+        Ok(vec![*self as u8])
+    }
+
+    fn serialized_length(&self) -> usize {
+        U8_SERIALIZED_LENGTH
+    }
+}
+
 #[repr(u8)]
+#[derive(PartialEq, Eq)]
 pub enum OwnershipMode {
     /// The minter owns it and can never transfer it.
     Minter = 0,
@@ -213,6 +301,49 @@ impl TokenIdentifier {
     }
 }
 
+impl ToBytes for TokenIdentifier {
+    fn to_bytes(&self) -> Result<Vec<u8>, bytesrepr::Error> {
+        let mut bytes = Vec::new();
+        match self {
+            TokenIdentifier::Index(index) => {
+                bytes.push(NFTIdentifierMode::Ordinal as u8);
+                bytes.append(&mut index.to_bytes()?);
+            }
+            TokenIdentifier::Hash(string) => {
+                bytes.push(NFTIdentifierMode::Hash as u8);
+                bytes.append(&mut string.to_bytes()?);
+            }
+        };
+        Ok(bytes)
+    }
+
+    fn serialized_length(&self) -> usize {
+        U8_SERIALIZED_LENGTH
+            + match self {
+                TokenIdentifier::Index(_) => U64_SERIALIZED_LENGTH,
+                TokenIdentifier::Hash(string) => string.serialized_length(),
+            }
+    }
+}
+
+impl FromBytes for TokenIdentifier {
+    fn from_bytes(bytes: &[u8]) -> Result<(Self, &[u8]), bytesrepr::Error> {
+        let (identifier_mode, bytes) = u8::from_bytes(bytes)?;
+        let identifier_mode = NFTIdentifierMode::try_from(identifier_mode)
+            .map_err(|_| bytesrepr::Error::Formatting)?;
+        match identifier_mode {
+            NFTIdentifierMode::Ordinal => {
+                let (index, bytes) = u64::from_bytes(bytes)?;
+                Ok((TokenIdentifier::Index(index), bytes))
+            }
+            NFTIdentifierMode::Hash => {
+                let (string, bytes) = String::from_bytes(bytes)?;
+                Ok((TokenIdentifier::Hash(string), bytes))
+            }
+        }
+    }
+}
+
 impl ToString for TokenIdentifier {
     fn to_string(&self) -> String {
         match self {
@@ -251,6 +382,7 @@ impl TryFrom<u8> for BurnMode {
 pub enum OwnerReverseLookupMode {
     NoLookUp = 0,
     Complete = 1,
+    TransfersOnly = 2,
 }
 
 impl TryFrom<u8> for OwnerReverseLookupMode {
@@ -260,6 +392,7 @@ impl TryFrom<u8> for OwnerReverseLookupMode {
         match value {
             0 => Ok(OwnerReverseLookupMode::NoLookUp),
             1 => Ok(OwnerReverseLookupMode::Complete),
+            2 => Ok(OwnerReverseLookupMode::TransfersOnly),
             _ => Err(NFTCoreError::InvalidReportingMode),
         }
     }

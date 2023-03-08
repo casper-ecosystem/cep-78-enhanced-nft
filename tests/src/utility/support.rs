@@ -121,7 +121,7 @@ pub(crate) fn assert_expected_invalid_installer_request(
 }
 
 pub(crate) fn assert_expected_error(actual_error: EngineStateError, error_code: u16, reason: &str) {
-    let actual = format!("{:?}", actual_error);
+    let actual = format!("{actual_error:?}");
     let expected = format!(
         "{:?}",
         EngineStateError::Exec(execution::Error::Revert(ApiError::User(error_code)))
@@ -129,8 +129,7 @@ pub(crate) fn assert_expected_error(actual_error: EngineStateError, error_code: 
 
     assert_eq!(
         actual, expected,
-        "Error should match {} with reason: {}",
-        error_code, reason
+        "Error should match {error_code} with reason: {reason}"
     )
 }
 
@@ -232,7 +231,7 @@ pub(crate) fn get_token_page_by_id(
     get_dictionary_value_from_key(
         builder,
         nft_contract_key,
-        &format!("{}{}", PAGE_DICTIONARY_PREFIX, page_number),
+        &format!("{PAGE_DICTIONARY_PREFIX}{page_number}"),
         &token_page_item_key,
     )
 }
@@ -263,7 +262,7 @@ pub(crate) fn get_stored_value_from_global_state<T: CLTyped + FromBytes>(
 }
 
 pub(crate) fn get_receipt_name(nft_receipt: String, page_table_entry: u64) -> String {
-    format!("{}_m_{}_p_{}", nft_receipt, PAGE_SIZE, page_table_entry)
+    format!("{nft_receipt}_m_{PAGE_SIZE}_p_{page_table_entry}")
 }
 
 pub fn get_event<T: FromBytes + CLTyped + Debug>(

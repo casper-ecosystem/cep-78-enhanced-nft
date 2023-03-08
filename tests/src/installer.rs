@@ -367,3 +367,72 @@ fn should_prevent_installation_with_ownership_and_minting_modality_conflict() {
         "cannot install when Ownership::Minter and MintingMode::Installer",
     );
 }
+
+#[test]
+fn should_prevent_installation_with_ownership_minter_and_owner_reverse_lookup_mode_transfer_only() {
+    let mut builder = InMemoryWasmTestBuilder::default();
+    builder.run_genesis(&DEFAULT_RUN_GENESIS_REQUEST).commit();
+
+    let install_request = InstallerRequestBuilder::new(*DEFAULT_ACCOUNT_ADDR, NFT_CONTRACT_WASM)
+        .with_collection_name(NFT_TEST_COLLECTION.to_string())
+        .with_collection_symbol(NFT_TEST_SYMBOL.to_string())
+        .with_total_token_supply(1_000u64)
+        .with_minting_mode(MintingMode::Installer)
+        .with_ownership_mode(OwnershipMode::Minter)
+        .with_reporting_mode(OwnerReverseLookupMode::TransfersOnly)
+        .build();
+
+    builder.exec(install_request).expect_failure().commit();
+
+    let error = builder.get_error().expect("must have error");
+
+    support::assert_expected_error(
+        error,
+        140u16,
+        "cannot install when Ownership::Minter and OwnerReverseLookupMode::TransfersOnly",
+    );
+}
+
+#[test]
+fn should_prevent_installation_with_ownership_assigned_and_owner_reverse_lookup_mode_transfer_only()
+{
+    let mut builder = InMemoryWasmTestBuilder::default();
+    builder.run_genesis(&DEFAULT_RUN_GENESIS_REQUEST).commit();
+
+    let install_request = InstallerRequestBuilder::new(*DEFAULT_ACCOUNT_ADDR, NFT_CONTRACT_WASM)
+        .with_collection_name(NFT_TEST_COLLECTION.to_string())
+        .with_collection_symbol(NFT_TEST_SYMBOL.to_string())
+        .with_total_token_supply(1_000u64)
+        .with_minting_mode(MintingMode::Installer)
+        .with_ownership_mode(OwnershipMode::Assigned)
+        .with_reporting_mode(OwnerReverseLookupMode::TransfersOnly)
+        .build();
+
+    builder.exec(install_request).expect_failure().commit();
+
+    let error = builder.get_error().expect("must have error");
+
+    support::assert_expected_error(
+        error,
+        140u16,
+        "cannot install when Ownership::Assigned and OwnerReverseLookupMode::TransfersOnly",
+    );
+}
+
+#[test]
+fn should_allow_installation_with_ownership_transferable_and_owner_reverse_lookup_mode_transfer_only(
+) {
+    let mut builder = InMemoryWasmTestBuilder::default();
+    builder.run_genesis(&DEFAULT_RUN_GENESIS_REQUEST).commit();
+
+    let install_request = InstallerRequestBuilder::new(*DEFAULT_ACCOUNT_ADDR, NFT_CONTRACT_WASM)
+        .with_collection_name(NFT_TEST_COLLECTION.to_string())
+        .with_collection_symbol(NFT_TEST_SYMBOL.to_string())
+        .with_total_token_supply(1_000u64)
+        .with_minting_mode(MintingMode::Installer)
+        .with_ownership_mode(OwnershipMode::Transferable)
+        .with_reporting_mode(OwnerReverseLookupMode::TransfersOnly)
+        .build();
+
+    builder.exec(install_request).expect_success().commit();
+}

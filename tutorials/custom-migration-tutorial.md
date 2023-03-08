@@ -105,7 +105,7 @@ casper-client put-deploy \
 
 As part of the migration, the contract's NamedKeys will be renamed using a new naming convention, which includes the collection name and a `cep78_contract_` prefix.
 
-| Old NamedKey| New NamedKey | Explanation |
+| Deprecated NamedKey| New NamedKey | Explanation |
 |-------------|--------------|-------------|
 | nft_contract | cep78_contract_hash_[COLLECTION_NAME] | The hash identifying the NFT contract |
 | A user-specified String | cep78_contract_package_[COLLECTION_NAME] | The hash identifying the contract package containing the NFT contract. In this example, it is "mangled_hash_key" | 
@@ -114,4 +114,4 @@ As part of the migration, the contract's NamedKeys will be renamed using a new n
 
 ![Account Custom Named Keys](../assets/custom-namedkeys-post-migration.png)  
 
-Notice that the original NamedKeys are still on the list, but the new contract will not use them. Also, starting with version 1.1.0, all named keys will follow the new naming convention containing the collection name. 
+> **Note**: Notice that the deprecated NamedKeys are still on the list, but the new contract will not use them. Also, starting with version 1.1.0, all named keys will follow the new naming convention containing the collection name. 
