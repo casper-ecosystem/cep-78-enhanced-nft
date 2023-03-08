@@ -68,7 +68,6 @@ fn should_safely_upgrade_in_ordinal_identifier_mode() {
 
         builder.exec(mint_request).expect_success().commit();
     }
-
     let previous_token_representation = support::get_dictionary_value_from_key::<Vec<u64>>(
         &builder,
         &nft_contract_key_1_0_0,
@@ -185,7 +184,7 @@ fn should_safely_upgrade_in_hash_identifier_mode() {
     for i in 0..number_of_tokens_pre_migration {
         let token_metadata = support::CEP78Metadata::with_random_checksum(
             "Some Name".to_string(),
-            format!("https://www.foobar.com/{}", i),
+            format!("https://www.foobar.com/{i}"),
         );
 
         let json_token_metadata =
@@ -687,7 +686,7 @@ fn should_not_upgrade_with_larger_total_token_supply() {
 
     support::assert_expected_error(
         error,
-        142u16,
+        150u16,
         "cannot upgrade when new total token supply is larger than pre-migration one",
     );
 }

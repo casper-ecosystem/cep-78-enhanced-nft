@@ -15,11 +15,14 @@ extern crate alloc;
 
 use alloc::{
     boxed::Box,
+    collections::BTreeMap,
     format,
     string::{String, ToString},
     vec,
     vec::Vec,
 };
+use constants::{ARG_ADDITIONAL_REQUIRED_METADATA, ARG_OPTIONAL_METADATA, NFT_METADATA_KINDS};
+use modalities::Requirement;
 
 use core::convert::{TryFrom, TryInto};
 
@@ -58,7 +61,7 @@ use constants::{
     METADATA_NFT721, METADATA_RAW, MINTING_MODE, NFT_KIND, NFT_METADATA_KIND,
     NUMBER_OF_MINTED_TOKENS, OPERATOR, OPERATORS, OWNED_TOKENS, OWNERSHIP_MODE,
     PAGE_DICTIONARY_PREFIX, PAGE_LIMIT, PAGE_TABLE, RECEIPT_NAME, REPORTING_MODE, RLO_MFLAG,
-    TOKEN_COUNTS, TOKEN_ISSUERS, TOKEN_OWNERS, TOTAL_TOKEN_SUPPLY, UNMATCHED_HASH_COUNT,
+    TOKEN_COUNT, TOKEN_ISSUERS, TOKEN_OWNERS, TOTAL_TOKEN_SUPPLY, UNMATCHED_HASH_COUNT,
     WHITELIST_MODE,
 };
 
@@ -76,7 +79,6 @@ use modalities::{
     NFTKind, NFTMetadataKind, NamedKeyConventionMode, OwnerReverseLookupMode, OwnershipMode,
     TokenIdentifier, WhitelistMode,
 };
-use utils::PAGE_SIZE;
 
 #[no_mangle]
 pub extern "C" fn init() {
@@ -212,7 +214,7 @@ pub extern "C" fn init() {
     )
     .unwrap_or_revert();
 
-    let nft_metadata_kind: NFTMetadataKind = utils::get_named_arg_with_user_errors::<u8>(
+    let base_metadata_kind: NFTMetadataKind = utils::get_named_arg_with_user_errors::<u8>(
         ARG_NFT_METADATA_KIND,
         NFTCoreError::MissingNFTMetadataKind,
         NFTCoreError::InvalidNFTMetadataKind,
@@ -221,12 +223,36 @@ pub extern "C" fn init() {
     .try_into()
     .unwrap_or_revert();
 
-    // Attempt to parse the provided schema and fail installation
-    // if the schema cannot be parsed.
-    if let NFTMetadataKind::CustomValidated = nft_metadata_kind {
-        serde_json_wasm::from_str::<CustomMetadataSchema>(&json_schema)
-            .map_err(|_| NFTCoreError::InvalidJsonSchema)
-            .unwrap_or_revert();
+    let optional_metadata = utils::get_named_arg_with_user_errors::<Vec<u8>>(
+        ARG_OPTIONAL_METADATA,
+        NFTCoreError::MissingOptionalNFTMetadataKind,
+        NFTCoreError::InvalidOptionalNFTMetadataKind,
+    )
+    .unwrap_or_revert();
+
+    let additional_required_metadata = utils::get_named_arg_with_user_errors::<Vec<u8>>(
+        ARG_ADDITIONAL_REQUIRED_METADATA,
+        NFTCoreError::MissingAdditionalNFTMetadataKind,
+        NFTCoreError::InvalidAdditionalNFTMetadataKind,
+    )
+    .unwrap_or_revert();
+
+    let nft_metadata_kinds = utils::create_metadata_requirements(
+        base_metadata_kind,
+        additional_required_metadata,
+        optional_metadata,
+    );
+
+    // Attempt to parse the provided schema if the CustomValidated metadata kind is required of
+    // optional and fail installation if the schema cannot be parsed.
+    if let Some(required_or_optional) = nft_metadata_kinds.get(&NFTMetadataKind::CustomValidated) {
+        if required_or_optional == &Requirement::Required
+            || required_or_optional == &Requirement::Optional
+        {
+            serde_json_wasm::from_str::<CustomMetadataSchema>(&json_schema)
+                .map_err(|_| NFTCoreError::InvalidJsonSchema)
+                .unwrap_or_revert();
+        }
     }
 
     let identifier_mode: NFTIdentifierMode = utils::get_named_arg_with_user_errors::<u8>(
@@ -265,14 +291,12 @@ pub extern "C" fn init() {
     .try_into()
     .unwrap_or_revert();
 
-    let events_mode: EventsMode = utils::get_named_arg_with_user_errors::<u8>(
-        ARG_EVENTS_MODE,
-        NFTCoreError::MissingEventsMode,
-        NFTCoreError::InvalidEventsMode,
-    )
-    .unwrap_or_revert()
-    .try_into()
-    .unwrap_or_revert();
+    // OwnerReverseLookup TransfersOnly mode should be Transferable
+    if OwnerReverseLookupMode::TransfersOnly == reporting_mode
+        && OwnershipMode::Transferable != ownership_mode
+    {
+        runtime::revert(NFTCoreError::OwnerReverseLookupModeNotTransferable)
+    }
 
     // Put all created URefs into the contract's context (necessary to retain access rights,
     // for future use).
@@ -313,7 +337,11 @@ pub extern "C" fn init() {
     );
     runtime::put_key(
         NFT_METADATA_KIND,
-        storage::new_uref(nft_metadata_kind as u8).into(),
+        storage::new_uref(base_metadata_kind).into(),
+    );
+    runtime::put_key(
+        NFT_METADATA_KINDS,
+        storage::new_uref(nft_metadata_kinds).into(),
     );
     runtime::put_key(
         IDENTIFIER_MODE,
@@ -324,6 +352,16 @@ pub extern "C" fn init() {
         storage::new_uref(metadata_mutability as u8).into(),
     );
     runtime::put_key(BURN_MODE, storage::new_uref(burn_mode as u8).into());
+
+    let events_mode: EventsMode = utils::get_named_arg_with_user_errors::<u8>(
+        ARG_EVENTS_MODE,
+        NFTCoreError::MissingEventsMode,
+        NFTCoreError::InvalidEventsMode,
+    )
+    .unwrap_or_revert()
+    .try_into()
+    .unwrap_or_revert();
+
     // Initialize events structures for CES.
     if let EventsMode::CES = events_mode {
         utils::init_events();
@@ -349,7 +387,7 @@ pub extern "C" fn init() {
         .unwrap_or_revert_with(NFTCoreError::FailedToCreateDictionary);
     storage::new_dictionary(BURNT_TOKENS)
         .unwrap_or_revert_with(NFTCoreError::FailedToCreateDictionary);
-    storage::new_dictionary(TOKEN_COUNTS)
+    storage::new_dictionary(TOKEN_COUNT)
         .unwrap_or_revert_with(NFTCoreError::FailedToCreateDictionary);
     storage::new_dictionary(METADATA_CUSTOM_VALIDATED)
         .unwrap_or_revert_with(NFTCoreError::FailedToCreateDictionary);
@@ -366,7 +404,12 @@ pub extern "C" fn init() {
     storage::new_dictionary(PAGE_TABLE)
         .unwrap_or_revert_with(NFTCoreError::FailedToCreateDictionary);
     storage::new_dictionary(EVENTS).unwrap_or_revert_with(NFTCoreError::FailedToCreateDictionary);
-    if reporting_mode == OwnerReverseLookupMode::Complete {
+    if vec![
+        OwnerReverseLookupMode::Complete,
+        OwnerReverseLookupMode::TransfersOnly,
+    ]
+    .contains(&reporting_mode)
+    {
         let page_table_width = utils::max_number_of_pages(total_token_supply);
         runtime::put_key(PAGE_LIMIT, storage::new_uref(page_table_width).into());
     }
@@ -534,13 +577,12 @@ pub extern "C" fn mint() {
             caller
         };
 
-    let metadata_kind: NFTMetadataKind = utils::get_stored_value_with_user_errors::<u8>(
-        NFT_METADATA_KIND,
-        NFTCoreError::MissingNFTMetadataKind,
-        NFTCoreError::InvalidNFTMetadataKind,
-    )
-    .try_into()
-    .unwrap_or_revert();
+    let metadata_kinds: BTreeMap<NFTMetadataKind, Requirement> =
+        utils::get_stored_value_with_user_errors(
+            NFT_METADATA_KINDS,
+            NFTCoreError::MissingNFTMetadataKind,
+            NFTCoreError::InvalidNFTMetadataKind,
+        );
 
     let token_metadata = utils::get_named_arg_with_user_errors::<String>(
         ARG_TOKEN_META_DATA,
@@ -548,9 +590,6 @@ pub extern "C" fn mint() {
         NFTCoreError::InvalidTokenMetaData,
     )
     .unwrap_or_revert();
-
-    // Get token metadata if valid.
-    let metadata = metadata::validate_metadata(&metadata_kind, token_metadata).unwrap_or_revert();
 
     let identifier_mode: NFTIdentifierMode = utils::get_stored_value_with_user_errors::<u8>(
         IDENTIFIER_MODE,
@@ -563,10 +602,32 @@ pub extern "C" fn mint() {
     // This is the token ID.
     let token_identifier: TokenIdentifier = match identifier_mode {
         NFTIdentifierMode::Ordinal => TokenIdentifier::Index(minted_tokens_count),
-        NFTIdentifierMode::Hash => {
-            TokenIdentifier::Hash(base16::encode_lower(&runtime::blake2b(&metadata)))
-        }
+        NFTIdentifierMode::Hash => TokenIdentifier::Hash(base16::encode_lower(&runtime::blake2b(
+            token_metadata.clone(),
+        ))),
     };
+
+    for (metadata_kind, required) in metadata_kinds {
+        if required == Requirement::Unneeded {
+            continue;
+        }
+        let token_metadata_validation =
+            metadata::validate_metadata(&metadata_kind, token_metadata.clone());
+        match token_metadata_validation {
+            Ok(validated_token_metadata) => {
+                utils::upsert_dictionary_value_from_key(
+                    &metadata::get_metadata_dictionary_name(&metadata_kind),
+                    &token_identifier.get_dictionary_item_key(),
+                    validated_token_metadata,
+                );
+            }
+            Err(err) => {
+                if required == Requirement::Required {
+                    runtime::revert(err);
+                }
+            }
+        }
+    }
 
     utils::upsert_dictionary_value_from_key(
         TOKEN_OWNERS,
@@ -578,12 +639,6 @@ pub extern "C" fn mint() {
         &token_identifier.get_dictionary_item_key(),
         caller,
     );
-    utils::upsert_dictionary_value_from_key(
-        &metadata::get_metadata_dictionary_name(&metadata_kind),
-        &token_identifier.get_dictionary_item_key(),
-        metadata.clone(),
-    );
-
     let owned_tokens_item_key = utils::encode_dictionary_item_key(token_owner_key);
 
     if let NFTIdentifierMode::Hash = identifier_mode {
@@ -593,12 +648,12 @@ pub extern "C" fn mint() {
 
     //Increment the count of owned tokens.
     let updated_token_count =
-        match utils::get_dictionary_value_from_key::<u64>(TOKEN_COUNTS, &owned_tokens_item_key) {
+        match utils::get_dictionary_value_from_key::<u64>(TOKEN_COUNT, &owned_tokens_item_key) {
             Some(balance) => balance + 1u64,
             None => 1u64,
         };
     utils::upsert_dictionary_value_from_key(
-        TOKEN_COUNTS,
+        TOKEN_COUNT,
         &owned_tokens_item_key,
         updated_token_count,
     );
@@ -625,7 +680,7 @@ pub extern "C" fn mint() {
         EventsMode::CES => casper_event_standard::emit(Mint::new(
             token_owner_key,
             token_identifier.clone(),
-            metadata,
+            token_metadata,
         )),
         EventsMode::CEP47 => record_cep47_event_dictionary(CEP47Event::Mint {
             recipient: token_owner_key,
@@ -639,54 +694,16 @@ pub extern "C" fn mint() {
         {
             utils::migrate_token_hashes(token_owner_key)
         }
-        // there is an explicit page_table;
-        // this is the entry in that overall page table which maps to the underlying page
-        // upon which this mint's address will exist
-        let page_table_entry = minted_tokens_count / PAGE_SIZE;
-        let page_address = minted_tokens_count % PAGE_SIZE;
 
-        // Update the page entry first
-        let page_table_uref = utils::get_uref(
-            PAGE_TABLE,
-            NFTCoreError::MissingPageTableURef,
-            NFTCoreError::InvalidPageTableURef,
+        let (page_table_entry, page_uref) = utils::add_page_entry_and_page_record(
+            minted_tokens_count,
+            &owned_tokens_item_key,
+            true,
         );
-
-        // Update the individual page record.
-        let page_uref = utils::get_uref(
-            &format!("{PAGE_DICTIONARY_PREFIX}{page_table_entry}"),
-            NFTCoreError::MissingPageUref,
-            NFTCoreError::InvalidPageUref,
-        );
-
-        let mut page_table =
-            match storage::dictionary_get::<Vec<bool>>(page_table_uref, &owned_tokens_item_key)
-                .unwrap_or_revert()
-            {
-                Some(page_table) => page_table,
-                None => runtime::revert(NFTCoreError::UnregisteredOwnerInMint),
-            };
-
-        let mut page = if !page_table[page_table_entry as usize] {
-            // We mark the page table entry to true to signal the allocation of a page.
-            let _ = core::mem::replace(&mut page_table[page_table_entry as usize], true);
-            storage::dictionary_put(page_table_uref, &owned_tokens_item_key, page_table);
-            vec![false; PAGE_SIZE as usize]
-        } else {
-            storage::dictionary_get::<Vec<bool>>(page_uref, &owned_tokens_item_key)
-                .unwrap_or_revert()
-                .unwrap_or_revert_with(NFTCoreError::MissingPage)
-        };
-
-        let _ = core::mem::replace(&mut page[page_address as usize], true);
-
-        storage::dictionary_put(page_uref, &owned_tokens_item_key, page);
-
-        let token_identifier_string = token_identifier.get_dictionary_item_key();
-
-        let receipt_address = Key::dictionary(page_uref, owned_tokens_item_key.as_bytes());
 
         let receipt_string = utils::get_receipt_name(page_table_entry);
+        let receipt_address = Key::dictionary(page_uref, owned_tokens_item_key.as_bytes());
+        let token_identifier_string = token_identifier.get_dictionary_item_key();
 
         let receipt = CLValue::from_t((receipt_string, receipt_address, token_identifier_string))
             .unwrap_or_revert_with(NFTCoreError::FailedToConvertToCLValue);
@@ -744,7 +761,7 @@ pub extern "C" fn burn() {
     let owned_tokens_item_key = utils::encode_dictionary_item_key(token_owner);
 
     let updated_balance =
-        match utils::get_dictionary_value_from_key::<u64>(TOKEN_COUNTS, &owned_tokens_item_key) {
+        match utils::get_dictionary_value_from_key::<u64>(TOKEN_COUNT, &owned_tokens_item_key) {
             Some(balance) => {
                 if balance > 0u64 {
                     balance - 1u64
@@ -759,7 +776,7 @@ pub extern "C" fn burn() {
             }
         };
 
-    utils::upsert_dictionary_value_from_key(TOKEN_COUNTS, &owned_tokens_item_key, updated_balance);
+    utils::upsert_dictionary_value_from_key(TOKEN_COUNT, &owned_tokens_item_key, updated_balance);
 
     // Emit Burn event.
     let events_mode: EventsMode =
@@ -1192,7 +1209,7 @@ pub extern "C" fn transfer() {
 
     // Update the from_account balance
     let updated_from_account_balance =
-        match utils::get_dictionary_value_from_key::<u64>(TOKEN_COUNTS, &source_owner_item_key) {
+        match utils::get_dictionary_value_from_key::<u64>(TOKEN_COUNT, &source_owner_item_key) {
             Some(balance) => {
                 if balance > 0u64 {
                     balance - 1u64
@@ -1207,20 +1224,20 @@ pub extern "C" fn transfer() {
             }
         };
     utils::upsert_dictionary_value_from_key(
-        TOKEN_COUNTS,
+        TOKEN_COUNT,
         &source_owner_item_key,
         updated_from_account_balance,
     );
 
     // Update the to_account balance
     let updated_to_account_balance =
-        match utils::get_dictionary_value_from_key::<u64>(TOKEN_COUNTS, &target_owner_item_key) {
+        match utils::get_dictionary_value_from_key::<u64>(TOKEN_COUNT, &target_owner_item_key) {
             Some(balance) => balance + 1u64,
             None => 1u64,
         };
 
     utils::upsert_dictionary_value_from_key(
-        TOKEN_COUNTS,
+        TOKEN_COUNT,
         &target_owner_item_key,
         updated_to_account_balance,
     );
@@ -1257,57 +1274,21 @@ pub extern "C" fn transfer() {
         }
     }
 
-    if let OwnerReverseLookupMode::Complete = utils::get_reporting_mode() {
+    let reporting_mode = utils::get_reporting_mode();
+
+    if let OwnerReverseLookupMode::Complete | OwnerReverseLookupMode::TransfersOnly = reporting_mode
+    {
         // Update to_account owned_tokens. Revert if owned_tokens list is not found
-        let token_number = utils::get_token_index(&token_identifier);
-
-        let page_table_uref = utils::get_uref(
-            PAGE_TABLE,
-            NFTCoreError::MissingPageTableURef,
-            NFTCoreError::InvalidPageTableURef,
-        );
-
-        let page_table_entry = token_number / PAGE_SIZE;
-        let page_address = token_number % PAGE_SIZE;
-
-        let page_uref = utils::get_uref(
-            &format!("{PAGE_DICTIONARY_PREFIX}{page_table_entry}"),
-            NFTCoreError::MissingStorageUref,
-            NFTCoreError::InvalidStorageUref,
-        );
-
-        let mut source_page =
-            storage::dictionary_get::<Vec<bool>>(page_uref, &source_owner_item_key)
-                .unwrap_or_revert()
-                .unwrap_or_revert_with(NFTCoreError::InvalidPageNumber);
-
-        if !source_page[page_address as usize] {
-            runtime::revert(NFTCoreError::InvalidTokenIdentifier)
+        let tokens_count = utils::get_token_index(&token_identifier);
+        if OwnerReverseLookupMode::TransfersOnly == reporting_mode {
+            utils::add_page_entry_and_page_record(tokens_count, &source_owner_item_key, false);
         }
 
-        let _ = core::mem::replace(&mut source_page[page_address as usize], false);
-
-        storage::dictionary_put(page_uref, &source_owner_item_key, source_page);
-
-        let mut target_page_table =
-            storage::dictionary_get::<Vec<bool>>(page_table_uref, &target_owner_item_key)
-                .unwrap_or_revert()
-                .unwrap_or_revert_with(NFTCoreError::UnregisteredOwnerInTransfer);
-
-        let mut target_page = if !target_page_table[page_table_entry as usize] {
-            // Create a new page here
-            let _ = core::mem::replace(&mut target_page_table[page_table_entry as usize], true);
-            storage::dictionary_put(page_table_uref, &target_owner_item_key, target_page_table);
-            vec![false; PAGE_SIZE as usize]
-        } else {
-            storage::dictionary_get::<Vec<bool>>(page_uref, &target_owner_item_key)
-                .unwrap_or_revert()
-                .unwrap_or_revert()
-        };
-
-        let _ = core::mem::replace(&mut target_page[page_address as usize], true);
-
-        storage::dictionary_put(page_uref, &target_owner_item_key, target_page);
+        let (page_table_entry, page_uref) = utils::update_page_entry_and_page_record(
+            tokens_count,
+            &source_owner_item_key,
+            &target_owner_item_key,
+        );
 
         let owned_tokens_actual_key = Key::dictionary(page_uref, source_owner_item_key.as_bytes());
 
@@ -1315,7 +1296,6 @@ pub extern "C" fn transfer() {
 
         let receipt = CLValue::from_t((receipt_string, owned_tokens_actual_key))
             .unwrap_or_revert_with(NFTCoreError::FailedToConvertToCLValue);
-
         runtime::ret(receipt)
     }
 }
@@ -1333,7 +1313,7 @@ pub extern "C" fn balance_of() {
 
     let owner_key_item_string = utils::encode_dictionary_item_key(owner_key);
 
-    let balance = utils::get_dictionary_value_from_key::<u64>(TOKEN_COUNTS, &owner_key_item_string)
+    let balance = utils::get_dictionary_value_from_key::<u64>(TOKEN_COUNT, &owner_key_item_string)
         .unwrap_or(0u64);
 
     let balance_cl_value =
@@ -1406,26 +1386,30 @@ pub extern "C" fn metadata() {
         }
     }
 
-    let metadata_kind: NFTMetadataKind = utils::get_stored_value_with_user_errors::<u8>(
-        NFT_METADATA_KIND,
-        NFTCoreError::MissingNFTMetadataKind,
-        NFTCoreError::InvalidNFTMetadataKind,
-    )
-    .try_into()
-    .unwrap_or_revert();
+    let metadata_kind_list: BTreeMap<NFTMetadataKind, Requirement> =
+        utils::get_stored_value_with_user_errors(
+            NFT_METADATA_KINDS,
+            NFTCoreError::MissingNFTMetadataKind,
+            NFTCoreError::InvalidNFTMetadataKind,
+        );
 
-    let maybe_token_metadata = utils::get_dictionary_value_from_key::<String>(
-        &metadata::get_metadata_dictionary_name(&metadata_kind),
-        &token_identifier.get_dictionary_item_key(),
-    );
-
-    if let Some(metadata) = maybe_token_metadata {
-        let metadata_cl_value =
-            CLValue::from_t(metadata).unwrap_or_revert_with(NFTCoreError::FailedToConvertToCLValue);
-        runtime::ret(metadata_cl_value);
-    } else {
-        runtime::revert(NFTCoreError::InvalidTokenIdentifier)
+    for (&metadata_kind, required) in metadata_kind_list.iter() {
+        match required {
+            &Requirement::Required => {
+                let metadata = utils::get_dictionary_value_from_key::<String>(
+                    &metadata::get_metadata_dictionary_name(&metadata_kind),
+                    &token_identifier.get_dictionary_item_key(),
+                )
+                .unwrap_or_revert_with(NFTCoreError::InvalidTokenIdentifier);
+                runtime::ret(
+                    CLValue::from_t(metadata)
+                        .unwrap_or_revert_with(NFTCoreError::FailedToConvertToCLValue),
+                );
+            }
+            _ => continue,
+        }
     }
+    runtime::revert(NFTCoreError::MissingTokenMetaData)
 }
 
 // Returns approved account hash for a specified token identifier, throws error if token id is not
@@ -1513,29 +1497,41 @@ pub extern "C" fn set_token_metadata() {
         runtime::revert(NFTCoreError::MissingOwnerTokenIdentifierKey)
     }
 
-    let metadata_kind: NFTMetadataKind = utils::get_stored_value_with_user_errors::<u8>(
-        NFT_METADATA_KIND,
-        NFTCoreError::MissingNFTMetadataKind,
-        NFTCoreError::InvalidNFTMetadataKind,
-    )
-    .try_into()
-    .unwrap_or_revert();
+    let metadata_kinds: BTreeMap<NFTMetadataKind, Requirement> =
+        utils::get_stored_value_with_user_errors(
+            NFT_METADATA_KINDS,
+            NFTCoreError::MissingNFTMetadataKind,
+            NFTCoreError::InvalidNFTMetadataKind,
+        );
 
-    let updated_token_metadata: String = utils::get_named_arg_with_user_errors::<String>(
+    let updated_token_metadata: String = utils::get_named_arg_with_user_errors(
         ARG_TOKEN_META_DATA,
         NFTCoreError::MissingTokenMetaData,
         NFTCoreError::InvalidTokenMetaData,
     )
     .unwrap_or_revert();
 
-    let updated_metadata =
-        metadata::validate_metadata(&metadata_kind, updated_token_metadata).unwrap_or_revert();
-
-    utils::upsert_dictionary_value_from_key(
-        &metadata::get_metadata_dictionary_name(&metadata_kind),
-        &token_identifier.get_dictionary_item_key(),
-        updated_metadata.clone(),
-    );
+    for (metadata_kind, required) in metadata_kinds {
+        if required == Requirement::Unneeded {
+            continue;
+        }
+        let token_metadata_validation =
+            metadata::validate_metadata(&metadata_kind, updated_token_metadata.clone());
+        match token_metadata_validation {
+            Ok(validated_token_metadata) => {
+                utils::upsert_dictionary_value_from_key(
+                    &metadata::get_metadata_dictionary_name(&metadata_kind),
+                    &token_identifier.get_dictionary_item_key(),
+                    validated_token_metadata,
+                );
+            }
+            Err(err) => {
+                if required == Requirement::Required {
+                    runtime::revert(err);
+                }
+            }
+        }
+    }
 
     let events_mode = EventsMode::try_from(utils::get_stored_value_with_user_errors::<u8>(
         EVENTS_MODE,
@@ -1548,7 +1544,10 @@ pub extern "C" fn set_token_metadata() {
     match events_mode {
         EventsMode::NoEvents => {}
         EventsMode::CES => {
-            casper_event_standard::emit(MetadataUpdated::new(token_identifier, updated_metadata));
+            casper_event_standard::emit(MetadataUpdated::new(
+                token_identifier,
+                updated_token_metadata,
+            ));
         }
         EventsMode::CEP47 => record_cep47_event_dictionary(CEP47Event::MetadataUpdate {
             token_id: token_identifier,
@@ -1664,6 +1663,18 @@ pub extern "C" fn migrate() {
         }
     }
 
+    let metadata_kind: NFTMetadataKind = utils::get_stored_value_with_user_errors(
+        NFT_METADATA_KIND,
+        NFTCoreError::MissingNFTMetadataKind,
+        NFTCoreError::InvalidNFTMetadataKind,
+    );
+    let mut nft_metadata_kind_list: BTreeMap<NFTMetadataKind, Requirement> = BTreeMap::new();
+    nft_metadata_kind_list.insert(metadata_kind, Requirement::Required);
+    runtime::put_key(
+        NFT_METADATA_KINDS,
+        storage::new_uref(nft_metadata_kind_list).into(),
+    );
+
     runtime::put_key(RLO_MFLAG, storage::new_uref(false).into());
 
     let events_mode: EventsMode = utils::get_optional_named_arg_with_user_errors::<u8>(
@@ -1675,28 +1686,17 @@ pub extern "C" fn migrate() {
     .unwrap_or_revert();
 
     match events_mode {
-        EventsMode::NoEvents => {
-            runtime::put_key(
-                EVENTS_MODE,
-                storage::new_uref(EventsMode::NoEvents as u8).into(),
-            );
-        }
+        EventsMode::NoEvents => {}
         EventsMode::CES => {
-            runtime::put_key(EVENTS_MODE, storage::new_uref(EventsMode::CES as u8).into());
             // Initialize events structures.
             utils::init_events();
-
             // Emit Migration event.
             casper_event_standard::emit(Migration::new());
         }
-        EventsMode::CEP47 => {
-            runtime::put_key(
-                EVENTS_MODE,
-                storage::new_uref(EventsMode::CEP47 as u8).into(),
-            );
-            record_cep47_event_dictionary(CEP47Event::Migrate)
-        }
+        EventsMode::CEP47 => record_cep47_event_dictionary(CEP47Event::Migrate),
     }
+
+    runtime::put_key(EVENTS_MODE, storage::new_uref(events_mode as u8).into());
 
     // Duplicate old dict OPERATOR named key to new dict APPROVED named key
     if runtime::get_key(APPROVED).is_none() && runtime::get_key(OPERATOR).is_some() {
@@ -1763,7 +1763,12 @@ pub extern "C" fn updated_receipts() {
 
 #[no_mangle]
 pub extern "C" fn register_owner() {
-    if let OwnerReverseLookupMode::Complete = utils::get_reporting_mode() {
+    if vec![
+        OwnerReverseLookupMode::Complete,
+        OwnerReverseLookupMode::TransfersOnly,
+    ]
+    .contains(&utils::get_reporting_mode())
+    {
         let owner_key = match utils::get_ownership_mode().unwrap_or_revert() {
             OwnershipMode::Minter => utils::get_verified_caller().unwrap_or_revert(),
             OwnershipMode::Assigned | OwnershipMode::Transferable => {
@@ -2199,12 +2204,24 @@ fn install_contract() {
     // Represents the schema for the metadata for a given NFT contract instance.
     // Refer to the `NFTMetadataKind` enum in src/utils for details.
     // This value cannot be changed after installation.
-    let nft_metadata_kind: u8 = utils::get_named_arg_with_user_errors(
+    let base_metadata_kind: u8 = utils::get_named_arg_with_user_errors(
         ARG_NFT_METADATA_KIND,
         NFTCoreError::MissingNFTMetadataKind,
         NFTCoreError::InvalidNFTMetadataKind,
     )
     .unwrap_or_revert();
+
+    let additional_required_metadata: Vec<u8> = utils::get_optional_named_arg_with_user_errors(
+        ARG_ADDITIONAL_REQUIRED_METADATA,
+        NFTCoreError::InvalidAdditionalRequiredMetadata,
+    )
+    .unwrap_or_default();
+
+    let optional_metadata: Vec<u8> = utils::get_optional_named_arg_with_user_errors(
+        ARG_OPTIONAL_METADATA,
+        NFTCoreError::InvalidOptionalMetadata,
+    )
+    .unwrap_or_default();
 
     // The JSON schema representation of the NFT which will be minted.
     // This value cannot be changed after installation.
@@ -2260,12 +2277,6 @@ fn install_contract() {
     )
     .unwrap_or(0u8);
 
-    let events_mode: u8 = utils::get_optional_named_arg_with_user_errors(
-        ARG_EVENTS_MODE,
-        NFTCoreError::InvalidEventsMode,
-    )
-    .unwrap_or(0u8);
-
     if ownership_mode == 0 && minting_mode == 0 && reporting_mode == 1 {
         runtime::revert(NFTCoreError::InvalidReportingMode)
     }
@@ -2304,6 +2315,12 @@ fn install_contract() {
         .map(ContractPackageHash::new)
         .unwrap();
 
+    let events_mode: u8 = utils::get_optional_named_arg_with_user_errors(
+        ARG_EVENTS_MODE,
+        NFTCoreError::InvalidEventsMode,
+    )
+    .unwrap_or(0u8);
+
     // A sentinel string value which represents the entry for the addition
     // of a read only reference to the NFTs owned by the calling `Account` or `Contract`
     // This allows for users to look up a set of named keys and correctly identify
@@ -2327,7 +2344,9 @@ fn install_contract() {
             ARG_CONTRACT_WHITELIST => contract_white_list,
             ARG_JSON_SCHEMA => json_schema,
             ARG_RECEIPT_NAME => receipt_name,
-            ARG_NFT_METADATA_KIND => nft_metadata_kind,
+            ARG_NFT_METADATA_KIND => base_metadata_kind,
+            ARG_ADDITIONAL_REQUIRED_METADATA => additional_required_metadata,
+            ARG_OPTIONAL_METADATA => optional_metadata,
             ARG_IDENTIFIER_MODE => identifier_mode,
             ARG_METADATA_MUTABILITY => metadata_mutability,
             ARG_BURN_MODE => burn_mode,

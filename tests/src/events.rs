@@ -13,8 +13,8 @@ use contract::{
         ARG_OPERATOR, ARG_SOURCE_KEY, ARG_SPENDER, ARG_TARGET_KEY, ARG_TOKEN_HASH, ARG_TOKEN_ID,
         ARG_TOKEN_META_DATA, ARG_TOKEN_OWNER, BURNT_TOKENS, ENTRY_POINT_APPROVE, ENTRY_POINT_BURN,
         ENTRY_POINT_REGISTER_OWNER, ENTRY_POINT_SET_APPROVALL_FOR_ALL,
-        ENTRY_POINT_SET_TOKEN_METADATA, METADATA_CEP78, METADATA_CUSTOM_VALIDATED, METADATA_NFT721,
-        METADATA_RAW, TOKEN_COUNTS,
+        ENTRY_POINT_SET_TOKEN_METADATA, EVENTS, METADATA_CEP78, METADATA_CUSTOM_VALIDATED,
+        METADATA_NFT721, METADATA_RAW, TOKEN_COUNT,
     },
     modalities::{EventsMode, NamedKeyConventionMode},
 };
@@ -75,7 +75,7 @@ fn should_record_cep47_dictionary_style_mint_event() {
     let event = get_dictionary_value_from_key::<BTreeMap<String, String>>(
         &builder,
         &nft_contract_key,
-        "events",
+        EVENTS,
         "0",
     );
 
@@ -88,7 +88,7 @@ fn should_record_cep47_dictionary_style_mint_event() {
     let package = query_stored_value::<String>(
         &builder,
         nft_contract_key,
-        vec![format!("cep78_{}", collection_name)],
+        vec![format!("cep78_{collection_name}")],
     );
 
     let mut expected_event: BTreeMap<String, String> = BTreeMap::new();
@@ -136,7 +136,7 @@ fn should_record_cep47_dictionary_style_transfer_token_event_in_hash_identifier_
     builder.exec(mint_session_call).expect_success().commit();
 
     let token_hash: String =
-        base16::encode_lower(&support::create_blake2b_hash(&TEST_PRETTY_721_META_DATA));
+        base16::encode_lower(&support::create_blake2b_hash(TEST_PRETTY_721_META_DATA));
 
     let register_request = ExecuteRequestBuilder::contract_call_by_hash(
         *DEFAULT_ACCOUNT_ADDR,
@@ -168,7 +168,7 @@ fn should_record_cep47_dictionary_style_transfer_token_event_in_hash_identifier_
     let event = get_dictionary_value_from_key::<BTreeMap<String, String>>(
         &builder,
         &nft_contract_key,
-        "events",
+        EVENTS,
         "1",
     );
 
@@ -181,7 +181,7 @@ fn should_record_cep47_dictionary_style_transfer_token_event_in_hash_identifier_
     let package = query_stored_value::<String>(
         &builder,
         nft_contract_key,
-        vec![format!("cep78_{}", collection_name)],
+        vec![format!("cep78_{collection_name}")],
     );
 
     let mut expected_event: BTreeMap<String, String> = BTreeMap::new();
@@ -337,7 +337,7 @@ fn should_record_cep47_dictionary_style_metadata_update_event_for_nft721_using_t
     let event = get_dictionary_value_from_key::<BTreeMap<String, String>>(
         &builder,
         &nft_contract_key,
-        "events",
+        EVENTS,
         "1",
     );
 
@@ -350,7 +350,7 @@ fn should_record_cep47_dictionary_style_metadata_update_event_for_nft721_using_t
     let package = query_stored_value::<String>(
         &builder,
         nft_contract_key,
-        vec![format!("cep78_{}", collection_name)],
+        vec![format!("cep78_{collection_name}")],
     );
 
     let mut expected_event: BTreeMap<String, String> = BTreeMap::new();
@@ -413,7 +413,7 @@ fn should_cep47_dictionary_style_burn_event() {
     let actual_balance_before_burn = get_dictionary_value_from_key::<u64>(
         &builder,
         nft_contract_key,
-        TOKEN_COUNTS,
+        TOKEN_COUNT,
         &DEFAULT_ACCOUNT_ADDR.clone().to_string(),
     );
 
@@ -432,7 +432,7 @@ fn should_cep47_dictionary_style_burn_event() {
     builder.exec(burn_request).expect_success().commit();
 
     //This will error of token is not registered as burnt.
-    let _ = get_dictionary_value_from_key::<()>(
+    get_dictionary_value_from_key::<()>(
         &builder,
         nft_contract_key,
         BURNT_TOKENS,
@@ -443,7 +443,7 @@ fn should_cep47_dictionary_style_burn_event() {
     let actual_balance = get_dictionary_value_from_key::<u64>(
         &builder,
         nft_contract_key,
-        TOKEN_COUNTS,
+        TOKEN_COUNT,
         &DEFAULT_ACCOUNT_ADDR.clone().to_string(),
     );
 
@@ -453,7 +453,7 @@ fn should_cep47_dictionary_style_burn_event() {
     let event = get_dictionary_value_from_key::<BTreeMap<String, String>>(
         &builder,
         nft_contract_key,
-        "events",
+        EVENTS,
         "1",
     );
 
@@ -466,7 +466,7 @@ fn should_cep47_dictionary_style_burn_event() {
     let package = query_stored_value::<String>(
         &builder,
         *nft_contract_key,
-        vec![format!("cep78_{}", collection_name)],
+        vec![format!("cep78_{collection_name}")],
     );
 
     let mut expected_event: BTreeMap<String, String> = BTreeMap::new();
@@ -543,7 +543,7 @@ fn should_cep47_dictionary_style_approve_event_in_hash_identifier_mode() {
     let event = get_dictionary_value_from_key::<BTreeMap<String, String>>(
         &builder,
         &nft_contract_key,
-        "events",
+        EVENTS,
         "1",
     );
 
@@ -556,7 +556,7 @@ fn should_cep47_dictionary_style_approve_event_in_hash_identifier_mode() {
     let package = query_stored_value::<String>(
         &builder,
         nft_contract_key,
-        vec![format!("cep78_{}", collection_name)],
+        vec![format!("cep78_{collection_name}")],
     );
     let mut expected_event: BTreeMap<String, String> = BTreeMap::new();
     expected_event.insert("event_type".to_string(), "Approve".to_string());
@@ -647,7 +647,7 @@ fn should_cep47_dictionary_style_approvall_for_all_event() {
     let event = get_dictionary_value_from_key::<BTreeMap<String, String>>(
         &builder,
         &nft_contract_key,
-        "events",
+        EVENTS,
         "1",
     );
 
@@ -660,7 +660,7 @@ fn should_cep47_dictionary_style_approvall_for_all_event() {
     let package = query_stored_value::<String>(
         &builder,
         nft_contract_key,
-        vec![format!("cep78_{}", collection_name)],
+        vec![format!("cep78_{collection_name}")],
     );
     let mut expected_event: BTreeMap<String, String> = BTreeMap::new();
     expected_event.insert("event_type".to_string(), "ApprovalForAll".to_string());
@@ -763,7 +763,7 @@ fn should_cep47_dictionary_style_revoked_for_all_event() {
     let event = get_dictionary_value_from_key::<BTreeMap<String, String>>(
         &builder,
         &nft_contract_key,
-        "events",
+        EVENTS,
         "2",
     );
 
@@ -776,7 +776,7 @@ fn should_cep47_dictionary_style_revoked_for_all_event() {
     let package = query_stored_value::<String>(
         &builder,
         nft_contract_key,
-        vec![format!("cep78_{}", collection_name)],
+        vec![format!("cep78_{collection_name}")],
     );
     let mut expected_event: BTreeMap<String, String> = BTreeMap::new();
     expected_event.insert("event_type".to_string(), "RevokedForAll".to_string());
@@ -873,12 +873,12 @@ fn should_record_migration_event_in_cep47() {
     let nft_contract_key: Key = nft_contract_hash.into();
 
     let latest_cep47_event_id =
-        get_dictionary_value_from_key::<u64>(&builder, &nft_contract_key, "events", "len") - 1u64;
+        get_dictionary_value_from_key::<u64>(&builder, &nft_contract_key, EVENTS, "len") - 1u64;
 
     let event = get_dictionary_value_from_key::<BTreeMap<String, String>>(
         &builder,
         &nft_contract_key,
-        "events",
+        EVENTS,
         &latest_cep47_event_id.to_string(),
     );
 
@@ -891,7 +891,7 @@ fn should_record_migration_event_in_cep47() {
     let package = query_stored_value::<String>(
         &builder,
         nft_contract_key,
-        vec![format!("cep78_{}", collection_name)],
+        vec![format!("cep78_{collection_name}")],
     );
     let mut expected_event: BTreeMap<String, String> = BTreeMap::new();
     expected_event.insert("event_type".to_string(), "Migration".to_string());
@@ -944,7 +944,7 @@ fn should_not_record_events_in_no_events_mode() {
     let actual_balance = get_dictionary_value_from_key::<u64>(
         &builder,
         nft_contract_key,
-        TOKEN_COUNTS,
+        TOKEN_COUNT,
         &DEFAULT_ACCOUNT_ADDR.clone().to_string(),
     );
 
@@ -956,7 +956,7 @@ fn should_not_record_events_in_no_events_mode() {
     get_dictionary_value_from_key::<BTreeMap<String, String>>(
         &builder,
         nft_contract_key,
-        "events",
+        EVENTS,
         "1",
     );
 }

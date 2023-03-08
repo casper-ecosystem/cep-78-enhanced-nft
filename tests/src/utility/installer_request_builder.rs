@@ -1,27 +1,25 @@
 use std::collections::BTreeMap;
 
 use contract::constants::{
-    ARG_ALLOW_MINTING, ARG_BURN_MODE, ARG_COLLECTION_NAME, ARG_COLLECTION_SYMBOL,
-    ARG_CONTRACT_WHITELIST, ARG_EVENTS_MODE, ARG_HOLDER_MODE, ARG_IDENTIFIER_MODE, ARG_JSON_SCHEMA,
-    ARG_METADATA_MUTABILITY, ARG_MINTING_MODE, ARG_NAMED_KEY_CONVENTION, ARG_NFT_KIND,
-    ARG_NFT_METADATA_KIND, ARG_OWNERSHIP_MODE, ARG_OWNER_LOOKUP_MODE, ARG_TOTAL_TOKEN_SUPPLY,
-    ARG_WHITELIST_MODE,
+    ARG_ADDITIONAL_REQUIRED_METADATA, ARG_ALLOW_MINTING, ARG_BURN_MODE, ARG_COLLECTION_NAME,
+    ARG_COLLECTION_SYMBOL, ARG_CONTRACT_WHITELIST, ARG_EVENTS_MODE, ARG_HOLDER_MODE,
+    ARG_IDENTIFIER_MODE, ARG_JSON_SCHEMA, ARG_METADATA_MUTABILITY, ARG_MINTING_MODE,
+    ARG_NAMED_KEY_CONVENTION, ARG_NFT_KIND, ARG_NFT_METADATA_KIND, ARG_OPTIONAL_METADATA,
+    ARG_OWNERSHIP_MODE, ARG_OWNER_LOOKUP_MODE, ARG_TOTAL_TOKEN_SUPPLY, ARG_WHITELIST_MODE,
 };
 use once_cell::sync::Lazy;
 use serde::{Deserialize, Serialize};
 
 use casper_engine_test_support::ExecuteRequestBuilder;
 use casper_execution_engine::core::engine_state::ExecuteRequest;
-use casper_types::{account::AccountHash, CLValue, ContractHash, RuntimeArgs};
-
-use crate::utility::constants::{NFT_TEST_COLLECTION, NFT_TEST_SYMBOL};
+use casper_types::{account::AccountHash, bytesrepr::Bytes, CLValue, ContractHash, RuntimeArgs};
 
 // Modalities reexports.
 pub use contract::modalities::{
-    BurnMode, EventsMode, MetadataMutability, MintingMode, NFTHolderMode, NFTIdentifierMode,
-    NFTKind, NFTMetadataKind, NamedKeyConventionMode, OwnerReverseLookupMode, OwnershipMode,
-    TokenIdentifier, WhitelistMode,
+    EventsMode, MintingMode, NFTHolderMode, NFTKind, OwnershipMode, TokenIdentifier, WhitelistMode,
 };
+
+use super::constants::{NFT_TEST_COLLECTION, NFT_TEST_SYMBOL};
 
 pub(crate) static TEST_CUSTOM_METADATA_SCHEMA: Lazy<CustomMetadataSchema> = Lazy::new(|| {
     let mut properties = BTreeMap::new();
@@ -77,6 +75,49 @@ struct Metadata {
     token_uri: String,
 }
 
+#[repr(u8)]
+#[derive(Copy, Clone)]
+pub enum NFTMetadataKind {
+    CEP78 = 0,
+    NFT721 = 1,
+    Raw = 2,
+    CustomValidated = 3,
+}
+
+#[repr(u8)]
+#[derive(Copy, Clone)]
+pub enum NFTIdentifierMode {
+    Ordinal = 0,
+    Hash = 1,
+}
+
+#[repr(u8)]
+pub enum MetadataMutability {
+    Immutable = 0,
+    Mutable = 1,
+}
+
+#[repr(u8)]
+pub enum BurnMode {
+    Burnable = 0,
+    NonBurnable = 1,
+}
+
+#[repr(u8)]
+#[derive(Eq, PartialEq, Clone, Copy)]
+pub enum OwnerReverseLookupMode {
+    NoLookUp = 0,
+    Complete = 1,
+    TransfersOnly = 2,
+}
+
+#[repr(u8)]
+pub enum NamedKeyConventionMode {
+    DerivedFromCollectionName = 0,
+    V1_0Standard = 1,
+    V1_0Custom = 2,
+}
+
 #[derive(Debug)]
 pub(crate) struct InstallerRequestBuilder {
     account_hash: AccountHash,
@@ -98,6 +139,8 @@ pub(crate) struct InstallerRequestBuilder {
     burn_mode: CLValue,
     reporting_mode: CLValue,
     named_key_convention: CLValue,
+    additional_required_metadata: CLValue,
+    optional_metadata: CLValue,
     events_mode: CLValue,
 }
 
@@ -135,6 +178,8 @@ impl InstallerRequestBuilder {
                 NamedKeyConventionMode::DerivedFromCollectionName as u8,
             )
             .unwrap(),
+            additional_required_metadata: CLValue::from_t(Bytes::new()).unwrap(),
+            optional_metadata: CLValue::from_t(Bytes::new()).unwrap(),
             events_mode: CLValue::from_t(EventsMode::CES as u8).unwrap(),
         }
     }
@@ -220,6 +265,20 @@ impl InstallerRequestBuilder {
         self
     }
 
+    pub(crate) fn with_additional_required_metadata(
+        mut self,
+        additional_required_metadata: Vec<u8>,
+    ) -> Self {
+        self.additional_required_metadata =
+            CLValue::from_t(Bytes::from(additional_required_metadata)).unwrap();
+        self
+    }
+
+    pub(crate) fn with_optional_metadata(mut self, optional_metadata: Vec<u8>) -> Self {
+        self.optional_metadata = CLValue::from_t(Bytes::from(optional_metadata)).unwrap();
+        self
+    }
+
     pub(crate) fn with_json_schema(mut self, json_schema: String) -> Self {
         self.json_schema = CLValue::from_t(json_schema).expect("json_schema is legit CLValue");
         self
@@ -273,6 +332,11 @@ impl InstallerRequestBuilder {
         runtime_args.insert_cl_value(ARG_OWNER_LOOKUP_MODE, self.reporting_mode);
         runtime_args.insert_cl_value(ARG_NAMED_KEY_CONVENTION, self.named_key_convention);
         runtime_args.insert_cl_value(ARG_EVENTS_MODE, self.events_mode);
+        runtime_args.insert_cl_value(
+            ARG_ADDITIONAL_REQUIRED_METADATA,
+            self.additional_required_metadata,
+        );
+        runtime_args.insert_cl_value(ARG_OPTIONAL_METADATA, self.optional_metadata);
         ExecuteRequestBuilder::standard(self.account_hash, &self.session_file, runtime_args).build()
     }
 }

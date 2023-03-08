@@ -11,7 +11,7 @@ use casper_contract::{
 use casper_types::Key;
 
 use crate::{
-    constants::{CEP78_PREFIX, HASH_KEY_NAME_PREFIX},
+    constants::{CEP78_PREFIX, EVENTS, HASH_KEY_NAME_PREFIX},
     error::NFTCoreError,
     modalities::TokenIdentifier,
     utils,
@@ -158,9 +158,9 @@ pub fn record_cep47_event_dictionary(event: CEP47Event) {
             event
         }
     };
-    let dictionary_uref = match runtime::get_key("events") {
+    let dictionary_uref = match runtime::get_key(EVENTS) {
         Some(dict_uref) => dict_uref.into_uref().unwrap_or_revert(),
-        None => storage::new_dictionary("events").unwrap_or_revert(),
+        None => storage::new_dictionary(EVENTS).unwrap_or_revert(),
     };
     let len = storage::dictionary_get(dictionary_uref, "len")
         .unwrap_or_revert()

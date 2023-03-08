@@ -7,7 +7,7 @@ use contract::{
     constants::{
         ARG_APPROVE_ALL, ARG_COLLECTION_NAME, ARG_OPERATOR, ARG_TOKEN_HASH, ARG_TOKEN_ID,
         ARG_TOKEN_META_DATA, ARG_TOKEN_OWNER, BURNT_TOKENS, ENTRY_POINT_BURN, ENTRY_POINT_MINT,
-        ENTRY_POINT_SET_APPROVALL_FOR_ALL, TOKEN_COUNTS,
+        ENTRY_POINT_SET_APPROVALL_FOR_ALL, TOKEN_COUNT,
     },
     events::events_ces::Burn,
     modalities::TokenIdentifier,
@@ -27,8 +27,7 @@ use crate::utility::{
     },
 };
 
-#[test]
-fn should_burn_minted_token() {
+fn should_burn_minted_token(reporting: OwnerReverseLookupMode) {
     let mut builder = InMemoryWasmTestBuilder::default();
     builder.run_genesis(&DEFAULT_RUN_GENESIS_REQUEST).commit();
 
@@ -36,7 +35,7 @@ fn should_burn_minted_token() {
         InstallerRequestBuilder::new(*DEFAULT_ACCOUNT_ADDR, NFT_CONTRACT_WASM)
             .with_total_token_supply(100u64)
             .with_ownership_mode(OwnershipMode::Transferable)
-            .with_reporting_mode(OwnerReverseLookupMode::Complete)
+            .with_reporting_mode(reporting)
             .build();
 
     builder
@@ -52,32 +51,53 @@ fn should_burn_minted_token() {
 
     let nft_contract_hash = get_nft_contract_hash(&builder);
     let token_owner: Key = Key::Account(*DEFAULT_ACCOUNT_ADDR);
-
-    let mint_session_call = ExecuteRequestBuilder::standard(
-        *DEFAULT_ACCOUNT_ADDR,
-        MINT_SESSION_WASM,
-        runtime_args! {
-            ARG_NFT_CONTRACT_HASH => Key::Hash(nft_contract_hash.value()),
-            ARG_TOKEN_OWNER => token_owner,
-            ARG_TOKEN_META_DATA => TEST_PRETTY_721_META_DATA.to_string(),
-            ARG_COLLECTION_NAME => NFT_TEST_COLLECTION.to_string()
-        },
-    )
-    .build();
-
-    builder.exec(mint_session_call).expect_success().commit();
-
     let token_id = 0u64;
 
-    let token_page =
-        support::get_token_page_by_id(&builder, nft_contract_key, &token_owner, token_id);
+    let reverse_lookup_enabled: bool = reporting == OwnerReverseLookupMode::Complete;
+    if reverse_lookup_enabled {
+        let mint_session_call = ExecuteRequestBuilder::standard(
+            *DEFAULT_ACCOUNT_ADDR,
+            MINT_SESSION_WASM,
+            runtime_args! {
+                ARG_NFT_CONTRACT_HASH => Key::Hash(nft_contract_hash.value()),
+                ARG_TOKEN_OWNER => Key::Account(*DEFAULT_ACCOUNT_ADDR),
+                ARG_TOKEN_META_DATA => TEST_PRETTY_721_META_DATA.to_string(),
+                ARG_COLLECTION_NAME => NFT_TEST_COLLECTION.to_string()
+            },
+        )
+        .build();
 
-    assert!(token_page[0]);
+        builder.exec(mint_session_call).expect_success().commit();
+
+        let token_page = support::get_token_page_by_id(
+            &builder,
+            nft_contract_key,
+            &Key::Account(*DEFAULT_ACCOUNT_ADDR),
+            token_id,
+        );
+
+        assert!(token_page[0]);
+    } else {
+        let mint_runtime_args = runtime_args! {
+            ARG_TOKEN_OWNER => token_owner,
+            ARG_TOKEN_META_DATA => TEST_PRETTY_721_META_DATA.to_string(),
+        };
+
+        let minting_request = ExecuteRequestBuilder::contract_call_by_hash(
+            *DEFAULT_ACCOUNT_ADDR,
+            nft_contract_hash,
+            ENTRY_POINT_MINT,
+            mint_runtime_args,
+        )
+        .build();
+
+        builder.exec(minting_request).expect_success().commit();
+    }
 
     let actual_balance_before_burn = support::get_dictionary_value_from_key::<u64>(
         &builder,
         nft_contract_key,
-        TOKEN_COUNTS,
+        TOKEN_COUNT,
         &DEFAULT_ACCOUNT_ADDR.clone().to_string(),
     );
 
@@ -96,7 +116,7 @@ fn should_burn_minted_token() {
     builder.exec(burn_request).expect_success().commit();
 
     //This will error of token is not registered as burnt.
-    let _ = support::get_dictionary_value_from_key::<()>(
+    support::get_dictionary_value_from_key::<()>(
         &builder,
         nft_contract_key,
         BURNT_TOKENS,
@@ -107,7 +127,7 @@ fn should_burn_minted_token() {
     let actual_balance = support::get_dictionary_value_from_key::<u64>(
         &builder,
         nft_contract_key,
-        TOKEN_COUNTS,
+        TOKEN_COUNT,
         &DEFAULT_ACCOUNT_ADDR.clone().to_string(),
     );
 
@@ -118,6 +138,16 @@ fn should_burn_minted_token() {
     let expected_event = Burn::new(token_owner, TokenIdentifier::Index(0));
     let actual_event: Burn = support::get_event(&builder, nft_contract_key, 1);
     assert_eq!(actual_event, expected_event, "Expected Burn event.");
+}
+
+#[test]
+fn should_burn_minted_token_with_complete_reporting() {
+    should_burn_minted_token(OwnerReverseLookupMode::Complete);
+}
+
+#[test]
+fn should_burn_minted_token_with_transfer_only_reporting() {
+    should_burn_minted_token(OwnerReverseLookupMode::TransfersOnly);
 }
 
 #[test]
@@ -231,7 +261,7 @@ fn should_return_expected_error_when_burning_non_existing_token() {
     let actual_error = builder.get_error().expect("must have error");
     support::assert_expected_error(
         actual_error,
-        147u16,
+        155u16,
         "should return InvalidTokenID error when trying to burn a non_existing token",
     );
 }
@@ -432,7 +462,7 @@ fn should_allow_contract_to_burn_token() {
     let current_token_balance = get_dictionary_value_from_key::<u64>(
         &builder,
         &nft_contract_key,
-        TOKEN_COUNTS,
+        TOKEN_COUNT,
         &minting_contract_hash.to_string(),
     );
 
@@ -457,7 +487,7 @@ fn should_allow_contract_to_burn_token() {
     let updated_token_balance = get_dictionary_value_from_key::<u64>(
         &builder,
         &nft_contract_key,
-        TOKEN_COUNTS,
+        TOKEN_COUNT,
         &minting_contract_hash.to_string(),
     );
 
