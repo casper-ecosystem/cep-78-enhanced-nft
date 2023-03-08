@@ -1133,18 +1133,6 @@ pub extern "C" fn transfer() {
         Option::<Key>::None,
     );
 
-    // Emit Transfer event.
-    let operator = if caller == token_owner_key {
-        None
-    } else {
-        Some(caller)
-    };
-    casper_event_standard::emit(Transfer::new(
-        token_owner_key,
-        operator,
-        target_owner_key,
-        token_identifier.clone(),
-    ));
     let events_mode = EventsMode::try_from(utils::get_stored_value_with_user_errors::<u8>(
         EVENTS_MODE,
         NFTCoreError::MissingEventsMode,
@@ -1587,24 +1575,12 @@ pub extern "C" fn migrate() {
     .unwrap_or_revert();
 
     match events_mode {
-        EventsMode::NoEvents => {
-            runtime::put_key(
-                EVENTS_MODE,
-                storage::new_uref(EventsMode::NoEvents as u8).into(),
-            );
-        }
+        EventsMode::NoEvents => {}
         EventsMode::CES => {
-            runtime::put_key(EVENTS_MODE, storage::new_uref(EventsMode::CES as u8).into());
             // Emit Migration event.
             casper_event_standard::emit(Migration::new());
         }
-        EventsMode::CEP47 => {
-            runtime::put_key(
-                EVENTS_MODE,
-                storage::new_uref(EventsMode::CEP47 as u8).into(),
-            );
-            record_cep47_event_dictionary(CEP47Event::Migrate)
-        }
+        EventsMode::CEP47 => record_cep47_event_dictionary(CEP47Event::Migrate),
     }
     runtime::put_key(EVENTS_MODE, storage::new_uref(events_mode as u8).into());
 }
