@@ -21,7 +21,7 @@ use alloc::{
     vec,
     vec::Vec,
 };
-use constants::{ARG_OPTIONAL_METADATA, ARG_ADDITIONAL_REQUIRED_METADATA, NFT_METADATA_KINDS};
+use constants::{ARG_ADDITIONAL_REQUIRED_METADATA, ARG_OPTIONAL_METADATA, NFT_METADATA_KINDS};
 use contract::utils::{add_page_entry_and_page_record, update_page_entry_and_page_record};
 use modalities::Requirement;
 
@@ -961,11 +961,7 @@ pub extern "C" fn set_approval_for_all() {
     match events_mode {
         EventsMode::NoEvents => {}
         EventsMode::CES => {
-            casper_event_standard::emit(ApprovalForAll::new(
-                token_owner,
-                operator,
-                owned_tokens,
-            ));
+            casper_event_standard::emit(ApprovalForAll::new(token_owner, operator, owned_tokens));
         }
         EventsMode::CEP47 => {
             for callers_owned_token in owned_tokens {
@@ -1447,7 +1443,10 @@ pub extern "C" fn set_token_metadata() {
     match events_mode {
         EventsMode::NoEvents => {}
         EventsMode::CES => {
-            casper_event_standard::emit(MetadataUpdated::new(token_identifier, updated_token_metadata));
+            casper_event_standard::emit(MetadataUpdated::new(
+                token_identifier,
+                updated_token_metadata,
+            ));
         }
         EventsMode::CEP47 => record_cep47_event_dictionary(CEP47Event::MetadataUpdate {
             token_id: token_identifier,
@@ -1575,7 +1574,6 @@ pub extern "C" fn migrate() {
         storage::new_uref(nft_metadata_kind_list).into(),
     );
 
-
     runtime::put_key(RLO_MFLAG, storage::new_uref(false).into());
     // Initialize events structures.
     utils::init_events();
@@ -1596,9 +1594,6 @@ pub extern "C" fn migrate() {
         }
         EventsMode::CES => {
             runtime::put_key(EVENTS_MODE, storage::new_uref(EventsMode::CES as u8).into());
-            // Initialize events structures.
-            utils::init_events();
-
             // Emit Migration event.
             casper_event_standard::emit(Migration::new());
         }

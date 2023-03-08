@@ -100,7 +100,6 @@ fn should_safely_upgrade_in_ordinal_identifier_mode() {
 
     builder.exec(upgrade_request).expect_success().commit();
 
-
     let nft_contract_hash = support::get_nft_contract_hash(&builder);
     let nft_contract_key: Key = nft_contract_hash.into();
 
