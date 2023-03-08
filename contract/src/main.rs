@@ -1577,8 +1577,7 @@ pub extern "C" fn migrate() {
 
 
     runtime::put_key(RLO_MFLAG, storage::new_uref(false).into());
-    // Initialize events structures.
-    utils::init_events();
+;
     let events_mode: EventsMode = utils::get_optional_named_arg_with_user_errors::<u8>(
         ARG_EVENTS_MODE,
         NFTCoreError::InvalidEventsMode,
