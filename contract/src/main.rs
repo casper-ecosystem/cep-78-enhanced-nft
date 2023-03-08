@@ -22,7 +22,6 @@ use alloc::{
     vec::Vec,
 };
 use constants::{ARG_ADDITIONAL_REQUIRED_METADATA, ARG_OPTIONAL_METADATA, NFT_METADATA_KINDS};
-use contract::utils::{add_page_entry_and_page_record, update_page_entry_and_page_record};
 use modalities::Requirement;
 
 use core::convert::{TryFrom, TryInto};
@@ -690,8 +689,11 @@ pub extern "C" fn mint() {
             utils::migrate_token_hashes(token_owner_key)
         }
 
-        let (page_table_entry, page_uref) =
-            add_page_entry_and_page_record(minted_tokens_count, &owned_tokens_item_key, true);
+        let (page_table_entry, page_uref) = utils::add_page_entry_and_page_record(
+            minted_tokens_count,
+            &owned_tokens_item_key,
+            true,
+        );
 
         let receipt_string = utils::get_receipt_name(page_table_entry);
         let receipt_address = Key::dictionary(page_uref, owned_tokens_item_key.as_bytes());
@@ -1179,10 +1181,10 @@ pub extern "C" fn transfer() {
         // Update to_account owned_tokens. Revert if owned_tokens list is not found
         let tokens_count = utils::get_token_index(&token_identifier);
         if OwnerReverseLookupMode::TransfersOnly == reporting_mode {
-            add_page_entry_and_page_record(tokens_count, &source_owner_item_key, false);
+            utils::add_page_entry_and_page_record(tokens_count, &source_owner_item_key, false);
         }
 
-        let (page_table_entry, page_uref) = update_page_entry_and_page_record(
+        let (page_table_entry, page_uref) = utils::update_page_entry_and_page_record(
             tokens_count,
             &source_owner_item_key,
             &target_owner_item_key,
@@ -1575,7 +1577,7 @@ pub extern "C" fn migrate() {
     );
 
     runtime::put_key(RLO_MFLAG, storage::new_uref(false).into());
-;
+
     let events_mode: EventsMode = utils::get_optional_named_arg_with_user_errors::<u8>(
         ARG_EVENTS_MODE,
         NFTCoreError::InvalidEventsMode,

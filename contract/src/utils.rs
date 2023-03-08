@@ -33,8 +33,8 @@ use crate::{
         Approval, ApprovalForAll, Burn, MetadataUpdated, Migration, Mint, Transfer, VariablesSet,
     },
     modalities::{
-        BurnMode, NFTHolderMode, NFTIdentifierMode, OwnerReverseLookupMode, OwnershipMode,
-        TokenIdentifier, MetadataRequirement, Requirement, NFTMetadataKind
+        BurnMode, MetadataRequirement, NFTHolderMode, NFTIdentifierMode, NFTMetadataKind,
+        OwnerReverseLookupMode, OwnershipMode, Requirement, TokenIdentifier,
     },
     utils,
 };
@@ -842,7 +842,7 @@ pub fn update_page_entry_and_page_record(
     (page_table_entry, page_uref)
 }
 
-pub(crate) fn create_metadata_requirements(
+pub fn create_metadata_requirements(
     base: NFTMetadataKind,
     req: Vec<u8>,
     opt: Vec<u8>,
