@@ -2160,7 +2160,7 @@ fn install_contract() {
         named_keys
     };
 
-    let hash_key_name = format!("{HASH_KEY_NAME_PREFIX}{collection_name}");
+    let hash_key_name = format!("{HASH_KEY_NAME_PREFIX}_{collection_name}");
 
     let (contract_hash, contract_version) = storage::new_contract(
         entry_points,
@@ -2248,7 +2248,7 @@ fn migrate_contract(access_key_name: String, package_key_name: String) {
     .unwrap_or(0u8);
 
     runtime::put_key(
-        &format!("{HASH_KEY_NAME_PREFIX}{collection_name}"),
+        &format!("{HASH_KEY_NAME_PREFIX}_{collection_name}"),
         nft_contact_package_hash.into(),
     );
 
