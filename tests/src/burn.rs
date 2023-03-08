@@ -90,7 +90,7 @@ fn should_burn_minted_token(reporting: OwnerReverseLookupMode) {
 
         builder.exec(minting_request).expect_success().commit();
     }
-    
+
     let actual_balance_before_burn = support::get_dictionary_value_from_key::<u64>(
         &builder,
         nft_contract_key,

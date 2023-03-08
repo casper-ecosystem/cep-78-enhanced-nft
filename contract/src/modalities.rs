@@ -1,10 +1,14 @@
 use alloc::{
     collections::BTreeMap,
     string::{String, ToString},
-    vec::{Vec}, vec
+    vec,
+    vec::Vec,
 };
 
-use casper_types::{CLTyped, CLType, bytesrepr::{FromBytes, ToBytes, U8_SERIALIZED_LENGTH, self, U64_SERIALIZED_LENGTH}};
+use casper_types::{
+    bytesrepr::{self, FromBytes, ToBytes, U64_SERIALIZED_LENGTH, U8_SERIALIZED_LENGTH},
+    CLType, CLTyped,
+};
 
 use core::convert::TryFrom;
 
