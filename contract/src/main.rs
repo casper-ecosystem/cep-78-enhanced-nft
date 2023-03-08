@@ -1577,6 +1577,8 @@ pub extern "C" fn migrate() {
     match events_mode {
         EventsMode::NoEvents => {}
         EventsMode::CES => {
+            // Initialize events structures.
+            utils::init_events();
             // Emit Migration event.
             casper_event_standard::emit(Migration::new());
         }
