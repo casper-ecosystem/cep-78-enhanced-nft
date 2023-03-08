@@ -22,7 +22,6 @@ use alloc::{
     vec::Vec,
 };
 use constants::{ARG_ADDITIONAL_REQUIRED_METADATA, ARG_OPTIONAL_METADATA, NFT_METADATA_KINDS};
-use contract::constants::MIGRATION_FLAG;
 use modalities::Requirement;
 
 use core::convert::{TryFrom, TryInto};
@@ -296,13 +295,6 @@ pub extern "C" fn init() {
         runtime::revert(NFTCoreError::OwnerReverseLookupModeNotTransferable)
     }
 
-    // OwnerReverseLookup TransfersOnly mode should be Transferable
-    if OwnerReverseLookupMode::TransfersOnly == reporting_mode
-        && OwnershipMode::Transferable != ownership_mode
-    {
-        runtime::revert(NFTCoreError::OwnerReverseLookupModeNotTransferable)
-    }
-
     // Put all created URefs into the contract's context (necessary to retain access rights,
     // for future use).
     //
@@ -420,7 +412,6 @@ pub extern "C" fn init() {
         REPORTING_MODE,
         storage::new_uref(reporting_mode as u8).into(),
     );
-    runtime::put_key(MIGRATION_FLAG, storage::new_uref(true).into());
     runtime::put_key(RLO_MFLAG, storage::new_uref(false).into())
 }
 

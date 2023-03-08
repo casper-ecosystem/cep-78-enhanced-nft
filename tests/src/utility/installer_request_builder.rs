@@ -308,6 +308,11 @@ impl InstallerRequestBuilder {
         self
     }
 
+    pub(crate) fn with_events_mode(mut self, events_mode: EventsMode) -> Self {
+        self.events_mode = CLValue::from_t(events_mode as u8).unwrap();
+        self
+    }
+
     pub(crate) fn build(self) -> ExecuteRequest {
         let mut runtime_args = RuntimeArgs::new();
         runtime_args.insert_cl_value(ARG_COLLECTION_NAME, self.collection_name);
