@@ -76,7 +76,6 @@ fn should_burn_minted_token(reporting: OwnerReverseLookupMode) {
         assert!(token_page[0]);
     } else {
         let mint_runtime_args = runtime_args! {
-            ARG_NFT_CONTRACT_HASH => Key::Hash(nft_contract_hash.value()),
             ARG_TOKEN_OWNER => token_owner,
             ARG_TOKEN_META_DATA => TEST_PRETTY_721_META_DATA.to_string(),
         };
@@ -91,11 +90,7 @@ fn should_burn_minted_token(reporting: OwnerReverseLookupMode) {
 
         builder.exec(minting_request).expect_success().commit();
     }
-    let token_page =
-        support::get_token_page_by_id(&builder, nft_contract_key, &token_owner, token_id);
-
-    assert!(token_page[0]);
-
+    
     let actual_balance_before_burn = support::get_dictionary_value_from_key::<u64>(
         &builder,
         nft_contract_key,

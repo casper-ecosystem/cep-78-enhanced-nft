@@ -22,6 +22,7 @@ use alloc::{
     vec::Vec,
 };
 use constants::{ARG_OPTIONAL_METADATA, ARG_ADDITIONAL_REQUIRED_METADATA, NFT_METADATA_KINDS};
+use contract::utils::{add_page_entry_and_page_record, update_page_entry_and_page_record};
 use modalities::Requirement;
 
 use core::convert::{TryFrom, TryInto};
@@ -76,7 +77,6 @@ use modalities::{
     NFTKind, NFTMetadataKind, NamedKeyConventionMode, OwnerReverseLookupMode, OwnershipMode,
     TokenIdentifier, WhitelistMode,
 };
-use utils::PAGE_SIZE;
 
 #[no_mangle]
 pub extern "C" fn init() {
@@ -690,50 +690,8 @@ pub extern "C" fn mint() {
             utils::migrate_token_hashes(token_owner_key)
         }
 
-        let (page_table_entry, page_uref) = utils::add_page_entry_and_page_record(
-            minted_tokens_count,
-            &owned_tokens_item_key,
-            true,
-        );
-        
-        let page_address = minted_tokens_count % PAGE_SIZE;
-        // Update the individual page record.
-
-        let page_table_uref = utils::get_uref(
-            PAGE_TABLE,
-            NFTCoreError::MissingPageTableURef,
-            NFTCoreError::InvalidPageTableURef,
-        );
-
-        // Update the individual page record.
-        let page_uref = utils::get_uref(
-            &format!("{PAGE_DICTIONARY_PREFIX}{page_table_entry}"),
-            NFTCoreError::MissingPageUref,
-            NFTCoreError::InvalidPageUref,
-        );
-
-        let mut page_table =
-            match storage::dictionary_get::<Vec<bool>>(page_table_uref, &owned_tokens_item_key)
-                .unwrap_or_revert()
-            {
-                Some(page_table) => page_table,
-                None => runtime::revert(NFTCoreError::UnregisteredOwnerInMint),
-            };
-
-        let mut page = if !page_table[page_table_entry as usize] {
-            // We mark the page table entry to true to signal the allocation of a page.
-            let _ = core::mem::replace(&mut page_table[page_table_entry as usize], true);
-            storage::dictionary_put(page_table_uref, &owned_tokens_item_key, page_table);
-            vec![false; PAGE_SIZE as usize]
-        } else {
-            storage::dictionary_get::<Vec<bool>>(page_uref, &owned_tokens_item_key)
-                .unwrap_or_revert()
-                .unwrap_or_revert_with(NFTCoreError::MissingPage)
-        };
-
-        let _ = core::mem::replace(&mut page[page_address as usize], true);
-
-        storage::dictionary_put(page_uref, &owned_tokens_item_key, page);
+        let (page_table_entry, page_uref) =
+            add_page_entry_and_page_record(minted_tokens_count, &owned_tokens_item_key, true);
 
         let receipt_string = utils::get_receipt_name(page_table_entry);
         let receipt_address = Key::dictionary(page_uref, owned_tokens_item_key.as_bytes());
@@ -1189,7 +1147,6 @@ pub extern "C" fn transfer() {
         target_owner_key,
         token_identifier.clone(),
     ));
-    let reporting_mode = utils::get_reporting_mode();
     let events_mode = EventsMode::try_from(utils::get_stored_value_with_user_errors::<u8>(
         EVENTS_MODE,
         NFTCoreError::MissingEventsMode,
@@ -1220,61 +1177,20 @@ pub extern "C" fn transfer() {
         }
     }
 
-
+    let reporting_mode = utils::get_reporting_mode();
     if let OwnerReverseLookupMode::Complete | OwnerReverseLookupMode::TransfersOnly = reporting_mode
     {
         // Update to_account owned_tokens. Revert if owned_tokens list is not found
-        let token_number = utils::get_token_index(&token_identifier);
-
-        let page_table_uref = utils::get_uref(
-            PAGE_TABLE,
-            NFTCoreError::MissingPageTableURef,
-            NFTCoreError::InvalidPageTableURef,
-        );
-
-        let page_table_entry = token_number / PAGE_SIZE;
-        let page_address = token_number % PAGE_SIZE;
-
-        let page_uref = utils::get_uref(
-            &format!("{PAGE_DICTIONARY_PREFIX}{page_table_entry}"),
-            NFTCoreError::MissingStorageUref,
-            NFTCoreError::InvalidStorageUref,
-        );
-
-        let source_page =
-            storage::dictionary_get::<Vec<bool>>(page_uref, &source_owner_item_key)
-                .unwrap_or_revert()
-                .unwrap_or_revert_with(NFTCoreError::InvalidPageNumber);
-
-        if !source_page[page_address as usize] {
-            runtime::revert(NFTCoreError::InvalidTokenIdentifier)
+        let tokens_count = utils::get_token_index(&token_identifier);
+        if OwnerReverseLookupMode::TransfersOnly == reporting_mode {
+            add_page_entry_and_page_record(tokens_count, &source_owner_item_key, false);
         }
 
-        let (page_table_entry, page_uref) = utils::update_page_entry_and_page_record(
-            token_number,
+        let (page_table_entry, page_uref) = update_page_entry_and_page_record(
+            tokens_count,
             &source_owner_item_key,
             &target_owner_item_key,
         );
-
-        let mut target_page_table =
-        storage::dictionary_get::<Vec<bool>>(page_table_uref, &target_owner_item_key)
-            .unwrap_or_revert()
-            .unwrap_or_revert_with(NFTCoreError::UnregisteredOwnerInTransfer);
-
-        let mut target_page = if !target_page_table[page_table_entry as usize] {
-            // Create a new page here
-            let _ = core::mem::replace(&mut target_page_table[page_table_entry as usize], true);
-            storage::dictionary_put(page_table_uref, &target_owner_item_key, target_page_table);
-            vec![false; PAGE_SIZE as usize]
-        } else {
-            storage::dictionary_get::<Vec<bool>>(page_uref, &target_owner_item_key)
-                .unwrap_or_revert()
-                .unwrap_or_revert()
-        };
-
-        let _ = core::mem::replace(&mut target_page[page_address as usize], true);
-
-        storage::dictionary_put(page_uref, &target_owner_item_key, target_page);
 
         let owned_tokens_actual_key = Key::dictionary(page_uref, source_owner_item_key.as_bytes());
 
@@ -1282,6 +1198,7 @@ pub extern "C" fn transfer() {
 
         let receipt = CLValue::from_t((receipt_string, owned_tokens_actual_key))
             .unwrap_or_revert_with(NFTCoreError::FailedToConvertToCLValue);
+
         runtime::ret(receipt)
     }
 }
@@ -1657,6 +1574,9 @@ pub extern "C" fn migrate() {
         NFT_METADATA_KINDS,
         storage::new_uref(nft_metadata_kind_list).into(),
     );
+
+
+    runtime::put_key(RLO_MFLAG, storage::new_uref(false).into());
     // Initialize events structures.
     utils::init_events();
     let events_mode: EventsMode = utils::get_optional_named_arg_with_user_errors::<u8>(
@@ -1666,10 +1586,14 @@ pub extern "C" fn migrate() {
     .unwrap_or(EventsMode::NoEvents as u8)
     .try_into()
     .unwrap_or_revert();
-    runtime::put_key(RLO_MFLAG, storage::new_uref(false).into());
 
     match events_mode {
-        EventsMode::NoEvents => {}
+        EventsMode::NoEvents => {
+            runtime::put_key(
+                EVENTS_MODE,
+                storage::new_uref(EventsMode::NoEvents as u8).into(),
+            );
+        }
         EventsMode::CES => {
             runtime::put_key(EVENTS_MODE, storage::new_uref(EventsMode::CES as u8).into());
             // Initialize events structures.
