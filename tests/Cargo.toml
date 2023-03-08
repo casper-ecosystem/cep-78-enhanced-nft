@@ -8,8 +8,8 @@ casper-engine-test-support = { version = "=2.2.0", default-features = false, fea
   "test-support",
 ] }
 contract = { path = "../contract", default-features = false }
-casper-execution-engine = { version = "=2.0.1", default-features = false }
-casper-types = "=1.5"
+casper-execution-engine = { version = "2.0.1", default-features = false }
+casper-types = "1.5"
 serde = { version = "1.0.80", default-features = false }
 serde_json = { version = "1.0.59", default-features = false }
 once_cell = "1"
