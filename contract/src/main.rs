@@ -288,15 +288,6 @@ pub extern "C" fn init() {
     .try_into()
     .unwrap_or_revert();
 
-    let events_mode: EventsMode = utils::get_named_arg_with_user_errors::<u8>(
-        ARG_EVENTS_MODE,
-        NFTCoreError::MissingEventsMode,
-        NFTCoreError::InvalidEventsMode,
-    )
-    .unwrap_or_revert()
-    .try_into()
-    .unwrap_or_revert();
-
     // OwnerReverseLookup TransfersOnly mode should be Transferable
     if OwnerReverseLookupMode::TransfersOnly == reporting_mode
         && OwnershipMode::Transferable != ownership_mode
@@ -358,6 +349,16 @@ pub extern "C" fn init() {
         storage::new_uref(metadata_mutability as u8).into(),
     );
     runtime::put_key(BURN_MODE, storage::new_uref(burn_mode as u8).into());
+
+    let events_mode: EventsMode = utils::get_named_arg_with_user_errors::<u8>(
+        ARG_EVENTS_MODE,
+        NFTCoreError::MissingEventsMode,
+        NFTCoreError::InvalidEventsMode,
+    )
+    .unwrap_or_revert()
+    .try_into()
+    .unwrap_or_revert();
+
     // Initialize events structures for CES.
     if let EventsMode::CES = events_mode {
         utils::init_events();
@@ -1164,6 +1165,7 @@ pub extern "C" fn transfer() {
     }
 
     let reporting_mode = utils::get_reporting_mode();
+
     if let OwnerReverseLookupMode::Complete | OwnerReverseLookupMode::TransfersOnly = reporting_mode
     {
         // Update to_account owned_tokens. Revert if owned_tokens list is not found
@@ -1184,7 +1186,6 @@ pub extern "C" fn transfer() {
 
         let receipt = CLValue::from_t((receipt_string, owned_tokens_actual_key))
             .unwrap_or_revert_with(NFTCoreError::FailedToConvertToCLValue);
-
         runtime::ret(receipt)
     }
 }
