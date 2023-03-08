@@ -309,7 +309,7 @@ impl InstallerRequestBuilder {
     }
 
     pub(crate) fn with_events_mode(mut self, events_mode: EventsMode) -> Self {
-        self.reporting_mode = CLValue::from_t(events_mode as u8).unwrap();
+        self.events_mode = CLValue::from_t(events_mode as u8).unwrap();
         self
     }
 

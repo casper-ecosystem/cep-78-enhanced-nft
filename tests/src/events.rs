@@ -452,7 +452,7 @@ fn should_cep47_dictionary_style_burn_event() {
         &builder,
         nft_contract_key,
         EVENTS,
-        "0",
+        "1",
     );
 
     let collection_name: String = query_stored_value(
