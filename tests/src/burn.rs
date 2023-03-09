@@ -6,8 +6,8 @@ use casper_types::{account::AccountHash, runtime_args, ContractHash, Key, Runtim
 use contract::{
     constants::{
         ARG_APPROVE_ALL, ARG_COLLECTION_NAME, ARG_OPERATOR, ARG_TOKEN_HASH, ARG_TOKEN_ID,
-        ARG_TOKEN_META_DATA, ARG_TOKEN_OWNER, BURNT_TOKENS, ENTRY_POINT_BURN, ENTRY_POINT_MINT,
-        ENTRY_POINT_SET_APPROVALL_FOR_ALL, TOKEN_COUNT,
+        ARG_TOKEN_META_DATA, ARG_TOKEN_OWNER, BURNT_TOKENS, BURN_MODE, ENTRY_POINT_BURN,
+        ENTRY_POINT_MINT, ENTRY_POINT_SET_APPROVALL_FOR_ALL, TOKEN_COUNT,
     },
     events::events_ces::Burn,
     modalities::TokenIdentifier,
@@ -15,8 +15,9 @@ use contract::{
 
 use crate::utility::{
     constants::{
-        ACCOUNT_USER_1, ARG_NFT_CONTRACT_HASH, CONTRACT_NAME, MINTING_CONTRACT_WASM,
-        MINT_SESSION_WASM, NFT_CONTRACT_WASM, NFT_TEST_COLLECTION, TEST_PRETTY_721_META_DATA,
+        ACCOUNT_USER_1, ARG_NFT_CONTRACT_HASH, ARG_REVERSE_LOOKUP, CONTRACT_NAME,
+        MINTING_CONTRACT_WASM, MINT_SESSION_WASM, NFT_CONTRACT_WASM, NFT_TEST_COLLECTION,
+        TEST_PRETTY_721_META_DATA,
     },
     installer_request_builder::{
         BurnMode, InstallerRequestBuilder, MetadataMutability, MintingMode, NFTHolderMode,
@@ -443,7 +444,7 @@ fn should_allow_contract_to_burn_token() {
         ARG_NFT_CONTRACT_HASH => nft_contract_key,
         ARG_TOKEN_OWNER => Key::Account(*DEFAULT_ACCOUNT_ADDR),
         ARG_TOKEN_META_DATA => TEST_PRETTY_721_META_DATA.to_string(),
-        "reverse_lookup" => false,
+        ARG_REVERSE_LOOKUP => false,
     };
 
     let mint_via_contract_call = ExecuteRequestBuilder::contract_call_by_hash(
@@ -510,7 +511,7 @@ fn should_not_burn_in_non_burn_mode() {
 
     let nft_contract_key: Key = get_nft_contract_hash(&builder).into();
     let burn_mode: u8 = builder
-        .query(None, nft_contract_key, &["burn_mode".to_string()])
+        .query(None, nft_contract_key, &[BURN_MODE.to_string()])
         .unwrap()
         .as_cl_value()
         .unwrap()

@@ -9,22 +9,24 @@ use casper_types::{account::AccountHash, runtime_args, Key, RuntimeArgs};
 use contract::{
     constants::{
         ACCESS_KEY_NAME_1_0_0, APPROVED, ARG_ACCESS_KEY_NAME_1_0_0, ARG_APPROVE_ALL,
-        ARG_COLLECTION_NAME, ARG_EVENTS_MODE, ARG_NAMED_KEY_CONVENTION, ARG_NFT_PACKAGE_HASH,
-        ARG_OPERATOR, ARG_SOURCE_KEY, ARG_SPENDER, ARG_TARGET_KEY, ARG_TOKEN_HASH, ARG_TOKEN_ID,
+        ARG_COLLECTION_NAME, ARG_EVENTS_MODE, ARG_NAMED_KEY_CONVENTION, ARG_OPERATOR,
+        ARG_SOURCE_KEY, ARG_SPENDER, ARG_TARGET_KEY, ARG_TOKEN_HASH, ARG_TOKEN_ID,
         ARG_TOKEN_META_DATA, ARG_TOKEN_OWNER, BURNT_TOKENS, ENTRY_POINT_APPROVE, ENTRY_POINT_BURN,
         ENTRY_POINT_REGISTER_OWNER, ENTRY_POINT_SET_APPROVALL_FOR_ALL,
-        ENTRY_POINT_SET_TOKEN_METADATA, EVENTS, METADATA_CEP78, METADATA_CUSTOM_VALIDATED,
-        METADATA_NFT721, METADATA_RAW, TOKEN_COUNT,
+        ENTRY_POINT_SET_TOKEN_METADATA, EVENTS, EVENT_TYPE, METADATA_CEP78,
+        METADATA_CUSTOM_VALIDATED, METADATA_NFT721, METADATA_RAW, OPERATOR, OWNER, PREFIX_CEP78,
+        PREFIX_HASH_KEY_NAME, RECIPIENT, TOKEN_COUNT, TOKEN_ID,
     },
     modalities::{EventsMode, NamedKeyConventionMode},
 };
 
 use crate::utility::{
     constants::{
-        ARG_IS_HASH_IDENTIFIER_MODE, ARG_NFT_CONTRACT_HASH, CONTRACT_1_0_0_WASM, CONTRACT_NAME,
+        ARG_IS_HASH_IDENTIFIER_MODE, ARG_KEY_NAME, ARG_NFT_CONTRACT_HASH,
+        ARG_NFT_CONTRACT_PACKAGE_HASH, CONTRACT_1_0_0_WASM, CONTRACT_NAME,
         IS_APPROVED_FOR_ALL_WASM, MINT_1_0_0_WASM, MINT_SESSION_WASM, NFT_CONTRACT_WASM,
-        NFT_TEST_COLLECTION, NFT_TEST_SYMBOL, RETURNED_VALUE_STORAGE_KEY,
-        TEST_PRETTY_721_META_DATA, TEST_PRETTY_CEP78_METADATA, TEST_PRETTY_UPDATED_721_META_DATA,
+        NFT_TEST_COLLECTION, NFT_TEST_SYMBOL, TEST_PRETTY_721_META_DATA,
+        TEST_PRETTY_CEP78_METADATA, TEST_PRETTY_UPDATED_721_META_DATA,
         TEST_PRETTY_UPDATED_CEP78_METADATA, TRANSFER_SESSION_WASM,
     },
     installer_request_builder::{
@@ -88,18 +90,18 @@ fn should_record_cep47_dictionary_style_mint_event() {
     let package = query_stored_value::<String>(
         &builder,
         nft_contract_key,
-        vec![format!("cep78_{collection_name}")],
+        vec![format!("{PREFIX_CEP78}_{collection_name}")],
     );
 
     let mut expected_event: BTreeMap<String, String> = BTreeMap::new();
-    expected_event.insert("event_type".to_string(), "Mint".to_string());
-    expected_event.insert("cep78_contract_package".to_string(), package);
+    expected_event.insert(EVENT_TYPE.to_string(), "Mint".to_string());
+    expected_event.insert(PREFIX_HASH_KEY_NAME.to_string(), package);
     expected_event.insert(
-        "recipient".to_string(),
+        RECIPIENT.to_string(),
         "Key::Account(58b891759929bd4ed5a9cce20b9d6e3c96a66c21386bed96040e17dd07b79fa7)"
             .to_string(),
     );
-    expected_event.insert("token_id".to_string(), "0".to_string());
+    expected_event.insert(TOKEN_ID.to_string(), "0".to_string());
     assert_eq!(event, expected_event);
 }
 
@@ -181,15 +183,15 @@ fn should_record_cep47_dictionary_style_transfer_token_event_in_hash_identifier_
     let package = query_stored_value::<String>(
         &builder,
         nft_contract_key,
-        vec![format!("cep78_{collection_name}")],
+        vec![format!("{PREFIX_CEP78}_{collection_name}")],
     );
 
     let mut expected_event: BTreeMap<String, String> = BTreeMap::new();
 
-    expected_event.insert("event_type".to_string(), "Transfer".to_string());
-    expected_event.insert("cep78_contract_package".to_string(), package);
+    expected_event.insert(EVENT_TYPE.to_string(), "Transfer".to_string());
+    expected_event.insert(PREFIX_HASH_KEY_NAME.to_string(), package);
     expected_event.insert(
-        "recipient".to_string(),
+        RECIPIENT.to_string(),
         "Key::Account(0303030303030303030303030303030303030303030303030303030303030303)"
             .to_string(),
     );
@@ -199,7 +201,7 @@ fn should_record_cep47_dictionary_style_transfer_token_event_in_hash_identifier_
             .to_string(),
     );
     expected_event.insert(
-        "token_id".to_string(),
+        TOKEN_ID.to_string(),
         "69fe422f3b0d0ba4d911323451a490bdd679c437e889127700b7bf83123b2d0c".to_string(),
     );
     assert_eq!(event, expected_event);
@@ -350,13 +352,13 @@ fn should_record_cep47_dictionary_style_metadata_update_event_for_nft721_using_t
     let package = query_stored_value::<String>(
         &builder,
         nft_contract_key,
-        vec![format!("cep78_{collection_name}")],
+        vec![format!("{PREFIX_CEP78}_{collection_name}")],
     );
 
     let mut expected_event: BTreeMap<String, String> = BTreeMap::new();
-    expected_event.insert("event_type".to_string(), "MetadataUpdate".to_string());
-    expected_event.insert("cep78_contract_package".to_string(), package);
-    expected_event.insert("token_id".to_string(), "0".to_string());
+    expected_event.insert(EVENT_TYPE.to_string(), "MetadataUpdate".to_string());
+    expected_event.insert(PREFIX_HASH_KEY_NAME.to_string(), package);
+    expected_event.insert(TOKEN_ID.to_string(), "0".to_string());
     assert_eq!(event, expected_event);
 }
 
@@ -466,18 +468,18 @@ fn should_cep47_dictionary_style_burn_event() {
     let package = query_stored_value::<String>(
         &builder,
         *nft_contract_key,
-        vec![format!("cep78_{collection_name}")],
+        vec![format!("{PREFIX_CEP78}_{collection_name}")],
     );
 
     let mut expected_event: BTreeMap<String, String> = BTreeMap::new();
-    expected_event.insert("event_type".to_string(), "Burn".to_string());
-    expected_event.insert("cep78_contract_package".to_string(), package);
+    expected_event.insert(EVENT_TYPE.to_string(), "Burn".to_string());
+    expected_event.insert(PREFIX_HASH_KEY_NAME.to_string(), package);
     expected_event.insert(
-        "owner".to_string(),
+        OWNER.to_string(),
         "Key::Account(58b891759929bd4ed5a9cce20b9d6e3c96a66c21386bed96040e17dd07b79fa7)"
             .to_string(),
     );
-    expected_event.insert("token_id".to_string(), "0".to_string());
+    expected_event.insert(TOKEN_ID.to_string(), "0".to_string());
     assert_eq!(event, expected_event);
 }
 
@@ -556,13 +558,13 @@ fn should_cep47_dictionary_style_approve_event_in_hash_identifier_mode() {
     let package = query_stored_value::<String>(
         &builder,
         nft_contract_key,
-        vec![format!("cep78_{collection_name}")],
+        vec![format!("{PREFIX_CEP78}_{collection_name}")],
     );
     let mut expected_event: BTreeMap<String, String> = BTreeMap::new();
-    expected_event.insert("event_type".to_string(), "Approve".to_string());
-    expected_event.insert("cep78_contract_package".to_string(), package);
+    expected_event.insert(EVENT_TYPE.to_string(), "Approve".to_string());
+    expected_event.insert(PREFIX_HASH_KEY_NAME.to_string(), package);
     expected_event.insert(
-        "owner".to_string(),
+        OWNER.to_string(),
         "Key::Account(58b891759929bd4ed5a9cce20b9d6e3c96a66c21386bed96040e17dd07b79fa7)"
             .to_string(),
     );
@@ -572,7 +574,7 @@ fn should_cep47_dictionary_style_approve_event_in_hash_identifier_mode() {
             .to_string(),
     );
     expected_event.insert(
-        "token_id".to_string(),
+        TOKEN_ID.to_string(),
         "69fe422f3b0d0ba4d911323451a490bdd679c437e889127700b7bf83123b2d0c".to_string(),
     );
     assert_eq!(event, expected_event);
@@ -639,7 +641,7 @@ fn should_cep47_dictionary_style_approvall_for_all_event() {
             ARG_OPERATOR => operator_key,
         },
         IS_APPROVED_FOR_ALL_WASM,
-        RETURNED_VALUE_STORAGE_KEY,
+        ARG_KEY_NAME,
     );
 
     assert!(is_operator, "expected operator to be approved for all");
@@ -660,18 +662,18 @@ fn should_cep47_dictionary_style_approvall_for_all_event() {
     let package = query_stored_value::<String>(
         &builder,
         nft_contract_key,
-        vec![format!("cep78_{collection_name}")],
+        vec![format!("{PREFIX_CEP78}_{collection_name}")],
     );
     let mut expected_event: BTreeMap<String, String> = BTreeMap::new();
-    expected_event.insert("event_type".to_string(), "ApprovalForAll".to_string());
-    expected_event.insert("cep78_contract_package".to_string(), package);
+    expected_event.insert(EVENT_TYPE.to_string(), "ApprovalForAll".to_string());
+    expected_event.insert(PREFIX_HASH_KEY_NAME.to_string(), package);
     expected_event.insert(
-        "owner".to_string(),
+        OWNER.to_string(),
         "Key::Account(58b891759929bd4ed5a9cce20b9d6e3c96a66c21386bed96040e17dd07b79fa7)"
             .to_string(),
     );
     expected_event.insert(
-        "operator".to_string(),
+        OPERATOR.to_string(),
         "Key::Account(3d5de8c609159a0954e773dd686fb7724428316cb30e00bdc899976127747f55)"
             .to_string(),
     );
@@ -739,7 +741,7 @@ fn should_cep47_dictionary_style_revoked_for_all_event() {
             ARG_OPERATOR => operator_key,
         },
         IS_APPROVED_FOR_ALL_WASM,
-        RETURNED_VALUE_STORAGE_KEY,
+        ARG_KEY_NAME,
     );
 
     assert!(is_operator, "expected operator to be approved for all");
@@ -776,18 +778,18 @@ fn should_cep47_dictionary_style_revoked_for_all_event() {
     let package = query_stored_value::<String>(
         &builder,
         nft_contract_key,
-        vec![format!("cep78_{collection_name}")],
+        vec![format!("{PREFIX_CEP78}_{collection_name}")],
     );
     let mut expected_event: BTreeMap<String, String> = BTreeMap::new();
-    expected_event.insert("event_type".to_string(), "RevokedForAll".to_string());
-    expected_event.insert("cep78_contract_package".to_string(), package);
+    expected_event.insert(EVENT_TYPE.to_string(), "RevokedForAll".to_string());
+    expected_event.insert(PREFIX_HASH_KEY_NAME.to_string(), package);
     expected_event.insert(
-        "owner".to_string(),
+        OWNER.to_string(),
         "Key::Account(58b891759929bd4ed5a9cce20b9d6e3c96a66c21386bed96040e17dd07b79fa7)"
             .to_string(),
     );
     expected_event.insert(
-        "operator".to_string(),
+        OPERATOR.to_string(),
         "Key::Account(3d5de8c609159a0954e773dd686fb7724428316cb30e00bdc899976127747f55)"
             .to_string(),
     );
@@ -852,13 +854,13 @@ fn should_record_migration_event_in_cep47() {
 
     assert!(maybe_access_named_key);
 
-    let package_hash = support::get_nft_contract_package_hash(&builder);
+    let contract_package_hash = support::get_nft_contract_package_hash(&builder);
 
     let upgrade_request = ExecuteRequestBuilder::standard(
         *DEFAULT_ACCOUNT_ADDR,
         NFT_CONTRACT_WASM,
         runtime_args! {
-            ARG_NFT_PACKAGE_HASH => package_hash,
+            ARG_NFT_CONTRACT_PACKAGE_HASH => contract_package_hash,
             ARG_COLLECTION_NAME => NFT_TEST_COLLECTION.to_string(),
             ARG_NAMED_KEY_CONVENTION => NamedKeyConventionMode::V1_0Standard as u8,
             ARG_ACCESS_KEY_NAME_1_0_0 => ACCESS_KEY_NAME_1_0_0.to_string(),
@@ -891,11 +893,11 @@ fn should_record_migration_event_in_cep47() {
     let package = query_stored_value::<String>(
         &builder,
         nft_contract_key,
-        vec![format!("cep78_{collection_name}")],
+        vec![format!("{PREFIX_CEP78}_{collection_name}")],
     );
     let mut expected_event: BTreeMap<String, String> = BTreeMap::new();
-    expected_event.insert("event_type".to_string(), "Migration".to_string());
-    expected_event.insert("cep78_contract_package".to_string(), package);
+    expected_event.insert(EVENT_TYPE.to_string(), "Migration".to_string());
+    expected_event.insert(PREFIX_HASH_KEY_NAME.to_string(), package);
     assert_eq!(event, expected_event);
 }
 

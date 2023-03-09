@@ -41,28 +41,27 @@ use casper_contract::{
 };
 
 use constants::{
-    ACCESS_KEY_NAME_1_0_0, ACCESS_KEY_NAME_PREFIX, ALLOW_MINTING, APPROVED,
-    ARG_ACCESS_KEY_NAME_1_0_0, ARG_ALLOW_MINTING, ARG_APPROVE_ALL, ARG_BURN_MODE,
-    ARG_COLLECTION_NAME, ARG_COLLECTION_SYMBOL, ARG_CONTRACT_WHITELIST, ARG_EVENTS_MODE,
-    ARG_HASH_KEY_NAME_1_0_0, ARG_HOLDER_MODE, ARG_IDENTIFIER_MODE, ARG_JSON_SCHEMA,
-    ARG_METADATA_MUTABILITY, ARG_MINTING_MODE, ARG_NAMED_KEY_CONVENTION, ARG_NFT_KIND,
-    ARG_NFT_METADATA_KIND, ARG_NFT_PACKAGE_HASH, ARG_OPERATOR, ARG_OWNERSHIP_MODE,
-    ARG_OWNER_LOOKUP_MODE, ARG_RECEIPT_NAME, ARG_SOURCE_KEY, ARG_SPENDER, ARG_TARGET_KEY,
-    ARG_TOKEN_META_DATA, ARG_TOKEN_OWNER, ARG_TOTAL_TOKEN_SUPPLY, ARG_WHITELIST_MODE, BURNT_TOKENS,
-    BURN_MODE, CEP78_PREFIX, COLLECTION_NAME, COLLECTION_SYMBOL, CONTRACT_NAME_PREFIX,
-    CONTRACT_VERSION_PREFIX, CONTRACT_WHITELIST, ENTRY_POINT_APPROVE, ENTRY_POINT_BALANCE_OF,
-    ENTRY_POINT_BURN, ENTRY_POINT_GET_APPROVED, ENTRY_POINT_INIT, ENTRY_POINT_IS_APPROVED_FOR_ALL,
+    ACCESS_KEY_NAME_1_0_0, ALLOW_MINTING, APPROVED, ARG_ACCESS_KEY_NAME_1_0_0, ARG_ALLOW_MINTING,
+    ARG_APPROVE_ALL, ARG_BURN_MODE, ARG_COLLECTION_NAME, ARG_COLLECTION_SYMBOL,
+    ARG_CONTRACT_WHITELIST, ARG_EVENTS_MODE, ARG_HASH_KEY_NAME_1_0_0, ARG_HOLDER_MODE,
+    ARG_IDENTIFIER_MODE, ARG_JSON_SCHEMA, ARG_METADATA_MUTABILITY, ARG_MINTING_MODE,
+    ARG_NAMED_KEY_CONVENTION, ARG_NFT_KIND, ARG_NFT_METADATA_KIND, ARG_NFT_PACKAGE_KEY,
+    ARG_OPERATOR, ARG_OWNERSHIP_MODE, ARG_OWNER_LOOKUP_MODE, ARG_RECEIPT_NAME, ARG_SOURCE_KEY,
+    ARG_SPENDER, ARG_TARGET_KEY, ARG_TOKEN_META_DATA, ARG_TOKEN_OWNER, ARG_TOTAL_TOKEN_SUPPLY,
+    ARG_WHITELIST_MODE, BURNT_TOKENS, BURN_MODE, COLLECTION_NAME, COLLECTION_SYMBOL,
+    CONTRACT_WHITELIST, ENTRY_POINT_APPROVE, ENTRY_POINT_BALANCE_OF, ENTRY_POINT_BURN,
+    ENTRY_POINT_GET_APPROVED, ENTRY_POINT_INIT, ENTRY_POINT_IS_APPROVED_FOR_ALL,
     ENTRY_POINT_METADATA, ENTRY_POINT_MIGRATE, ENTRY_POINT_MINT, ENTRY_POINT_OWNER_OF,
     ENTRY_POINT_REGISTER_OWNER, ENTRY_POINT_REVOKE, ENTRY_POINT_SET_APPROVALL_FOR_ALL,
     ENTRY_POINT_SET_TOKEN_METADATA, ENTRY_POINT_SET_VARIABLES, ENTRY_POINT_TRANSFER,
     ENTRY_POINT_UPDATED_RECEIPTS, EVENTS, EVENTS_MODE, HASH_BY_INDEX, HASH_KEY_NAME_1_0_0,
-    HASH_KEY_NAME_PREFIX, HOLDER_MODE, IDENTIFIER_MODE, INDEX_BY_HASH, INSTALLER, JSON_SCHEMA,
-    MAX_TOTAL_TOKEN_SUPPLY, METADATA_CEP78, METADATA_CUSTOM_VALIDATED, METADATA_MUTABILITY,
-    METADATA_NFT721, METADATA_RAW, MINTING_MODE, NFT_KIND, NFT_METADATA_KIND,
-    NUMBER_OF_MINTED_TOKENS, OPERATOR, OPERATORS, OWNED_TOKENS, OWNERSHIP_MODE,
-    PAGE_DICTIONARY_PREFIX, PAGE_LIMIT, PAGE_TABLE, RECEIPT_NAME, REPORTING_MODE, RLO_MFLAG,
-    TOKEN_COUNT, TOKEN_ISSUERS, TOKEN_OWNERS, TOTAL_TOKEN_SUPPLY, UNMATCHED_HASH_COUNT,
-    WHITELIST_MODE,
+    HOLDER_MODE, IDENTIFIER_MODE, INDEX_BY_HASH, INSTALLER, JSON_SCHEMA, MAX_TOTAL_TOKEN_SUPPLY,
+    METADATA_CEP78, METADATA_CUSTOM_VALIDATED, METADATA_MUTABILITY, METADATA_NFT721, METADATA_RAW,
+    MINTING_MODE, NFT_KIND, NFT_METADATA_KIND, NUMBER_OF_MINTED_TOKENS, OPERATOR, OPERATORS,
+    OWNED_TOKENS, OWNERSHIP_MODE, PAGE_LIMIT, PAGE_TABLE, PREFIX_ACCESS_KEY_NAME, PREFIX_CEP78,
+    PREFIX_CONTRACT_NAME, PREFIX_CONTRACT_VERSION, PREFIX_HASH_KEY_NAME, PREFIX_PAGE_DICTIONARY,
+    RECEIPT_NAME, REPORTING_MODE, RLO_MFLAG, TOKEN_COUNT, TOKEN_ISSUERS, TOKEN_OWNERS,
+    TOTAL_TOKEN_SUPPLY, UNMATCHED_HASH_COUNT, WHITELIST_MODE,
 };
 
 use error::NFTCoreError;
@@ -208,7 +207,7 @@ pub extern "C" fn init() {
     .unwrap_or_revert();
 
     let package_hash = utils::get_named_arg_with_user_errors::<String>(
-        ARG_NFT_PACKAGE_HASH,
+        ARG_NFT_PACKAGE_KEY,
         NFTCoreError::MissingCep78PackageHash,
         NFTCoreError::InvalidCep78InvalidHash,
     )
@@ -332,7 +331,7 @@ pub extern "C" fn init() {
     );
     runtime::put_key(RECEIPT_NAME, storage::new_uref(receipt_name).into());
     runtime::put_key(
-        &format!("{CEP78_PREFIX}{collection_name}"),
+        &format!("{PREFIX_CEP78}_{collection_name}"),
         storage::new_uref(package_hash).into(),
     );
     runtime::put_key(
@@ -1624,7 +1623,7 @@ pub extern "C" fn migrate() {
         );
 
         let new_contract_package_hash_representation =
-            runtime::get_named_arg::<ContractPackageHash>(ARG_NFT_PACKAGE_HASH);
+            runtime::get_named_arg::<ContractPackageHash>(ARG_NFT_PACKAGE_KEY);
 
         let receipt_uref = utils::get_uref(
             RECEIPT_NAME,
@@ -1632,7 +1631,7 @@ pub extern "C" fn migrate() {
             NFTCoreError::InvalidReceiptName,
         );
 
-        let new_receipt_string_representation = format!("{CEP78_PREFIX}{collection_name}");
+        let new_receipt_string_representation = format!("{PREFIX_CEP78}_{collection_name}");
         runtime::put_key(
             &new_receipt_string_representation,
             storage::new_uref(new_contract_package_hash_representation.to_formatted_string())
@@ -1747,7 +1746,7 @@ pub extern "C" fn updated_receipts() {
                 continue;
             }
             let page_uref = utils::get_uref(
-                &format!("{PAGE_DICTIONARY_PREFIX}{page_table_entry}"),
+                &format!("{PREFIX_PAGE_DICTIONARY}_{page_table_entry}"),
                 NFTCoreError::MissingPageUref,
                 NFTCoreError::InvalidPageUref,
             );
@@ -1810,7 +1809,7 @@ pub extern "C" fn register_owner() {
             NFTCoreError::InvalidCollectionName,
         );
         let package_uref = storage::new_uref(utils::get_stored_value_with_user_errors::<String>(
-            &format!("{CEP78_PREFIX}{collection_name}"),
+            &format!("{PREFIX_CEP78}_{collection_name}"),
             NFTCoreError::MissingCep78PackageHash,
             NFTCoreError::InvalidCep78InvalidHash,
         ));
@@ -2039,7 +2038,7 @@ fn generate_entry_points() -> EntryPoints {
     // data if needed
     let migrate = EntryPoint::new(
         ENTRY_POINT_MIGRATE,
-        vec![Parameter::new(ARG_NFT_PACKAGE_HASH, CLType::Any)],
+        vec![Parameter::new(ARG_NFT_PACKAGE_KEY, CLType::Any)],
         CLType::Unit,
         EntryPointAccess::Public,
         EntryPointType::Contract,
@@ -2290,26 +2289,26 @@ fn install_contract() {
         named_keys
     };
 
-    let hash_key_name = format!("{HASH_KEY_NAME_PREFIX}_{collection_name}");
+    let hash_key_name = format!("{PREFIX_HASH_KEY_NAME}_{collection_name}");
 
     let (contract_hash, contract_version) = storage::new_contract(
         entry_points,
         Some(named_keys),
         Some(hash_key_name.clone()),
-        Some(format!("{ACCESS_KEY_NAME_PREFIX}{collection_name}")),
+        Some(format!("{PREFIX_ACCESS_KEY_NAME}_{collection_name}")),
     );
 
     // Store contract_hash and contract_version under the keys CONTRACT_NAME and CONTRACT_VERSION
     runtime::put_key(
-        &format!("{CONTRACT_NAME_PREFIX}{collection_name}"),
+        &format!("{PREFIX_CONTRACT_NAME}_{collection_name}"),
         contract_hash.into(),
     );
     runtime::put_key(
-        &format!("{CONTRACT_VERSION_PREFIX}{collection_name}"),
+        &format!("{PREFIX_CONTRACT_VERSION}_{collection_name}"),
         storage::new_uref(contract_version).into(),
     );
 
-    let package_hash: ContractPackageHash = runtime::get_key(&hash_key_name)
+    let nft_contract_package_hash: ContractPackageHash = runtime::get_key(&hash_key_name)
         .unwrap_or_revert()
         .into_hash()
         .map(ContractPackageHash::new)
@@ -2325,7 +2324,7 @@ fn install_contract() {
     // of a read only reference to the NFTs owned by the calling `Account` or `Contract`
     // This allows for users to look up a set of named keys and correctly identify
     // the contract package from which the NFTs were obtained.
-    let receipt_name = format!("{CEP78_PREFIX}{collection_name}");
+    let receipt_name = format!("{PREFIX_CEP78}_{collection_name}");
 
     // Call contract to initialize it
     runtime::call_contract::<()>(
@@ -2351,14 +2350,14 @@ fn install_contract() {
             ARG_METADATA_MUTABILITY => metadata_mutability,
             ARG_BURN_MODE => burn_mode,
             ARG_OWNER_LOOKUP_MODE => reporting_mode,
-            ARG_NFT_PACKAGE_HASH => package_hash.to_formatted_string(),
+            ARG_NFT_PACKAGE_KEY => nft_contract_package_hash.to_formatted_string(),
             ARG_EVENTS_MODE => events_mode
         },
     );
 }
 
 fn migrate_contract(access_key_name: String, package_key_name: String) {
-    let nft_contact_package_hash = runtime::get_key(&package_key_name)
+    let nft_contract_package_hash = runtime::get_key(&package_key_name)
         .unwrap_or_revert()
         .into_hash()
         .map(ContractPackageHash::new)
@@ -2372,30 +2371,30 @@ fn migrate_contract(access_key_name: String, package_key_name: String) {
     .unwrap_or_revert();
 
     runtime::put_key(
-        &format!("{HASH_KEY_NAME_PREFIX}_{collection_name}"),
-        nft_contact_package_hash.into(),
+        &format!("{PREFIX_HASH_KEY_NAME}_{collection_name}"),
+        nft_contract_package_hash.into(),
     );
 
     if let Some(access_key) = runtime::get_key(&access_key_name) {
         runtime::put_key(
-            &format!("{ACCESS_KEY_NAME_PREFIX}{collection_name}"),
+            &format!("{PREFIX_ACCESS_KEY_NAME}_{collection_name}"),
             access_key,
         )
     }
 
     let (contract_hash, contract_version) = storage::add_contract_version(
-        nft_contact_package_hash,
+        nft_contract_package_hash,
         generate_entry_points(),
         NamedKeys::new(),
     );
 
     // Store contract_hash and contract_version under the keys CONTRACT_NAME and CONTRACT_VERSION
     runtime::put_key(
-        &format!("{CONTRACT_NAME_PREFIX}{collection_name}"),
+        &format!("{PREFIX_CONTRACT_NAME}_{collection_name}"),
         contract_hash.into(),
     );
     runtime::put_key(
-        &format!("{CONTRACT_VERSION_PREFIX}{collection_name}"),
+        &format!("{PREFIX_CONTRACT_VERSION}_{collection_name}"),
         storage::new_uref(contract_version).into(),
     );
 
@@ -2406,7 +2405,7 @@ fn migrate_contract(access_key_name: String, package_key_name: String) {
     .unwrap_or(0u8);
 
     let mut runtime_args = runtime_args! {
-        ARG_NFT_PACKAGE_HASH => nft_contact_package_hash,
+        ARG_NFT_PACKAGE_KEY => nft_contract_package_hash,
         ARG_EVENTS_MODE => events_mode,
     };
 

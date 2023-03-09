@@ -16,8 +16,8 @@ use contract::{
 
 use crate::utility::{
     constants::{
-        ARG_NFT_CONTRACT_HASH, MALFORMED_META_DATA, MINTING_CONTRACT_WASM, MINT_SESSION_WASM,
-        NFT_CONTRACT_WASM, NFT_TEST_COLLECTION, TEST_PRETTY_721_META_DATA,
+        ARG_NFT_CONTRACT_HASH, ARG_REVERSE_LOOKUP, MALFORMED_META_DATA, MINTING_CONTRACT_WASM,
+        MINT_SESSION_WASM, NFT_CONTRACT_WASM, NFT_TEST_COLLECTION, TEST_PRETTY_721_META_DATA,
         TEST_PRETTY_CEP78_METADATA, TEST_PRETTY_UPDATED_721_META_DATA,
         TEST_PRETTY_UPDATED_CEP78_METADATA,
     },
@@ -437,7 +437,7 @@ fn should_get_metadata_using_token_id() {
         ARG_NFT_CONTRACT_HASH => nft_contract_key,
         ARG_TOKEN_OWNER => minting_contract_key,
         ARG_TOKEN_META_DATA => TEST_PRETTY_721_META_DATA.to_string(),
-        "reverse_lookup" => false
+        ARG_REVERSE_LOOKUP => false
     };
 
     let minting_request = ExecuteRequestBuilder::contract_call_by_hash(

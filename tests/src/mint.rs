@@ -22,13 +22,12 @@ use casper_types::{account::AccountHash, runtime_args, CLValue, ContractHash, Ke
 
 use crate::utility::{
     constants::{
-        ACCOUNT_USER_1, ACCOUNT_USER_2, ARG_IS_HASH_IDENTIFIER_MODE,
-        ARG_MINTING_CONTRACT_REVERSE_LOOKUP, ARG_NFT_CONTRACT_HASH, BALANCE_OF_SESSION_WASM,
-        CONTRACT_NAME, GET_APPROVED_WASM, IS_APPROVED_FOR_ALL_WASM, MALFORMED_META_DATA,
-        MINTING_CONTRACT_WASM, MINT_SESSION_WASM, NFT_CONTRACT_WASM, NFT_TEST_COLLECTION,
-        OWNER_OF_SESSION_WASM, PAGE_SIZE, RETURNED_VALUE_STORAGE_KEY, TEST_COMPACT_META_DATA,
-        TEST_PRETTY_721_META_DATA, TEST_PRETTY_CEP78_METADATA, TEST_PRETTY_UPDATED_CEP78_METADATA,
-        TRANSFER_SESSION_WASM,
+        ACCOUNT_USER_1, ACCOUNT_USER_2, ARG_IS_HASH_IDENTIFIER_MODE, ARG_KEY_NAME,
+        ARG_NFT_CONTRACT_HASH, ARG_REVERSE_LOOKUP, BALANCE_OF_SESSION_WASM, CONTRACT_NAME,
+        GET_APPROVED_WASM, IS_APPROVED_FOR_ALL_WASM, MALFORMED_META_DATA, MINTING_CONTRACT_WASM,
+        MINT_SESSION_WASM, NFT_CONTRACT_WASM, NFT_TEST_COLLECTION, OWNER_OF_SESSION_WASM,
+        PAGE_SIZE, TEST_COMPACT_META_DATA, TEST_PRETTY_721_META_DATA, TEST_PRETTY_CEP78_METADATA,
+        TEST_PRETTY_UPDATED_CEP78_METADATA, TRANSFER_SESSION_WASM,
     },
     installer_request_builder::{
         InstallerRequestBuilder, MetadataMutability, MintingMode, NFTHolderMode, NFTIdentifierMode,
@@ -137,7 +136,7 @@ fn entry_points_with_ret_should_return_correct_value() {
             ARG_TOKEN_OWNER => Key::Account(*DEFAULT_ACCOUNT_ADDR),
         },
         BALANCE_OF_SESSION_WASM,
-        RETURNED_VALUE_STORAGE_KEY,
+        ARG_KEY_NAME,
     );
 
     let expected_balance = 1u64;
@@ -157,7 +156,7 @@ fn entry_points_with_ret_should_return_correct_value() {
             ARG_TOKEN_ID => token_id,
         },
         OWNER_OF_SESSION_WASM,
-        RETURNED_VALUE_STORAGE_KEY,
+        ARG_KEY_NAME,
     );
 
     let expected_owner = Key::Account(*DEFAULT_ACCOUNT_ADDR);
@@ -187,7 +186,7 @@ fn entry_points_with_ret_should_return_correct_value() {
             ARG_TOKEN_ID => token_id,
         },
         GET_APPROVED_WASM,
-        RETURNED_VALUE_STORAGE_KEY,
+        ARG_KEY_NAME,
     );
 
     let expected_approved_account = Key::Account(AccountHash::new(ACCOUNT_USER_1));
@@ -276,7 +275,7 @@ fn mint_should_return_dictionary_key_to_callers_owned_tokens() {
 
     let account_receipt = *account
         .named_keys()
-        .get(&format!("{}_m_{}_p_{}", nft_receipt, PAGE_SIZE, 0))
+        .get(&format!("{nft_receipt}_m_{PAGE_SIZE}_p_{}", 0))
         .expect("must have receipt");
 
     let actual_page = builder
@@ -820,7 +819,7 @@ fn should_set_approval_for_all() {
             ARG_OPERATOR => operator_key,
         },
         IS_APPROVED_FOR_ALL_WASM,
-        RETURNED_VALUE_STORAGE_KEY,
+        ARG_KEY_NAME,
     );
 
     assert!(is_operator, "expected operator to be approved for all");
@@ -976,7 +975,7 @@ fn should_revoke_approval_for_all() {
             ARG_OPERATOR => operator_key,
         },
         IS_APPROVED_FOR_ALL_WASM,
-        RETURNED_VALUE_STORAGE_KEY,
+        ARG_KEY_NAME,
     );
 
     assert!(is_operator, "expected operator to be approved for all");
@@ -1014,7 +1013,7 @@ fn should_revoke_approval_for_all() {
             ARG_OPERATOR => operator_key,
         },
         IS_APPROVED_FOR_ALL_WASM,
-        RETURNED_VALUE_STORAGE_KEY,
+        ARG_KEY_NAME,
     );
 
     assert!(!is_operator, "expected operator not to be approved for all");
@@ -1075,7 +1074,7 @@ fn should_allow_whitelisted_contract_to_mint() {
         ARG_NFT_CONTRACT_HASH => nft_contract_key,
         ARG_TOKEN_OWNER => Key::Account(*DEFAULT_ACCOUNT_ADDR),
         ARG_TOKEN_META_DATA => TEST_PRETTY_721_META_DATA.to_string(),
-        ARG_MINTING_CONTRACT_REVERSE_LOOKUP => false
+        ARG_REVERSE_LOOKUP => false
     };
 
     let mint_via_contract_call = ExecuteRequestBuilder::contract_call_by_hash(
@@ -1147,7 +1146,7 @@ fn should_disallow_unlisted_contract_from_minting() {
         ARG_NFT_CONTRACT_HASH => nft_contract_key,
         ARG_TOKEN_OWNER => Key::Account(*DEFAULT_ACCOUNT_ADDR),
         ARG_TOKEN_META_DATA => TEST_PRETTY_721_META_DATA.to_string(),
-        ARG_MINTING_CONTRACT_REVERSE_LOOKUP => false
+        ARG_REVERSE_LOOKUP => false
     };
 
     let mint_via_contract_call = ExecuteRequestBuilder::contract_call_by_hash(
@@ -1213,7 +1212,7 @@ fn should_be_able_to_update_whitelist_for_minting() {
         ARG_NFT_CONTRACT_HASH => nft_contract_key,
         ARG_TOKEN_OWNER => Key::Account(*DEFAULT_ACCOUNT_ADDR),
         ARG_TOKEN_META_DATA => TEST_PRETTY_721_META_DATA.to_string(),
-        ARG_MINTING_CONTRACT_REVERSE_LOOKUP => false,
+        ARG_REVERSE_LOOKUP => false,
     };
 
     let mint_via_contract_call = ExecuteRequestBuilder::contract_call_by_hash(
@@ -2069,7 +2068,7 @@ fn should_approve_all_in_hash_identifier_mode() {
             ARG_OPERATOR => operator_key,
         },
         IS_APPROVED_FOR_ALL_WASM,
-        RETURNED_VALUE_STORAGE_KEY,
+        ARG_KEY_NAME,
     );
 
     assert!(is_operator, "expected operator to be approved for all");
@@ -2143,7 +2142,7 @@ fn should_approve_all_with_flat_gas_cost() {
             ARG_OPERATOR => operator_key,
         },
         IS_APPROVED_FOR_ALL_WASM,
-        RETURNED_VALUE_STORAGE_KEY,
+        ARG_KEY_NAME,
     );
 
     assert!(is_operator, "expected operator to be approved for all");
@@ -2178,7 +2177,7 @@ fn should_approve_all_with_flat_gas_cost() {
             ARG_OPERATOR => other_operator_key,
         },
         IS_APPROVED_FOR_ALL_WASM,
-        RETURNED_VALUE_STORAGE_KEY,
+        ARG_KEY_NAME,
     );
 
     assert!(

@@ -21,9 +21,9 @@ use contract::{
 use crate::utility::{
     constants::{
         ACCOUNT_USER_1, ACCOUNT_USER_2, ACCOUNT_USER_3, ARG_IS_HASH_IDENTIFIER_MODE,
-        ARG_MINTING_CONTRACT_REVERSE_LOOKUP, ARG_NFT_CONTRACT_HASH, CONTRACT_NAME,
-        MINTING_CONTRACT_WASM, MINT_SESSION_WASM, NFT_CONTRACT_WASM, NFT_TEST_COLLECTION,
-        NFT_TEST_SYMBOL, TEST_PRETTY_721_META_DATA, TRANSFER_SESSION_WASM,
+        ARG_NFT_CONTRACT_HASH, ARG_REVERSE_LOOKUP, CONTRACT_NAME, MINTING_CONTRACT_WASM,
+        MINT_SESSION_WASM, NFT_CONTRACT_WASM, NFT_TEST_COLLECTION, NFT_TEST_SYMBOL,
+        TEST_PRETTY_721_META_DATA, TRANSFER_SESSION_WASM,
     },
     installer_request_builder::{
         InstallerRequestBuilder, MetadataMutability, MintingMode, NFTHolderMode, NFTIdentifierMode,
@@ -1116,7 +1116,7 @@ fn should_transfer_between_contract_to_account() {
         ARG_NFT_CONTRACT_HASH => nft_contract_key,
         ARG_TOKEN_OWNER => minting_contract_key,
         ARG_TOKEN_META_DATA => TEST_PRETTY_721_META_DATA.to_string(),
-        ARG_MINTING_CONTRACT_REVERSE_LOOKUP => true
+        ARG_REVERSE_LOOKUP => true
     };
 
     let minting_request = ExecuteRequestBuilder::contract_call_by_hash(

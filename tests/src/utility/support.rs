@@ -7,15 +7,12 @@ use blake2::{
     digest::{Update, VariableOutput},
     VarBlake2b,
 };
-use contract::constants::{INDEX_BY_HASH, PAGE_DICTIONARY_PREFIX};
+use contract::constants::{HASH_KEY_NAME_1_0_0, INDEX_BY_HASH, PREFIX_PAGE_DICTIONARY};
 use rand::prelude::*;
 use serde::{Deserialize, Serialize};
 use sha256::digest;
 
-use super::{
-    constants::{CONTRACT_NAME, HASH_KEY_NAME},
-    installer_request_builder::InstallerRequestBuilder,
-};
+use super::{constants::CONTRACT_NAME, installer_request_builder::InstallerRequestBuilder};
 use casper_engine_test_support::{
     ExecuteRequestBuilder, InMemoryWasmTestBuilder, WasmTestBuilder, ARG_AMOUNT,
     DEFAULT_ACCOUNT_ADDR, DEFAULT_RUN_GENESIS_REQUEST,
@@ -53,7 +50,7 @@ pub(crate) fn get_nft_contract_package_hash(
     let nft_hash_addr = builder
         .get_expected_account(*DEFAULT_ACCOUNT_ADDR)
         .named_keys()
-        .get(HASH_KEY_NAME)
+        .get(HASH_KEY_NAME_1_0_0)
         .expect("must have this entry in named keys")
         .into_hash()
         .expect("must get hash_addr");
@@ -262,7 +259,7 @@ pub(crate) fn get_token_page_by_id(
     get_dictionary_value_from_key(
         builder,
         nft_contract_key,
-        &format!("{PAGE_DICTIONARY_PREFIX}{page_number}"),
+        &format!("{PREFIX_PAGE_DICTIONARY}_{page_number}"),
         &token_page_item_key,
     )
 }

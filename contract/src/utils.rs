@@ -25,7 +25,7 @@ use crate::{
     constants::{
         ARG_TOKEN_HASH, ARG_TOKEN_ID, BURNT_TOKENS, BURN_MODE, HASH_BY_INDEX, HOLDER_MODE,
         INDEX_BY_HASH, MIGRATION_FLAG, NUMBER_OF_MINTED_TOKENS, OWNED_TOKENS, OWNERSHIP_MODE,
-        PAGE_DICTIONARY_PREFIX, PAGE_LIMIT, PAGE_TABLE, RECEIPT_NAME, REPORTING_MODE, RLO_MFLAG,
+        PAGE_LIMIT, PAGE_TABLE, PREFIX_PAGE_DICTIONARY, RECEIPT_NAME, REPORTING_MODE, RLO_MFLAG,
         TOKEN_OWNERS, UNMATCHED_HASH_COUNT,
     },
     error::NFTCoreError,
@@ -384,7 +384,7 @@ pub fn is_token_burned(token_identifier: &TokenIdentifier) -> bool {
 
 pub fn max_number_of_pages(total_token_supply: u64) -> u64 {
     if total_token_supply < PAGE_SIZE {
-        let dictionary_name = format!("{}{}", PAGE_DICTIONARY_PREFIX, 0);
+        let dictionary_name = format!("{PREFIX_PAGE_DICTIONARY}_{}", 0);
         storage::new_dictionary(&dictionary_name)
             .unwrap_or_revert_with(NFTCoreError::FailedToCreateDictionary);
         1
@@ -392,7 +392,7 @@ pub fn max_number_of_pages(total_token_supply: u64) -> u64 {
         let max_number_of_pages = total_token_supply / PAGE_SIZE;
         let overflow = total_token_supply % PAGE_SIZE;
         for page_number in 0..max_number_of_pages {
-            let dictionary_name = format!("{PAGE_DICTIONARY_PREFIX}{page_number}");
+            let dictionary_name = format!("{PREFIX_PAGE_DICTIONARY}_{page_number}");
             storage::new_dictionary(&dictionary_name)
                 .unwrap_or_revert_with(NFTCoreError::FailedToCreateDictionary);
         }
@@ -518,7 +518,7 @@ pub fn migrate_owned_tokens_in_ordinal_mode() {
                     None => vec![false; page_table_width as usize],
                 };
                 let page_uref = get_uref(
-                    &format!("{PAGE_DICTIONARY_PREFIX}{page_number}"),
+                    &format!("{PREFIX_PAGE_DICTIONARY}_{page_number}"),
                     NFTCoreError::MissingStorageUref,
                     NFTCoreError::InvalidStorageUref,
                 );
@@ -613,7 +613,7 @@ pub fn migrate_token_hashes(token_owner: Key) {
         let _ = core::mem::replace(&mut page_table[page_table_entry as usize], true);
         storage::dictionary_put(page_table_uref, &token_owner_item_key, page_table);
         let page_uref = get_uref(
-            &format!("{PAGE_DICTIONARY_PREFIX}{page_table_entry}"),
+            &format!("{PREFIX_PAGE_DICTIONARY}_{page_table_entry}"),
             NFTCoreError::MissingStorageUref,
             NFTCoreError::InvalidStorageUref,
         );
@@ -677,7 +677,7 @@ pub fn add_page_entry_and_page_record(
 
     // Update the individual page record.
     let page_uref = utils::get_uref(
-        &format!("{PAGE_DICTIONARY_PREFIX}{page_table_entry}"),
+        &format!("{PREFIX_PAGE_DICTIONARY}_{page_table_entry}"),
         NFTCoreError::MissingPageUref,
         NFTCoreError::InvalidPageUref,
     );
@@ -718,7 +718,7 @@ pub fn update_page_entry_and_page_record(
     let page_address = tokens_count % PAGE_SIZE;
 
     let page_uref = utils::get_uref(
-        &format!("{PAGE_DICTIONARY_PREFIX}{page_table_entry}"),
+        &format!("{PREFIX_PAGE_DICTIONARY}_{page_table_entry}"),
         NFTCoreError::MissingStorageUref,
         NFTCoreError::InvalidStorageUref,
     );
