@@ -849,7 +849,7 @@ pub extern "C" fn approve() {
     let is_operator = !is_owner
         && utils::get_dictionary_value_from_key::<bool>(
             OPERATORS,
-            &utils::key_and_value_to_str(&owner, &caller),
+            &utils::encode_key_and_value(&owner, &caller),
         )
         .unwrap_or_default();
 
@@ -958,7 +958,7 @@ pub extern "C" fn revoke() {
     let is_operator = !is_owner
         && utils::get_dictionary_value_from_key::<bool>(
             OPERATORS,
-            &utils::key_and_value_to_str(&owner, &caller),
+            &utils::encode_key_and_value(&owner, &caller),
         )
         .unwrap_or_default();
 
@@ -1029,7 +1029,7 @@ pub extern "C" fn set_approval_for_all() {
     }
 
     // Depending on approve_all we either approve all or disapprove all.
-    let owner_operator_item_key = utils::key_and_value_to_str(&caller, &operator);
+    let owner_operator_item_key = utils::encode_key_and_value(&caller, &operator);
     utils::upsert_dictionary_value_from_key(OPERATORS, &owner_operator_item_key, approve_all);
 
     let events_mode: EventsMode = utils::get_stored_value_with_user_errors::<u8>(
@@ -1082,7 +1082,7 @@ pub extern "C" fn is_approved_for_all() {
     )
     .unwrap_or_revert();
 
-    let owner_operator_item_key = utils::key_and_value_to_str(&owner_key, &operator);
+    let owner_operator_item_key = utils::encode_key_and_value(&owner_key, &operator);
 
     let is_operator =
         utils::get_dictionary_value_from_key::<bool>(OPERATORS, &owner_operator_item_key)
@@ -1156,7 +1156,7 @@ pub extern "C" fn transfer() {
     };
 
     // Check if caller is operator to execute transfer
-    let owner_operator_item_key = utils::key_and_value_to_str(&source_owner_key, &caller);
+    let owner_operator_item_key = utils::encode_key_and_value(&source_owner_key, &caller);
 
     let is_operator = !is_approved
         && utils::get_dictionary_value_from_key::<bool>(OPERATORS, &owner_operator_item_key)

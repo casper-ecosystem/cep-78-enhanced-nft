@@ -87,7 +87,7 @@ pub fn encode_dictionary_item_key(key: Key) -> String {
     }
 }
 
-pub fn key_and_value_to_str<T: CLTyped + ToBytes>(key: &Key, value: &T) -> String {
+pub fn encode_key_and_value<T: CLTyped + ToBytes>(key: &Key, value: &T) -> String {
     let mut bytes_a = key.to_bytes().unwrap_or_revert();
     let mut bytes_b = value.to_bytes().unwrap_or_revert();
 
