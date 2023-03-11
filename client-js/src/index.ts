@@ -97,17 +97,23 @@ export class CEP78Client {
       );
     }
 
+    console.log(args.nftMetadataKind);
+
     const runtimeArgs = RuntimeArgs.fromMap({
       collection_name: CLValueBuilder.string(args.collectionName),
       collection_symbol: CLValueBuilder.string(args.collectionSymbol),
       total_token_supply: CLValueBuilder.u64(args.totalTokenSupply),
       ownership_mode: CLValueBuilder.u8(args.ownershipMode),
       nft_kind: CLValueBuilder.u8(args.nftKind),
-      json_schema: CLValueBuilder.string(JSON.stringify(args.jsonSchema)),
       nft_metadata_kind: CLValueBuilder.u8(args.nftMetadataKind),
       identifier_mode: CLValueBuilder.u8(args.identifierMode),
       metadata_mutability: CLValueBuilder.u8(args.metadataMutability),
     });
+
+    // TODO: Validate here
+    if (args.jsonSchema !== undefined) {
+      runtimeArgs.insert("json_schema", CLValueBuilder.string(JSON.stringify(args.jsonSchema)));
+    }
 
     if (args.mintingMode !== undefined) {
       runtimeArgs.insert("minting_mode", CLValueBuilder.u8(args.mintingMode));
@@ -338,10 +344,16 @@ export class CEP78Client {
     });
 
     if (config.useSessionCode) {
+      if (!args.collectionName) throw new Error("Missing collectionName argument");
+
       const wasmToCall =
         wasm || getBinary(`${__dirname}/../wasm/mint_call.wasm`);
 
       runtimeArgs.insert("nft_contract_hash", this.contractHashKey);
+      runtimeArgs.insert(
+        "collection_name",
+        CLValueBuilder.string(args.collectionName)
+      );
 
       const preparedDeploy = this.contractClient.install(
         wasmToCall,
@@ -403,7 +415,8 @@ export class CEP78Client {
     keys?: Keys.AsymmetricKey[],
     wasm?: Uint8Array
   ) {
-    if (config.useSessionCode === false && !!wasm) throw new Error(ERRORS.CONFLICT_CONFIG);
+    if (config.useSessionCode === false && !!wasm)
+      throw new Error(ERRORS.CONFLICT_CONFIG);
 
     const runtimeArgs = RuntimeArgs.fromMap({
       target_key: CLValueBuilder.key(args.target),
@@ -700,7 +713,7 @@ export class CEP78Client {
     keys?: Keys.AsymmetricKey[]
   ) {
     const runtimeArgs = RuntimeArgs.fromMap({
-      collection_name: CLValueBuilder.string(args.collectionName)
+      collection_name: CLValueBuilder.string(args.collectionName),
     });
 
     const preparedDeploy = this.contractClient.callEntrypoint(

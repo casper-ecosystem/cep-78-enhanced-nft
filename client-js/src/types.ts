@@ -80,7 +80,7 @@ export type InstallArgs = {
   totalTokenSupply: string;
   ownershipMode: NFTOwnershipMode;
   nftKind: NFTKind;
-  jsonSchema: JSONSchemaObject;
+  jsonSchema?: JSONSchemaObject;
   nftMetadataKind: NFTMetadataKind;
   identifierMode: NFTIdentifierMode;
   metadataMutability: MetadataMutability;
@@ -98,6 +98,7 @@ export interface RegisterArgs {
 export interface MintArgs {
   owner: CLKeyParameters;
   meta: Record<string, string>;
+  collectionName?: string;
 }
 
 export interface TokenArgs {
