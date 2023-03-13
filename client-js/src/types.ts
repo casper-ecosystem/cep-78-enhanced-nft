@@ -154,5 +154,5 @@ export type ApproveAllArgs = {
 };
 
 export type MigrateArgs = {
-  contractPackageHash: string;
+  collectionName: string;
 };
