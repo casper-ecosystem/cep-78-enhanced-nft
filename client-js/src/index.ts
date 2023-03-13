@@ -71,8 +71,8 @@ export enum CEP47Events {
   MintOne = "cep47_mint_one",
   TransferToken = "cep47_transfer_token",
   BurnOne = "cep47_burn_one",
-  MetadataUpdate = 'cep47_metadata_update',
-  ApproveToken = 'cep47_approve_token'
+  MetadataUpdate = "cep47_metadata_update",
+  ApproveToken = "cep47_approve_token",
 }
 
 export class CEP78Client {
@@ -112,11 +112,18 @@ export class CEP78Client {
       total_token_supply: CLValueBuilder.u64(args.totalTokenSupply),
       ownership_mode: CLValueBuilder.u8(args.ownershipMode),
       nft_kind: CLValueBuilder.u8(args.nftKind),
-      json_schema: CLValueBuilder.string(JSON.stringify(args.jsonSchema)),
       nft_metadata_kind: CLValueBuilder.u8(args.nftMetadataKind),
       identifier_mode: CLValueBuilder.u8(args.identifierMode),
       metadata_mutability: CLValueBuilder.u8(args.metadataMutability),
     });
+
+    // TODO: Validate here
+    if (args.jsonSchema !== undefined) {
+      runtimeArgs.insert(
+        "json_schema",
+        CLValueBuilder.string(JSON.stringify(args.jsonSchema))
+      );
+    }
 
     if (args.mintingMode !== undefined) {
       runtimeArgs.insert("minting_mode", CLValueBuilder.u8(args.mintingMode));
@@ -180,10 +187,7 @@ export class CEP78Client {
     }
 
     if (args.eventsMode !== undefined) {
-      runtimeArgs.insert(
-        'events_mode',
-        CLValueBuilder.u8(args.eventsMode)
-      );
+      runtimeArgs.insert("events_mode", CLValueBuilder.u8(args.eventsMode));
     }
 
     return this.contractClient.install(
@@ -374,14 +378,20 @@ export class CEP78Client {
     const runtimeArgs = RuntimeArgs.fromMap({
       token_owner: CLValueBuilder.key(args.owner),
       token_meta_data: CLValueBuilder.string(JSON.stringify(args.meta)),
-      collection_name: CLValueBuilder.string('my-collection')
     });
 
     if (config.useSessionCode) {
+      if (!args.collectionName)
+        throw new Error("Missing collectionName argument");
+
       const wasmToCall =
         wasm || getBinary(`${__dirname}/../wasm/mint_call.wasm`);
 
       runtimeArgs.insert("nft_contract_hash", this.contractHashKey);
+      runtimeArgs.insert(
+        "collection_name",
+        CLValueBuilder.string(args.collectionName)
+      );
 
       const preparedDeploy = this.contractClient.install(
         wasmToCall,
@@ -741,7 +751,10 @@ export class CEP78Client {
     keys?: Keys.AsymmetricKey[]
   ) {
     const runtimeArgs = RuntimeArgs.fromMap({
-      cep78_package_key: CLValueBuilder.byteArray(convertHashStrToHashBuff(args.contractPackageHash))
+      cep78_package_key: CLValueBuilder.byteArray(
+        convertHashStrToHashBuff(args.contractPackageHash)
+      ),
+      collection_name: CLValueBuilder.string(args.collectionName),
     });
 
     const preparedDeploy = this.contractClient.callEntrypoint(
