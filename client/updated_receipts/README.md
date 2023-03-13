@@ -1,6 +1,6 @@
 # Session code for migrating
 
-Utility session code for migrating their receipts from the previous storage scheme
+Utility session code for migrating their receipts from the previous storage scheme 
 to the new page based model scheme. This session code calls the `updated_receipts`
 entry point on the contract inserting the necessary updated the receipts into
 the account's named keys.
@@ -14,4 +14,4 @@ The Wasm will be found in the `client/mint_session/target/wasm32-unknown-unknown
 
 The `updated_receipts.wasm` takes the following runtime arguments.
 
-- `nft_package_hash`: The NFT ContractPackageHash for a given instance of the NFT contract.
+* `nft_package_hash`: The NFT ContractPackageHash for a given instance of the NFT contract.
