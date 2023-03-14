@@ -182,6 +182,7 @@ const run = async () => {
         material: "Aluminum",
         condition: "Used",
       },
+      collectionName: 'my-collection'
     },
     { useSessionCode },
     "2000000000",
