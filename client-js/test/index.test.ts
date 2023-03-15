@@ -6,7 +6,7 @@ import {
   NFTIdentifierMode,
   MetadataMutability,
   MintingMode,
-  NamedKeyConventionMode
+  NamedKeyConventionMode,
 } from "../src/index";
 
 import {
@@ -134,8 +134,8 @@ describe("CEP78Client", () => {
         metadataMutability: MetadataMutability.Immutable,
         mintingMode: MintingMode.Installer,
         namedKeyConventionMode: NamedKeyConventionMode.V1_0Custom,
-        accessKeyName: 'customName',
-        hashKeyName: 'customHash'
+        accessKeyName: "customName",
+        hashKeyName: "customHash",
       },
       "250000000000",
       keyPair.publicKey
@@ -208,6 +208,7 @@ describe("CEP78Client", () => {
           material: "Aluminum",
           condition: "Used",
         },
+        collectionName: "my-collection",
       },
       { useSessionCode: true },
       "1000000000",
@@ -390,7 +391,7 @@ describe("CEP78Client", () => {
 
   it("Should correctly construct deploy for 'migrate'", async () => {
     const ownerOfDeploy = await cc.migrate(
-      { contractPackageHash: "hash-0101010101010101010101010101010101010101010101010101010101010101" },
+      { collectionName: "my-collection" },
       "1000000000",
       keyPair.publicKey
     );
