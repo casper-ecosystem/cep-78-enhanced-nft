@@ -3,11 +3,14 @@ use casper_engine_test_support::{
     DEFAULT_RUN_GENESIS_REQUEST,
 };
 use casper_types::{runtime_args, ContractHash, Key, RuntimeArgs};
+use contract::{
+    constants::{ARG_ALLOW_MINTING, ENTRY_POINT_SET_VARIABLES},
+    events::events_ces::VariablesSet,
+};
 
 use crate::utility::{
     constants::{
-        ACCOUNT_USER_1, ARG_ALLOW_MINTING, CONTRACT_NAME, ENTRY_POINT_SET_VARIABLES,
-        NFT_CONTRACT_WASM, NFT_TEST_COLLECTION, NFT_TEST_SYMBOL,
+        ACCOUNT_USER_1, CONTRACT_NAME, NFT_CONTRACT_WASM, NFT_TEST_COLLECTION, NFT_TEST_SYMBOL,
     },
     installer_request_builder::{InstallerRequestBuilder, OwnerReverseLookupMode},
     support,
@@ -31,15 +34,16 @@ fn only_installer_should_be_able_to_toggle_allow_minting() {
     builder.exec(install_request).expect_success().commit();
 
     let account = builder.get_expected_account(*DEFAULT_ACCOUNT_ADDR);
-    let nft_contract_hash = account
+    let nft_contract_key: Key = *account
         .named_keys()
         .get(CONTRACT_NAME)
-        .cloned()
-        .and_then(Key::into_hash)
+        .expect("must have key in named keys");
+
+    let nft_contract_hash = Key::into_hash(nft_contract_key)
         .map(ContractHash::new)
         .expect("failed to find nft contract");
 
-    //Account other than installer account should not be able to change allow_minting
+    // Account other than installer account should not be able to change allow_minting
     // Red test
     let other_user_set_variables_request = ExecuteRequestBuilder::contract_call_by_hash(
         other_user_account,
@@ -72,4 +76,9 @@ fn only_installer_should_be_able_to_toggle_allow_minting() {
         .exec(installer_set_variables_request)
         .expect_success()
         .commit();
+
+    // Expect VariablesSet event.
+    let expected_event = VariablesSet::new();
+    let actual_event: VariablesSet = support::get_event(&builder, &nft_contract_key, 0);
+    assert_eq!(actual_event, expected_event, "Expected VariablesSet event.");
 }

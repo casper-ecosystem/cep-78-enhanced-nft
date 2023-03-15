@@ -2,15 +2,17 @@ use alloc::{
     collections::BTreeMap,
     string::{String, ToString},
     vec,
+    vec::Vec,
 };
+
 use casper_types::{
-    bytesrepr::{FromBytes, ToBytes, U8_SERIALIZED_LENGTH},
+    bytesrepr::{self, FromBytes, ToBytes, U64_SERIALIZED_LENGTH, U8_SERIALIZED_LENGTH},
     CLType, CLTyped,
 };
 
 use core::convert::TryFrom;
 
-use crate::NFTCoreError;
+use crate::error::NFTCoreError;
 
 #[repr(u8)]
 #[derive(PartialEq, Eq)]
@@ -226,7 +228,7 @@ impl TryFrom<u8> for OwnershipMode {
 }
 
 #[repr(u8)]
-#[derive(PartialEq, Eq)]
+#[derive(PartialEq, Eq, Clone, Copy)]
 pub enum NFTIdentifierMode {
     Ordinal = 0,
     Hash = 1,
@@ -262,40 +264,98 @@ impl TryFrom<u8> for MetadataMutability {
     }
 }
 
-#[derive(PartialEq, Eq, Clone)]
-pub(crate) enum TokenIdentifier {
+#[derive(PartialEq, Eq, Clone, Debug)]
+pub enum TokenIdentifier {
     Index(u64),
     Hash(String),
 }
 
 impl TokenIdentifier {
-    pub(crate) fn new_index(index: u64) -> Self {
+    pub fn new_index(index: u64) -> Self {
         TokenIdentifier::Index(index)
     }
 
-    pub(crate) fn new_hash(hash: String) -> Self {
+    pub fn new_hash(hash: String) -> Self {
         TokenIdentifier::Hash(hash)
     }
 
-    pub(crate) fn get_index(&self) -> Option<u64> {
+    pub fn get_index(&self) -> Option<u64> {
         if let Self::Index(index) = self {
             return Some(*index);
         }
         None
     }
 
-    pub(crate) fn get_hash(self) -> Option<String> {
+    pub fn get_hash(self) -> Option<String> {
         if let Self::Hash(hash) = self {
             return Some(hash);
         }
         None
     }
 
-    pub(crate) fn get_dictionary_item_key(&self) -> String {
+    pub fn get_dictionary_item_key(&self) -> String {
         match self {
             TokenIdentifier::Index(token_index) => token_index.to_string(),
             TokenIdentifier::Hash(hash) => hash.clone(),
         }
+    }
+}
+
+impl ToBytes for TokenIdentifier {
+    fn to_bytes(&self) -> Result<Vec<u8>, bytesrepr::Error> {
+        let mut bytes = Vec::new();
+        match self {
+            TokenIdentifier::Index(index) => {
+                bytes.push(NFTIdentifierMode::Ordinal as u8);
+                bytes.append(&mut index.to_bytes()?);
+            }
+            TokenIdentifier::Hash(string) => {
+                bytes.push(NFTIdentifierMode::Hash as u8);
+                bytes.append(&mut string.to_bytes()?);
+            }
+        };
+        Ok(bytes)
+    }
+
+    fn serialized_length(&self) -> usize {
+        U8_SERIALIZED_LENGTH
+            + match self {
+                TokenIdentifier::Index(_) => U64_SERIALIZED_LENGTH,
+                TokenIdentifier::Hash(string) => string.serialized_length(),
+            }
+    }
+}
+
+impl FromBytes for TokenIdentifier {
+    fn from_bytes(bytes: &[u8]) -> Result<(Self, &[u8]), bytesrepr::Error> {
+        let (identifier_mode, bytes) = u8::from_bytes(bytes)?;
+        let identifier_mode = NFTIdentifierMode::try_from(identifier_mode)
+            .map_err(|_| bytesrepr::Error::Formatting)?;
+        match identifier_mode {
+            NFTIdentifierMode::Ordinal => {
+                let (index, bytes) = u64::from_bytes(bytes)?;
+                Ok((TokenIdentifier::Index(index), bytes))
+            }
+            NFTIdentifierMode::Hash => {
+                let (string, bytes) = String::from_bytes(bytes)?;
+                Ok((TokenIdentifier::Hash(string), bytes))
+            }
+        }
+    }
+}
+
+impl ToString for TokenIdentifier {
+    fn to_string(&self) -> String {
+        match self {
+            TokenIdentifier::Index(index) => index.to_string(),
+            TokenIdentifier::Hash(hash) => hash.to_string(),
+        }
+    }
+}
+
+impl CLTyped for TokenIdentifier {
+    fn cl_type() -> casper_types::CLType {
+        casper_types::CLType::String
     }
 }
 
@@ -354,6 +414,28 @@ impl TryFrom<u8> for NamedKeyConventionMode {
             1 => Ok(NamedKeyConventionMode::V1_0Standard),
             2 => Ok(NamedKeyConventionMode::V1_0Custom),
             _ => Err(NFTCoreError::InvalidNamedKeyConvention),
+        }
+    }
+}
+
+#[repr(u8)]
+#[derive(PartialEq, Eq)]
+#[allow(clippy::upper_case_acronyms)]
+pub enum EventsMode {
+    NoEvents = 0,
+    CEP47 = 1,
+    CES = 2,
+}
+
+impl TryFrom<u8> for EventsMode {
+    type Error = NFTCoreError;
+
+    fn try_from(value: u8) -> Result<Self, Self::Error> {
+        match value {
+            0 => Ok(EventsMode::NoEvents),
+            1 => Ok(EventsMode::CEP47),
+            2 => Ok(EventsMode::CES),
+            _ => Err(NFTCoreError::InvalidEventsMode),
         }
     }
 }

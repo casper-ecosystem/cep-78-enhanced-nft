@@ -1,5 +1,12 @@
 use std::collections::BTreeMap;
 
+use contract::constants::{
+    ARG_ADDITIONAL_REQUIRED_METADATA, ARG_ALLOW_MINTING, ARG_BURN_MODE, ARG_COLLECTION_NAME,
+    ARG_COLLECTION_SYMBOL, ARG_CONTRACT_WHITELIST, ARG_EVENTS_MODE, ARG_HOLDER_MODE,
+    ARG_IDENTIFIER_MODE, ARG_JSON_SCHEMA, ARG_METADATA_MUTABILITY, ARG_MINTING_MODE,
+    ARG_NAMED_KEY_CONVENTION, ARG_NFT_KIND, ARG_NFT_METADATA_KIND, ARG_OPTIONAL_METADATA,
+    ARG_OWNERSHIP_MODE, ARG_OWNER_LOOKUP_MODE, ARG_TOTAL_TOKEN_SUPPLY, ARG_WHITELIST_MODE,
+};
 use once_cell::sync::Lazy;
 use serde::{Deserialize, Serialize};
 
@@ -7,15 +14,12 @@ use casper_engine_test_support::ExecuteRequestBuilder;
 use casper_execution_engine::core::engine_state::ExecuteRequest;
 use casper_types::{account::AccountHash, bytesrepr::Bytes, CLValue, ContractHash, RuntimeArgs};
 
-use crate::utility::constants::{
-    ARG_ALLOW_MINTING, ARG_BURN_MODE, ARG_COLLECTION_NAME, ARG_COLLECTION_SYMBOL,
-    ARG_CONTRACT_WHITELIST, ARG_HOLDER_MODE, ARG_IDENTIFIER_MODE, ARG_JSON_SCHEMA,
-    ARG_METADATA_MUTABILITY, ARG_MINTING_MODE, ARG_NAMED_KEY_CONVENTION, ARG_NFT_KIND,
-    ARG_NFT_METADATA_KIND, ARG_OWNERSHIP_MODE, ARG_OWNER_LOOKUP_MODE, ARG_TOTAL_TOKEN_SUPPLY,
-    ARG_WHITELIST_MODE, NFT_TEST_COLLECTION, NFT_TEST_SYMBOL,
+// Modalities reexports.
+pub use contract::modalities::{
+    EventsMode, MintingMode, NFTHolderMode, NFTKind, OwnershipMode, TokenIdentifier, WhitelistMode,
 };
 
-use super::constants::{ARG_ADDITIONAL_REQUIRED_METADATA, ARG_OPTIONAL_METADATA};
+use super::constants::{NFT_TEST_COLLECTION, NFT_TEST_SYMBOL};
 
 pub(crate) static TEST_CUSTOM_METADATA_SCHEMA: Lazy<CustomMetadataSchema> = Lazy::new(|| {
     let mut properties = BTreeMap::new();
@@ -51,44 +55,6 @@ pub(crate) static TEST_CUSTOM_UPDATED_METADATA: Lazy<BTreeMap<String, String>> =
     attributes.insert("enemy".to_string(), "Loki".to_string());
     attributes
 });
-
-#[repr(u8)]
-pub enum WhitelistMode {
-    Unlocked = 0,
-    Locked = 1,
-}
-
-#[repr(u8)]
-pub enum NFTHolderMode {
-    Accounts = 0,
-    Contracts = 1,
-    Mixed = 2,
-}
-
-#[repr(u8)]
-pub enum MintingMode {
-    /// The ability to mint NFTs is restricted to the installing account only.
-    Installer = 0,
-    /// The ability to mint NFTs is not restricted.
-    Public = 1,
-}
-
-#[repr(u8)]
-#[derive(Debug)]
-pub enum OwnershipMode {
-    Minter = 0,       // The minter owns it and can never transfer it.
-    Assigned = 1,     // The minter assigns it to an address and can never be transferred.
-    Transferable = 2, // The NFT can be transferred even to an recipient that does not exist.
-}
-
-#[repr(u8)]
-#[derive(Debug)]
-#[allow(dead_code)]
-pub enum NFTKind {
-    Physical = 0,
-    Digital = 1, // The minter assigns it to an address and can never be transferred.
-    Virtual = 2, // The NFT can be transferred even to an recipient that does not exist
-}
 
 #[derive(Serialize, Deserialize, Clone)]
 pub(crate) struct MetadataSchemaProperty {
@@ -175,6 +141,7 @@ pub(crate) struct InstallerRequestBuilder {
     named_key_convention: CLValue,
     additional_required_metadata: CLValue,
     optional_metadata: CLValue,
+    events_mode: CLValue,
 }
 
 impl InstallerRequestBuilder {
@@ -213,6 +180,7 @@ impl InstallerRequestBuilder {
             .unwrap(),
             additional_required_metadata: CLValue::from_t(Bytes::new()).unwrap(),
             optional_metadata: CLValue::from_t(Bytes::new()).unwrap(),
+            events_mode: CLValue::from_t(EventsMode::CES as u8).unwrap(),
         }
     }
 
@@ -339,6 +307,11 @@ impl InstallerRequestBuilder {
         self
     }
 
+    pub(crate) fn with_events_mode(mut self, events_mode: EventsMode) -> Self {
+        self.events_mode = CLValue::from_t(events_mode as u8).unwrap();
+        self
+    }
+
     pub(crate) fn build(self) -> ExecuteRequest {
         let mut runtime_args = RuntimeArgs::new();
         runtime_args.insert_cl_value(ARG_COLLECTION_NAME, self.collection_name);
@@ -358,6 +331,7 @@ impl InstallerRequestBuilder {
         runtime_args.insert_cl_value(ARG_BURN_MODE, self.burn_mode);
         runtime_args.insert_cl_value(ARG_OWNER_LOOKUP_MODE, self.reporting_mode);
         runtime_args.insert_cl_value(ARG_NAMED_KEY_CONVENTION, self.named_key_convention);
+        runtime_args.insert_cl_value(ARG_EVENTS_MODE, self.events_mode);
         runtime_args.insert_cl_value(
             ARG_ADDITIONAL_REQUIRED_METADATA,
             self.additional_required_metadata,
