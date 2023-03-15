@@ -1,4 +1,4 @@
-import { CEP78Client, OwnerReverseLookupMode } from "../src/index";
+import { CEP78Client, OwnerReverseLookupMode, CEP47EventParser, CEP47Events } from "../src/index";
 
 import {
   FAUCET_KEYS,
