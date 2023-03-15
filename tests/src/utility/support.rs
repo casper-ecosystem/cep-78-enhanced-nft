@@ -1,21 +1,21 @@
 use std::fmt::Debug;
 
 use crate::utility::constants::{
-    ARG_KEY_NAME, ARG_NFT_CONTRACT_HASH, HASH_KEY_NAME, INDEX_BY_HASH, MINTING_CONTRACT_NAME,
-    PAGE_DICTIONARY_PREFIX, PAGE_SIZE,
+    ARG_KEY_NAME, ARG_NFT_CONTRACT_HASH, MINTING_CONTRACT_NAME, PAGE_SIZE,
 };
 use blake2::{
     digest::{Update, VariableOutput},
     VarBlake2b,
 };
+use contract::constants::{HASH_KEY_NAME_1_0_0, INDEX_BY_HASH, PREFIX_PAGE_DICTIONARY};
 use rand::prelude::*;
 use serde::{Deserialize, Serialize};
 use sha256::digest;
 
 use super::{constants::CONTRACT_NAME, installer_request_builder::InstallerRequestBuilder};
 use casper_engine_test_support::{
-    ExecuteRequestBuilder, InMemoryWasmTestBuilder, WasmTestBuilder, DEFAULT_ACCOUNT_ADDR,
-    DEFAULT_RUN_GENESIS_REQUEST,
+    ExecuteRequestBuilder, InMemoryWasmTestBuilder, WasmTestBuilder, ARG_AMOUNT,
+    DEFAULT_ACCOUNT_ADDR, DEFAULT_RUN_GENESIS_REQUEST,
 };
 use casper_execution_engine::{
     core::{engine_state::Error as EngineStateError, execution},
@@ -24,6 +24,8 @@ use casper_execution_engine::{
 use casper_types::{
     account::AccountHash,
     bytesrepr::{Bytes, FromBytes},
+    runtime_args,
+    system::{handle_payment::ARG_TARGET, mint::ARG_ID},
     ApiError, CLTyped, CLValueError, ContractHash, ContractPackageHash, Key, PublicKey,
     RuntimeArgs, SecretKey, URef, BLAKE2B_DIGEST_LENGTH,
 };
@@ -48,7 +50,7 @@ pub(crate) fn get_nft_contract_package_hash(
     let nft_hash_addr = builder
         .get_expected_account(*DEFAULT_ACCOUNT_ADDR)
         .named_keys()
-        .get(HASH_KEY_NAME)
+        .get(HASH_KEY_NAME_1_0_0)
         .expect("must have this entry in named keys")
         .into_hash()
         .expect("must get hash_addr");
@@ -102,6 +104,32 @@ pub(crate) fn create_dummy_key_pair(account_string: [u8; 32]) -> (SecretKey, Pub
         SecretKey::ed25519_from_bytes(account_string).expect("failed to create secret key");
     let public_key = PublicKey::from(&secrete_key);
     (secrete_key, public_key)
+}
+
+// Creates a dummy account and transfer funds to it
+pub(crate) fn create_funded_dummy_account(
+    builder: &mut WasmTestBuilder<InMemoryGlobalState>,
+    account_string: Option<[u8; 32]>,
+) -> AccountHash {
+    let (_, account_public_key) =
+        create_dummy_key_pair(if let Some(account_string) = account_string {
+            account_string
+        } else {
+            [7u8; 32]
+        });
+    let account = account_public_key.to_account_hash();
+
+    let transfer = ExecuteRequestBuilder::transfer(
+        *DEFAULT_ACCOUNT_ADDR,
+        runtime_args! {
+            ARG_AMOUNT => 100_000_000_000_000u64,
+            ARG_TARGET => account,
+            ARG_ID => Option::<u64>::None,
+        },
+    )
+    .build();
+    builder.exec(transfer).expect_success().commit();
+    account
 }
 
 pub(crate) fn assert_expected_invalid_installer_request(
@@ -158,7 +186,7 @@ pub(crate) fn query_stored_value<T: CLTyped + FromBytes>(
         .expect("must get value")
 }
 
-pub(crate) fn call_entry_point_with_ret<T: CLTyped + FromBytes>(
+pub(crate) fn call_session_code_with_ret<T: CLTyped + FromBytes>(
     builder: &mut InMemoryWasmTestBuilder,
     account_hash: AccountHash,
     nft_contract_key: Key,
@@ -231,7 +259,7 @@ pub(crate) fn get_token_page_by_id(
     get_dictionary_value_from_key(
         builder,
         nft_contract_key,
-        &format!("{PAGE_DICTIONARY_PREFIX}{page_number}"),
+        &format!("{PREFIX_PAGE_DICTIONARY}_{page_number}"),
         &token_page_item_key,
     )
 }

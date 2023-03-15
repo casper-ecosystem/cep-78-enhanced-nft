@@ -1,7 +1,4 @@
-use alloc::{
-    string::{String, ToString},
-    vec::Vec,
-};
+use alloc::string::{String, ToString};
 
 use casper_event_standard::Event;
 use casper_types::Key;
@@ -43,15 +40,30 @@ impl Burn {
 #[derive(Event, Debug, PartialEq, Eq)]
 pub struct Approval {
     owner: Key,
-    operator: Key,
+    spender: Key,
     token_id: String,
 }
 
 impl Approval {
-    pub fn new(owner: Key, operator: Key, token_id: TokenIdentifier) -> Self {
+    pub fn new(owner: Key, spender: Key, token_id: TokenIdentifier) -> Self {
         Self {
             owner,
-            operator,
+            spender,
+            token_id: token_id.to_string(),
+        }
+    }
+}
+
+#[derive(Event, Debug, PartialEq, Eq)]
+pub struct ApprovalRevoked {
+    owner: Key,
+    token_id: String,
+}
+
+impl ApprovalRevoked {
+    pub fn new(owner: Key, token_id: TokenIdentifier) -> Self {
+        Self {
+            owner,
             token_id: token_id.to_string(),
         }
     }
@@ -60,27 +72,31 @@ impl Approval {
 #[derive(Event, Debug, PartialEq, Eq)]
 pub struct ApprovalForAll {
     owner: Key,
-    operator: Option<Key>,
-    token_ids: Vec<String>,
+    operator: Key,
 }
 
 impl ApprovalForAll {
-    pub fn new(owner: Key, operator: Option<Key>, token_ids: Vec<TokenIdentifier>) -> Self {
-        Self {
-            owner,
-            operator,
-            token_ids: token_ids
-                .iter()
-                .map(|token_id| token_id.to_string())
-                .collect(),
-        }
+    pub fn new(owner: Key, operator: Key) -> Self {
+        Self { owner, operator }
+    }
+}
+
+#[derive(Event, Debug, PartialEq, Eq)]
+pub struct RevokedForAll {
+    owner: Key,
+    operator: Key,
+}
+
+impl RevokedForAll {
+    pub fn new(owner: Key, operator: Key) -> Self {
+        Self { owner, operator }
     }
 }
 
 #[derive(Event, Debug, PartialEq, Eq)]
 pub struct Transfer {
     owner: Key,
-    operator: Option<Key>,
+    spender: Option<Key>,
     recipient: Key,
     token_id: String,
 }
@@ -88,13 +104,13 @@ pub struct Transfer {
 impl Transfer {
     pub fn new(
         owner: Key,
-        operator: Option<Key>,
+        spender: Option<Key>,
         recipient: Key,
         token_id: TokenIdentifier,
     ) -> Self {
         Self {
             owner,
-            operator,
+            spender,
             recipient,
             token_id: token_id.to_string(),
         }

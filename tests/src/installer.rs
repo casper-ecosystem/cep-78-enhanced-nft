@@ -4,17 +4,20 @@ use casper_engine_test_support::{
 };
 use casper_event_standard::Schemas;
 use casper_types::{runtime_args, CLValue, ContractHash, RuntimeArgs};
-use contract::events::events_ces::{
-    Approval, ApprovalForAll, Burn, MetadataUpdated, Migration, Mint, Transfer, VariablesSet,
-};
-
-use crate::utility::{
+use contract::{
     constants::{
         ARG_ALLOW_MINTING, ARG_COLLECTION_NAME, ARG_COLLECTION_SYMBOL, ARG_CONTRACT_WHITELIST,
         ARG_HOLDER_MODE, ARG_MINTING_MODE, ARG_TOTAL_TOKEN_SUPPLY, ARG_WHITELIST_MODE,
-        CONTRACT_NAME, ENTRY_POINT_INIT, NFT_CONTRACT_WASM, NFT_TEST_COLLECTION, NFT_TEST_SYMBOL,
-        NUMBER_OF_MINTED_TOKENS,
+        ENTRY_POINT_INIT, NUMBER_OF_MINTED_TOKENS,
     },
+    events::events_ces::{
+        Approval, ApprovalForAll, ApprovalRevoked, Burn, MetadataUpdated, Migration, Mint,
+        Transfer, VariablesSet,
+    },
+};
+
+use crate::utility::{
+    constants::{CONTRACT_NAME, NFT_CONTRACT_WASM, NFT_TEST_COLLECTION, NFT_TEST_SYMBOL},
     installer_request_builder::{
         InstallerRequestBuilder, MintingMode, NFTHolderMode, NFTIdentifierMode, NFTMetadataKind,
         OwnerReverseLookupMode, OwnershipMode, WhitelistMode,
@@ -112,6 +115,7 @@ fn should_install_contract() {
         .with::<Mint>()
         .with::<Burn>()
         .with::<Approval>()
+        .with::<ApprovalRevoked>()
         .with::<ApprovalForAll>()
         .with::<Transfer>()
         .with::<MetadataUpdated>()

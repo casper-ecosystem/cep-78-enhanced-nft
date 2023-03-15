@@ -2,18 +2,22 @@ use casper_engine_test_support::{
     ExecuteRequestBuilder, InMemoryWasmTestBuilder, DEFAULT_ACCOUNT_ADDR,
     DEFAULT_RUN_GENESIS_REQUEST,
 };
-use casper_types::{
-    account::AccountHash, runtime_args, system::mint, ContractHash, Key, RuntimeArgs,
+use casper_types::{account::AccountHash, runtime_args, ContractHash, Key, RuntimeArgs};
+use contract::{
+    constants::{
+        ARG_APPROVE_ALL, ARG_COLLECTION_NAME, ARG_OPERATOR, ARG_TOKEN_HASH, ARG_TOKEN_ID,
+        ARG_TOKEN_META_DATA, ARG_TOKEN_OWNER, BURNT_TOKENS, BURN_MODE, ENTRY_POINT_BURN,
+        ENTRY_POINT_MINT, ENTRY_POINT_SET_APPROVALL_FOR_ALL, TOKEN_COUNT,
+    },
+    events::events_ces::Burn,
+    modalities::TokenIdentifier,
 };
-use contract::{events::events_ces::Burn, modalities::TokenIdentifier};
 
 use crate::utility::{
     constants::{
-        ACCOUNT_USER_1, ARG_APPROVE_ALL, ARG_COLLECTION_NAME, ARG_NFT_CONTRACT_HASH, ARG_OPERATOR,
-        ARG_TOKEN_HASH, ARG_TOKEN_ID, ARG_TOKEN_META_DATA, ARG_TOKEN_OWNER, BALANCES, BURNT_TOKENS,
-        CONTRACT_NAME, ENTRY_POINT_BURN, ENTRY_POINT_MINT, ENTRY_POINT_SET_APPROVE_FOR_ALL,
+        ACCOUNT_USER_1, ARG_NFT_CONTRACT_HASH, ARG_REVERSE_LOOKUP, CONTRACT_NAME,
         MINTING_CONTRACT_WASM, MINT_SESSION_WASM, NFT_CONTRACT_WASM, NFT_TEST_COLLECTION,
-        TEST_PRETTY_721_META_DATA, TOKEN_COUNTS,
+        TEST_PRETTY_721_META_DATA,
     },
     installer_request_builder::{
         BurnMode, InstallerRequestBuilder, MetadataMutability, MintingMode, NFTHolderMode,
@@ -25,7 +29,6 @@ use crate::utility::{
 };
 
 fn should_burn_minted_token(reporting: OwnerReverseLookupMode) {
-    let token_id = 0u64;
     let mut builder = InMemoryWasmTestBuilder::default();
     builder.run_genesis(&DEFAULT_RUN_GENESIS_REQUEST).commit();
 
@@ -49,6 +52,7 @@ fn should_burn_minted_token(reporting: OwnerReverseLookupMode) {
 
     let nft_contract_hash = get_nft_contract_hash(&builder);
     let token_owner: Key = Key::Account(*DEFAULT_ACCOUNT_ADDR);
+    let token_id = 0u64;
 
     let reverse_lookup_enabled: bool = reporting == OwnerReverseLookupMode::Complete;
     if reverse_lookup_enabled {
@@ -94,7 +98,7 @@ fn should_burn_minted_token(reporting: OwnerReverseLookupMode) {
     let actual_balance_before_burn = support::get_dictionary_value_from_key::<u64>(
         &builder,
         nft_contract_key,
-        BALANCES,
+        TOKEN_COUNT,
         &DEFAULT_ACCOUNT_ADDR.clone().to_string(),
     );
 
@@ -124,7 +128,7 @@ fn should_burn_minted_token(reporting: OwnerReverseLookupMode) {
     let actual_balance = support::get_dictionary_value_from_key::<u64>(
         &builder,
         nft_contract_key,
-        BALANCES,
+        TOKEN_COUNT,
         &DEFAULT_ACCOUNT_ADDR.clone().to_string(),
     );
 
@@ -241,12 +245,14 @@ fn should_return_expected_error_when_burning_non_existing_token() {
         .expect_success()
         .commit();
 
+    let token_id = 0u64;
+
     let burn_request = ExecuteRequestBuilder::contract_call_by_name(
         *DEFAULT_ACCOUNT_ADDR,
         CONTRACT_NAME,
         ENTRY_POINT_BURN,
         runtime_args! {
-            ARG_TOKEN_ID => 0u64,
+            ARG_TOKEN_ID => token_id,
         },
     )
     .build();
@@ -256,7 +262,7 @@ fn should_return_expected_error_when_burning_non_existing_token() {
     let actual_error = builder.get_error().expect("must have error");
     support::assert_expected_error(
         actual_error,
-        28u16,
+        155u16,
         "should return InvalidTokenID error when trying to burn a non_existing token",
     );
 }
@@ -286,22 +292,7 @@ fn should_return_expected_error_burning_of_others_users_token() {
         .into_hash()
         .expect("must convert to hash addr");
 
-    let (_, account_user_1) = support::create_dummy_key_pair(ACCOUNT_USER_1);
-
-    let transfer_to_account_1 = ExecuteRequestBuilder::transfer(
-        *DEFAULT_ACCOUNT_ADDR,
-        runtime_args! {
-            mint::ARG_AMOUNT => 100_000_000_000_000u64,
-            mint::ARG_TARGET => account_user_1.to_account_hash(),
-            mint::ARG_ID => Option::<u64>::None,
-        },
-    )
-    .build();
-
-    builder
-        .exec(transfer_to_account_1)
-        .expect_success()
-        .commit();
+    let account_user_1 = support::create_funded_dummy_account(&mut builder, Some(ACCOUNT_USER_1));
 
     let mint_session_call = ExecuteRequestBuilder::standard(
         *DEFAULT_ACCOUNT_ADDR,
@@ -327,7 +318,7 @@ fn should_return_expected_error_burning_of_others_users_token() {
     assert!(token_page[0]);
 
     let incorrect_burn_request = ExecuteRequestBuilder::contract_call_by_hash(
-        account_user_1.to_account_hash(),
+        account_user_1,
         ContractHash::new(nft_contract_hash),
         ENTRY_POINT_BURN,
         runtime_args! {
@@ -369,22 +360,7 @@ fn should_return_expected_error_when_burning_not_owned_token() {
         .into_hash()
         .expect("must convert to hash addr");
 
-    let (_, account_user_1) = support::create_dummy_key_pair(ACCOUNT_USER_1);
-
-    let transfer_to_account_1 = ExecuteRequestBuilder::transfer(
-        *DEFAULT_ACCOUNT_ADDR,
-        runtime_args! {
-            mint::ARG_AMOUNT => 100_000_000_000_000u64,
-            mint::ARG_TARGET => account_user_1.to_account_hash(),
-            mint::ARG_ID => Option::<u64>::None,
-        },
-    )
-    .build();
-
-    builder
-        .exec(transfer_to_account_1)
-        .expect_success()
-        .commit();
+    let account_user_1 = support::create_funded_dummy_account(&mut builder, Some(ACCOUNT_USER_1));
 
     let mint_session_call = ExecuteRequestBuilder::standard(
         *DEFAULT_ACCOUNT_ADDR,
@@ -410,7 +386,7 @@ fn should_return_expected_error_when_burning_not_owned_token() {
     assert!(token_page[0]);
 
     let incorrect_burn_request = ExecuteRequestBuilder::contract_call_by_hash(
-        account_user_1.to_account_hash(),
+        account_user_1,
         ContractHash::new(nft_contract_hash),
         ENTRY_POINT_BURN,
         runtime_args! {
@@ -468,7 +444,7 @@ fn should_allow_contract_to_burn_token() {
         ARG_NFT_CONTRACT_HASH => nft_contract_key,
         ARG_TOKEN_OWNER => Key::Account(*DEFAULT_ACCOUNT_ADDR),
         ARG_TOKEN_META_DATA => TEST_PRETTY_721_META_DATA.to_string(),
-        "reverse_lookup" => false,
+        ARG_REVERSE_LOOKUP => false,
     };
 
     let mint_via_contract_call = ExecuteRequestBuilder::contract_call_by_hash(
@@ -487,7 +463,7 @@ fn should_allow_contract_to_burn_token() {
     let current_token_balance = get_dictionary_value_from_key::<u64>(
         &builder,
         &nft_contract_key,
-        TOKEN_COUNTS,
+        TOKEN_COUNT,
         &minting_contract_hash.to_string(),
     );
 
@@ -512,7 +488,7 @@ fn should_allow_contract_to_burn_token() {
     let updated_token_balance = get_dictionary_value_from_key::<u64>(
         &builder,
         &nft_contract_key,
-        TOKEN_COUNTS,
+        TOKEN_COUNT,
         &minting_contract_hash.to_string(),
     );
 
@@ -535,7 +511,7 @@ fn should_not_burn_in_non_burn_mode() {
 
     let nft_contract_key: Key = get_nft_contract_hash(&builder).into();
     let burn_mode: u8 = builder
-        .query(None, nft_contract_key, &["burn_mode".to_string()])
+        .query(None, nft_contract_key, &[BURN_MODE.to_string()])
         .unwrap()
         .as_cl_value()
         .unwrap()
@@ -575,6 +551,7 @@ fn should_not_burn_in_non_burn_mode() {
     support::assert_expected_error(error, 106, "InvalidBurnMode(106) must have been raised");
 }
 
+// This test is no longer relevant as approve_for_all does not check burnt tokens anymore
 #[test]
 fn should_let_approve_all_with_burnt_tokens() {
     let mut builder = InMemoryWasmTestBuilder::default();
@@ -625,7 +602,7 @@ fn should_let_approve_all_with_burnt_tokens() {
     let approve_all_request = ExecuteRequestBuilder::contract_call_by_hash(
         *DEFAULT_ACCOUNT_ADDR,
         nft_contract_hash,
-        ENTRY_POINT_SET_APPROVE_FOR_ALL,
+        ENTRY_POINT_SET_APPROVALL_FOR_ALL,
         runtime_args! {
             ARG_APPROVE_ALL => true,
             ARG_OPERATOR => operator
