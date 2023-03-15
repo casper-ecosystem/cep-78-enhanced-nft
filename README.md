@@ -312,10 +312,6 @@ This modality provides three options:
 | V_1_0_standard            | 1   |
 | V_1_0_custom              | 2   |
 
-#### Modality Conflicts
-
-The `MetadataMutability` option of `Mutable` cannot be used in conjunction with `NFTIdentifierMode` modality of `Hash`.
-
 #### EventsMode
 
 The `EventsMode` modality determines how the installed instance of CEP-78 will handle the recording of events that occur from interacting with the contract.
@@ -323,7 +319,7 @@ The `EventsMode` modality determines how the installed instance of CEP-78 will h
 The modality provides two options:
 
 1. `NoEvents`: This modality will signal the contract to not record events at all. This is the default mode.
-2. `CEP47`: This modality will signal the contract to record events using the CEP47 event schema. Events are stored as a `BTreeMap` within dictionary in the contract's context. The events can be retrieved directly via their dictionary entry using the JSON-RPC, with more information on this process available [here](https://docs.casperlabs.io/dapp-dev-guide/writing-contracts/dictionaries/).
+2. `CEP47`: This modality will signal the contract to record events using the CEP47 event schema. Further information can be found [below](#cep47-mode).
 3. `CES`: This modality will signal the contract to record events using the [Casper Event Standard](#casper-event-standard).
 
 | EventsMode | u8  |
@@ -331,6 +327,48 @@ The modality provides two options:
 | NoEvents   | 0   |
 | CEP47      | 1   |
 | CES        | 2   |
+
+##### CEP47 Mode
+
+The CEP47 `EventsMode` modality mimics the event schema previously used in the CEP47 NFT standard. Events are stored as a `BTreeMap` within a dictionary (`EVENTS`) in the contract's context. Entries consist of the `PREFIX_HASH_KEY_NAME`, followed by the `EVENT_TYPE` and then variable data as listed in the table below. The events can be retrieved directly via their dictionary entry using the JSON-RPC, with more information on this process available [here](https://docs.casperlabs.io/concepts/dictionaries/).
+
+| Event name      | Included values and type                                                |
+| --------------- | ----------------------------------------------------------------------- |
+| Mint            | recipient (Key), token_id (String)                                      |
+| Transfer        | owner (Key), operator (Option<Key>), recipient (Key), token_id (String) |
+| Burn            | owner (Key), token_id (String)                                          |
+| ApprovalGranted | owner (Key), spender (Key), token_id (String)                           |
+| ApprovalRevoked | owner (Key), token_id (String)                                          |
+| ApprovalForAll  | owner (Key), operator (Key)                                             |
+| RevokedForAll   | owner (Key), operator (Key)                                             |
+| MetadataUpdate  | token_id (String)                                                       |
+| Migration       | -                                                                       |
+| VariablesSet    | -                                                                       |
+
+##### Casper Event Standard
+
+`CES` is an option within the `EventsMode` modality that determines how changes to tokens issued by the contract instance will be recorded. Any changes are recorded in the `__events` dictionary and can be observed via a node's Server Side Events stream. They may also be viewed by querying the dictionary at any time using the JSON-RPC interface.
+
+The emitted events are encoded according to the [Casper Event Standard](https://github.com/make-software/casper-event-standard), and the schema is visible to an observer reading the `__events_schema` contract named key.
+
+For this CEP-78 reference implementation, the events schema is as follows:
+
+| Event name      | Included values and type                                                |
+| --------------- | ----------------------------------------------------------------------- |
+| Mint            | recipient (Key), token_id (String), data (String)                       |
+| Transfer        | owner (Key), operator (Option<Key>), recipient (Key), token_id (String) |
+| Burn            | owner (Key), token_id (String)                                          |
+| Approval        | owner (Key), spender (Key), token_id (String)                           |
+| ApprovalRevoked | owner (Key), token_id (String)                                          |
+| ApprovalForAll  | owner (Key), operator (Key)                                             |
+| RevokedForAll   | owner (Key), operator (Key)                                             |
+| MetadataUpdated | token_id (String), data (String)                                        |
+| Migration       | -                                                                       |
+| VariablesSet    | -                                                                       |
+
+#### Modality Conflicts
+
+The `MetadataMutability` option of `Mutable` cannot be used in conjunction with `NFTIdentifierMode` modality of `Hash`.
 
 ### Usage
 
@@ -672,27 +710,6 @@ You can determine the token number by multiplying the `page_number` by the `page
 If the `NFTIdentifierMode` is set to `Ordinal`, this number corresponds directly to the token ID.
 
 If it is set to `Hash`, you will need to reference the `HASH_BY_INDEX` dictionary to determine the mapping of token numbers to token hashes.
-
-## Casper Event Standard
-
-`CES` is an option within the `EventsMode` modality that determines how changes to tokens issued by the contract instance will be recorded. Any changes are recorded in the `__events` dictionary and can be observed via a node's Server Side Events stream. They may also be viewed by querying the dictionary at any time using the JSON-RPC interface.
-
-The emitted events are encoded according to the [Casper Event Standard](https://github.com/make-software/casper-event-standard), and the schema is visible to an observer reading the `__events_schema` contract named key.
-
-For this CEP-78 reference implementation, the events schema is as follows:
-
-| Event name      | Included values and type                                                |
-| --------------- | ----------------------------------------------------------------------- |
-| Mint            | recipient (Key), token_id (String), data (String)                       |
-| Transfer        | owner (Key), operator (Option<Key>), recipient (Key), token_id (String) |
-| Burn            | owner (Key), token_id (String)                                          |
-| Approval        | owner (Key), spender (Key), token_id (String)                           |
-| ApprovalRevoked | owner (Key), token_id (String)                                          |
-| ApprovalForAll  | owner (Key), operator (Key)                                             |
-| RevokedForAll   | owner (Key), operator (Key)                                             |
-| MetadataUpdated | token_id (String), data (String)                                        |
-| Migration       | -                                                                       |
-| VariablesSet    | -                                                                       |
 
 ## Error Codes
 
