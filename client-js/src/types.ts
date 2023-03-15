@@ -173,6 +173,7 @@ type WriteCLValue = {
 };
 
 // TODO: Most of this types can be moved to casper-js-sdk in feature release
+// https://github.com/casper-ecosystem/casper-js-sdk/issues/268
 
 type TransformValue = {
   WriteCLValue?: WriteCLValue
