@@ -25,7 +25,6 @@ const runDeployFlow = async (deploy: DeployUtil.Deploy) => {
   console.log(`...... Deploy ${deployHash} succedeed`);
 };
 
-
 const run = async () => {
   const cc = new CEP78Client(process.env.NODE_URL!, process.env.NETWORK_NAME!);
 
