@@ -172,6 +172,8 @@ type WriteCLValue = {
   parsed: string;
 };
 
+// TODO: Most of this types can be moved to casper-js-sdk in feature release
+
 type TransformValue = {
   WriteCLValue?: WriteCLValue
 };
@@ -192,7 +194,6 @@ interface ExecutionResultBody {
   effect: Effect;
 }
 
-/** Result interface for an execution result */
 export interface ExecutionResult {
   Success?: ExecutionResultBody;
   Failure?: ExecutionResultBody;
