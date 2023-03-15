@@ -1,13 +1,21 @@
-import { CLKeyParameters } from "casper-js-sdk";
+import { CLType, CLValue, CLKeyParameters } from "casper-js-sdk";
+
+export enum CEP47Events {
+  Mint = "Mint",
+  Transfer = "Transfer",
+  Burn = "Burn",
+  MetadataUpdate = "MetadataUpdate",
+  Approve = "Approve",
+}
 
 export interface CallConfig {
   useSessionCode: boolean;
 }
 
-export enum NamedKeyConventionMode  {
+export enum NamedKeyConventionMode {
   DerivedFromCollectionName,
   V1_0Standard,
-  V1_0Custom
+  V1_0Custom,
 }
 
 export enum NFTOwnershipMode {
@@ -67,7 +75,8 @@ export enum OwnerReverseLookupMode {
 
 export enum EventsMode {
   NoEvents,
-  CEP47
+  CEP47,
+  CES,
 }
 
 export interface JSONSchemaEntry {
@@ -156,3 +165,59 @@ export type ApproveAllArgs = {
 export type MigrateArgs = {
   collectionName: string;
 };
+
+type WriteCLValue = {
+  cl_type: string;
+  bytes: string;
+  parsed: string;
+};
+
+type TransformValue = {
+  WriteCLValue?: WriteCLValue
+};
+
+export interface Transform {
+  key: string;
+  transform: TransformValue;
+}
+
+interface Effect {
+  transforms: Transform[];
+}
+
+interface ExecutionResultBody {
+  cost: number;
+  error_message?: string | null;
+  transfers: string[];
+  effect: Effect;
+}
+
+/** Result interface for an execution result */
+export interface ExecutionResult {
+  Success?: ExecutionResultBody;
+  Failure?: ExecutionResultBody;
+}
+
+export interface WithRemainder<T> {
+  data: T;
+  remainder: Uint8Array;
+}
+
+export interface RawCLValue {
+  clType: CLType;
+  bytes: Uint8Array;
+}
+
+export interface EventItem {
+  id: number;
+  body: {
+    DeployProcessed: {
+      execution_result: ExecutionResult;
+    };
+  };
+}
+
+export interface EventParsed {
+  name: string;
+  clValue: CLValue;
+}

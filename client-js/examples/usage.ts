@@ -25,64 +25,6 @@ const runDeployFlow = async (deploy: DeployUtil.Deploy) => {
   console.log(`...... Deploy ${deployHash} succedeed`);
 };
 
-enum CEP47Events {
-  Mint = "Mint",
-  Transfer = "Transfer",
-  Burn = "Burn",
-  MetadataUpdate = 'MetadataUpdate',
-  Approve = 'Approve'
-}
-
-const CEP47EventParser = (
-  {
-    contractPackageHash,
-    eventNames,
-  }: { contractPackageHash: string; eventNames: CEP47Events[] },
-  value: any
-) => {
-  if (value.body.DeployProcessed.execution_result.Success) {
-    const { transforms } =
-      value.body.DeployProcessed.execution_result.Success.effect;
-
-        const cep47Events = transforms.reduce((acc: any, val: any) => {
-          if (
-            val.transform.hasOwnProperty("WriteCLValue") &&
-            val.transform.WriteCLValue.cl_type === 'Any'
-          ) {
-            const maybeCLValue = CLValueParsers.fromBytesWithType(
-              Buffer.from(val.transform.WriteCLValue.bytes, 'hex')
-            );
-            const clValue = maybeCLValue.unwrap();
-
-            if (clValue && clValue.clType().tag === CLTypeTag.Map) {
-              const hash = (clValue as CLMap<CLValue, CLValue>).get(
-                CLValueBuilder.string("cep78_contract_package")
-              );
-
-              const hashToCompare = hash.value().slice(21);
-
-              const event = (clValue as CLMap<CLValue, CLValue>).get(CLValueBuilder.string("event_type"));
-
-              if (
-                hash &&
-                // NOTE: Calling toLowerCase() because current JS-SDK doesn't support checksumed hashes and returns all lower case value
-                // Remove it after updating SDK
-                hashToCompare === contractPackageHash.slice(5).toLowerCase() &&
-                event &&
-                eventNames.includes(event.value())
-              ) {
-                acc = [...acc, { name: event.value(), clValue }];
-              }
-            }
-          }
-          return acc;
-        }, []);
-
-    return { error: null, success: !!cep47Events.length, data: cep47Events };
-  }
-
-  return null;
-};
 
 const run = async () => {
   const cc = new CEP78Client(process.env.NODE_URL!, process.env.NETWORK_NAME!);

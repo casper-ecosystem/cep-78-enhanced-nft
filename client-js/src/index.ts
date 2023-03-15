@@ -44,6 +44,7 @@ import {
 const { Contract } = Contracts;
 
 export * from "./types";
+export * from "./events";
 
 enum ERRORS {
   CONFLICT_CONFIG = "Conflicting arguments provided",
@@ -66,14 +67,6 @@ const buildKeyHashList = (list: string[]) =>
 
 export const getBinary = (pathToBinary: string) =>
   new Uint8Array(fs.readFileSync(pathToBinary, null).buffer);
-
-export enum CEP47Events {
-  MintOne = "cep47_mint_one",
-  TransferToken = "cep47_transfer_token",
-  BurnOne = "cep47_burn_one",
-  MetadataUpdate = "cep47_metadata_update",
-  ApproveToken = "cep47_approve_token",
-}
 
 export class CEP78Client {
   private casperClient: CasperClient;
