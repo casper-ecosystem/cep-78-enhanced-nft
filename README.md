@@ -316,7 +316,7 @@ This modality provides three options:
 
 The `EventsMode` modality determines how the installed instance of CEP-78 will handle the recording of events that occur from interacting with the contract.
 
-The modality provides two options:
+The modality provides three options:
 
 1. `NoEvents`: This modality will signal the contract to not record events at all. This is the default mode.
 2. `CEP47`: This modality will signal the contract to record events using the CEP47 event schema. Further information can be found [below](#cep47-mode).
@@ -368,7 +368,7 @@ For this CEP-78 reference implementation, the events schema is as follows:
 
 #### Modality Conflicts
 
-The `MetadataMutability` option of `Mutable` cannot be used in conjunction with `NFTIdentifierMode` modality of `Hash`.
+The `MetadataMutability` option set to `Mutable` cannot be used in conjunction with the `NFTIdentifierMode` modality set to `Hash`.
 
 ### Usage
 
