@@ -42,7 +42,7 @@ const install = async () => {
       metadataMutability: MetadataMutability.Immutable,
       mintingMode: MintingMode.Installer,
       ownerReverseLookupMode: OwnerReverseLookupMode.NoLookup,
-      eventsMode: EventsMode.CEP47
+      eventsMode: EventsMode.CES
     },
     "250000000000",
     FAUCET_KEYS.publicKey,
