@@ -43,7 +43,7 @@ USER1_KEY_PAIR_PATH=/Users/someuser/.casper/casper-node/utils/nctl/assets/net-1/
 
 As CEP-78 1.2 supports two events modes - `CEP47` and `CES` we have two parsers as a part of this SDK.
 
-* example usage of CEP47 parser
+* Example usage of CEP47 parser
 
 ```
 import { EventStream, EventName } from 'casper-js-sdk';
