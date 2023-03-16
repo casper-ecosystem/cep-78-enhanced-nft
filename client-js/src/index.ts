@@ -242,7 +242,7 @@ export class CEP78Client {
     const internalValue = await this.contractClient.queryContractData([
       "burn_mode",
     ]) as BigNumber;
-    const u8res = internalValue.toString();
+    const u8res = internalValue.toNumber();
     return BurnMode[u8res] as keyof typeof BurnMode;
   }
 
