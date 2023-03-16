@@ -28,8 +28,7 @@ export const CEP47EventParserFactory =
       const cep47Events = transforms.reduce(
         (acc: EventParsed[], val: Transform) => {
           if (
-            val.transform.WriteCLValue &&
-            val.transform.WriteCLValue.cl_type === "Any"
+            val.transform.WriteCLValue?.cl_type === "Any"
           ) {
             const maybeCLValue = CLValueParsers.fromBytesWithType(
               Buffer.from(val.transform.WriteCLValue?.bytes, "hex")
