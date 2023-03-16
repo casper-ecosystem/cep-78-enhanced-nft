@@ -39,7 +39,7 @@
   },
   "dependencies": {
     "@ethersproject/bignumber": "^5.7.0",
-    "casper-js-sdk": "2.10.1",
+    "casper-js-sdk": "2.11.0",
     "ts-results": "^3.3.0"
   }
 }

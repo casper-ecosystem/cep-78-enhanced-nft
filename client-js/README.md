@@ -38,3 +38,7 @@ NETWORK_NAME=casper-net-1
 MASTER_KEY_PAIR_PATH=/Users/someuser/.casper/casper-node/utils/nctl/assets/net-1/faucet
 USER1_KEY_PAIR_PATH=/Users/someuser/.casper/casper-node/utils/nctl/assets/net-1/users/user-1
 ```
+
+## Events
+
+You can use one of the 

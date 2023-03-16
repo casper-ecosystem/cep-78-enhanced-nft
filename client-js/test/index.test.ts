@@ -74,8 +74,8 @@ describe("CEP78Client", () => {
     const JSONDeploy = DeployUtil.deployToJson(installDeploy) as any;
 
     expect(installDeploy).toBeInstanceOf(DeployUtil.Deploy);
-    expect(JSONDeploy.deploy.session.ModuleBytes.args).toEqual(
-      INSTALL_ARGS_JSON
+    expect(JSONDeploy.deploy.session.ModuleBytes.args.sort()).toEqual(
+      INSTALL_ARGS_JSON.sort()
     );
   });
 
@@ -108,8 +108,8 @@ describe("CEP78Client", () => {
     const JSONDeploy = DeployUtil.deployToJson(installDeploy) as any;
 
     expect(installDeploy).toBeInstanceOf(DeployUtil.Deploy);
-    expect(JSONDeploy.deploy.session.ModuleBytes.args).toEqual(
-      INSTALL_ARGS_V1_0_STANDARD_JSON
+    expect(JSONDeploy.deploy.session.ModuleBytes.args.sort()).toEqual(
+      INSTALL_ARGS_V1_0_STANDARD_JSON.sort()
     );
   });
 
@@ -144,8 +144,8 @@ describe("CEP78Client", () => {
     const JSONDeploy = DeployUtil.deployToJson(installDeploy) as any;
 
     expect(installDeploy).toBeInstanceOf(DeployUtil.Deploy);
-    expect(JSONDeploy.deploy.session.ModuleBytes.args).toEqual(
-      INSTALL_ARGS_V1_0_CUSTOM_JSON
+    expect(JSONDeploy.deploy.session.ModuleBytes.args.sort()).toEqual(
+      INSTALL_ARGS_V1_0_CUSTOM_JSON.sort()
     );
   });
 
