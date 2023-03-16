@@ -12,25 +12,9 @@
 - A NFT contract instance must validate provided metadata against the specified metadata schema for that contract.
 - Standardized session code to interact with an NFT contract instance must be usable as is, so that a given DApp developer doesn't have to write any Wasm producing logic for normal usage of NFT contract instances produced by this contract.
 
-## New in Version 1.1
+## New in Version 1.2
 
-The release of version 1.1 for the CEP-78 Enhanced NFT Standard includes the following:
-
-- Ownership of NFTs issued by a given CEP-78 contract instance are tracked by token id; thus the current owner of any given token by id is available using the owned_by entrypoint. However, some use cases benefit from the ability to ask the reverse question: list all the NFTs from a given contract instance owned by a specific owner.
-
-  - To be able to support this reverse lookup option requires a contract instance to keep track of additional data, which causes higher gas costs for all mints and transfers. The gas cost to ask for any given owner is also unpredictable; as the asker is charged for the appropriate gas cost to read and return a collection that may be empty or may be quite large.
-
-  - The pros and cons of either approach should be considered when installing a new CEP-78 contract. By default, new CEP-78 contract instances will default to the `OwnerReverseLookupMode::NoLookup` option, which has the lowest operating costs and optimal scaling characteristics. However, the `OwnerReverseLookupMode::Complete` option can be chosen upon install, which will allow the contract to write the necessary additional data to allow a full lookup by owner.
-
-  - To allow isolation of the additional costs, or tracking individual owners, the reverse lookup mode supports a register entrypoint which is used to register owners prior to minting or receiving a transferred token. In either `Assigned` or `Transferable` mode, this register entrypoint can be called by any party on behalf of another party.
-
-- A single instance of CEP-78 is limited to 1,000,000 tokens maximum.
-
-  - The naming convention for the default named key prefix of a given CEP-78 contract instance has been changed to `cep78_<collection_name>` with spaces and dashes within the collection name converted to underscores.
-
-  - **Version 1.1.1** Added a new modality named `NamedKeyConventionMode` that dictates the upgrading and installation process, with further information [here](#namedkeyconventionmode)
-
-  - **If an account attempts to install a second CEP-78 contract instance with the same collection name, it will overwrite the `NamedKey` entry under which the access URef is written. Losing the access URef will prevent the account from adding newer versions, i.e., upgrading that particular instance of CEP-78.**
+Please refer to the [release notes](https://github.com/casper-ecosystem/cep-78-enhanced-nft/releases)
 
 ## Table of Contents
 
@@ -152,6 +136,8 @@ This modality dictates the schema for the metadata for NFTs minted by a given in
 2. `NFT721`: This mode specifies that NFTs minted must have valid metadata conforming to the NFT-721 metadata schema.
 3. `Raw`: This mode specifies that metadata validation will not occur and raw strings can be passed to `token_metadata` runtime argument as part of the call to `mint` entrypoint.
 4. `CustomValidated`: This mode specifies that a custom schema provided at the time of install will be used when validating the metadata as part of the call to `mint` entrypoint.
+
+During installation, one `NFTMetadataKind` must be chosen as the base metadata kind for the contract instance. Additional kinds may be included using either the `additional_required_metadata` or `optional_metadata` arguments.
 
 ##### CEP-78 metadata example
 
@@ -383,11 +369,11 @@ The following are the required runtime arguments that must be passed to the inst
 
 - `"collection_name":` The name of the NFT collection, passed in as a `String`. This parameter is required and cannot be changed post installation.
 - `"collection_symbol"`: The symbol representing a given NFT collection, passed in as a `String`. This parameter is required and cannot be changed post installation.
-- `"total_token_supply"`: The total number of NFTs that a specific instance of a contract will mint passed in as a `U64` value. This parameter is required and cannot be changed post installation.
+- `"total_token_supply"`: The total number of NFTs that a specific instance of a contract will mint passed in as a `U64` value. This parameter is required.
 - `"ownership_mode"`: The [`OwnershipMode`](#ownership) modality that dictates the ownership behavior of the NFT contract. This argument is passed in as a `u8` value and is required at the time of installation.
 - `"nft_kind"`: The [`NFTKind`](#nftkind) modality that specifies the off-chain items represented by the on-chain NFT data. This argument is passed in as a `u8` value and is required at the time of installation.
 - `"json_schema"`: The JSON schema for the NFT tokens that will be minted by the NFT contract passed in as a `String`. This parameter is required if the metadata kind is set to `CustomValidated(4)` and cannot be changed post installation.
-- `"nft_metadata_kind"`: The metadata schema for the NFTs to be minted by the NFT contract. This argument is passed in as a `u8` value and is required at the time of installation.
+- `"nft_metadata_kind"`: The base metadata schema for the NFTs to be minted by the NFT contract. This argument is passed in as a `u8` value and is required at the time of installation.
 - `"identifier_mode"`: The [`NFTIdentifierMode`](#nftidentifiermode) modality dictates the primary identifier for NFTs minted by the contract. This argument is passed in as a `u8` value and is required at the time of installation.
 - `"metadata_mutability"`: The [`MetadataMutability`](#metadata-mutability) modality dictates whether the metadata of minted NFTs can be updated. This argument is passed in as a `u8` value and is required at the time of installation.
 
@@ -401,6 +387,8 @@ The following are the optional parameters that can be passed in at the time of i
 - `"burn_mode"`: The [`BurnMode`](#burnmode) modality dictates whether minted NFTs can be burnt. This is an optional parameter and will allow tokens to be burnt by default. This parameter cannot be changed once the contract has been installed.
 - `"owner_reverse_lookup_mode"`: The [`OwnerReverseLookupMode`](#reportingmode) modality dictates whether the lookup for owners to token identifiers is available. This is an optional parameter and will not provide the lookup by default. This parameter cannot be changed once the contract has been installed.
 - `"events_mode"`: The [`EventsMode`](#eventsmode) modality selects the event schema used to record any changes that occur to tokens issued by the contract instance.
+- `"additional_required_metdata"`: An additional metadata schema that must be included. This argument is passed in as a `u8` value.
+- `"optional_metdata"`: An optional metadata schema that may be included. This argument is passed in as a `u8` value.
 
 ##### Example deploy
 
@@ -456,7 +444,7 @@ Below is an example of a `casper-client` command that provides all required sess
 
 3. `--session-arg "total_token_supply:u64='100'"`
 
-   The total supply of tokens to be minted. In this instance, 100. If the contract owner is unsure of the total number of NFTs they will require, they should err on the side of caution. This value cannot be changed at a later date.
+   The total supply of tokens to be minted. In this instance, 100. If the contract owner is unsure of the total number of NFTs they will require, they should err on the side of caution.
 
 4. `--session-arg "ownership_mode:u8='2'"`
 

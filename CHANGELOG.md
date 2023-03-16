@@ -9,6 +9,16 @@ All notable changes to this project will be documented in this file.  The format
 [comment]: <> (Fixed:      any bug fixes)
 [comment]: <> (Security:   in case of vulnerabilities)
 
+## Release 1.2.0
+
+### Added
+
+* Added a new modality named `EventsMode` that dictates how the installed instance of CEP-78 will handle the recording of events. Refer to the README for further details
+
+* Added the ability to define additional `NFTMetadataKind`s as either `additional_required_metadata` or `optional_metadata`. Refer to the `Installing the Contract` section of the README for more information on using these arguments.
+
+* When upgrading from a contract instance, you may now change the `total_token_supply` to a number higher than the current number of minted tokens, but lower than your previous total. The number cannot be zero. More information is available in the upgrade tutorials.
+
 ## Release 1.1.1
 
 ### Added 
