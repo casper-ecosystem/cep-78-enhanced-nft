@@ -233,71 +233,71 @@ export class CEP78Client {
   public async getWhitelistModeConfig() {
     const internalValue = await this.contractClient.queryContractData([
       "whitelist_mode",
-    ]);
-    const u8res = (internalValue as BigNumber).toNumber();
+    ]) as BigNumber;
+    const u8res = internalValue.toNumber();
     return WhitelistMode[u8res] as keyof typeof WhitelistMode;
   }
 
   public async getBurnModeConfig() {
     const internalValue = await this.contractClient.queryContractData([
       "burn_mode",
-    ]);
-    const u8res = (internalValue as BigNumber).toString();
+    ]) as BigNumber;
+    const u8res = internalValue.toString();
     return BurnMode[u8res] as keyof typeof BurnMode;
   }
 
   public async getHolderModeConfig() {
     const internalValue = await this.contractClient.queryContractData([
       "holder_mode",
-    ]);
-    const u8res = (internalValue as BigNumber).toNumber();
+    ]) as BigNumber;
+    const u8res = internalValue.toNumber();
     return NFTHolderMode[u8res] as keyof typeof NFTHolderMode;
   }
 
   public async getIdentifierModeConfig() {
     const internalValue = await this.contractClient.queryContractData([
       "identifier_mode",
-    ]);
-    const u8res = (internalValue as BigNumber).toNumber();
+    ]) as BigNumber;
+    const u8res = internalValue.toNumber();
     return NFTIdentifierMode[u8res] as keyof typeof NFTIdentifierMode;
   }
 
   public async getMetadataMutabilityConfig() {
     const internalValue = await this.contractClient.queryContractData([
       "metadata_mutability",
-    ]);
-    const u8res = (internalValue as BigNumber).toNumber();
+    ]) as BigNumber;
+    const u8res = internalValue.toNumber();
     return MetadataMutability[u8res] as keyof typeof MetadataMutability;
   }
 
   public async getNFTKindConfig() {
     const internalValue = await this.contractClient.queryContractData([
       "nft_kind",
-    ]);
-    const u8res = (internalValue as BigNumber).toNumber();
+    ]) as BigNumber;
+    const u8res = internalValue.toNumber();
     return NFTKind[u8res] as keyof typeof NFTKind;
   }
 
   public async getMetadataKindConfig() {
     const internalValue = await this.contractClient.queryContractData([
       "nft_metadata_kind",
-    ]);
-    const u8res = (internalValue as BigNumber).toNumber();
+    ]) as BigNumber;
+    const u8res = internalValue.toNumber();
     return NFTMetadataKind[u8res] as keyof typeof NFTMetadataKind;
   }
 
   public async getOwnershipModeConfig() {
     const internalValue = await this.contractClient.queryContractData([
       "ownership_mode",
-    ]);
-    const u8res = (internalValue as BigNumber).toNumber();
+    ]) as BigNumber;
+    const u8res = internalValue.toNumber();
     return NFTOwnershipMode[u8res] as keyof typeof NFTOwnershipMode;
   }
 
   public async getJSONSchemaConfig() {
     const internalValue = await this.contractClient.queryContractData([
       "json_schema",
-    ]);
+    ]) as BigNumber;
     return internalValue.toString();
   }
 
