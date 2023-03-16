@@ -60,7 +60,7 @@ const convertHashStrToHashBuff = (hashStr: string) => {
 
 const buildHashList = (list: string[]) =>
   list.map((hashStr) =>
-      CLValueBuilder.byteArray(convertHashStrToHashBuff(hashStr))
+    CLValueBuilder.byteArray(convertHashStrToHashBuff(hashStr))
   );
 
 export const getBinary = (pathToBinary: string) =>
@@ -225,8 +225,8 @@ export class CEP78Client {
   public async getReportingModeConfig() {
     const internalValue = await this.contractClient.queryContractData([
       "reporting_mode",
-    ]);
-    const u8res = (internalValue as BigNumber).toNumber();
+    ]) as BigNumber;
+    const u8res = internalValue.toNumber();
     return OwnerReverseLookupMode[u8res] as keyof typeof OwnerReverseLookupMode;
   }
 
