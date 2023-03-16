@@ -372,8 +372,9 @@ export class CEP78Client {
     });
 
     if (config.useSessionCode) {
-      if (!args.collectionName)
+      if (!args.collectionName) {
         throw new Error("Missing collectionName argument");
+      }
 
       const wasmToCall =
         wasm || getBinary(`${__dirname}/../wasm/mint_call.wasm`);
