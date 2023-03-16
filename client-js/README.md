@@ -73,7 +73,7 @@ es.subscribe(EventName.DeployProcessed, async (event) => {
 es.start();
 ```
 
-* example usage of CES parser
+* Example usage of CES parser
 
 ```
 import { EventStream, EventName, CasperServiceByJsonRPC } from 'casper-js-sdk';
