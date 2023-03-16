@@ -2,10 +2,15 @@ import { CLType, CLValue, CLKeyParameters } from "casper-js-sdk";
 
 export enum CEP47Events {
   Mint = "Mint",
-  Transfer = "Transfer",
   Burn = "Burn",
-  MetadataUpdate = "MetadataUpdate",
-  Approve = "Approve",
+  Approval = "Approval",
+  ApprovalRevoked = "ApprovalRevoked",
+  ApprovalForAll = "ApprovalForAll",
+  RevokedForAll = "RevokedForAll",
+  Transfer = "Transfer",
+  MetadataUpdated = "MetadataUpdated",
+  VariablesSet = "VariablesSet",
+  Migration = "Migration",
 }
 
 export interface CallConfig {
@@ -176,7 +181,7 @@ type WriteCLValue = {
 // https://github.com/casper-ecosystem/casper-js-sdk/issues/268
 
 type TransformValue = {
-  WriteCLValue?: WriteCLValue
+  WriteCLValue?: WriteCLValue;
 };
 
 export interface Transform {

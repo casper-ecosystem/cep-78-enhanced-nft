@@ -109,9 +109,7 @@ const run = async () => {
     eventNames: [
       CEP47Events.Mint,
       CEP47Events.Transfer,
-      CEP47Events.Burn,
-      CEP47Events.MetadataUpdate,
-      CEP47Events.Approve,
+      CEP47Events.Burn
     ],
   });
 
