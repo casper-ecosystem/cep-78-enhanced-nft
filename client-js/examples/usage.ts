@@ -126,9 +126,13 @@ const run = async () => {
   es.subscribe(EventName.DeployProcessed, async (event) => {
     const parsedEvents = await cesEventParser(event); //cep47EventParser(event);
 
-    if (parsedEvents && parsedEvents.success) {
+    if (parsedEvents?.success) {
       console.log("*** EVENT ***");
       console.log(parsedEvents.data);
+      console.log("*** ***");
+    } else {
+      console.log("*** ERRORED EVENT ***");
+      console.log(parsedEvents.error);
       console.log("*** ***");
     }
   });
