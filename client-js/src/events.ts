@@ -21,6 +21,10 @@ export const CEP47EventParserFactory =
     eventNames: CEP47Events[];
   }) =>
   (value: EventItem) => {
+    if (!value.body.DeployProcessed.execution_result.Success) {
+        return null;
+    }
+
     if (value.body.DeployProcessed.execution_result.Success) {
       const { transforms } =
         value.body.DeployProcessed.execution_result.Success.effect;
