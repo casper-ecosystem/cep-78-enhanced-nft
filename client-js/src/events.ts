@@ -27,9 +27,7 @@ export const CEP47EventParserFactory =
 
       const cep47Events = transforms.reduce(
         (acc: EventParsed[], val: Transform) => {
-          if (
-            val.transform.WriteCLValue?.cl_type === "Any"
-          ) {
+          if (val.transform.WriteCLValue?.cl_type === "Any") {
             const maybeCLValue = CLValueParsers.fromBytesWithType(
               Buffer.from(val.transform.WriteCLValue?.bytes, "hex")
             );
@@ -62,6 +60,8 @@ export const CEP47EventParserFactory =
         []
       );
 
+      // For now we're returning error: null because failed deploys doesn't contain contract-package-hash so we can't identify them.
+      // But as this is part of node-1.5 release I'm keeping this so we won't change interface here.
       return { error: null, success: !!cep47Events.length, data: cep47Events };
     }
 
@@ -78,7 +78,10 @@ export const CESEventParserFactory =
     casperClient: CasperServiceByJsonRPC;
   }) =>
   async (event: EventItem) => {
-    const parser = await Parser.create(casperClient, contractHashes.map(c => c.slice(5)));
+    const validatedHashes = contractHashes.map((hash) =>
+      hash.startsWith("hash-") ? hash.slice(5) : hash
+    );
+    const parser = await Parser.create(casperClient, validatedHashes);
 
     try {
       const toParse = event.body.DeployProcessed.execution_result;
@@ -87,5 +90,4 @@ export const CESEventParserFactory =
     } catch (error: unknown) {
       return { error, success: false, data: null };
     }
-
   };
