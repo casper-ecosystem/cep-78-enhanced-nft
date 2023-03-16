@@ -35,7 +35,7 @@ export const CEP47EventParserFactory =
             );
             const clValue = maybeCLValue.unwrap();
 
-            if (clValue && clValue.clType().tag === CLTypeTag.Map) {
+            if (clValue?.clType().tag === CLTypeTag.Map) {
               const hash = (clValue as CLMap<CLValue, CLValue>).get(
                 CLValueBuilder.string("cep78_contract_package")
               );
