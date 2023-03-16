@@ -19,6 +19,8 @@ All notable changes to this project will be documented in this file.  The format
 
 * When upgrading from a contract instance, you may now change the `total_token_supply` to a number higher than the current number of minted tokens, but lower than your previous total. The number cannot be zero. More information is available in the upgrade tutorials.
 
+* Added the ability to revoke approval.
+
 ## Release 1.1.1
 
 ### Added 
