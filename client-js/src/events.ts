@@ -10,6 +10,7 @@ import {
 
 import { Parser } from "@make-software/ces-js-parser";
 
+import { CEP78_CONTRACT_PACKAGE } from "./constants";
 import { EventItem, EventParsed, CEP47Events, Transform } from "./types";
 
 export const CEP47EventParserFactory =
@@ -22,7 +23,7 @@ export const CEP47EventParserFactory =
   }) =>
   (value: EventItem) => {
     if (!value.body.DeployProcessed.execution_result.Success) {
-        return null;
+      return null;
     }
 
     if (value.body.DeployProcessed.execution_result.Success) {
@@ -39,7 +40,7 @@ export const CEP47EventParserFactory =
 
             if (clValue?.clType().tag === CLTypeTag.Map) {
               const hash = (clValue as CLMap<CLValue, CLValue>).get(
-                CLValueBuilder.string("cep78_contract_package")
+                CLValueBuilder.string(CEP78_CONTRACT_PACKAGE)
               );
 
               const hashToCompare = (hash as CLString).value().slice(21);
