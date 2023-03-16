@@ -131,9 +131,7 @@ const run = async () => {
       console.log(parsedEvents.data);
       console.log("*** ***");
     } else {
-      console.log("*** ERRORED EVENT ***");
-      console.log(parsedEvents.error);
-      console.log("*** ***");
+      console.log("*** EVENT NOT RELATED TO WATCHED CONTRACT ***");
     }
   });
 
