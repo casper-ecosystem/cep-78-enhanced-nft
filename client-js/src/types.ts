@@ -76,6 +76,7 @@ export enum WhitelistMode {
 export enum OwnerReverseLookupMode {
   NoLookup,
   Complete,
+  TransfersOnly,
 }
 
 export enum EventsMode {

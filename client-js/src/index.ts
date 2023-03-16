@@ -355,6 +355,23 @@ export class CEP78Client {
     return preparedDeploy;
   }
 
+  public revoke(
+    paymentAmount: string,
+    deploySender: CLPublicKey,
+    keys?: Keys.AsymmetricKey[],
+  ) {
+    const preparedDeploy = this.contractClient.callEntrypoint(
+      "revoke",
+      RuntimeArgs.fromMap({}),
+      deploySender,
+      this.networkName,
+      paymentAmount,
+      keys
+    );
+
+    return preparedDeploy;
+  }
+
   public mint(
     args: MintArgs,
     config: CallConfig,
