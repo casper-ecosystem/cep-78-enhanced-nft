@@ -1,19 +1,26 @@
 use casper_engine_test_support::{
-    ExecuteRequestBuilder, InMemoryWasmTestBuilder, WasmTestBuilder, DEFAULT_ACCOUNT_ADDR,
+    ExecuteRequestBuilder, InMemoryWasmTestBuilder, DEFAULT_ACCOUNT_ADDR,
     DEFAULT_RUN_GENESIS_REQUEST,
 };
-use casper_execution_engine::storage::global_state::in_memory::InMemoryGlobalState;
-use casper_types::{account::AccountHash, runtime_args, CLValue, ContractHash, Key, RuntimeArgs};
+
+use casper_types::{account::AccountHash, runtime_args, CLValue, Key, RuntimeArgs};
+use contract::{
+    constants::{
+        ACCESS_KEY_NAME_1_0_0, ARG_ACCESS_KEY_NAME_1_0_0, ARG_COLLECTION_NAME, ARG_EVENTS_MODE,
+        ARG_HASH_KEY_NAME_1_0_0, ARG_NAMED_KEY_CONVENTION, ARG_SOURCE_KEY, ARG_TARGET_KEY,
+        ARG_TOKEN_HASH, ARG_TOKEN_META_DATA, ARG_TOKEN_OWNER, ARG_TOTAL_TOKEN_SUPPLY,
+        ENTRY_POINT_REGISTER_OWNER, PAGE_LIMIT, RECEIPT_NAME, UNMATCHED_HASH_COUNT,
+    },
+    events::events_ces::Migration,
+    modalities::EventsMode,
+};
 
 use crate::utility::{
     constants::{
-        ACCESS_KEY_NAME_1_0_0, ACCOUNT_USER_1, ARG_ACCESS_KEY_NAME_1_0_0, ARG_COLLECTION_NAME,
-        ARG_HASH_KEY_NAME_1_0_0, ARG_IS_HASH_IDENTIFIER_MODE, ARG_NAMED_KEY_CONVENTION,
-        ARG_NFT_CONTRACT_HASH, ARG_NFT_PACKAGE_HASH, ARG_SOURCE_KEY, ARG_TARGET_KEY,
-        ARG_TOKEN_HASH, ARG_TOKEN_META_DATA, ARG_TOKEN_OWNER, CONTRACT_1_0_0_WASM,
-        ENTRY_POINT_REGISTER_OWNER, MANGLE_NAMED_KEYS, MINT_1_0_0_WASM, MINT_SESSION_WASM,
-        NFT_CONTRACT_WASM, NFT_TEST_COLLECTION, NFT_TEST_SYMBOL, PAGE_LIMIT, PAGE_SIZE,
-        RECEIPT_NAME, TRANSFER_SESSION_WASM, UNMATCHED_HASH_COUNT, UPDATED_RECEIPTS_WASM,
+        ACCOUNT_USER_1, ARG_IS_HASH_IDENTIFIER_MODE, ARG_NFT_CONTRACT_HASH,
+        ARG_NFT_CONTRACT_PACKAGE_HASH, CONTRACT_1_0_0_WASM, CONTRACT_1_1_O_WASM, MANGLE_NAMED_KEYS,
+        MINT_1_0_0_WASM, MINT_SESSION_WASM, NFT_CONTRACT_WASM, NFT_TEST_COLLECTION,
+        NFT_TEST_SYMBOL, PAGE_SIZE, TRANSFER_SESSION_WASM, UPDATED_RECEIPTS_WASM,
     },
     installer_request_builder::{
         InstallerRequestBuilder, MetadataMutability, NFTIdentifierMode, NFTMetadataKind,
@@ -25,18 +32,6 @@ use crate::utility::{
 const OWNED_TOKENS: &str = "owned_tokens";
 const MANGLED_ACCESS_KEY_NAME: &str = "mangled_access_key";
 const MANGLED_HASH_KEY_NAME: &str = "mangled_hash_key";
-
-fn get_nft_contract_hash_1_0_0(builder: &WasmTestBuilder<InMemoryGlobalState>) -> ContractHash {
-    let nft_hash_addr = builder
-        .get_expected_account(*DEFAULT_ACCOUNT_ADDR)
-        .named_keys()
-        .get("nft_contract")
-        .expect("must have this entry in named keys")
-        .into_hash()
-        .expect("must get hash_addr");
-
-    ContractHash::new(nft_hash_addr)
-}
 
 #[test]
 fn should_safely_upgrade_in_ordinal_identifier_mode() {
@@ -54,7 +49,7 @@ fn should_safely_upgrade_in_ordinal_identifier_mode() {
 
     builder.exec(install_request).expect_success().commit();
 
-    let nft_contract_hash_1_0_0 = get_nft_contract_hash_1_0_0(&builder);
+    let nft_contract_hash_1_0_0 = support::get_nft_contract_hash_1_0_0(&builder);
     let nft_contract_key_1_0_0: Key = nft_contract_hash_1_0_0.into();
 
     let number_of_tokens_pre_migration = 3usize;
@@ -73,7 +68,6 @@ fn should_safely_upgrade_in_ordinal_identifier_mode() {
 
         builder.exec(mint_request).expect_success().commit();
     }
-
     let previous_token_representation = support::get_dictionary_value_from_key::<Vec<u64>>(
         &builder,
         &nft_contract_key_1_0_0,
@@ -94,16 +88,17 @@ fn should_safely_upgrade_in_ordinal_identifier_mode() {
 
     assert!(maybe_access_named_key);
 
-    let package_hash = support::get_nft_contract_package_hash(&builder);
+    let contract_package_hash = support::get_nft_contract_package_hash(&builder);
 
     let upgrade_request = ExecuteRequestBuilder::standard(
         *DEFAULT_ACCOUNT_ADDR,
         NFT_CONTRACT_WASM,
         runtime_args! {
-            ARG_NFT_PACKAGE_HASH => package_hash,
+            ARG_NFT_CONTRACT_PACKAGE_HASH => contract_package_hash,
             ARG_COLLECTION_NAME => NFT_TEST_COLLECTION.to_string(),
             ARG_NAMED_KEY_CONVENTION => NamedKeyConventionMode::V1_0Standard as u8,
-            ARG_ACCESS_KEY_NAME_1_0_0 => ACCESS_KEY_NAME_1_0_0.to_string()
+            ARG_ACCESS_KEY_NAME_1_0_0 => ACCESS_KEY_NAME_1_0_0.to_string(),
+            ARG_EVENTS_MODE => EventsMode::CES as u8
         },
     )
     .build();
@@ -141,6 +136,11 @@ fn should_safely_upgrade_in_ordinal_identifier_mode() {
     };
     assert_eq!(actual_page, expected_page);
 
+    // Expect Migration event.
+    let expected_event = Migration::new();
+    let actual_event: Migration = support::get_event(&builder, &nft_contract_key, 0);
+    assert_eq!(actual_event, expected_event, "Expected Migration event.");
+
     let mint_request = ExecuteRequestBuilder::standard(
         *DEFAULT_ACCOUNT_ADDR,
         MINT_SESSION_WASM,
@@ -173,7 +173,7 @@ fn should_safely_upgrade_in_hash_identifier_mode() {
 
     builder.exec(install_request).expect_success().commit();
 
-    let nft_contract_hash_1_0_0 = get_nft_contract_hash_1_0_0(&builder);
+    let nft_contract_hash_1_0_0 = support::get_nft_contract_hash_1_0_0(&builder);
     let nft_contract_key_1_0_0: Key = nft_contract_hash_1_0_0.into();
 
     let mut expected_metadata: Vec<String> = vec![];
@@ -232,10 +232,11 @@ fn should_safely_upgrade_in_hash_identifier_mode() {
         *DEFAULT_ACCOUNT_ADDR,
         NFT_CONTRACT_WASM,
         runtime_args! {
-            ARG_NFT_PACKAGE_HASH => support::get_nft_contract_package_hash(&builder),
+            ARG_NFT_CONTRACT_HASH => support::get_nft_contract_package_hash(&builder),
             ARG_COLLECTION_NAME => NFT_TEST_COLLECTION.to_string(),
             ARG_NAMED_KEY_CONVENTION => NamedKeyConventionMode::V1_0Standard as u8,
-            ARG_ACCESS_KEY_NAME_1_0_0 => ACCESS_KEY_NAME_1_0_0.to_string()
+            ARG_ACCESS_KEY_NAME_1_0_0 => ACCESS_KEY_NAME_1_0_0.to_string(),
+            ARG_TOTAL_TOKEN_SUPPLY => 10u64
         },
     )
     .build();
@@ -253,6 +254,15 @@ fn should_safely_upgrade_in_hash_identifier_mode() {
     .expect("must get u64 value");
 
     assert_eq!(number_of_tokens_at_upgrade, 3);
+
+    let total_token_supply_post_upgrade = support::get_stored_value_from_global_state::<u64>(
+        &builder,
+        nft_contract_key,
+        vec![ARG_TOTAL_TOKEN_SUPPLY.to_string()],
+    )
+    .expect("must get u64 value");
+
+    assert_eq!(total_token_supply_post_upgrade, 10);
 
     let token_metadata = support::CEP78Metadata::with_random_checksum(
         "Some Name".to_string(),
@@ -353,7 +363,7 @@ fn should_update_receipts_post_upgrade_paged() {
 
     builder.exec(install_request).expect_success().commit();
 
-    let nft_contract_hash_1_0_0 = get_nft_contract_hash_1_0_0(&builder);
+    let nft_contract_hash_1_0_0 = support::get_nft_contract_hash_1_0_0(&builder);
     let nft_contract_key_1_0_0: Key = nft_contract_hash_1_0_0.into();
 
     let number_of_tokens_pre_migration = 20usize;
@@ -373,13 +383,12 @@ fn should_update_receipts_post_upgrade_paged() {
         builder.exec(mint_request).expect_success().commit();
     }
 
-    let nft_contract_package_hash = support::get_nft_contract_package_hash(&builder);
+    let contract_package_hash = support::get_nft_contract_package_hash(&builder);
 
     let upgrade_request = ExecuteRequestBuilder::standard(
         *DEFAULT_ACCOUNT_ADDR,
         NFT_CONTRACT_WASM,
         runtime_args! {
-            ARG_NFT_PACKAGE_HASH => nft_contract_package_hash,
             ARG_COLLECTION_NAME => NFT_TEST_COLLECTION.to_string(),
             ARG_NAMED_KEY_CONVENTION => NamedKeyConventionMode::V1_0Standard as u8,
             ARG_ACCESS_KEY_NAME_1_0_0 => ACCESS_KEY_NAME_1_0_0.to_string()
@@ -389,13 +398,13 @@ fn should_update_receipts_post_upgrade_paged() {
 
     builder.exec(upgrade_request).expect_success().commit();
 
-    let nft_package_key: Key = nft_contract_package_hash.into();
+    let package_hash_key: Key = contract_package_hash.into();
 
     let migrate_request = ExecuteRequestBuilder::standard(
         *DEFAULT_ACCOUNT_ADDR,
         UPDATED_RECEIPTS_WASM,
         runtime_args! {
-            ARG_NFT_PACKAGE_HASH => nft_package_key
+            ARG_NFT_CONTRACT_PACKAGE_HASH => package_hash_key
         },
     )
     .build();
@@ -448,14 +457,32 @@ fn should_not_be_able_to_reinvoke_migrate_entrypoint() {
 
     builder.exec(install_request).expect_success().commit();
 
+    let upgrade_to_1_1_request = ExecuteRequestBuilder::standard(
+        *DEFAULT_ACCOUNT_ADDR,
+        CONTRACT_1_1_O_WASM,
+        runtime_args! {
+            ARG_NFT_CONTRACT_HASH => support::get_nft_contract_package_hash(&builder),
+            ARG_COLLECTION_NAME => NFT_TEST_COLLECTION.to_string(),
+            ARG_NAMED_KEY_CONVENTION => NamedKeyConventionMode::V1_0Standard as u8,
+            ARG_ACCESS_KEY_NAME_1_0_0 => ACCESS_KEY_NAME_1_0_0.to_string()
+        },
+    )
+    .build();
+
+    builder
+        .exec(upgrade_to_1_1_request)
+        .expect_success()
+        .commit();
+
     let upgrade_request = ExecuteRequestBuilder::standard(
         *DEFAULT_ACCOUNT_ADDR,
         NFT_CONTRACT_WASM,
         runtime_args! {
-            ARG_NFT_PACKAGE_HASH => support::get_nft_contract_package_hash(&builder),
+            ARG_NFT_CONTRACT_PACKAGE_HASH => support::get_nft_contract_package_hash(&builder),
             ARG_COLLECTION_NAME => NFT_TEST_COLLECTION.to_string(),
             ARG_NAMED_KEY_CONVENTION => NamedKeyConventionMode::V1_0Standard as u8,
-            ARG_ACCESS_KEY_NAME_1_0_0 => ACCESS_KEY_NAME_1_0_0.to_string()
+            ARG_ACCESS_KEY_NAME_1_0_0 => ACCESS_KEY_NAME_1_0_0.to_string(),
+            ARG_EVENTS_MODE => EventsMode::CES as u8
         },
     )
     .build();
@@ -464,18 +491,19 @@ fn should_not_be_able_to_reinvoke_migrate_entrypoint() {
 
     // Once the new contract version has been added to the package
     // calling the updated_receipts entrypoint should cause an error to be returned.
-    let upgrade_request = ExecuteRequestBuilder::standard(
+    let incorrect_upgrade_request = ExecuteRequestBuilder::standard(
         *DEFAULT_ACCOUNT_ADDR,
         NFT_CONTRACT_WASM,
         runtime_args! {
-            ARG_NFT_PACKAGE_HASH => support::get_nft_contract_package_hash(&builder),
             ARG_COLLECTION_NAME => NFT_TEST_COLLECTION.to_string(),
             ARG_NAMED_KEY_CONVENTION => NamedKeyConventionMode::V1_0Standard as u8,
-            ARG_ACCESS_KEY_NAME_1_0_0 => ACCESS_KEY_NAME_1_0_0.to_string()
+            ARG_ACCESS_KEY_NAME_1_0_0 => ACCESS_KEY_NAME_1_0_0.to_string(),
+            ARG_EVENTS_MODE => EventsMode::CES as u8
         },
     )
     .build();
-    builder.exec(upgrade_request).expect_failure();
+
+    builder.exec(incorrect_upgrade_request).expect_failure();
 
     let error = builder.get_error().expect("must have error");
 
@@ -502,7 +530,7 @@ fn should_not_migrate_contracts_with_zero_token_issuance() {
         *DEFAULT_ACCOUNT_ADDR,
         NFT_CONTRACT_WASM,
         runtime_args! {
-            ARG_NFT_PACKAGE_HASH => support::get_nft_contract_package_hash(&builder),
+            ARG_NFT_CONTRACT_PACKAGE_HASH => support::get_nft_contract_package_hash(&builder),
             ARG_COLLECTION_NAME => NFT_TEST_COLLECTION.to_string(),
             ARG_NAMED_KEY_CONVENTION => NamedKeyConventionMode::V1_0Standard as u8,
             ARG_ACCESS_KEY_NAME_1_0_0 => ACCESS_KEY_NAME_1_0_0.to_string()
@@ -532,7 +560,7 @@ fn should_upgrade_with_custom_named_keys() {
 
     builder.exec(install_request).expect_success().commit();
 
-    let nft_contract_hash_1_0_0 = get_nft_contract_hash_1_0_0(&builder);
+    let nft_contract_hash_1_0_0 = support::get_nft_contract_hash_1_0_0(&builder);
     let nft_contract_key_1_0_0: Key = nft_contract_hash_1_0_0.into();
 
     let number_of_tokens_pre_migration = 3usize;
@@ -620,4 +648,44 @@ fn should_upgrade_with_custom_named_keys() {
         .exec(proper_upgrade_request)
         .expect_success()
         .commit();
+}
+
+#[test]
+fn should_not_upgrade_with_larger_total_token_supply() {
+    let mut builder = InMemoryWasmTestBuilder::default();
+    builder.run_genesis(&DEFAULT_RUN_GENESIS_REQUEST).commit();
+
+    let install_request = InstallerRequestBuilder::new(*DEFAULT_ACCOUNT_ADDR, CONTRACT_1_0_0_WASM)
+        .with_collection_name(NFT_TEST_COLLECTION.to_string())
+        .with_collection_symbol(NFT_TEST_SYMBOL.to_string())
+        .with_total_token_supply(100u64)
+        .with_ownership_mode(OwnershipMode::Transferable)
+        .with_identifier_mode(NFTIdentifierMode::Hash)
+        .with_nft_metadata_kind(NFTMetadataKind::CEP78)
+        .with_metadata_mutability(MetadataMutability::Immutable)
+        .build();
+
+    builder.exec(install_request).expect_success().commit();
+
+    let upgrade_request = ExecuteRequestBuilder::standard(
+        *DEFAULT_ACCOUNT_ADDR,
+        NFT_CONTRACT_WASM,
+        runtime_args! {
+            ARG_NFT_CONTRACT_PACKAGE_HASH => support::get_nft_contract_package_hash(&builder),
+            ARG_COLLECTION_NAME => NFT_TEST_COLLECTION.to_string(),
+            ARG_NAMED_KEY_CONVENTION => NamedKeyConventionMode::V1_0Standard as u8,
+            ARG_ACCESS_KEY_NAME_1_0_0 => ACCESS_KEY_NAME_1_0_0.to_string(),
+            ARG_TOTAL_TOKEN_SUPPLY => 1000u64
+        },
+    )
+    .build();
+
+    builder.exec(upgrade_request).expect_failure();
+    let error = builder.get_error().expect("must have error");
+
+    support::assert_expected_error(
+        error,
+        150u16,
+        "cannot upgrade when new total token supply is larger than pre-migration one",
+    );
 }

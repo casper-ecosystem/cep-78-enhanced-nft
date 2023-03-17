@@ -18,6 +18,7 @@ const ARG_NFT_CONTRACT_HASH: &str = "nft_contract_hash";
 const ARG_TOKEN_OWNER: &str = "token_owner";
 const ARG_TOKEN_META_DATA: &str = "token_meta_data";
 const ARG_COLLECTION_NAME: &str = "collection_name";
+pub const PREFIX_CEP78: &str = "cep78";
 
 #[no_mangle]
 pub extern "C" fn call() {
@@ -30,12 +31,12 @@ pub extern "C" fn call() {
     let token_metadata: String = runtime::get_named_arg(ARG_TOKEN_META_DATA);
     let collection_name: String = runtime::get_named_arg(ARG_COLLECTION_NAME);
 
-    if runtime::get_key(&format!("cep78_{collection_name}")).is_none() {
+    if runtime::get_key(&format!("{PREFIX_CEP78}_{collection_name}")).is_none() {
         let (register_name, package_uref) = runtime::call_contract::<(String, URef)>(
             nft_contract_hash,
             ENTRY_POINT_REGISTER_OWNER,
             runtime_args! {
-                        ARG_TOKEN_OWNER => token_owner,
+                ARG_TOKEN_OWNER => token_owner
             },
         );
         runtime::put_key(&register_name, package_uref.into())
