@@ -22,4 +22,7 @@ module.exports = {
     'plugin:eslint-comments/recommended',
     'prettier',
   ],
+  rules: {
+    "import/prefer-default-export": "off"
+  }
 };
