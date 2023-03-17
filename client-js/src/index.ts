@@ -57,11 +57,9 @@ const convertHashStrToHashBuff = (hashStr: string) => {
   return Buffer.from(hashHex, "hex");
 };
 
-const buildKeyHashList = (list: string[]) =>
+const buildHashList = (list: string[]) =>
   list.map((hashStr) =>
-    CLValueBuilder.key(
       CLValueBuilder.byteArray(convertHashStrToHashBuff(hashStr))
-    )
   );
 
 export const getBinary = (pathToBinary: string) =>
@@ -133,7 +131,7 @@ export class CEP78Client {
     }
 
     if (args.contractWhitelist !== undefined) {
-      const list = buildKeyHashList(args.contractWhitelist);
+      const list = buildHashList(args.contractWhitelist);
       runtimeArgs.insert("contract_whitelist", CLValueBuilder.list(list));
     }
 
@@ -307,7 +305,7 @@ export class CEP78Client {
     }
 
     if (args.contractWhitelist !== undefined) {
-      const list = buildKeyHashList(args.contractWhitelist);
+      const list = buildHashList(args.contractWhitelist);
       runtimeArgs.insert("contract_whitelist", CLValueBuilder.list(list));
     }
 
