@@ -9,7 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-- Added support for CEP47Events
+- Added support for CEP47 Events
 - Added support for CES events basing on ces-js-parser
 - Some small code cleanups (added typings etc)
 - Some changes in `examples/`
@@ -31,4 +31,3 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 
 - Fixed how `migrate` deploy is constructed.
-
