@@ -1,4 +1,10 @@
-import { CEP78Client, OwnerReverseLookupMode } from "../src/index";
+import {
+  CEP78Client,
+  OwnerReverseLookupMode,
+  CEP47EventParserFactory,
+  CESEventParserFactory,
+  CEP47Events,
+} from "../src/index";
 
 import {
   FAUCET_KEYS,
@@ -10,9 +16,20 @@ import {
   printHeader,
 } from "./common";
 
-import { DeployUtil, CLPublicKey } from "casper-js-sdk";
+import {
+  DeployUtil,
+  CLPublicKey,
+  EventStream,
+  EventName,
+  CLValueParsers,
+  CLTypeTag,
+  CLMap,
+  CLValue,
+  CLValueBuilder,
+  CasperServiceByJsonRPC
+} from "casper-js-sdk";
 
-const { NODE_URL } = process.env;
+const { NODE_URL, EVENT_STREAM_ADDRESS } = process.env;
 
 const runDeployFlow = async (deploy: DeployUtil.Deploy) => {
   const deployHash = await deploy.send(NODE_URL!);
@@ -48,12 +65,12 @@ const run = async () => {
 
   const contractHash = await getAccountNamedKeyValue(
     accountInfo,
-    `nft_contract`
+    `cep78_contract_hash_my-collection`
   );
 
   const contractPackageHash = await getAccountNamedKeyValue(
     accountInfo,
-    `nft_contract_package`
+    `cep78_contract_package_my-collection`
   );
 
   console.log(`... Contract Hash: ${contractHash}`);
@@ -79,15 +96,44 @@ const run = async () => {
   console.log(`WhitelistMode: ${whitelistModeSetting}`);
 
   const ownerReverseLookupModeSetting = await cc.getReportingModeConfig();
-  console.log(
-    `OwnerReverseLookupMode: ${ownerReverseLookupModeSetting}`
-  );
+  console.log(`OwnerReverseLookupMode: ${ownerReverseLookupModeSetting}`);
 
   const useSessionCode =
     ownerReverseLookupModeSetting ===
     OwnerReverseLookupMode[OwnerReverseLookupMode.Complete];
 
   const JSONSetting = await cc.getJSONSchemaConfig();
+
+  const cep47EventParser = CEP47EventParserFactory({
+    contractPackageHash,
+    eventNames: [
+      CEP47Events.Mint,
+      CEP47Events.Transfer,
+      CEP47Events.Burn
+    ],
+  });
+
+  const casperClient = new CasperServiceByJsonRPC(NODE_URL);
+  const cesEventParser = CESEventParserFactory({
+    contractHashes: [contractHash],
+    casperClient,
+  });
+
+  const es = new EventStream(EVENT_STREAM_ADDRESS!);
+
+  es.subscribe(EventName.DeployProcessed, async (event) => {
+    const parsedEvents = await cesEventParser(event); //cep47EventParser(event);
+
+    if (parsedEvents?.success) {
+      console.log("*** EVENT ***");
+      console.log(parsedEvents.data);
+      console.log("*** ***");
+    } else {
+      console.log("*** EVENT NOT RELATED TO WATCHED CONTRACT ***");
+    }
+  });
+
+  es.start();
 
   /* Mint */
   printHeader("Mint");
@@ -101,6 +147,7 @@ const run = async () => {
         material: "Aluminum",
         condition: "Used",
       },
+      collectionName: "my-collection",
     },
     { useSessionCode },
     "2000000000",

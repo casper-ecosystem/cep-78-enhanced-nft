@@ -6,7 +6,7 @@ import {
   NFTIdentifierMode,
   MetadataMutability,
   MintingMode,
-  NamedKeyConventionMode
+  NamedKeyConventionMode,
 } from "../src/index";
 
 import {
@@ -74,8 +74,8 @@ describe("CEP78Client", () => {
     const JSONDeploy = DeployUtil.deployToJson(installDeploy) as any;
 
     expect(installDeploy).toBeInstanceOf(DeployUtil.Deploy);
-    expect(JSONDeploy.deploy.session.ModuleBytes.args).toEqual(
-      INSTALL_ARGS_JSON
+    expect(JSONDeploy.deploy.session.ModuleBytes.args.sort()).toEqual(
+      INSTALL_ARGS_JSON.sort()
     );
   });
 
@@ -108,8 +108,8 @@ describe("CEP78Client", () => {
     const JSONDeploy = DeployUtil.deployToJson(installDeploy) as any;
 
     expect(installDeploy).toBeInstanceOf(DeployUtil.Deploy);
-    expect(JSONDeploy.deploy.session.ModuleBytes.args).toEqual(
-      INSTALL_ARGS_V1_0_STANDARD_JSON
+    expect(JSONDeploy.deploy.session.ModuleBytes.args.sort()).toEqual(
+      INSTALL_ARGS_V1_0_STANDARD_JSON.sort()
     );
   });
 
@@ -134,8 +134,8 @@ describe("CEP78Client", () => {
         metadataMutability: MetadataMutability.Immutable,
         mintingMode: MintingMode.Installer,
         namedKeyConventionMode: NamedKeyConventionMode.V1_0Custom,
-        accessKeyName: 'customName',
-        hashKeyName: 'customHash'
+        accessKeyName: "customName",
+        hashKeyName: "customHash",
       },
       "250000000000",
       keyPair.publicKey
@@ -144,8 +144,8 @@ describe("CEP78Client", () => {
     const JSONDeploy = DeployUtil.deployToJson(installDeploy) as any;
 
     expect(installDeploy).toBeInstanceOf(DeployUtil.Deploy);
-    expect(JSONDeploy.deploy.session.ModuleBytes.args).toEqual(
-      INSTALL_ARGS_V1_0_CUSTOM_JSON
+    expect(JSONDeploy.deploy.session.ModuleBytes.args.sort()).toEqual(
+      INSTALL_ARGS_V1_0_CUSTOM_JSON.sort()
     );
   });
 
@@ -208,6 +208,7 @@ describe("CEP78Client", () => {
           material: "Aluminum",
           condition: "Used",
         },
+        collectionName: "my-collection",
       },
       { useSessionCode: true },
       "1000000000",
@@ -390,7 +391,7 @@ describe("CEP78Client", () => {
 
   it("Should correctly construct deploy for 'migrate'", async () => {
     const ownerOfDeploy = await cc.migrate(
-      { contractPackageHash: "hash-0101010101010101010101010101010101010101010101010101010101010101" },
+      { collectionName: "my-collection" },
       "1000000000",
       keyPair.publicKey
     );

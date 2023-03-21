@@ -150,6 +150,14 @@ pub enum NFTCoreError {
     MissingAdditionalNFTMetadataKind = 145,
     InvalidAdditionalNFTMetadataKind = 146,
     InvalidRequirement = 147,
+    MissingEventsMode = 148,
+    InvalidEventsMode = 149,
+    CannotUpgradeToMoreSupply = 150,
+    MissingOperatorDict = 151,
+    MissingApprovedDict = 152,
+    MissingSpenderAccountHash = 153,
+    InvalidSpenderAccountHash = 154,
+    MissingOwnerTokenIdentifierKey = 155,
 }
 
 impl From<NFTCoreError> for ApiError {

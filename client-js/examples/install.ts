@@ -7,6 +7,7 @@ import {
   MetadataMutability,
   OwnerReverseLookupMode,
   MintingMode,
+  EventsMode
 } from "../src/index";
 
 import {
@@ -19,9 +20,11 @@ import {
 const install = async () => {
   const cc = new CEP78Client(process.env.NODE_URL!, process.env.NETWORK_NAME!);
 
+  const collectionName = "my-collection";
+
   const installDeploy = await cc.install(
     {
-      collectionName: "my-collection",
+      collectionName,
       collectionSymbol: "MY-NFTS",
       totalTokenSupply: "1000",
       ownershipMode: NFTOwnershipMode.Transferable,
@@ -38,7 +41,8 @@ const install = async () => {
       identifierMode: NFTIdentifierMode.Ordinal,
       metadataMutability: MetadataMutability.Immutable,
       mintingMode: MintingMode.Installer,
-      ownerReverseLookupMode: OwnerReverseLookupMode.Complete
+      ownerReverseLookupMode: OwnerReverseLookupMode.NoLookup,
+      eventsMode: EventsMode.CES
     },
     "250000000000",
     FAUCET_KEYS.publicKey,
@@ -63,12 +67,12 @@ const install = async () => {
 
   const contractHash = await getAccountNamedKeyValue(
     accountInfo,
-    `nft_contract`
+    `cep78_contract_hash_${collectionName}`
   );
 
   const contractPackageHash = await getAccountNamedKeyValue(
     accountInfo,
-    `nft_contract_package`
+    `cep78_contract_package_${collectionName}`
   );
 
   console.log(`... Contract Hash: ${contractHash}`);

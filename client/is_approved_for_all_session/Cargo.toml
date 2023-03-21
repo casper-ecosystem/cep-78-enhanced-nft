@@ -1,14 +1,14 @@
 [package]
-name = "get_approved_session"
+name = "is_approved_for_all_session"
 version = "1.2.0"
 edition = "2018"
 
 [dependencies]
-casper-contract = "1.4.4"
-casper-types = "1.5"
+casper-contract = "1.4.3"
+casper-types = "1.4.5"
 
 [[bin]]
-name = "get_approved_call"
+name = "is_approved_for_all_call"
 path = "src/main.rs"
 bench = false
 doctest = false

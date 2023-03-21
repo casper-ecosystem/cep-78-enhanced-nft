@@ -19,5 +19,12 @@
       "bytes": "010c0f9056626a55273bd8238f595908f2e4d78acc2546bf1f78f39f814bc60fe4",
       "cl_type": "Key"
     }
+  ],
+  [
+    "collection_name",
+    {
+      "bytes": "0d0000006d792d636f6c6c656374696f6e",
+      "cl_type": "String"
+    }
   ]
 ]

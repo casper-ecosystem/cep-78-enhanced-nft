@@ -1,13 +1,26 @@
-import { CLKeyParameters } from "casper-js-sdk";
+import { CLType, CLValue, CLKeyParameters } from "casper-js-sdk";
+
+export enum CEP47Events {
+  Mint = "Mint",
+  Burn = "Burn",
+  Approval = "Approval",
+  ApprovalRevoked = "ApprovalRevoked",
+  ApprovalForAll = "ApprovalForAll",
+  RevokedForAll = "RevokedForAll",
+  Transfer = "Transfer",
+  MetadataUpdated = "MetadataUpdated",
+  VariablesSet = "VariablesSet",
+  Migration = "Migration",
+}
 
 export interface CallConfig {
   useSessionCode: boolean;
 }
 
-export enum NamedKeyConventionMode  {
+export enum NamedKeyConventionMode {
   DerivedFromCollectionName,
   V1_0Standard,
-  V1_0Custom
+  V1_0Custom,
 }
 
 export enum NFTOwnershipMode {
@@ -63,6 +76,13 @@ export enum WhitelistMode {
 export enum OwnerReverseLookupMode {
   NoLookup,
   Complete,
+  TransfersOnly,
+}
+
+export enum EventsMode {
+  NoEvents,
+  CEP47,
+  CES,
 }
 
 export interface JSONSchemaEntry {
@@ -86,7 +106,7 @@ export type InstallArgs = {
   totalTokenSupply: string;
   ownershipMode: NFTOwnershipMode;
   nftKind: NFTKind;
-  jsonSchema: JSONSchemaObject;
+  jsonSchema?: JSONSchemaObject;
   nftMetadataKind: NFTMetadataKind;
   identifierMode: NFTIdentifierMode;
   metadataMutability: MetadataMutability;
@@ -98,6 +118,7 @@ export type InstallArgs = {
   namedKeyConventionMode?: NamedKeyConventionMode;
   accessKeyName?: string;
   hashKeyName?: string;
+  eventsMode?: EventsMode;
 } & ConfigurableVariables;
 
 export interface RegisterArgs {
@@ -107,6 +128,7 @@ export interface RegisterArgs {
 export interface MintArgs {
   owner: CLKeyParameters;
   meta: Record<string, string>;
+  collectionName?: string;
 }
 
 export interface TokenArgs {
@@ -147,5 +169,63 @@ export type ApproveAllArgs = {
 };
 
 export type MigrateArgs = {
-  contractPackageHash: string;
+  collectionName: string;
 };
+
+type WriteCLValue = {
+  cl_type: string;
+  bytes: string;
+  parsed: string;
+};
+
+// TODO: Most of this types can be moved to casper-js-sdk in feature release
+// https://github.com/casper-ecosystem/casper-js-sdk/issues/268
+
+type TransformValue = {
+  WriteCLValue?: WriteCLValue;
+};
+
+export interface Transform {
+  key: string;
+  transform: TransformValue;
+}
+
+interface Effect {
+  transforms: Transform[];
+}
+
+interface ExecutionResultBody {
+  cost: number;
+  error_message?: string | null;
+  transfers: string[];
+  effect: Effect;
+}
+
+export interface ExecutionResult {
+  Success?: ExecutionResultBody;
+  Failure?: ExecutionResultBody;
+}
+
+export interface WithRemainder<T> {
+  data: T;
+  remainder: Uint8Array;
+}
+
+export interface RawCLValue {
+  clType: CLType;
+  bytes: Uint8Array;
+}
+
+export interface EventItem {
+  id: number;
+  body: {
+    DeployProcessed: {
+      execution_result: ExecutionResult;
+    };
+  };
+}
+
+export interface EventParsed {
+  name: string;
+  clValue: CLValue;
+}

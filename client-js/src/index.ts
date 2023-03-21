@@ -44,6 +44,7 @@ import {
 const { Contract } = Contracts;
 
 export * from "./types";
+export * from "./events";
 
 enum ERRORS {
   CONFLICT_CONFIG = "Conflicting arguments provided",
@@ -59,7 +60,7 @@ const convertHashStrToHashBuff = (hashStr: string) => {
 
 const buildHashList = (list: string[]) =>
   list.map((hashStr) =>
-      CLValueBuilder.byteArray(convertHashStrToHashBuff(hashStr))
+    CLValueBuilder.byteArray(convertHashStrToHashBuff(hashStr))
   );
 
 export const getBinary = (pathToBinary: string) =>
@@ -102,11 +103,18 @@ export class CEP78Client {
       total_token_supply: CLValueBuilder.u64(args.totalTokenSupply),
       ownership_mode: CLValueBuilder.u8(args.ownershipMode),
       nft_kind: CLValueBuilder.u8(args.nftKind),
-      json_schema: CLValueBuilder.string(JSON.stringify(args.jsonSchema)),
       nft_metadata_kind: CLValueBuilder.u8(args.nftMetadataKind),
       identifier_mode: CLValueBuilder.u8(args.identifierMode),
       metadata_mutability: CLValueBuilder.u8(args.metadataMutability),
     });
+
+    // TODO: Validate here
+    if (args.jsonSchema !== undefined) {
+      runtimeArgs.insert(
+        "json_schema",
+        CLValueBuilder.string(JSON.stringify(args.jsonSchema))
+      );
+    }
 
     if (args.mintingMode !== undefined) {
       runtimeArgs.insert("minting_mode", CLValueBuilder.u8(args.mintingMode));
@@ -169,6 +177,10 @@ export class CEP78Client {
       );
     }
 
+    if (args.eventsMode !== undefined) {
+      runtimeArgs.insert("events_mode", CLValueBuilder.u8(args.eventsMode));
+    }
+
     return this.contractClient.install(
       wasmToInstall,
       runtimeArgs,
@@ -213,79 +225,79 @@ export class CEP78Client {
   public async getReportingModeConfig() {
     const internalValue = await this.contractClient.queryContractData([
       "reporting_mode",
-    ]);
-    const u8res = (internalValue as BigNumber).toNumber();
+    ]) as BigNumber;
+    const u8res = internalValue.toNumber();
     return OwnerReverseLookupMode[u8res] as keyof typeof OwnerReverseLookupMode;
   }
 
   public async getWhitelistModeConfig() {
     const internalValue = await this.contractClient.queryContractData([
       "whitelist_mode",
-    ]);
-    const u8res = (internalValue as BigNumber).toNumber();
+    ]) as BigNumber;
+    const u8res = internalValue.toNumber();
     return WhitelistMode[u8res] as keyof typeof WhitelistMode;
   }
 
   public async getBurnModeConfig() {
     const internalValue = await this.contractClient.queryContractData([
       "burn_mode",
-    ]);
-    const u8res = (internalValue as BigNumber).toString();
+    ]) as BigNumber;
+    const u8res = internalValue.toNumber();
     return BurnMode[u8res] as keyof typeof BurnMode;
   }
 
   public async getHolderModeConfig() {
     const internalValue = await this.contractClient.queryContractData([
       "holder_mode",
-    ]);
-    const u8res = (internalValue as BigNumber).toNumber();
+    ]) as BigNumber;
+    const u8res = internalValue.toNumber();
     return NFTHolderMode[u8res] as keyof typeof NFTHolderMode;
   }
 
   public async getIdentifierModeConfig() {
     const internalValue = await this.contractClient.queryContractData([
       "identifier_mode",
-    ]);
-    const u8res = (internalValue as BigNumber).toNumber();
+    ]) as BigNumber;
+    const u8res = internalValue.toNumber();
     return NFTIdentifierMode[u8res] as keyof typeof NFTIdentifierMode;
   }
 
   public async getMetadataMutabilityConfig() {
     const internalValue = await this.contractClient.queryContractData([
       "metadata_mutability",
-    ]);
-    const u8res = (internalValue as BigNumber).toNumber();
+    ]) as BigNumber;
+    const u8res = internalValue.toNumber();
     return MetadataMutability[u8res] as keyof typeof MetadataMutability;
   }
 
   public async getNFTKindConfig() {
     const internalValue = await this.contractClient.queryContractData([
       "nft_kind",
-    ]);
-    const u8res = (internalValue as BigNumber).toNumber();
+    ]) as BigNumber;
+    const u8res = internalValue.toNumber();
     return NFTKind[u8res] as keyof typeof NFTKind;
   }
 
   public async getMetadataKindConfig() {
     const internalValue = await this.contractClient.queryContractData([
       "nft_metadata_kind",
-    ]);
-    const u8res = (internalValue as BigNumber).toNumber();
+    ]) as BigNumber;
+    const u8res = internalValue.toNumber();
     return NFTMetadataKind[u8res] as keyof typeof NFTMetadataKind;
   }
 
   public async getOwnershipModeConfig() {
     const internalValue = await this.contractClient.queryContractData([
       "ownership_mode",
-    ]);
-    const u8res = (internalValue as BigNumber).toNumber();
+    ]) as BigNumber;
+    const u8res = internalValue.toNumber();
     return NFTOwnershipMode[u8res] as keyof typeof NFTOwnershipMode;
   }
 
   public async getJSONSchemaConfig() {
     const internalValue = await this.contractClient.queryContractData([
       "json_schema",
-    ]);
+    ]) as BigNumber;
     return internalValue.toString();
   }
 
@@ -343,6 +355,23 @@ export class CEP78Client {
     return preparedDeploy;
   }
 
+  public revoke(
+    paymentAmount: string,
+    deploySender: CLPublicKey,
+    keys?: Keys.AsymmetricKey[],
+  ) {
+    const preparedDeploy = this.contractClient.callEntrypoint(
+      "revoke",
+      RuntimeArgs.fromMap({}),
+      deploySender,
+      this.networkName,
+      paymentAmount,
+      keys
+    );
+
+    return preparedDeploy;
+  }
+
   public mint(
     args: MintArgs,
     config: CallConfig,
@@ -360,10 +389,18 @@ export class CEP78Client {
     });
 
     if (config.useSessionCode) {
+      if (!args.collectionName) {
+        throw new Error("Missing collectionName argument");
+      }
+
       const wasmToCall =
         wasm || getBinary(`${__dirname}/../wasm/mint_call.wasm`);
 
       runtimeArgs.insert("nft_contract_hash", this.contractHashKey);
+      runtimeArgs.insert(
+        "collection_name",
+        CLValueBuilder.string(args.collectionName)
+      );
 
       const preparedDeploy = this.contractClient.install(
         wasmToCall,
@@ -723,7 +760,7 @@ export class CEP78Client {
     keys?: Keys.AsymmetricKey[]
   ) {
     const runtimeArgs = RuntimeArgs.fromMap({
-      cep78_package_key: CLValueBuilder.byteArray(convertHashStrToHashBuff(args.contractPackageHash))
+      collection_name: CLValueBuilder.string(args.collectionName),
     });
 
     const preparedDeploy = this.contractClient.callEntrypoint(

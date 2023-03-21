@@ -1,13 +1,13 @@
 [package]
 name = "transfer_session"
-version = "1.1.1"
+version = "1.2.0"
 edition = "2021"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-casper-contract = "1.4.3"
-casper-types = "1.4.5"
+casper-contract = "1.4.4"
+casper-types = "1.5"
 
 [[bin]]
 name = "transfer_call"
