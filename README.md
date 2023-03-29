@@ -558,9 +558,12 @@ Below is an example of a `casper-client` command that uses the `mint` function o
 
 ```bash
 
-casper-client put-deploy -n http://localhost:11101/rpc --chain-name "casper-net-1" --payment-amount 5000000000 -k ~/casper/casper-node/utils/nctl/assets/net-1/nodes/node-1/keys/secret_key.pem --session-path ~/casper/enhanced-nft/client/mint_session/target/wasm32-unknown-unknown/release/mint_call.wasm \
+casper-client put-deploy -n http://localhost:11101/rpc --chain-name "casper-net-1" \
+--payment-amount 5000000000 \
+-k ~/casper/casper-node/utils/nctl/assets/net-1/nodes/node-1/keys/secret_key.pem \
+--session-path ~/casper/enhanced-nft/client/mint_session/target/wasm32-unknown-unknown/release/mint_call.wasm \
 --session-arg "nft_contract_hash:key='hash-206339c3deb8e6146974125bb271eb510795be6f250c21b1bd4b698956669f95'" \
-`--session-arg "collection_name:string='cep78_<collection_name>'"` \
+--session-arg "collection_name:string='cep78_<collection_name>'"` \
 --session-arg "token_owner:key='account-hash-e9ff87766a1d2bab2565bfd5799054946200b51b20c3ca7e54a9269e00fe7cfb'"  \
 --session-arg "token_meta_data:string='{\"name\": \"John Doe\",\"token_uri\": \"https:\/\/www.barfoo.com\",\"checksum\": \"940bffb3f2bba35f84313aa26da09ece3ad47045c6a1292c2bbd2df4ab1a55fb\"}'"
 
@@ -598,14 +601,15 @@ Below is an example of a `casper-client` command that uses the `transfer` functi
 <summary><b>Casper client command without comments</b></summary>
 
 ```bash
-
-casper-client put-deploy -n http://localhost:11101/rpc --chain-name "casper-net-1" --payment-amount 5000000000 -k ~/casper/casper-node/utils/nctl/assets/net-1/nodes/node-2/keys/secret_key.pem --session-path ~/casper/enhanced-nft/client/transfer_session/target/wasm32-unknown-unknown/release/transfer_call.wasm \
+casper-client put-deploy -n http://localhost:11101/rpc --chain-name "casper-net-1" \
+--payment-amount 5000000000 \
+-k ~/casper/casper-node/utils/nctl/assets/net-1/nodes/node-2/keys/secret_key.pem \
+--session-path ~/casper/enhanced-nft/client/transfer_session/target/wasm32-unknown-unknown/release/transfer_call.wasm \
 --session-arg "nft_contract_hash:key='hash-52e78ae3f6c485d036a74f65ebbb8c75fcc7c33fb42eb667fb32aeba72c63fb5'" \
 --session-arg "source_key:key='account-hash-e9ff87766a1d2bab2565bfd5799054946200b51b20c3ca7e54a9269e00fe7cfb'" \
 --session-arg "target_key:key='account-hash-b4772e7c47e4deca5bd90b7adb2d6e884f2d331825d5419d6cbfb59e17642aab'" \
 --session-arg "is_hash_identifier_mode:bool='false'" \
 --session-arg "token_id:u64='0'"
-
 ```
 
 </details>
@@ -632,12 +636,12 @@ Below is an example of a `casper-client` command that uses the `burn` function t
 <summary><b>Casper client command without comments</b></summary>
 
 ```bash
-
-casper-client put-deploy -n http://localhost:11101/rpc --chain-name "casper-net-1" --payment-amount 5000000000 -k ~/casper/casper-node/utils/nctl/assets/net-1/nodes/node-1/keys/secret_key.pem \
+casper-client put-deploy -n http://localhost:11101/rpc --chain-name "casper-net-1" \
+--payment-amount 5000000000 \
+-k ~/casper/casper-node/utils/nctl/assets/net-1/nodes/node-1/keys/secret_key.pem \
 --session-hash hash-52e78ae3f6c485d036a74f65ebbb8c75fcc7c33fb42eb667fb32aeba72c63fb5 \
 --session-entry-point "burn" \
 --session-arg "token_id:u64='1'"
-
 ```
 
 </details>
