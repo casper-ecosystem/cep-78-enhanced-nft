@@ -36,9 +36,9 @@ jobs:
           node-version: ${{ matrix.node-version }}
           registry-url: 'https://registry.npmjs.org'
 
-      - name: Copy WASMs
+      - name: Copy & convert WASMs
         working-directory: ./client-js
-        run: ./copy-wasms.sh
+        run: npm run wasms:convert
 
       - name: Install
         working-directory: ./client-js
