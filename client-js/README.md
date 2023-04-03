@@ -27,6 +27,7 @@ Users can treat this package as a deploy builder for all of these possible inter
 
 4. If you want to start working with a previously installed contract, use the `setContractHash(contractHash)` method.
 
+NOTE: Since version `1.3` both `casper-js-sdk` and `@make-software/ces-js-parser` are peerDependencies, so if you're using npm version `<7` you might need to install both deps manually.
 
 ## Examples 
 
