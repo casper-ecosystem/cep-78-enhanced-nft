@@ -1,5 +1,3 @@
-import * as fs from "fs";
-
 import { BigNumber } from "@ethersproject/bignumber";
 import {
   CLMap,
