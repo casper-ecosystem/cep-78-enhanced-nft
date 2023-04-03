@@ -9,7 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
-- Added `casper-js-sdk` and `@make-software/ces-js-parser` as a peer dependencies to prevent conflicts between multiple versions of dependencies
+- Added `casper-js-sdk` and `@make-software/ces-js-parser` as peer dependencies. This will prevent conflicts between multiple versions of dependencies.
 
 ## [1.2.0] - 2023-03-16
 
