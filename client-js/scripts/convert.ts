@@ -18,7 +18,8 @@ const convertFileContent = (base64) => `
 
 wasmsNames.forEach(async fileName => {
   const orgFileContent = fs.readFileSync(path.resolve(__dirname, `../wasm/${fileName}`));
-  const convertedFileContent = convertFileContent(orgFileContent);
+  const base64 = orgFileContent.toString('base64');
+  const convertedFileContent = convertFileContent(base64);
   const savedFilePath = path.resolve(__dirname, `../wasm/${fileName}.ts`);
   await fs.writeFileSync(savedFilePath, convertedFileContent);
 });
