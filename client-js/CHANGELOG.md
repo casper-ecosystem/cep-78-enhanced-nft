@@ -36,4 +36,4 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
-- Fixed how `migrate` deploy is constructed.
+- Fixed how the `migrate` deploy is constructed.
