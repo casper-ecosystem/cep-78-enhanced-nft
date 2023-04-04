@@ -384,8 +384,6 @@ pub extern "C" fn init() {
         .unwrap_or_revert_with(NFTCoreError::FailedToCreateDictionary);
     storage::new_dictionary(TOKEN_ISSUERS)
         .unwrap_or_revert_with(NFTCoreError::FailedToCreateDictionary);
-    storage::new_dictionary(OWNED_TOKENS)
-        .unwrap_or_revert_with(NFTCoreError::FailedToCreateDictionary);
     storage::new_dictionary(APPROVED).unwrap_or_revert_with(NFTCoreError::FailedToCreateDictionary);
     storage::new_dictionary(OPERATORS)
         .unwrap_or_revert_with(NFTCoreError::FailedToCreateDictionary);
@@ -694,6 +692,7 @@ pub extern "C" fn mint() {
 
     if let OwnerReverseLookupMode::Complete = utils::get_reporting_mode() {
         if (NFTIdentifierMode::Hash == identifier_mode)
+            && runtime::get_key(OWNED_TOKENS).is_some()
             && utils::should_migrate_token_hashes(token_owner_key)
         {
             utils::migrate_token_hashes(token_owner_key)
@@ -1179,7 +1178,7 @@ pub extern "C" fn transfer() {
     )
     .unwrap_or_revert();
 
-    if NFTIdentifierMode::Hash == identifier_mode {
+    if NFTIdentifierMode::Hash == identifier_mode && runtime::get_key(OWNED_TOKENS).is_some() {
         if utils::should_migrate_token_hashes(source_owner_key) {
             utils::migrate_token_hashes(source_owner_key)
         }
