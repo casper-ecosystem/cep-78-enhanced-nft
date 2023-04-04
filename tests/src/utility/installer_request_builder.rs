@@ -324,7 +324,6 @@ impl InstallerRequestBuilder {
         runtime_args.insert_cl_value(ARG_HOLDER_MODE, self.holder_mode);
         runtime_args.insert_cl_value(ARG_WHITELIST_MODE, self.whitelist_mode);
         runtime_args.insert_cl_value(ARG_CONTRACT_WHITELIST, self.contract_whitelist);
-        runtime_args.insert_cl_value(ARG_JSON_SCHEMA, self.json_schema);
         runtime_args.insert_cl_value(ARG_NFT_METADATA_KIND, self.nft_metadata_kind);
         runtime_args.insert_cl_value(ARG_IDENTIFIER_MODE, self.identifier_mode);
         runtime_args.insert_cl_value(ARG_METADATA_MUTABILITY, self.metadata_mutability);
@@ -337,6 +336,14 @@ impl InstallerRequestBuilder {
             self.additional_required_metadata,
         );
         runtime_args.insert_cl_value(ARG_OPTIONAL_METADATA, self.optional_metadata);
+        let json_schema = self
+            .json_schema
+            .clone()
+            .into_t::<String>()
+            .unwrap_or_default();
+        if !json_schema.is_empty() {
+            runtime_args.insert_cl_value(ARG_JSON_SCHEMA, self.json_schema);
+        }
         ExecuteRequestBuilder::standard(self.account_hash, &self.session_file, runtime_args).build()
     }
 }
