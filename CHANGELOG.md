@@ -50,6 +50,7 @@ All notable changes to this project will be documented in this file.  The format
 
     * To allow isolation of the additional costs, or tracking individual owners, the reverse lookup mode supports a register entrypoint which is used to register owners prior to minting or receiving a transferred token. In either `Assigned` or `Transferable` mode, this register entrypoint can be called by any party on behalf of another party.
 
+    * As a result of this change, the previously used `owned_tokens` dictionary is now deprecated. Moving forward, token ownership will be tracked using the `OwnerReverseLookupMode` modality and [CEP-78 Page System](./README.md#the-cep-78-page-system).
     
 ### Changed 
 
