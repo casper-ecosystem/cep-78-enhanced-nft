@@ -480,3 +480,95 @@ fn get_schema() {
         serde_json::to_string_pretty(&*TEST_CUSTOM_METADATA).unwrap()
     )
 }
+
+#[test]
+fn should_require_valid_json_schema_when_kind_is_custom_validated() {
+    let mut builder = InMemoryWasmTestBuilder::default();
+    builder.run_genesis(&DEFAULT_RUN_GENESIS_REQUEST).commit();
+
+    let nft_metadata_kind = NFTMetadataKind::CustomValidated;
+
+    let install_request = InstallerRequestBuilder::new(*DEFAULT_ACCOUNT_ADDR, NFT_CONTRACT_WASM)
+        .with_total_token_supply(10u64)
+        .with_ownership_mode(OwnershipMode::Transferable)
+        .with_metadata_mutability(MetadataMutability::Mutable)
+        .with_identifier_mode(NFTIdentifierMode::Ordinal)
+        .with_nft_metadata_kind(nft_metadata_kind)
+        .build();
+
+    builder.exec(install_request).expect_failure();
+    let error = builder.get_error().expect("must have error");
+
+    support::assert_expected_error(error, 68, "valid json_schema is required")
+}
+
+#[test]
+fn should_require_json_schema_when_kind_is_custom_validated() {
+    let mut builder = InMemoryWasmTestBuilder::default();
+    builder.run_genesis(&DEFAULT_RUN_GENESIS_REQUEST).commit();
+
+    let nft_metadata_kind = NFTMetadataKind::CustomValidated;
+
+    let install_request = InstallerRequestBuilder::new(*DEFAULT_ACCOUNT_ADDR, NFT_CONTRACT_WASM)
+        .with_total_token_supply(10u64)
+        .with_ownership_mode(OwnershipMode::Transferable)
+        .with_metadata_mutability(MetadataMutability::Mutable)
+        .with_identifier_mode(NFTIdentifierMode::Ordinal)
+        .with_nft_metadata_kind(nft_metadata_kind)
+        .with_json_schema("".to_string())
+        .build();
+
+    builder.exec(install_request).expect_failure();
+    let error = builder.get_error().expect("must have error");
+
+    support::assert_expected_error(error, 67, "json_schema is required")
+}
+
+fn should_require_json_schema_when_kind_is(nft_metadata_kind: NFTMetadataKind) {
+    let mut builder = InMemoryWasmTestBuilder::default();
+    builder.run_genesis(&DEFAULT_RUN_GENESIS_REQUEST).commit();
+
+    let install_request = InstallerRequestBuilder::new(*DEFAULT_ACCOUNT_ADDR, NFT_CONTRACT_WASM)
+        .with_total_token_supply(10u64)
+        .with_ownership_mode(OwnershipMode::Transferable)
+        .with_metadata_mutability(MetadataMutability::Mutable)
+        .with_identifier_mode(NFTIdentifierMode::Ordinal)
+        .with_nft_metadata_kind(nft_metadata_kind)
+        .with_json_schema("".to_string())
+        .build();
+
+    builder.exec(install_request).expect_success().commit();
+
+    let nft_contract_key: Key = support::get_nft_contract_hash(&builder).into();
+
+    let custom_metadata = serde_json::to_string_pretty(&*TEST_CUSTOM_METADATA)
+        .expect("must convert to json metadata");
+
+    let original_metadata = match &nft_metadata_kind {
+        NFTMetadataKind::CEP78 => TEST_PRETTY_CEP78_METADATA,
+        NFTMetadataKind::NFT721 => TEST_PRETTY_721_META_DATA,
+        NFTMetadataKind::Raw => "",
+        NFTMetadataKind::CustomValidated => &custom_metadata,
+    };
+
+    let mint_request = ExecuteRequestBuilder::standard(
+        *DEFAULT_ACCOUNT_ADDR,
+        MINT_SESSION_WASM,
+        runtime_args! {
+            ARG_NFT_CONTRACT_HASH => nft_contract_key,
+            ARG_TOKEN_OWNER => Key::Account(*DEFAULT_ACCOUNT_ADDR),
+            ARG_TOKEN_META_DATA => original_metadata.to_string(),
+            ARG_COLLECTION_NAME => NFT_TEST_COLLECTION.to_string()
+        },
+    )
+    .build();
+
+    builder.exec(mint_request).expect_success().commit();
+}
+
+#[test]
+fn should_not_require_json_schema_when_kind_is_not_custom_validated() {
+    should_require_json_schema_when_kind_is(NFTMetadataKind::Raw);
+    should_require_json_schema_when_kind_is(NFTMetadataKind::CEP78);
+    should_require_json_schema_when_kind_is(NFTMetadataKind::NFT721);
+}
