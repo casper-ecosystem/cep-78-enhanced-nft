@@ -25,7 +25,7 @@ pub extern "C" fn call() {
         .unwrap();
     let key_name: String = runtime::get_named_arg(ARG_KEY_NAME);
 
-    let maybe_operator = if runtime::get_named_arg::<bool>(ARG_IS_HASH_IDENTIFIER_MODE) {
+    let maybe_approved_account = if runtime::get_named_arg::<bool>(ARG_IS_HASH_IDENTIFIER_MODE) {
         let token_hash = runtime::get_named_arg::<String>(ARG_TOKEN_HASH);
         runtime::call_contract::<Option<Key>>(
             nft_contract_hash,
@@ -44,5 +44,5 @@ pub extern "C" fn call() {
             },
         )
     };
-    runtime::put_key(&key_name, storage::new_uref(maybe_operator).into());
+    runtime::put_key(&key_name, storage::new_uref(maybe_approved_account).into());
 }
