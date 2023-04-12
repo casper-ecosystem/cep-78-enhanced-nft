@@ -41,7 +41,7 @@ const ARG_REVERSE_LOOKUP: &str = "reverse_lookup";
 pub extern "C" fn mint() {
     let nft_contract_hash: ContractHash = runtime::get_named_arg::<Key>(ARG_NFT_CONTRACT_HASH)
         .into_hash()
-        .map(|hash| ContractHash::new(hash))
+        .map(ContractHash::new)
         .unwrap();
 
     let token_owner = runtime::get_named_arg::<Key>(ARG_TOKEN_OWNER);
@@ -84,7 +84,7 @@ pub extern "C" fn mint() {
 pub extern "C" fn transfer() {
     let nft_contract_hash: ContractHash = runtime::get_named_arg::<Key>(ARG_NFT_CONTRACT_HASH)
         .into_hash()
-        .map(|hash| ContractHash::new(hash))
+        .map(ContractHash::new)
         .unwrap();
 
     let token_id = runtime::get_named_arg::<u64>(ARG_TOKEN_ID);
@@ -108,7 +108,7 @@ pub extern "C" fn transfer() {
 pub extern "C" fn burn() {
     let nft_contract_hash: ContractHash = runtime::get_named_arg::<Key>(ARG_NFT_CONTRACT_HASH)
         .into_hash()
-        .map(|hash| ContractHash::new(hash))
+        .map(ContractHash::new)
         .unwrap();
 
     let token_id = runtime::get_named_arg::<u64>(ARG_TOKEN_ID);
@@ -126,7 +126,7 @@ pub extern "C" fn burn() {
 pub extern "C" fn metadata() {
     let nft_contract_hash: ContractHash = runtime::get_named_arg::<Key>(ARG_NFT_CONTRACT_HASH)
         .into_hash()
-        .map(|hash| ContractHash::new(hash))
+        .map(ContractHash::new)
         .unwrap();
 
     let token_id = runtime::get_named_arg::<u64>(ARG_TOKEN_ID);
@@ -146,7 +146,7 @@ pub extern "C" fn metadata() {
 pub extern "C" fn register_contract() {
     let nft_contract_hash: ContractHash = runtime::get_named_arg::<Key>(ARG_NFT_CONTRACT_HASH)
         .into_hash()
-        .map(|hash| ContractHash::new(hash))
+        .map(ContractHash::new)
         .unwrap();
 
     let token_owner = runtime::get_named_arg::<Key>(ARG_TOKEN_OWNER);
