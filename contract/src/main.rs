@@ -215,13 +215,6 @@ pub extern "C" fn init() {
         runtime::revert(NFTCoreError::EmptyMixedWhitelist)
     }
 
-    let json_schema: String = utils::get_named_arg_with_user_errors(
-        ARG_JSON_SCHEMA,
-        NFTCoreError::MissingJsonSchema,
-        NFTCoreError::InvalidJsonSchema,
-    )
-    .unwrap_or_revert();
-
     let receipt_name: String = utils::get_named_arg_with_user_errors(
         ARG_RECEIPT_NAME,
         NFTCoreError::MissingReceiptName,
@@ -265,7 +258,19 @@ pub extern "C" fn init() {
         optional_metadata,
     );
 
-    // Attempt to parse the provided schema if the CustomValidated metadata kind is required of
+    let json_schema: String = utils::get_named_arg_with_user_errors(
+        ARG_JSON_SCHEMA,
+        NFTCoreError::MissingJsonSchema,
+        NFTCoreError::InvalidJsonSchema,
+    )
+    .unwrap_or_revert();
+
+    // Check if schema is missing before checking its validity
+    if base_metadata_kind == NFTMetadataKind::CustomValidated && json_schema.is_empty() {
+        runtime::revert(NFTCoreError::MissingJsonSchema)
+    }
+
+    // Attempt to parse the provided schema if the CustomValidated metadata kind is required or
     // optional and fail installation if the schema cannot be parsed.
     if let Some(required_or_optional) = nft_metadata_kinds.get(&NFTMetadataKind::CustomValidated) {
         if required_or_optional == &Requirement::Required
@@ -405,8 +410,6 @@ pub extern "C" fn init() {
     storage::new_dictionary(TOKEN_OWNERS)
         .unwrap_or_revert_with(NFTCoreError::FailedToCreateDictionary);
     storage::new_dictionary(TOKEN_ISSUERS)
-        .unwrap_or_revert_with(NFTCoreError::FailedToCreateDictionary);
-    storage::new_dictionary(OWNED_TOKENS)
         .unwrap_or_revert_with(NFTCoreError::FailedToCreateDictionary);
     storage::new_dictionary(APPROVED).unwrap_or_revert_with(NFTCoreError::FailedToCreateDictionary);
     storage::new_dictionary(OPERATORS)
@@ -760,6 +763,7 @@ pub extern "C" fn mint() {
 
     if let OwnerReverseLookupMode::Complete = utils::get_reporting_mode() {
         if (NFTIdentifierMode::Hash == identifier_mode)
+            && runtime::get_key(OWNED_TOKENS).is_some()
             && utils::should_migrate_token_hashes(token_owner_key)
         {
             utils::migrate_token_hashes(token_owner_key)
@@ -1245,7 +1249,7 @@ pub extern "C" fn transfer() {
     )
     .unwrap_or_revert();
 
-    if NFTIdentifierMode::Hash == identifier_mode {
+    if NFTIdentifierMode::Hash == identifier_mode && runtime::get_key(OWNED_TOKENS).is_some() {
         if utils::should_migrate_token_hashes(source_owner_key) {
             utils::migrate_token_hashes(source_owner_key)
         }
@@ -2313,12 +2317,11 @@ fn install_contract() {
 
     // The JSON schema representation of the NFT which will be minted.
     // This value cannot be changed after installation.
-    let json_schema: String = utils::get_named_arg_with_user_errors(
+    let json_schema: String = utils::get_optional_named_arg_with_user_errors(
         ARG_JSON_SCHEMA,
-        NFTCoreError::MissingJsonSchema,
         NFTCoreError::InvalidJsonSchema,
     )
-    .unwrap_or_revert();
+    .unwrap_or_default();
 
     // Represents whether NFTs minted by a given contract will be identified
     // by an ordinal u64 index or a base16 encoded SHA256 hash of an NFTs metadata.
