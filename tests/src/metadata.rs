@@ -547,7 +547,10 @@ fn should_not_require_json_schema_when_kind_is(nft_metadata_kind: NFTMetadataKin
         NFTMetadataKind::CEP78 => TEST_PRETTY_CEP78_METADATA,
         NFTMetadataKind::NFT721 => TEST_PRETTY_721_META_DATA,
         NFTMetadataKind::Raw => "",
-        _ => panic!(),
+        _ => panic!(
+            "NFTMetadataKind {:?} not supported without json_schema",
+            nft_metadata_kind
+        ),
     };
 
     let mint_request = ExecuteRequestBuilder::standard(
