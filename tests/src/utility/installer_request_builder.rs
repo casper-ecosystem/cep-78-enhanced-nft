@@ -76,7 +76,7 @@ struct Metadata {
 }
 
 #[repr(u8)]
-#[derive(Copy, Clone)]
+#[derive(Copy, Clone, Debug)]
 pub enum NFTMetadataKind {
     CEP78 = 0,
     NFT721 = 1,
