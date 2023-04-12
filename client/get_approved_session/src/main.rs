@@ -44,5 +44,5 @@ pub extern "C" fn call() {
             },
         )
     };
-    runtime::put_key(&key_name, storage::new_uref(maybe_approved_account).into());
+    runtime::put_key(&key_name, storage::new_uref(maybe_operator).into());
 }
