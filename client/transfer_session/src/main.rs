@@ -21,7 +21,7 @@ const ARG_SOURCE_KEY: &str = "source_key";
 pub extern "C" fn call() {
     let nft_contract_hash: ContractHash = runtime::get_named_arg::<Key>(ARG_NFT_CONTRACT_HASH)
         .into_hash()
-        .map(|hash| ContractHash::new(hash))
+        .map(ContractHash::new)
         .unwrap();
 
     let source_key: Key = runtime::get_named_arg(ARG_SOURCE_KEY);
@@ -51,5 +51,6 @@ pub extern "C" fn call() {
                 },
             )
         };
+
     runtime::put_key(&receipt_name, owned_tokens_dictionary_key)
 }
