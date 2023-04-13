@@ -26,8 +26,8 @@ const convertFileContent = (base64) => `
 `;
 
 const runConversion = async () => {
-  await fs.rmSync(PATH_TO, { recursive: true, force: true });
-  await fs.mkdirSync(PATH_TO);
+  fs.rmSync(PATH_TO, { recursive: true, force: true });
+  fs.mkdirSync(PATH_TO);
 
   LIST_OF_WASMS.forEach(async (fileName) => {
     const orgFileContent = fs.readFileSync(
