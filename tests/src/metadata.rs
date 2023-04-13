@@ -1,3 +1,5 @@
+use core::panic;
+
 use casper_engine_test_support::{
     ExecuteRequestBuilder, InMemoryWasmTestBuilder, DEFAULT_ACCOUNT_ADDR,
     DEFAULT_RUN_GENESIS_REQUEST,
@@ -524,7 +526,7 @@ fn should_require_json_schema_when_kind_is_custom_validated() {
     support::assert_expected_error(error, 67, "json_schema is required")
 }
 
-fn should_require_json_schema_when_kind_is(nft_metadata_kind: NFTMetadataKind) {
+fn should_not_require_json_schema_when_kind_is(nft_metadata_kind: NFTMetadataKind) {
     let mut builder = InMemoryWasmTestBuilder::default();
     builder.run_genesis(&DEFAULT_RUN_GENESIS_REQUEST).commit();
 
@@ -541,14 +543,14 @@ fn should_require_json_schema_when_kind_is(nft_metadata_kind: NFTMetadataKind) {
 
     let nft_contract_key: Key = support::get_nft_contract_hash(&builder).into();
 
-    let custom_metadata = serde_json::to_string_pretty(&*TEST_CUSTOM_METADATA)
-        .expect("must convert to json metadata");
-
     let original_metadata = match &nft_metadata_kind {
         NFTMetadataKind::CEP78 => TEST_PRETTY_CEP78_METADATA,
         NFTMetadataKind::NFT721 => TEST_PRETTY_721_META_DATA,
         NFTMetadataKind::Raw => "",
-        NFTMetadataKind::CustomValidated => &custom_metadata,
+        _ => panic!(
+            "NFTMetadataKind {:?} not supported without json_schema",
+            nft_metadata_kind
+        ),
     };
 
     let mint_request = ExecuteRequestBuilder::standard(
@@ -568,7 +570,7 @@ fn should_require_json_schema_when_kind_is(nft_metadata_kind: NFTMetadataKind) {
 
 #[test]
 fn should_not_require_json_schema_when_kind_is_not_custom_validated() {
-    should_require_json_schema_when_kind_is(NFTMetadataKind::Raw);
-    should_require_json_schema_when_kind_is(NFTMetadataKind::CEP78);
-    should_require_json_schema_when_kind_is(NFTMetadataKind::NFT721);
+    should_not_require_json_schema_when_kind_is(NFTMetadataKind::Raw);
+    should_not_require_json_schema_when_kind_is(NFTMetadataKind::CEP78);
+    should_not_require_json_schema_when_kind_is(NFTMetadataKind::NFT721);
 }
