@@ -41,7 +41,7 @@ const install = async () => {
       identifierMode: NFTIdentifierMode.Ordinal,
       metadataMutability: MetadataMutability.Immutable,
       mintingMode: MintingMode.Installer,
-      ownerReverseLookupMode: OwnerReverseLookupMode.NoLookup,
+      ownerReverseLookupMode: OwnerReverseLookupMode.Complete,
       eventsMode: EventsMode.CES
     },
     "250000000000",
