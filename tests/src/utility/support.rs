@@ -100,10 +100,10 @@ pub(crate) fn get_dictionary_value_from_key<T: CLTyped + FromBytes>(
 }
 
 pub(crate) fn create_dummy_key_pair(account_string: [u8; 32]) -> (SecretKey, PublicKey) {
-    let secrete_key =
+    let secret_key =
         SecretKey::ed25519_from_bytes(account_string).expect("failed to create secret key");
-    let public_key = PublicKey::from(&secrete_key);
-    (secrete_key, public_key)
+    let public_key = PublicKey::from(&secret_key);
+    (secret_key, public_key)
 }
 
 // Creates a dummy account and transfer funds to it

@@ -3,10 +3,10 @@ use casper_engine_test_support::{
     DEFAULT_RUN_GENESIS_REQUEST,
 };
 use casper_event_standard::Schemas;
-use casper_types::{runtime_args, CLValue, ContractHash, RuntimeArgs};
+use casper_types::{runtime_args, CLValue, ContractHash, Key, RuntimeArgs};
 use contract::{
     constants::{
-        ARG_ALLOW_MINTING, ARG_COLLECTION_NAME, ARG_COLLECTION_SYMBOL, ARG_CONTRACT_WHITELIST,
+        ACL_WHITELIST, ARG_ALLOW_MINTING, ARG_COLLECTION_NAME, ARG_COLLECTION_SYMBOL,
         ARG_HOLDER_MODE, ARG_MINTING_MODE, ARG_TOTAL_TOKEN_SUPPLY, ARG_WHITELIST_MODE,
         ENTRY_POINT_INIT, NUMBER_OF_MINTED_TOKENS,
     },
@@ -22,7 +22,7 @@ use crate::utility::{
         InstallerRequestBuilder, MintingMode, NFTHolderMode, NFTIdentifierMode, NFTMetadataKind,
         OwnerReverseLookupMode, OwnershipMode, WhitelistMode,
     },
-    support,
+    support::{self, get_dictionary_value_from_key},
 };
 
 #[test]
@@ -229,11 +229,14 @@ fn should_install_with_contract_holder_mode() {
     let mut builder = InMemoryWasmTestBuilder::default();
     builder.run_genesis(&DEFAULT_RUN_GENESIS_REQUEST).commit();
 
+    let contract_whitelist = vec![Key::from(ContractHash::default())];
+
     let install_request = InstallerRequestBuilder::new(*DEFAULT_ACCOUNT_ADDR, NFT_CONTRACT_WASM)
         .with_holder_mode(NFTHolderMode::Contracts)
         .with_whitelist_mode(WhitelistMode::Unlocked)
         .with_reporting_mode(OwnerReverseLookupMode::NoLookUp)
-        .with_contract_whitelist(vec![ContractHash::default()]);
+        .with_minting_mode(MintingMode::Acl)
+        .with_acl_whitelist(contract_whitelist);
 
     builder
         .exec(install_request.build())
@@ -270,16 +273,16 @@ fn should_install_with_contract_holder_mode() {
         "whitelist mode is not set to unlocked"
     );
 
-    let actual_contract_whitelist: Vec<ContractHash> = support::query_stored_value(
+    let is_whitelisted_account = get_dictionary_value_from_key::<bool>(
         &builder,
-        *nft_contract_key,
-        vec![ARG_CONTRACT_WHITELIST.to_string()],
+        nft_contract_key,
+        ACL_WHITELIST,
+        &ContractHash::default().to_string(),
     );
 
-    assert_eq!(
-        actual_contract_whitelist,
-        vec![ContractHash::default()],
-        "contract whitelist is incorrectly set"
+    assert!(
+        is_whitelisted_account,
+        "contract acl whitelist is incorrectly set"
     );
 }
 
@@ -292,11 +295,12 @@ fn should_disallow_installation_of_contract_with_empty_locked_whitelist() {
         InstallerRequestBuilder::new(*DEFAULT_ACCOUNT_ADDR, NFT_CONTRACT_WASM)
             .with_holder_mode(NFTHolderMode::Contracts)
             .with_reporting_mode(OwnerReverseLookupMode::NoLookUp)
-            .with_whitelist_mode(WhitelistMode::Locked);
+            .with_whitelist_mode(WhitelistMode::Locked)
+            .with_minting_mode(MintingMode::Acl);
 
     support::assert_expected_invalid_installer_request(
         install_request_builder,
-        83,
+        158,
         "should fail execution since whitelist mode is locked and the provided whitelist is empty",
     );
 }

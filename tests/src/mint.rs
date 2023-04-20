@@ -1,12 +1,11 @@
 use contract::{
     constants::{
-        APPROVED, ARG_APPROVE_ALL, ARG_COLLECTION_NAME, ARG_CONTRACT_WHITELIST, ARG_MINTING_MODE,
-        ARG_OPERATOR, ARG_SOURCE_KEY, ARG_SPENDER, ARG_TARGET_KEY, ARG_TOKEN_HASH, ARG_TOKEN_ID,
+        APPROVED, ARG_APPROVE_ALL, ARG_COLLECTION_NAME, ARG_MINTING_MODE, ARG_OPERATOR,
+        ARG_SOURCE_KEY, ARG_SPENDER, ARG_TARGET_KEY, ARG_TOKEN_HASH, ARG_TOKEN_ID,
         ARG_TOKEN_META_DATA, ARG_TOKEN_OWNER, ENTRY_POINT_APPROVE, ENTRY_POINT_MINT,
-        ENTRY_POINT_REGISTER_OWNER, ENTRY_POINT_SET_APPROVALL_FOR_ALL, ENTRY_POINT_SET_VARIABLES,
-        METADATA_CEP78, METADATA_CUSTOM_VALIDATED, METADATA_NFT721, METADATA_RAW,
-        NUMBER_OF_MINTED_TOKENS, PAGE_TABLE, RECEIPT_NAME, TOKEN_COUNT, TOKEN_ISSUERS,
-        TOKEN_OWNERS,
+        ENTRY_POINT_REGISTER_OWNER, ENTRY_POINT_SET_APPROVALL_FOR_ALL, METADATA_CEP78,
+        METADATA_CUSTOM_VALIDATED, METADATA_NFT721, METADATA_RAW, NUMBER_OF_MINTED_TOKENS,
+        PAGE_TABLE, RECEIPT_NAME, TOKEN_COUNT, TOKEN_ISSUERS, TOKEN_OWNERS,
     },
     events::events_ces::{ApprovalForAll, Mint, RevokedForAll},
     modalities::TokenIdentifier,
@@ -18,16 +17,16 @@ use casper_engine_test_support::{
     DEFAULT_RUN_GENESIS_REQUEST,
 };
 use casper_execution_engine::storage::global_state::in_memory::InMemoryGlobalState;
-use casper_types::{account::AccountHash, runtime_args, CLValue, ContractHash, Key, RuntimeArgs};
+use casper_types::{account::AccountHash, runtime_args, CLValue, Key, RuntimeArgs};
 
 use crate::utility::{
     constants::{
         ACCOUNT_USER_1, ACCOUNT_USER_2, ARG_IS_HASH_IDENTIFIER_MODE, ARG_KEY_NAME,
-        ARG_NFT_CONTRACT_HASH, ARG_REVERSE_LOOKUP, BALANCE_OF_SESSION_WASM, CONTRACT_NAME,
-        GET_APPROVED_WASM, IS_APPROVED_FOR_ALL_WASM, MALFORMED_META_DATA, MINTING_CONTRACT_WASM,
-        MINT_SESSION_WASM, NFT_CONTRACT_WASM, NFT_TEST_COLLECTION, OWNER_OF_SESSION_WASM,
-        PAGE_SIZE, TEST_COMPACT_META_DATA, TEST_PRETTY_721_META_DATA, TEST_PRETTY_CEP78_METADATA,
-        TEST_PRETTY_UPDATED_CEP78_METADATA, TRANSFER_SESSION_WASM,
+        ARG_NFT_CONTRACT_HASH, BALANCE_OF_SESSION_WASM, CONTRACT_NAME, GET_APPROVED_WASM,
+        IS_APPROVED_FOR_ALL_WASM, MALFORMED_META_DATA, MINT_SESSION_WASM, NFT_CONTRACT_WASM,
+        NFT_TEST_COLLECTION, OWNER_OF_SESSION_WASM, PAGE_SIZE, TEST_COMPACT_META_DATA,
+        TEST_PRETTY_721_META_DATA, TEST_PRETTY_CEP78_METADATA, TEST_PRETTY_UPDATED_CEP78_METADATA,
+        TRANSFER_SESSION_WASM,
     },
     installer_request_builder::{
         InstallerRequestBuilder, MetadataMutability, MintingMode, NFTHolderMode, NFTIdentifierMode,
@@ -36,8 +35,7 @@ use crate::utility::{
     },
     support::{
         self, assert_expected_error, call_session_code_with_ret, create_funded_dummy_account,
-        get_dictionary_value_from_key, get_minting_contract_hash, get_nft_contract_hash,
-        get_token_page_by_hash, query_stored_value,
+        get_dictionary_value_from_key, get_nft_contract_hash, get_token_page_by_hash,
     },
 };
 
@@ -1025,248 +1023,6 @@ fn should_revoke_approval_for_all() {
         actual_event, expected_event,
         "Expected RevokedForAll event."
     );
-}
-
-#[test]
-fn should_allow_whitelisted_contract_to_mint() {
-    let mut builder = InMemoryWasmTestBuilder::default();
-    builder.run_genesis(&DEFAULT_RUN_GENESIS_REQUEST).commit();
-
-    let minting_contract_install_request = ExecuteRequestBuilder::standard(
-        *DEFAULT_ACCOUNT_ADDR,
-        MINTING_CONTRACT_WASM,
-        runtime_args! {},
-    )
-    .build();
-
-    builder
-        .exec(minting_contract_install_request)
-        .expect_success()
-        .commit();
-
-    let minting_contract_hash = get_minting_contract_hash(&builder);
-
-    let contract_whitelist = vec![minting_contract_hash];
-
-    let install_request = InstallerRequestBuilder::new(*DEFAULT_ACCOUNT_ADDR, NFT_CONTRACT_WASM)
-        .with_total_token_supply(100u64)
-        .with_holder_mode(NFTHolderMode::Contracts)
-        .with_whitelist_mode(WhitelistMode::Locked)
-        .with_ownership_mode(OwnershipMode::Minter)
-        .with_minting_mode(MintingMode::Installer)
-        .with_reporting_mode(OwnerReverseLookupMode::NoLookUp)
-        .with_contract_whitelist(contract_whitelist.clone())
-        .build();
-
-    builder.exec(install_request).expect_success().commit();
-
-    let nft_contract_key: Key = get_nft_contract_hash(&builder).into();
-
-    let actual_contract_whitelist: Vec<ContractHash> = query_stored_value(
-        &builder,
-        nft_contract_key,
-        vec![ARG_CONTRACT_WHITELIST.to_string()],
-    );
-
-    assert_eq!(actual_contract_whitelist, contract_whitelist);
-
-    let mint_runtime_args = runtime_args! {
-        ARG_NFT_CONTRACT_HASH => nft_contract_key,
-        ARG_TOKEN_OWNER => Key::Account(*DEFAULT_ACCOUNT_ADDR),
-        ARG_TOKEN_META_DATA => TEST_PRETTY_721_META_DATA.to_string(),
-        ARG_REVERSE_LOOKUP => false
-    };
-
-    let mint_via_contract_call = ExecuteRequestBuilder::contract_call_by_hash(
-        *DEFAULT_ACCOUNT_ADDR,
-        minting_contract_hash,
-        ENTRY_POINT_MINT,
-        mint_runtime_args,
-    )
-    .build();
-
-    builder
-        .exec(mint_via_contract_call)
-        .expect_success()
-        .commit();
-
-    let token_id = 0u64;
-
-    let actual_token_owner: Key = get_dictionary_value_from_key(
-        &builder,
-        &nft_contract_key,
-        TOKEN_OWNERS,
-        &token_id.to_string(),
-    );
-
-    let minting_contract_key: Key = minting_contract_hash.into();
-
-    assert_eq!(actual_token_owner, minting_contract_key)
-}
-
-#[test]
-fn should_disallow_unlisted_contract_from_minting() {
-    let mut builder = InMemoryWasmTestBuilder::default();
-    builder.run_genesis(&DEFAULT_RUN_GENESIS_REQUEST).commit();
-
-    let minting_contract_install_request = ExecuteRequestBuilder::standard(
-        *DEFAULT_ACCOUNT_ADDR,
-        MINTING_CONTRACT_WASM,
-        runtime_args! {},
-    )
-    .build();
-
-    builder
-        .exec(minting_contract_install_request)
-        .expect_success()
-        .commit();
-
-    let minting_contract_hash = get_minting_contract_hash(&builder);
-    let contract_whitelist = vec![
-        ContractHash::from([1u8; 32]),
-        ContractHash::from([2u8; 32]),
-        ContractHash::from([3u8; 32]),
-    ];
-
-    let install_request = InstallerRequestBuilder::new(*DEFAULT_ACCOUNT_ADDR, NFT_CONTRACT_WASM)
-        .with_total_token_supply(100u64)
-        .with_holder_mode(NFTHolderMode::Contracts)
-        .with_whitelist_mode(WhitelistMode::Locked)
-        .with_ownership_mode(OwnershipMode::Minter)
-        .with_minting_mode(MintingMode::Installer)
-        .with_reporting_mode(OwnerReverseLookupMode::NoLookUp)
-        .with_contract_whitelist(contract_whitelist)
-        .build();
-
-    builder.exec(install_request).expect_success().commit();
-
-    let nft_contract_key: Key = get_nft_contract_hash(&builder).into();
-
-    let mint_runtime_args = runtime_args! {
-        ARG_NFT_CONTRACT_HASH => nft_contract_key,
-        ARG_TOKEN_OWNER => Key::Account(*DEFAULT_ACCOUNT_ADDR),
-        ARG_TOKEN_META_DATA => TEST_PRETTY_721_META_DATA.to_string(),
-        ARG_REVERSE_LOOKUP => false
-    };
-
-    let mint_via_contract_call = ExecuteRequestBuilder::contract_call_by_hash(
-        *DEFAULT_ACCOUNT_ADDR,
-        minting_contract_hash,
-        ENTRY_POINT_MINT,
-        mint_runtime_args,
-    )
-    .build();
-
-    builder.exec(mint_via_contract_call).expect_failure();
-
-    let error = builder.get_error().expect("should have an error");
-    assert_expected_error(
-        error,
-        81,
-        "Unlisted contract hash should not be permitted to mint",
-    );
-}
-
-#[test]
-fn should_be_able_to_update_whitelist_for_minting() {
-    let mut builder = InMemoryWasmTestBuilder::default();
-    builder.run_genesis(&DEFAULT_RUN_GENESIS_REQUEST).commit();
-
-    let minting_contract_install_request = ExecuteRequestBuilder::standard(
-        *DEFAULT_ACCOUNT_ADDR,
-        MINTING_CONTRACT_WASM,
-        runtime_args! {},
-    )
-    .build();
-
-    builder
-        .exec(minting_contract_install_request)
-        .expect_success()
-        .commit();
-
-    let minting_contract_hash = get_minting_contract_hash(&builder);
-
-    let install_request = InstallerRequestBuilder::new(*DEFAULT_ACCOUNT_ADDR, NFT_CONTRACT_WASM)
-        .with_total_token_supply(100u64)
-        .with_holder_mode(NFTHolderMode::Contracts)
-        .with_whitelist_mode(WhitelistMode::Unlocked)
-        .with_ownership_mode(OwnershipMode::Minter)
-        .with_minting_mode(MintingMode::Installer)
-        .with_reporting_mode(OwnerReverseLookupMode::NoLookUp)
-        .with_contract_whitelist(vec![])
-        .build();
-
-    builder.exec(install_request).expect_success().commit();
-
-    let nft_contract_hash = get_nft_contract_hash(&builder);
-    let nft_contract_key = nft_contract_hash.into();
-
-    let current_contract_whitelist: Vec<ContractHash> = query_stored_value(
-        &builder,
-        nft_contract_key,
-        vec![ARG_CONTRACT_WHITELIST.to_string()],
-    );
-
-    assert!(current_contract_whitelist.is_empty());
-    let mint_runtime_args = runtime_args! {
-        ARG_NFT_CONTRACT_HASH => nft_contract_key,
-        ARG_TOKEN_OWNER => Key::Account(*DEFAULT_ACCOUNT_ADDR),
-        ARG_TOKEN_META_DATA => TEST_PRETTY_721_META_DATA.to_string(),
-        ARG_REVERSE_LOOKUP => false,
-    };
-
-    let mint_via_contract_call = ExecuteRequestBuilder::contract_call_by_hash(
-        *DEFAULT_ACCOUNT_ADDR,
-        minting_contract_hash,
-        ENTRY_POINT_MINT,
-        mint_runtime_args.clone(),
-    )
-    .build();
-
-    builder.exec(mint_via_contract_call).expect_failure();
-
-    let error = builder.get_error().expect("should have an error");
-    assert_expected_error(
-        error,
-        81,
-        "Unlisted contract hash should not be permitted to mint",
-    );
-
-    let update_whitelist_request = ExecuteRequestBuilder::contract_call_by_hash(
-        *DEFAULT_ACCOUNT_ADDR,
-        nft_contract_hash,
-        ENTRY_POINT_SET_VARIABLES,
-        runtime_args! {
-            ARG_CONTRACT_WHITELIST => vec![minting_contract_hash]
-        },
-    )
-    .build();
-
-    builder
-        .exec(update_whitelist_request)
-        .expect_success()
-        .commit();
-
-    let updated_contract_whitelist: Vec<ContractHash> = query_stored_value(
-        &builder,
-        nft_contract_key,
-        vec![ARG_CONTRACT_WHITELIST.to_string()],
-    );
-
-    assert_eq!(vec![minting_contract_hash], updated_contract_whitelist);
-
-    let mint_via_contract_call = ExecuteRequestBuilder::contract_call_by_hash(
-        *DEFAULT_ACCOUNT_ADDR,
-        minting_contract_hash,
-        ENTRY_POINT_MINT,
-        mint_runtime_args,
-    )
-    .build();
-
-    builder
-        .exec(mint_via_contract_call)
-        .expect_success()
-        .commit();
 }
 
 #[test]

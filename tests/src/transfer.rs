@@ -8,7 +8,7 @@ use casper_types::{
 };
 use contract::{
     constants::{
-        APPROVED, ARG_APPROVE_ALL, ARG_COLLECTION_NAME, ARG_CONTRACT_WHITELIST, ARG_OPERATOR,
+        ACL_WHITELIST, APPROVED, ARG_APPROVE_ALL, ARG_COLLECTION_NAME, ARG_OPERATOR,
         ARG_SOURCE_KEY, ARG_SPENDER, ARG_TARGET_KEY, ARG_TOKEN_HASH, ARG_TOKEN_ID,
         ARG_TOKEN_META_DATA, ARG_TOKEN_OWNER, ENTRY_POINT_APPROVE, ENTRY_POINT_MINT,
         ENTRY_POINT_REGISTER_OWNER, ENTRY_POINT_REVOKE, ENTRY_POINT_SET_APPROVALL_FOR_ALL,
@@ -31,7 +31,7 @@ use crate::utility::{
     },
     support::{
         self, assert_expected_error, create_funded_dummy_account, get_dictionary_value_from_key,
-        get_minting_contract_hash, get_nft_contract_hash, query_stored_value,
+        get_minting_contract_hash, get_nft_contract_hash,
     },
 };
 
@@ -1088,15 +1088,15 @@ fn should_transfer_between_contract_to_account() {
     let minting_contract_hash = get_minting_contract_hash(&builder);
     let minting_contract_key: Key = minting_contract_hash.into();
 
-    let contract_whitelist = vec![minting_contract_hash];
+    let contract_whitelist = vec![Key::from(minting_contract_hash)];
 
     let install_request = InstallerRequestBuilder::new(*DEFAULT_ACCOUNT_ADDR, NFT_CONTRACT_WASM)
         .with_total_token_supply(100u64)
         .with_holder_mode(NFTHolderMode::Contracts)
         .with_whitelist_mode(WhitelistMode::Locked)
         .with_ownership_mode(OwnershipMode::Transferable)
-        .with_minting_mode(MintingMode::Installer)
-        .with_contract_whitelist(contract_whitelist.clone())
+        .with_minting_mode(MintingMode::Acl)
+        .with_acl_whitelist(contract_whitelist)
         .build();
 
     builder.exec(install_request).expect_success().commit();
@@ -1104,13 +1104,14 @@ fn should_transfer_between_contract_to_account() {
     let nft_contract_hash = get_nft_contract_hash(&builder);
     let nft_contract_key: Key = nft_contract_hash.into();
 
-    let actual_contract_whitelist: Vec<ContractHash> = query_stored_value(
+    let is_whitelisted_account = support::get_dictionary_value_from_key::<bool>(
         &builder,
-        nft_contract_key,
-        vec![ARG_CONTRACT_WHITELIST.to_string()],
+        &nft_contract_key,
+        ACL_WHITELIST,
+        &minting_contract_hash.to_string(),
     );
 
-    assert_eq!(actual_contract_whitelist, contract_whitelist);
+    assert!(is_whitelisted_account, "acl whitelist is incorrectly set");
 
     let mint_runtime_args = runtime_args! {
         ARG_NFT_CONTRACT_HASH => nft_contract_key,

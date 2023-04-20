@@ -424,16 +424,16 @@ fn should_allow_contract_to_burn_token() {
 
     let minting_contract_hash = get_minting_contract_hash(&builder);
 
-    let contract_whitelist = vec![minting_contract_hash];
+    let contract_whitelist = vec![Key::from(minting_contract_hash)];
 
     let install_request = InstallerRequestBuilder::new(*DEFAULT_ACCOUNT_ADDR, NFT_CONTRACT_WASM)
         .with_total_token_supply(100u64)
         .with_holder_mode(NFTHolderMode::Contracts)
         .with_whitelist_mode(WhitelistMode::Locked)
         .with_ownership_mode(OwnershipMode::Minter)
-        .with_minting_mode(MintingMode::Installer)
+        .with_minting_mode(MintingMode::Acl)
         .with_reporting_mode(OwnerReverseLookupMode::NoLookUp)
-        .with_contract_whitelist(contract_whitelist)
+        .with_acl_whitelist(contract_whitelist)
         .build();
 
     builder.exec(install_request).expect_success().commit();
