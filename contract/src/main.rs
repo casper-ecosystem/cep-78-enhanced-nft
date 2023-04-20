@@ -895,7 +895,7 @@ pub extern "C" fn approve() {
     }
 
     let spender = match utils::get_optional_named_arg_with_user_errors::<Key>(
-        ARG_OPERATOR, // Deprecated in 1.2 in favor of ARG_SPENDER
+        ARG_OPERATOR, // Deprecated in favor of ARG_SPENDER
         NFTCoreError::InvalidApprovedAccountHash,
     ) {
         Some(deprecated_operator) => deprecated_operator,
