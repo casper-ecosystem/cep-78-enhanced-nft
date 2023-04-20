@@ -280,10 +280,7 @@ fn should_install_with_contract_holder_mode() {
         &ContractHash::default().to_string(),
     );
 
-    assert!(
-        is_whitelisted_account,
-        "contract acl whitelist is incorrectly set"
-    );
+    assert!(is_whitelisted_account, "acl whitelist is incorrectly set");
 }
 
 #[test]

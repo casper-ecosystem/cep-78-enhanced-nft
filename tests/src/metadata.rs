@@ -431,10 +431,7 @@ fn should_get_metadata_using_token_id() {
         &minting_contract_hash.to_string(),
     );
 
-    assert!(
-        is_whitelisted_account,
-        "contract acl whitelist is incorrectly set"
-    );
+    assert!(is_whitelisted_account, "acl whitelist is incorrectly set");
 
     let mint_runtime_args = runtime_args! {
         ARG_NFT_CONTRACT_HASH => nft_contract_key,
