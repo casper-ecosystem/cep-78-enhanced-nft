@@ -17,8 +17,8 @@ use contract::{
 use crate::utility::{
     constants::{
         ACCOUNT_USER_1, ARG_NFT_CONTRACT_HASH, ARG_REVERSE_LOOKUP, CONTRACT_1_0_0_WASM,
-        CONTRACT_1_1_O_WASM, MINTING_CONTRACT_WASM, NFT_CONTRACT_WASM, NFT_TEST_COLLECTION,
-        NFT_TEST_SYMBOL, TEST_PRETTY_721_META_DATA,
+        MINTING_CONTRACT_WASM, NFT_CONTRACT_WASM, NFT_TEST_COLLECTION, NFT_TEST_SYMBOL,
+        TEST_PRETTY_721_META_DATA,
     },
     installer_request_builder::{
         InstallerRequestBuilder, MintingMode, NFTHolderMode, NFTMetadataKind,
