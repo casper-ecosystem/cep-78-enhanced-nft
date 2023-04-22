@@ -173,7 +173,7 @@ fn install_minting_contract() -> (ContractHash, ContractVersion) {
     )
 }
 
-pub fn upgrade_minting_contract(name: &str) -> (ContractHash, ContractVersion) {
+fn upgrade_minting_contract(name: &str) -> (ContractHash, ContractVersion) {
     let contract_package_hash: ContractPackageHash = ContractPackageHash::new(
         runtime::get_key(name)
             .unwrap_or_revert()
@@ -185,13 +185,13 @@ pub fn upgrade_minting_contract(name: &str) -> (ContractHash, ContractVersion) {
     storage::add_contract_version(contract_package_hash, entry_points, named_keys)
 }
 
-pub fn named_keys() -> NamedKeys {
+fn named_keys() -> NamedKeys {
     let mut named_keys = NamedKeys::new();
     named_keys.insert(INSTALLER.to_string(), runtime::get_caller().into());
     named_keys
 }
 
-pub fn get_entry_points() -> EntryPoints {
+fn get_entry_points() -> EntryPoints {
     let mint_entry_point = EntryPoint::new(
         ENTRY_POINT_MINT,
         vec![
