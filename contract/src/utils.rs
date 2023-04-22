@@ -23,10 +23,11 @@ use casper_types::{
 
 use crate::{
     constants::{
-        ARG_TOKEN_HASH, ARG_TOKEN_ID, BURNT_TOKENS, BURN_MODE, HASH_BY_INDEX, HOLDER_MODE,
-        INDEX_BY_HASH, MIGRATION_FLAG, NUMBER_OF_MINTED_TOKENS, OWNED_TOKENS, OWNERSHIP_MODE,
-        PAGE_LIMIT, PAGE_TABLE, PREFIX_PAGE_DICTIONARY, RECEIPT_NAME, REPORTING_MODE, RLO_MFLAG,
-        TOKEN_OWNERS, UNMATCHED_HASH_COUNT,
+        ACL_WHITELIST, ARG_TOKEN_HASH, ARG_TOKEN_ID, BURNT_TOKENS, BURN_MODE, CONTRACT_WHITELIST,
+        HASH_BY_INDEX, HOLDER_MODE, INDEX_BY_HASH, MIGRATION_FLAG, MINTING_MODE,
+        NUMBER_OF_MINTED_TOKENS, OWNED_TOKENS, OWNERSHIP_MODE, PAGE_LIMIT, PAGE_TABLE,
+        PREFIX_PAGE_DICTIONARY, RECEIPT_NAME, REPORTING_MODE, RLO_MFLAG, TOKEN_OWNERS,
+        UNMATCHED_HASH_COUNT,
     },
     error::NFTCoreError,
     events::events_ces::{
@@ -34,8 +35,8 @@ use crate::{
         Transfer, VariablesSet,
     },
     modalities::{
-        BurnMode, MetadataRequirement, NFTHolderMode, NFTIdentifierMode, NFTMetadataKind,
-        OwnerReverseLookupMode, OwnershipMode, Requirement, TokenIdentifier,
+        BurnMode, MetadataRequirement, MintingMode, NFTHolderMode, NFTIdentifierMode,
+        NFTMetadataKind, OwnerReverseLookupMode, OwnershipMode, Requirement, TokenIdentifier,
     },
     utils,
 };
@@ -822,5 +823,47 @@ pub fn requires_rlo_migration() -> bool {
             }
             None => true,
         },
+    }
+}
+
+pub fn migrate_contract_whitelist_to_acl_whitelist() {
+    // Add ACL whitelist dict and migrate old contract whitelist to new ACL dict
+    if runtime::get_key(ACL_WHITELIST).is_none() {
+        storage::new_dictionary(ACL_WHITELIST)
+            .unwrap_or_revert_with(NFTCoreError::FailedToCreateDictionary);
+        let contract_whitelist = utils::get_stored_value_with_user_errors::<Vec<ContractHash>>(
+            CONTRACT_WHITELIST,
+            NFTCoreError::MissingWhitelistMode,
+            NFTCoreError::InvalidWhitelistMode,
+        );
+
+        // If mining mode is Installer and contract whitelist is not empty then migrate to minting
+        // mode Acl and fill ACL_WHITELIST dictionnary
+        if !contract_whitelist.is_empty() {
+            let minting_mode: MintingMode = utils::get_stored_value_with_user_errors::<u8>(
+                MINTING_MODE,
+                NFTCoreError::MissingMintingMode,
+                NFTCoreError::InvalidMintingMode,
+            )
+            .try_into()
+            .unwrap_or_revert();
+
+            // Migrate to Acl
+            if MintingMode::Installer == minting_mode {
+                runtime::put_key(
+                    MINTING_MODE,
+                    storage::new_uref(MintingMode::Acl as u8).into(),
+                );
+            }
+
+            // Update acl whitelist
+            for contract_hash in contract_whitelist.iter() {
+                utils::upsert_dictionary_value_from_key(
+                    ACL_WHITELIST,
+                    &contract_hash.to_string(),
+                    true,
+                );
+            }
+        }
     }
 }

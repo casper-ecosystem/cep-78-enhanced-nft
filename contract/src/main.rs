@@ -43,20 +43,19 @@ use constants::{
     ARG_OWNERSHIP_MODE, ARG_OWNER_LOOKUP_MODE, ARG_RECEIPT_NAME, ARG_SOURCE_KEY, ARG_SPENDER,
     ARG_TARGET_KEY, ARG_TOKEN_META_DATA, ARG_TOKEN_OWNER, ARG_TOTAL_TOKEN_SUPPLY,
     ARG_WHITELIST_MODE, BURNT_TOKENS, BURN_MODE, COLLECTION_NAME, COLLECTION_SYMBOL,
-    CONTRACT_WHITELIST, ENTRY_POINT_APPROVE, ENTRY_POINT_BALANCE_OF, ENTRY_POINT_BURN,
-    ENTRY_POINT_GET_APPROVED, ENTRY_POINT_INIT, ENTRY_POINT_IS_APPROVED_FOR_ALL,
-    ENTRY_POINT_METADATA, ENTRY_POINT_MIGRATE, ENTRY_POINT_MINT, ENTRY_POINT_OWNER_OF,
-    ENTRY_POINT_REGISTER_OWNER, ENTRY_POINT_REVOKE, ENTRY_POINT_SET_APPROVALL_FOR_ALL,
-    ENTRY_POINT_SET_TOKEN_METADATA, ENTRY_POINT_SET_VARIABLES, ENTRY_POINT_TRANSFER,
-    ENTRY_POINT_UPDATED_RECEIPTS, EVENTS, EVENTS_MODE, HASH_BY_INDEX, HASH_KEY_NAME_1_0_0,
-    HOLDER_MODE, IDENTIFIER_MODE, INDEX_BY_HASH, INSTALLER, JSON_SCHEMA, MAX_TOTAL_TOKEN_SUPPLY,
-    METADATA_CEP78, METADATA_CUSTOM_VALIDATED, METADATA_MUTABILITY, METADATA_NFT721, METADATA_RAW,
-    MINTING_MODE, NFT_KIND, NFT_METADATA_KIND, NFT_METADATA_KINDS, NUMBER_OF_MINTED_TOKENS,
-    OPERATOR, OPERATORS, OWNED_TOKENS, OWNERSHIP_MODE, PAGE_LIMIT, PAGE_TABLE,
-    PREFIX_ACCESS_KEY_NAME, PREFIX_CEP78, PREFIX_CONTRACT_NAME, PREFIX_CONTRACT_VERSION,
-    PREFIX_HASH_KEY_NAME, PREFIX_PAGE_DICTIONARY, RECEIPT_NAME, REPORTING_MODE, RLO_MFLAG,
-    TOKEN_COUNT, TOKEN_ISSUERS, TOKEN_OWNERS, TOTAL_TOKEN_SUPPLY, UNMATCHED_HASH_COUNT,
-    WHITELIST_MODE,
+    ENTRY_POINT_APPROVE, ENTRY_POINT_BALANCE_OF, ENTRY_POINT_BURN, ENTRY_POINT_GET_APPROVED,
+    ENTRY_POINT_INIT, ENTRY_POINT_IS_APPROVED_FOR_ALL, ENTRY_POINT_METADATA, ENTRY_POINT_MIGRATE,
+    ENTRY_POINT_MINT, ENTRY_POINT_OWNER_OF, ENTRY_POINT_REGISTER_OWNER, ENTRY_POINT_REVOKE,
+    ENTRY_POINT_SET_APPROVALL_FOR_ALL, ENTRY_POINT_SET_TOKEN_METADATA, ENTRY_POINT_SET_VARIABLES,
+    ENTRY_POINT_TRANSFER, ENTRY_POINT_UPDATED_RECEIPTS, EVENTS, EVENTS_MODE, HASH_BY_INDEX,
+    HASH_KEY_NAME_1_0_0, HOLDER_MODE, IDENTIFIER_MODE, INDEX_BY_HASH, INSTALLER, JSON_SCHEMA,
+    MAX_TOTAL_TOKEN_SUPPLY, METADATA_CEP78, METADATA_CUSTOM_VALIDATED, METADATA_MUTABILITY,
+    METADATA_NFT721, METADATA_RAW, MINTING_MODE, NFT_KIND, NFT_METADATA_KIND, NFT_METADATA_KINDS,
+    NUMBER_OF_MINTED_TOKENS, OPERATOR, OPERATORS, OWNED_TOKENS, OWNERSHIP_MODE, PAGE_LIMIT,
+    PAGE_TABLE, PREFIX_ACCESS_KEY_NAME, PREFIX_CEP78, PREFIX_CONTRACT_NAME,
+    PREFIX_CONTRACT_VERSION, PREFIX_HASH_KEY_NAME, PREFIX_PAGE_DICTIONARY, RECEIPT_NAME,
+    REPORTING_MODE, RLO_MFLAG, TOKEN_COUNT, TOKEN_ISSUERS, TOKEN_OWNERS, TOTAL_TOKEN_SUPPLY,
+    UNMATCHED_HASH_COUNT, WHITELIST_MODE,
 };
 use core::convert::{TryFrom, TryInto};
 use error::NFTCoreError;
@@ -1746,45 +1745,7 @@ pub extern "C" fn migrate() {
             .unwrap_or_revert_with(NFTCoreError::FailedToCreateDictionary);
     }
 
-    // Add ACL whitelist dict and migrate old contract whitelist to new ACL dict
-    if runtime::get_key(ACL_WHITELIST).is_none() {
-        storage::new_dictionary(ACL_WHITELIST)
-            .unwrap_or_revert_with(NFTCoreError::FailedToCreateDictionary);
-        let contract_whitelist = utils::get_stored_value_with_user_errors::<Vec<ContractHash>>(
-            CONTRACT_WHITELIST,
-            NFTCoreError::MissingWhitelistMode,
-            NFTCoreError::InvalidWhitelistMode,
-        );
-
-        // If mining mode is Installer and contract whitelist is not empty then migrate to minting
-        // mode Acl and fill ACL_WHITELIST dictionnary
-        if !contract_whitelist.is_empty() {
-            let minting_mode: MintingMode = utils::get_stored_value_with_user_errors::<u8>(
-                MINTING_MODE,
-                NFTCoreError::MissingMintingMode,
-                NFTCoreError::InvalidMintingMode,
-            )
-            .try_into()
-            .unwrap_or_revert();
-
-            // Migrate to Acl
-            if MintingMode::Installer == minting_mode {
-                runtime::put_key(
-                    MINTING_MODE,
-                    storage::new_uref(MintingMode::Acl as u8).into(),
-                );
-            }
-
-            // Update acl whitelist
-            for contract_hash in contract_whitelist.iter() {
-                utils::upsert_dictionary_value_from_key(
-                    ACL_WHITELIST,
-                    &contract_hash.to_string(),
-                    true,
-                );
-            }
-        }
-    }
+    utils::migrate_contract_whitelist_to_acl_whitelist();
 }
 
 #[no_mangle]
