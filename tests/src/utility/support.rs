@@ -12,7 +12,10 @@ use rand::prelude::*;
 use serde::{Deserialize, Serialize};
 use sha256::digest;
 
-use super::{constants::CONTRACT_NAME, installer_request_builder::InstallerRequestBuilder};
+use super::{
+    constants::{CONTRACT_NAME, MINTING_CONTRACT_PACKAGE_NAME},
+    installer_request_builder::InstallerRequestBuilder,
+};
 use casper_engine_test_support::{
     ExecuteRequestBuilder, InMemoryWasmTestBuilder, WasmTestBuilder, ARG_AMOUNT,
     DEFAULT_ACCOUNT_ADDR, DEFAULT_RUN_GENESIS_REQUEST,
@@ -70,6 +73,20 @@ pub(crate) fn get_minting_contract_hash(
         .expect("must get hash_addr");
 
     ContractHash::new(minting_contract_hash)
+}
+
+pub(crate) fn get_minting_contract_package_hash(
+    builder: &WasmTestBuilder<InMemoryGlobalState>,
+) -> ContractPackageHash {
+    let minting_contract_package_hash = builder
+        .get_expected_account(*DEFAULT_ACCOUNT_ADDR)
+        .named_keys()
+        .get(MINTING_CONTRACT_PACKAGE_NAME)
+        .expect("must have minting contract hash entry in named keys")
+        .into_hash()
+        .expect("must get hash_addr");
+
+    ContractPackageHash::new(minting_contract_package_hash)
 }
 
 pub(crate) fn get_dictionary_value_from_key<T: CLTyped + FromBytes>(

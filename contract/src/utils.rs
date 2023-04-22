@@ -18,7 +18,7 @@ use casper_types::{
     api_error,
     bytesrepr::{self, FromBytes, ToBytes},
     system::CallStackElement,
-    ApiError, CLTyped, ContractHash, Key, URef,
+    ApiError, CLTyped, ContractHash, ContractPackageHash, Key, URef,
 };
 
 use crate::{
@@ -212,11 +212,7 @@ pub fn named_uref_exists(name: &str) -> bool {
     api_error::result_from(ret).is_ok()
 }
 
-pub(crate) fn get_key_with_user_errors(
-    name: &str,
-    missing: NFTCoreError,
-    invalid: NFTCoreError,
-) -> Key {
+pub fn get_key_with_user_errors(name: &str, missing: NFTCoreError, invalid: NFTCoreError) -> Key {
     let (name_ptr, name_size, _bytes) = to_ptr(name);
     let mut key_bytes = vec![0u8; Key::max_serialized_length()];
     let mut total_bytes: usize = 0;
@@ -239,7 +235,7 @@ pub(crate) fn get_key_with_user_errors(
     bytesrepr::deserialize(key_bytes).unwrap_or_revert_with(invalid)
 }
 
-pub(crate) fn read_with_user_errors<T: CLTyped + FromBytes>(
+pub fn read_with_user_errors<T: CLTyped + FromBytes>(
     uref: URef,
     missing: NFTCoreError,
     invalid: NFTCoreError,
@@ -262,7 +258,7 @@ pub(crate) fn read_with_user_errors<T: CLTyped + FromBytes>(
     bytesrepr::deserialize(value_bytes).unwrap_or_revert_with(invalid)
 }
 
-pub(crate) fn read_host_buffer_into(dest: &mut [u8]) -> Result<usize, ApiError> {
+pub fn read_host_buffer_into(dest: &mut [u8]) -> Result<usize, ApiError> {
     let mut bytes_written = MaybeUninit::uninit();
     let ret = unsafe {
         ext_ffi::casper_read_host_buffer(dest.as_mut_ptr(), dest.len(), bytes_written.as_mut_ptr())
@@ -274,7 +270,7 @@ pub(crate) fn read_host_buffer_into(dest: &mut [u8]) -> Result<usize, ApiError> 
     Ok(unsafe { bytes_written.assume_init() })
 }
 
-pub(crate) fn read_host_buffer(size: usize) -> Result<Vec<u8>, ApiError> {
+pub fn read_host_buffer(size: usize) -> Result<Vec<u8>, ApiError> {
     let mut dest: Vec<u8> = if size == 0 {
         Vec::new()
     } else {
@@ -285,14 +281,19 @@ pub(crate) fn read_host_buffer(size: usize) -> Result<Vec<u8>, ApiError> {
     Ok(dest)
 }
 
-pub(crate) fn to_ptr<T: ToBytes>(t: T) -> (*const u8, usize, Vec<u8>) {
+pub fn to_ptr<T: ToBytes>(t: T) -> (*const u8, usize, Vec<u8>) {
     let bytes = t.into_bytes().unwrap_or_revert();
     let ptr = bytes.as_ptr();
     let size = bytes.len();
     (ptr, size, bytes)
 }
 
-pub fn get_verified_caller() -> Result<Key, NFTCoreError> {
+pub enum Caller {
+    Session(AccountHash),
+    StoredCaller(ContractHash, ContractPackageHash),
+}
+
+pub fn get_verified_caller() -> Result<Caller, NFTCoreError> {
     let holder_mode = get_holder_mode()?;
     match *runtime::get_call_stack()
         .iter()
@@ -306,18 +307,24 @@ pub fn get_verified_caller() -> Result<Key, NFTCoreError> {
             if let NFTHolderMode::Contracts = holder_mode {
                 return Err(NFTCoreError::InvalidHolderMode);
             }
-            Ok(Key::Account(calling_account_hash))
+            Ok(Caller::Session(calling_account_hash))
         }
-        CallStackElement::StoredSession { contract_hash, .. }
-        | CallStackElement::StoredContract { contract_hash, .. } => {
+        CallStackElement::StoredSession {
+            contract_hash,
+            contract_package_hash,
+            ..
+        }
+        | CallStackElement::StoredContract {
+            contract_hash,
+            contract_package_hash,
+        } => {
             if let NFTHolderMode::Accounts = holder_mode {
                 return Err(NFTCoreError::InvalidHolderMode);
             }
-            Ok(contract_hash.into())
+            Ok(Caller::StoredCaller(contract_hash, contract_package_hash))
         }
     }
 }
-
 pub fn get_token_identifier_from_runtime_args(
     identifier_mode: &NFTIdentifierMode,
 ) -> TokenIdentifier {

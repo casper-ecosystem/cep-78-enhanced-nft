@@ -72,6 +72,7 @@ use modalities::{
     NFTKind, NFTMetadataKind, NamedKeyConventionMode, OwnerReverseLookupMode, OwnershipMode,
     Requirement, TokenIdentifier, WhitelistMode,
 };
+use utils::Caller;
 
 #[no_mangle]
 pub extern "C" fn init() {
@@ -559,9 +560,16 @@ pub extern "C" fn mint() {
     .try_into()
     .unwrap_or_revert();
 
+    let (caller, contract_package): (Key, Option<Key>) =
+        match utils::get_verified_caller().unwrap_or_revert() {
+            Caller::Session(account_hash) => (account_hash.into(), None),
+            Caller::StoredCaller(contract_hash, contract_package_hash) => {
+                (contract_hash.into(), Some(contract_package_hash.into()))
+            }
+        };
+
     // Revert if minting is private and caller is not installer.
     if MintingMode::Installer == minting_mode {
-        let caller = utils::get_verified_caller().unwrap_or_revert();
         match caller.tag() {
             KeyTag::Account => {
                 let installer_account = runtime::get_key(INSTALLER)
@@ -580,7 +588,6 @@ pub extern "C" fn mint() {
 
     // Revert if minting is acl and caller is not whitelisted.
     if MintingMode::Acl == minting_mode {
-        let caller = utils::get_verified_caller().unwrap_or_revert();
         let is_whitelisted = utils::get_dictionary_value_from_key::<bool>(
             ACL_WHITELIST,
             &utils::encode_dictionary_item_key(caller),
@@ -588,23 +595,23 @@ pub extern "C" fn mint() {
         .unwrap_or_default();
         if !is_whitelisted {
             match caller.tag() {
-                KeyTag::Hash => runtime::revert(NFTCoreError::UnlistedContractHash),
+                KeyTag::Hash => {
+                    if let Some(contract_package) = contract_package {
+                        let is_package_whitelisted = utils::get_dictionary_value_from_key::<bool>(
+                            ACL_WHITELIST,
+                            &utils::encode_dictionary_item_key(contract_package),
+                        )
+                        .unwrap_or_default();
+                        if !is_package_whitelisted {
+                            runtime::revert(NFTCoreError::UnlistedContractHash)
+                        }
+                    }
+                }
                 KeyTag::Account => runtime::revert(NFTCoreError::InvalidMinter),
                 _ => runtime::revert(NFTCoreError::InvalidKey),
             }
         }
     }
-
-    // The contract's ownership behavior (determined at installation) determines,
-    // who owns the NFT we are about to mint.()
-    let ownership_mode = utils::get_ownership_mode().unwrap_or_revert();
-    let caller = utils::get_verified_caller().unwrap_or_revert();
-    let token_owner_key: Key =
-        if let OwnershipMode::Assigned | OwnershipMode::Transferable = ownership_mode {
-            runtime::get_named_arg(ARG_TOKEN_OWNER)
-        } else {
-            caller
-        };
 
     let metadata_kinds: BTreeMap<NFTMetadataKind, Requirement> =
         utils::get_stored_value_with_user_errors(
@@ -657,6 +664,16 @@ pub extern "C" fn mint() {
             }
         }
     }
+
+    // The contract's ownership behavior (determined at installation) determines,
+    // who owns the NFT we are about to mint.()
+    let ownership_mode = utils::get_ownership_mode().unwrap_or_revert();
+    let token_owner_key: Key =
+        if let OwnershipMode::Assigned | OwnershipMode::Transferable = ownership_mode {
+            runtime::get_named_arg(ARG_TOKEN_OWNER)
+        } else {
+            caller
+        };
 
     utils::upsert_dictionary_value_from_key(
         TOKEN_OWNERS,
@@ -758,7 +775,10 @@ pub extern "C" fn burn() {
 
     let token_identifier = utils::get_token_identifier_from_runtime_args(&identifier_mode);
 
-    let caller = utils::get_verified_caller().unwrap_or_revert();
+    let caller: Key = match utils::get_verified_caller().unwrap_or_revert() {
+        Caller::Session(account_hash) => account_hash.into(),
+        Caller::StoredCaller(contract_hash, _) => contract_hash.into(),
+    };
 
     // Revert if caller is not token_owner. This seems to be the only check we need to do.
     let token_owner = match utils::get_dictionary_value_from_key::<Key>(
@@ -838,7 +858,10 @@ pub extern "C" fn approve() {
         runtime::revert(NFTCoreError::InvalidOwnershipMode)
     }
 
-    let caller = utils::get_verified_caller().unwrap_or_revert();
+    let caller: Key = match utils::get_verified_caller().unwrap_or_revert() {
+        Caller::Session(account_hash) => account_hash.into(),
+        Caller::StoredCaller(contract_hash, _) => contract_hash.into(),
+    };
 
     let identifier_mode: NFTIdentifierMode = utils::get_stored_value_with_user_errors::<u8>(
         IDENTIFIER_MODE,
@@ -947,7 +970,10 @@ pub extern "C" fn revoke() {
         runtime::revert(NFTCoreError::InvalidOwnershipMode)
     }
 
-    let caller = utils::get_verified_caller().unwrap_or_revert();
+    let caller: Key = match utils::get_verified_caller().unwrap_or_revert() {
+        Caller::Session(account_hash) => account_hash.into(),
+        Caller::StoredCaller(contract_hash, _) => contract_hash.into(),
+    };
 
     let identifier_mode: NFTIdentifierMode = utils::get_stored_value_with_user_errors::<u8>(
         IDENTIFIER_MODE,
@@ -1045,7 +1071,10 @@ pub extern "C" fn set_approval_for_all() {
     )
     .unwrap_or_revert();
 
-    let caller = utils::get_verified_caller().unwrap_or_revert();
+    let caller: Key = match utils::get_verified_caller().unwrap_or_revert() {
+        Caller::Session(account_hash) => account_hash.into(),
+        Caller::StoredCaller(contract_hash, _) => contract_hash.into(),
+    };
 
     let operator = utils::get_named_arg_with_user_errors::<Key>(
         ARG_OPERATOR,
@@ -1172,7 +1201,10 @@ pub extern "C" fn transfer() {
         runtime::revert(NFTCoreError::InvalidAccount);
     }
 
-    let caller = utils::get_verified_caller().unwrap_or_revert();
+    let caller: Key = match utils::get_verified_caller().unwrap_or_revert() {
+        Caller::Session(account_hash) => account_hash.into(),
+        Caller::StoredCaller(contract_hash, _) => contract_hash.into(),
+    };
 
     // Check if caller is owner
     let is_owner = owner == caller;
@@ -1519,7 +1551,10 @@ pub extern "C" fn set_token_metadata() {
     );
 
     if let Some(token_owner_key) = token_owner {
-        let caller = utils::get_verified_caller().unwrap_or_revert();
+        let caller: Key = match utils::get_verified_caller().unwrap_or_revert() {
+            Caller::Session(account_hash) => account_hash.into(),
+            Caller::StoredCaller(contract_hash, _) => contract_hash.into(),
+        };
         if caller != token_owner_key {
             runtime::revert(NFTCoreError::InvalidTokenOwner)
         }
@@ -1751,7 +1786,10 @@ pub extern "C" fn migrate() {
 #[no_mangle]
 pub extern "C" fn updated_receipts() {
     if let OwnerReverseLookupMode::Complete = utils::get_reporting_mode() {
-        let caller = utils::get_verified_caller().unwrap_or_revert();
+        let caller: Key = match utils::get_verified_caller().unwrap_or_revert() {
+            Caller::Session(account_hash) => account_hash.into(),
+            Caller::StoredCaller(contract_hash, _) => contract_hash.into(),
+        };
 
         let identifier_mode: NFTIdentifierMode = utils::get_stored_value_with_user_errors::<u8>(
             IDENTIFIER_MODE,
@@ -1802,7 +1840,10 @@ pub extern "C" fn register_owner() {
     .contains(&utils::get_reporting_mode())
     {
         let owner_key = match utils::get_ownership_mode().unwrap_or_revert() {
-            OwnershipMode::Minter => utils::get_verified_caller().unwrap_or_revert(),
+            OwnershipMode::Minter => match utils::get_verified_caller().unwrap_or_revert() {
+                Caller::Session(account_hash) => account_hash.into(),
+                Caller::StoredCaller(contract_hash, _) => contract_hash.into(),
+            },
             OwnershipMode::Assigned | OwnershipMode::Transferable => {
                 utils::get_named_arg_with_user_errors::<Key>(
                     ARG_TOKEN_OWNER,

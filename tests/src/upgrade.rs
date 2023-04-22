@@ -97,7 +97,6 @@ fn should_safely_upgrade_in_ordinal_identifier_mode() {
             ARG_NFT_CONTRACT_PACKAGE_HASH => contract_package_hash,
             ARG_COLLECTION_NAME => NFT_TEST_COLLECTION.to_string(),
             ARG_NAMED_KEY_CONVENTION => NamedKeyConventionMode::V1_0Standard as u8,
-            ARG_ACCESS_KEY_NAME_1_0_0 => ACCESS_KEY_NAME_1_0_0.to_string(),
             ARG_EVENTS_MODE => EventsMode::CES as u8
         },
     )
@@ -235,7 +234,6 @@ fn should_safely_upgrade_in_hash_identifier_mode() {
             ARG_NFT_CONTRACT_HASH => support::get_nft_contract_package_hash(&builder),
             ARG_COLLECTION_NAME => NFT_TEST_COLLECTION.to_string(),
             ARG_NAMED_KEY_CONVENTION => NamedKeyConventionMode::V1_0Standard as u8,
-            ARG_ACCESS_KEY_NAME_1_0_0 => ACCESS_KEY_NAME_1_0_0.to_string(),
             ARG_TOTAL_TOKEN_SUPPLY => 10u64
         },
     )
@@ -391,7 +389,6 @@ fn should_update_receipts_post_upgrade_paged() {
         runtime_args! {
             ARG_COLLECTION_NAME => NFT_TEST_COLLECTION.to_string(),
             ARG_NAMED_KEY_CONVENTION => NamedKeyConventionMode::V1_0Standard as u8,
-            ARG_ACCESS_KEY_NAME_1_0_0 => ACCESS_KEY_NAME_1_0_0.to_string()
         },
     )
     .build();
@@ -464,7 +461,6 @@ fn should_not_be_able_to_reinvoke_migrate_entrypoint() {
             ARG_NFT_CONTRACT_HASH => support::get_nft_contract_package_hash(&builder),
             ARG_COLLECTION_NAME => NFT_TEST_COLLECTION.to_string(),
             ARG_NAMED_KEY_CONVENTION => NamedKeyConventionMode::V1_0Standard as u8,
-            ARG_ACCESS_KEY_NAME_1_0_0 => ACCESS_KEY_NAME_1_0_0.to_string()
         },
     )
     .build();
@@ -481,7 +477,6 @@ fn should_not_be_able_to_reinvoke_migrate_entrypoint() {
             ARG_NFT_CONTRACT_PACKAGE_HASH => support::get_nft_contract_package_hash(&builder),
             ARG_COLLECTION_NAME => NFT_TEST_COLLECTION.to_string(),
             ARG_NAMED_KEY_CONVENTION => NamedKeyConventionMode::V1_0Standard as u8,
-            ARG_ACCESS_KEY_NAME_1_0_0 => ACCESS_KEY_NAME_1_0_0.to_string(),
             ARG_EVENTS_MODE => EventsMode::CES as u8
         },
     )
@@ -497,7 +492,6 @@ fn should_not_be_able_to_reinvoke_migrate_entrypoint() {
         runtime_args! {
             ARG_COLLECTION_NAME => NFT_TEST_COLLECTION.to_string(),
             ARG_NAMED_KEY_CONVENTION => NamedKeyConventionMode::V1_0Standard as u8,
-            ARG_ACCESS_KEY_NAME_1_0_0 => ACCESS_KEY_NAME_1_0_0.to_string(),
             ARG_EVENTS_MODE => EventsMode::CES as u8
         },
     )
@@ -533,7 +527,6 @@ fn should_not_migrate_contracts_with_zero_token_issuance() {
             ARG_NFT_CONTRACT_PACKAGE_HASH => support::get_nft_contract_package_hash(&builder),
             ARG_COLLECTION_NAME => NFT_TEST_COLLECTION.to_string(),
             ARG_NAMED_KEY_CONVENTION => NamedKeyConventionMode::V1_0Standard as u8,
-            ARG_ACCESS_KEY_NAME_1_0_0 => ACCESS_KEY_NAME_1_0_0.to_string()
         },
     )
     .build();
@@ -674,7 +667,6 @@ fn should_not_upgrade_with_larger_total_token_supply() {
             ARG_NFT_CONTRACT_PACKAGE_HASH => support::get_nft_contract_package_hash(&builder),
             ARG_COLLECTION_NAME => NFT_TEST_COLLECTION.to_string(),
             ARG_NAMED_KEY_CONVENTION => NamedKeyConventionMode::V1_0Standard as u8,
-            ARG_ACCESS_KEY_NAME_1_0_0 => ACCESS_KEY_NAME_1_0_0.to_string(),
             ARG_TOTAL_TOKEN_SUPPLY => 1000u64
         },
     )
