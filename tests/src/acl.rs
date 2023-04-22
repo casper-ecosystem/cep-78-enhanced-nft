@@ -670,7 +670,7 @@ fn should_disallow_unlisted_account_from_minting_with_mixed_account_contract() {
 }
 
 #[test]
-fn should_allow_whitelisted_package_to_mint() {
+fn should_allow_contract_from_whitelisted_package_to_mint() {
     let mut builder = InMemoryWasmTestBuilder::default();
     builder.run_genesis(&DEFAULT_RUN_GENESIS_REQUEST).commit();
 
@@ -752,7 +752,7 @@ fn should_allow_whitelisted_package_to_mint() {
 }
 
 #[test]
-fn should_allow_whitelisted_package_to_mint_after_contract_upgrade() {
+fn should_allow_contract_from_whitelisted_package_to_mint_after_contract_upgrade() {
     let mut builder = InMemoryWasmTestBuilder::default();
     builder.run_genesis(&DEFAULT_RUN_GENESIS_REQUEST).commit();
 
