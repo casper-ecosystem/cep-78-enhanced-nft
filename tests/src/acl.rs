@@ -369,9 +369,9 @@ fn should_disallow_unlisted_contract_from_minting() {
 
     let minting_contract_hash = get_minting_contract_hash(&builder);
     let contract_whitelist = vec![
-        Key::from(ContractHash::from([1u8; 32])),
-        Key::from(ContractHash::from([2u8; 32])),
-        Key::from(ContractHash::from([3u8; 32])),
+        Key::Hash([1u8; 32]),
+        Key::Hash([2u8; 32]),
+        Key::Hash([3u8; 32]),
     ];
 
     let install_request = InstallerRequestBuilder::new(*DEFAULT_ACCOUNT_ADDR, NFT_CONTRACT_WASM)
