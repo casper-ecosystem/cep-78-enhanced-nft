@@ -588,28 +588,35 @@ pub extern "C" fn mint() {
 
     // Revert if minting is acl and caller is not whitelisted.
     if MintingMode::ACL == minting_mode {
-        let is_whitelisted = utils::get_dictionary_value_from_key::<bool>(
-            ACL_WHITELIST,
-            &utils::encode_dictionary_item_key(caller),
-        )
-        .unwrap_or_default();
-        if !is_whitelisted {
-            match caller.tag() {
-                KeyTag::Hash => {
-                    if let Some(contract_package) = contract_package {
-                        let is_package_whitelisted = utils::get_dictionary_value_from_key::<bool>(
+        match caller.tag() {
+            KeyTag::Hash => {
+                if let Some(contract_package) = contract_package {
+                    if utils::get_dictionary_value_from_key::<bool>(
+                        ACL_WHITELIST,
+                        &utils::encode_dictionary_item_key(contract_package),
+                    )
+                    .is_none()
+                        && utils::get_dictionary_value_from_key::<bool>(
                             ACL_WHITELIST,
-                            &utils::encode_dictionary_item_key(contract_package),
+                            &utils::encode_dictionary_item_key(caller),
                         )
-                        .unwrap_or_default();
-                        if !is_package_whitelisted {
-                            runtime::revert(NFTCoreError::UnlistedContractHash)
-                        }
+                        .is_none()
+                    {
+                        runtime::revert(NFTCoreError::UnlistedContractHash)
                     }
                 }
-                KeyTag::Account => runtime::revert(NFTCoreError::InvalidMinter),
-                _ => runtime::revert(NFTCoreError::InvalidKey),
             }
+            KeyTag::Account => {
+                if utils::get_dictionary_value_from_key::<bool>(
+                    ACL_WHITELIST,
+                    &utils::encode_dictionary_item_key(caller),
+                )
+                .is_none()
+                {
+                    runtime::revert(NFTCoreError::InvalidMinter);
+                }
+            }
+            _ => runtime::revert(NFTCoreError::InvalidKey),
         }
     }
 
