@@ -100,7 +100,7 @@ The minting mode governs the behavior of contract when minting new tokens. The m
 
 1. `Installer`: This mode restricts the ability to mint new NFT tokens only to the installing account of the NFT contract.
 2. `Public`: This mode allows any account to mint NFT tokens.
-3. `Acl`: This mode allows whitelisted account/contract/contract from a package to mint NFT tokens.
+3. `Acl`: This mode allows whitelisted accounts, contracts or contracts from a package to mint NFT tokens.
 
 This modality is an optional installation parameter and will default to the `Installer` mode if not provided. However, this
 mode cannot be changed once the contract has been installed. The mode is set by passing a `u8` value to the `minting_mode` runtime argument.
