@@ -119,7 +119,7 @@ two options:
 1. `Unlocked`: The Acl whitelist is unlocked and can be updated via the set variables endpoint.
 2. `Locked`: The Acl whitelist is locked and cannot be updated further.
 
-If the `WhitelistMode` is set to `Locked` an Acl whitelist of entity keys must be provided on installation. This whitelist dictates which
+If the `WhitelistMode` is set to `Locked` an Acl whitelist of entity keys must be provided on installation. This whitelist dictates which entities can mint NFTs in the restricted `Acl` minting mode. These entities include `Accounts`, `Contracts` and `Contracts from a package`.
 
 This `WhitelistMode` is an optional installation parameter and will be set to unlocked if not passed. However, the whitelist mode itself cannot be changed once the contract has been installed. The mode is passed in as a `u8` value to `whitelist_mode` runtime argument.
 
