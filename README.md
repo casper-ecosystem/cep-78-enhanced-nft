@@ -113,7 +113,7 @@ mode cannot be changed once the contract has been installed. The mode is set by 
 
 #### WhitelistMode
 
-The `WhitelistMode` dictates if the Acl whitelist restricting access to the mint entrypoint can be updated. There are currently
+The `WhitelistMode` dictates if the Acl whitelist restricting access to the mint entry point can be updated. There are currently two options:
 two options:
 
 1. `Unlocked`: The Acl whitelist is unlocked and can be updated via the set variables endpoint.
