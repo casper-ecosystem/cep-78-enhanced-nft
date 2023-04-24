@@ -5,7 +5,7 @@ edition = "2018"
 
 [dependencies]
 casper-contract = "1.4.3"
-casper-types = "1.4.5"
+casper-types = "1.5"
 
 [[bin]]
 name = "is_approved_for_all_call"
