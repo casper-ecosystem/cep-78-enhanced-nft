@@ -845,7 +845,7 @@ pub fn migrate_contract_whitelist_to_acl_whitelist() {
         );
 
         // If mining mode is Installer and contract whitelist is not empty then migrate to minting
-        // mode Acl and fill ACL_WHITELIST dictionnary
+        // mode ACL and fill ACL_WHITELIST dictionnary
         if !contract_whitelist.is_empty() {
             let minting_mode: MintingMode = utils::get_stored_value_with_user_errors::<u8>(
                 MINTING_MODE,
@@ -855,11 +855,11 @@ pub fn migrate_contract_whitelist_to_acl_whitelist() {
             .try_into()
             .unwrap_or_revert();
 
-            // Migrate to Acl
+            // Migrate to ACL
             if MintingMode::Installer == minting_mode {
                 runtime::put_key(
                     MINTING_MODE,
-                    storage::new_uref(MintingMode::Acl as u8).into(),
+                    storage::new_uref(MintingMode::ACL as u8).into(),
                 );
             }
 

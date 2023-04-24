@@ -58,7 +58,7 @@ fn should_install_with_acl_whitelist() {
         .with_whitelist_mode(WhitelistMode::Locked)
         .with_ownership_mode(OwnershipMode::Transferable)
         .with_reporting_mode(OwnerReverseLookupMode::NoLookUp)
-        .with_minting_mode(MintingMode::Acl)
+        .with_minting_mode(MintingMode::ACL)
         .with_acl_whitelist(contract_whitelist)
         .build();
 
@@ -103,7 +103,7 @@ fn should_install_with_deprecated_contract_whitelist() {
         .with_whitelist_mode(WhitelistMode::Locked)
         .with_ownership_mode(OwnershipMode::Transferable)
         .with_reporting_mode(OwnerReverseLookupMode::NoLookUp)
-        .with_minting_mode(MintingMode::Acl)
+        .with_minting_mode(MintingMode::ACL)
         .with_contract_whitelist(contract_whitelist)
         .build();
 
@@ -220,7 +220,7 @@ fn should_allow_whitelisted_account_to_mint() {
         .with_whitelist_mode(WhitelistMode::Locked)
         .with_ownership_mode(OwnershipMode::Minter)
         .with_reporting_mode(OwnerReverseLookupMode::NoLookUp)
-        .with_minting_mode(MintingMode::Acl)
+        .with_minting_mode(MintingMode::ACL)
         .with_acl_whitelist(account_whitelist)
         .build();
 
@@ -282,7 +282,7 @@ fn should_disallow_unlisted_account_from_minting() {
         .with_whitelist_mode(WhitelistMode::Locked)
         .with_ownership_mode(OwnershipMode::Minter)
         .with_reporting_mode(OwnerReverseLookupMode::NoLookUp)
-        .with_minting_mode(MintingMode::Acl)
+        .with_minting_mode(MintingMode::ACL)
         .with_acl_whitelist(account_whitelist)
         .build();
 
@@ -354,7 +354,7 @@ fn should_allow_whitelisted_contract_to_mint() {
         .with_whitelist_mode(WhitelistMode::Locked)
         .with_ownership_mode(OwnershipMode::Minter)
         .with_reporting_mode(OwnerReverseLookupMode::NoLookUp)
-        .with_minting_mode(MintingMode::Acl)
+        .with_minting_mode(MintingMode::ACL)
         .with_acl_whitelist(contract_whitelist)
         .build();
 
@@ -435,7 +435,7 @@ fn should_disallow_unlisted_contract_from_minting() {
         .with_whitelist_mode(WhitelistMode::Locked)
         .with_ownership_mode(OwnershipMode::Minter)
         .with_reporting_mode(OwnerReverseLookupMode::NoLookUp)
-        .with_minting_mode(MintingMode::Acl)
+        .with_minting_mode(MintingMode::ACL)
         .with_acl_whitelist(contract_whitelist)
         .build();
 
@@ -495,7 +495,7 @@ fn should_allow_mixed_account_contract_to_mint() {
         .with_whitelist_mode(WhitelistMode::Locked)
         .with_ownership_mode(OwnershipMode::Minter)
         .with_reporting_mode(OwnerReverseLookupMode::NoLookUp)
-        .with_minting_mode(MintingMode::Acl)
+        .with_minting_mode(MintingMode::ACL)
         .with_acl_whitelist(mixed_whitelist)
         .build();
 
@@ -618,7 +618,7 @@ fn should_disallow_unlisted_contract_from_minting_with_mixed_account_contract() 
         .with_whitelist_mode(WhitelistMode::Locked)
         .with_ownership_mode(OwnershipMode::Minter)
         .with_reporting_mode(OwnerReverseLookupMode::NoLookUp)
-        .with_minting_mode(MintingMode::Acl)
+        .with_minting_mode(MintingMode::ACL)
         .with_acl_whitelist(mixed_whitelist)
         .build();
 
@@ -680,7 +680,7 @@ fn should_disallow_unlisted_account_from_minting_with_mixed_account_contract() {
         .with_whitelist_mode(WhitelistMode::Locked)
         .with_ownership_mode(OwnershipMode::Minter)
         .with_reporting_mode(OwnerReverseLookupMode::NoLookUp)
-        .with_minting_mode(MintingMode::Acl)
+        .with_minting_mode(MintingMode::ACL)
         .with_acl_whitelist(mixed_whitelist)
         .build();
 
@@ -754,7 +754,7 @@ fn should_disallow_listed_account_from_minting_with_nftholder_contract() {
         .with_whitelist_mode(WhitelistMode::Locked)
         .with_ownership_mode(OwnershipMode::Minter)
         .with_reporting_mode(OwnerReverseLookupMode::NoLookUp)
-        .with_minting_mode(MintingMode::Acl)
+        .with_minting_mode(MintingMode::ACL)
         .with_acl_whitelist(mixed_whitelist)
         .build();
 
@@ -823,7 +823,7 @@ fn should_allow_contract_from_whitelisted_package_to_mint() {
         .with_whitelist_mode(WhitelistMode::Locked)
         .with_ownership_mode(OwnershipMode::Minter)
         .with_reporting_mode(OwnerReverseLookupMode::NoLookUp)
-        .with_minting_mode(MintingMode::Acl)
+        .with_minting_mode(MintingMode::ACL)
         .with_acl_whitelist(contract_whitelist)
         .build();
 
@@ -905,7 +905,7 @@ fn should_allow_contract_from_whitelisted_package_to_mint_after_contract_upgrade
         .with_whitelist_mode(WhitelistMode::Locked)
         .with_ownership_mode(OwnershipMode::Minter)
         .with_reporting_mode(OwnerReverseLookupMode::NoLookUp)
-        .with_minting_mode(MintingMode::Acl)
+        .with_minting_mode(MintingMode::ACL)
         .with_acl_whitelist(contract_whitelist)
         .build();
 
@@ -1016,7 +1016,7 @@ fn should_be_able_to_update_whitelist_for_minting_with_deprecated_arg_contract_w
         .with_whitelist_mode(WhitelistMode::Unlocked)
         .with_ownership_mode(OwnershipMode::Minter)
         .with_reporting_mode(OwnerReverseLookupMode::NoLookUp)
-        .with_minting_mode(MintingMode::Acl)
+        .with_minting_mode(MintingMode::ACL)
         .with_acl_whitelist(contract_whitelist)
         .build();
 
@@ -1133,7 +1133,7 @@ fn should_be_able_to_update_whitelist_for_minting() {
         .with_whitelist_mode(WhitelistMode::Unlocked)
         .with_ownership_mode(OwnershipMode::Minter)
         .with_reporting_mode(OwnerReverseLookupMode::NoLookUp)
-        .with_minting_mode(MintingMode::Acl)
+        .with_minting_mode(MintingMode::ACL)
         .with_acl_whitelist(contract_whitelist)
         .build();
 
@@ -1308,7 +1308,7 @@ fn should_upgrade_from_named_keys_to_dict_and_acl_minting_mode() {
 
     assert_eq!(
         minting_mode,
-        MintingMode::Acl as u8,
+        MintingMode::ACL as u8,
         "minting mode should be set to acl"
     );
 }

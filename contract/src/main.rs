@@ -175,22 +175,22 @@ pub extern "C" fn init() {
 
     let acl_whitelist = utils::get_named_arg_with_user_errors::<Vec<Key>>(
         ARG_ACL_WHITELIST,
-        NFTCoreError::MissingAclWhiteList,
-        NFTCoreError::InvalidAclWhitelist,
+        NFTCoreError::MissingACLWhiteList,
+        NFTCoreError::InvalidACLWhitelist,
     )
     .unwrap_or_revert();
 
-    // Revert if minting mode is not Acl and acl list is not empty
-    if MintingMode::Acl != minting_mode && !acl_whitelist.is_empty() {
+    // Revert if minting mode is not ACL and acl list is not empty
+    if MintingMode::ACL != minting_mode && !acl_whitelist.is_empty() {
         runtime::revert(NFTCoreError::InvalidMintingMode)
     }
 
-    // Revert if minting mode is Acl or holder_mode is contracts and acl list is locked and empty
-    if MintingMode::Acl == minting_mode
+    // Revert if minting mode is ACL or holder_mode is contracts and acl list is locked and empty
+    if MintingMode::ACL == minting_mode
         && acl_whitelist.is_empty()
         && WhitelistMode::Locked == whitelist_mode
     {
-        runtime::revert(NFTCoreError::EmptyAclWhitelist)
+        runtime::revert(NFTCoreError::EmptyACLWhitelist)
     }
 
     let receipt_name: String = utils::get_named_arg_with_user_errors(
@@ -459,7 +459,7 @@ pub extern "C" fn set_variables() {
 
     let mut new_acl_whitelist = utils::get_optional_named_arg_with_user_errors::<Vec<Key>>(
         ARG_ACL_WHITELIST,
-        NFTCoreError::InvalidAclWhitelist,
+        NFTCoreError::InvalidACLWhitelist,
     )
     .unwrap_or_default();
 
@@ -587,7 +587,7 @@ pub extern "C" fn mint() {
     }
 
     // Revert if minting is acl and caller is not whitelisted.
-    if MintingMode::Acl == minting_mode {
+    if MintingMode::ACL == minting_mode {
         let is_whitelisted = utils::get_dictionary_value_from_key::<bool>(
             ACL_WHITELIST,
             &utils::encode_dictionary_item_key(caller),
@@ -2276,7 +2276,7 @@ fn install_contract() {
 
     let mut acl_white_list: Vec<Key> = utils::get_optional_named_arg_with_user_errors(
         ARG_ACL_WHITELIST,
-        NFTCoreError::InvalidAclWhitelist,
+        NFTCoreError::InvalidACLWhitelist,
     )
     .unwrap_or_default();
 
