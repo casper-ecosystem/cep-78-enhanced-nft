@@ -177,6 +177,45 @@ fn should_allow_installation_of_contract_with_empty_locked_whitelist_in_public_m
     );
 }
 
+#[test]
+fn should_disallow_installation_with_contract_holder_mode_and_installer_mode() {
+    let mut builder = InMemoryWasmTestBuilder::default();
+    builder.run_genesis(&DEFAULT_RUN_GENESIS_REQUEST).commit();
+
+    let minting_contract_install_request = ExecuteRequestBuilder::standard(
+        *DEFAULT_ACCOUNT_ADDR,
+        MINTING_CONTRACT_WASM,
+        runtime_args! {},
+    )
+    .build();
+
+    builder
+        .exec(minting_contract_install_request)
+        .expect_success()
+        .commit();
+
+    let contract_whitelist = vec![
+        Key::Hash([1u8; 32]),
+        Key::Hash([2u8; 32]),
+        Key::Hash([3u8; 32]),
+    ];
+
+    let install_request = InstallerRequestBuilder::new(*DEFAULT_ACCOUNT_ADDR, NFT_CONTRACT_WASM)
+        .with_total_token_supply(100u64)
+        .with_holder_mode(NFTHolderMode::Contracts)
+        .with_whitelist_mode(WhitelistMode::Locked)
+        .with_ownership_mode(OwnershipMode::Minter)
+        .with_reporting_mode(OwnerReverseLookupMode::NoLookUp)
+        .with_minting_mode(MintingMode::Installer)
+        .with_acl_whitelist(contract_whitelist)
+        .build();
+
+    builder.exec(install_request).expect_failure();
+
+    let error = builder.get_error().expect("should have an error");
+    assert_expected_error(error, 38, "Invalid MintingMode (not ACL) and NFTHolderMode");
+}
+
 // Mint
 
 #[test]
