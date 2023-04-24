@@ -182,18 +182,6 @@ fn should_disallow_installation_with_contract_holder_mode_and_installer_mode() {
     let mut builder = InMemoryWasmTestBuilder::default();
     builder.run_genesis(&DEFAULT_RUN_GENESIS_REQUEST).commit();
 
-    let minting_contract_install_request = ExecuteRequestBuilder::standard(
-        *DEFAULT_ACCOUNT_ADDR,
-        MINTING_CONTRACT_WASM,
-        runtime_args! {},
-    )
-    .build();
-
-    builder
-        .exec(minting_contract_install_request)
-        .expect_success()
-        .commit();
-
     let contract_whitelist = vec![
         Key::Hash([1u8; 32]),
         Key::Hash([2u8; 32]),
