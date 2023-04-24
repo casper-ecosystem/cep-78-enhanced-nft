@@ -148,6 +148,35 @@ fn should_not_install_with_minting_mode_not_acl_if_acl_whitelist_provided() {
     );
 }
 
+fn should_disallow_installation_of_contract_with_empty_locked_whitelist_in_public_mode_with_holder_mode(
+    nft_holder_mode: NFTHolderMode,
+) {
+    let mut builder = InMemoryWasmTestBuilder::default();
+    builder.run_genesis(&DEFAULT_RUN_GENESIS_REQUEST).commit();
+
+    let install_request = InstallerRequestBuilder::new(*DEFAULT_ACCOUNT_ADDR, NFT_CONTRACT_WASM)
+        .with_holder_mode(nft_holder_mode)
+        .with_reporting_mode(OwnerReverseLookupMode::NoLookUp)
+        .with_whitelist_mode(WhitelistMode::Locked)
+        .with_minting_mode(MintingMode::Public)
+        .build();
+
+    builder.exec(install_request).expect_success().commit();
+}
+
+#[test]
+fn should_allow_installation_of_contract_with_empty_locked_whitelist_in_public_mode() {
+    should_disallow_installation_of_contract_with_empty_locked_whitelist_in_public_mode_with_holder_mode(
+        NFTHolderMode::Accounts,
+    );
+    should_disallow_installation_of_contract_with_empty_locked_whitelist_in_public_mode_with_holder_mode(
+        NFTHolderMode::Contracts,
+    );
+    should_disallow_installation_of_contract_with_empty_locked_whitelist_in_public_mode_with_holder_mode(
+        NFTHolderMode::Mixed,
+    );
+}
+
 // Mint
 
 #[test]
@@ -667,6 +696,76 @@ fn should_disallow_unlisted_account_from_minting_with_mixed_account_contract() {
         36,
         "Unlisted account hash should not be permitted to mint",
     );
+}
+
+#[test]
+fn should_disallow_listed_account_from_minting_with_nftholder_contract() {
+    let mut builder = InMemoryWasmTestBuilder::default();
+    builder.run_genesis(&DEFAULT_RUN_GENESIS_REQUEST).commit();
+
+    let minting_contract_install_request = ExecuteRequestBuilder::standard(
+        *DEFAULT_ACCOUNT_ADDR,
+        MINTING_CONTRACT_WASM,
+        runtime_args! {},
+    )
+    .build();
+
+    builder
+        .exec(minting_contract_install_request)
+        .expect_success()
+        .commit();
+
+    let minting_contract_hash = get_minting_contract_hash(&builder);
+    let mixed_whitelist = vec![
+        Key::from(minting_contract_hash),
+        Key::from(*DEFAULT_ACCOUNT_ADDR),
+    ];
+
+    let install_request = InstallerRequestBuilder::new(*DEFAULT_ACCOUNT_ADDR, NFT_CONTRACT_WASM)
+        .with_total_token_supply(100u64)
+        .with_holder_mode(NFTHolderMode::Contracts)
+        .with_whitelist_mode(WhitelistMode::Locked)
+        .with_ownership_mode(OwnershipMode::Minter)
+        .with_reporting_mode(OwnerReverseLookupMode::NoLookUp)
+        .with_minting_mode(MintingMode::Acl)
+        .with_acl_whitelist(mixed_whitelist)
+        .build();
+
+    builder.exec(install_request).expect_success().commit();
+
+    let nft_contract_hash = get_nft_contract_hash(&builder);
+    let nft_contract_key: Key = nft_contract_hash.into();
+
+    let is_whitelisted_account = get_dictionary_value_from_key::<bool>(
+        &builder,
+        &nft_contract_key,
+        ACL_WHITELIST,
+        &DEFAULT_ACCOUNT_ADDR.to_string(),
+    );
+
+    assert!(is_whitelisted_account, "acl whitelist is incorrectly set");
+
+    let account_user_1 = support::create_funded_dummy_account(&mut builder, Some(ACCOUNT_USER_1));
+
+    let mint_runtime_args = runtime_args! {
+        ARG_NFT_CONTRACT_HASH => nft_contract_key,
+        ARG_TOKEN_OWNER =>  Key::Account(account_user_1),
+        ARG_TOKEN_META_DATA => TEST_PRETTY_721_META_DATA.to_string(),
+        ARG_REVERSE_LOOKUP => false
+    };
+
+    let mint_session_call = ExecuteRequestBuilder::contract_call_by_hash(
+        account_user_1,
+        nft_contract_hash,
+        ENTRY_POINT_MINT,
+        mint_runtime_args,
+    )
+    .build();
+
+    builder.exec(mint_session_call).expect_failure();
+
+    let error = builder.get_error().expect("should have an error");
+    assert_expected_error(error, 76, "InvalidHolderMode(76) must have been raised");
 }
 
 #[test]

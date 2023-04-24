@@ -283,14 +283,15 @@ fn should_install_with_contract_holder_mode() {
     assert!(is_whitelisted_account, "acl whitelist is incorrectly set");
 }
 
-#[test]
-fn should_disallow_installation_of_contract_with_empty_locked_whitelist() {
+fn should_disallow_installation_of_contract_with_empty_locked_whitelist_with_holder_mode(
+    nft_holder_mode: NFTHolderMode,
+) {
     let mut builder = InMemoryWasmTestBuilder::default();
     builder.run_genesis(&DEFAULT_RUN_GENESIS_REQUEST).commit();
 
     let install_request_builder =
         InstallerRequestBuilder::new(*DEFAULT_ACCOUNT_ADDR, NFT_CONTRACT_WASM)
-            .with_holder_mode(NFTHolderMode::Contracts)
+            .with_holder_mode(nft_holder_mode)
             .with_reporting_mode(OwnerReverseLookupMode::NoLookUp)
             .with_whitelist_mode(WhitelistMode::Locked)
             .with_minting_mode(MintingMode::Acl);
@@ -299,6 +300,19 @@ fn should_disallow_installation_of_contract_with_empty_locked_whitelist() {
         install_request_builder,
         158,
         "should fail execution since whitelist mode is locked and the provided whitelist is empty",
+    );
+}
+
+#[test]
+fn should_disallow_installation_of_contract_with_empty_locked_whitelist() {
+    should_disallow_installation_of_contract_with_empty_locked_whitelist_with_holder_mode(
+        NFTHolderMode::Accounts,
+    );
+    should_disallow_installation_of_contract_with_empty_locked_whitelist_with_holder_mode(
+        NFTHolderMode::Contracts,
+    );
+    should_disallow_installation_of_contract_with_empty_locked_whitelist_with_holder_mode(
+        NFTHolderMode::Mixed,
     );
 }
 

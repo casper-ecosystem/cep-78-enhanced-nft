@@ -185,7 +185,7 @@ pub extern "C" fn init() {
         runtime::revert(NFTCoreError::InvalidMintingMode)
     }
 
-    // Revert if minting mode is Acl and acl list is empty
+    // Revert if minting mode is Acl or holder_mode is contracts and acl list is locked and empty
     if MintingMode::Acl == minting_mode
         && acl_whitelist.is_empty()
         && WhitelistMode::Locked == whitelist_mode
