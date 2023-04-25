@@ -581,24 +581,19 @@ pub extern "C" fn mint() {
 
     // Revert if minting is acl and caller is not whitelisted.
     if MintingMode::ACL == minting_mode {
+        let is_whitelisted = utils::get_dictionary_value_from_key::<bool>(
+            ACL_WHITELIST,
+            &utils::encode_dictionary_item_key(caller),
+        )
+        .is_some();
         match caller.tag() {
             KeyTag::Hash => {
-                if utils::get_dictionary_value_from_key::<bool>(
-                    ACL_WHITELIST,
-                    &utils::encode_dictionary_item_key(caller),
-                )
-                .is_none()
-                {
+                if !is_whitelisted {
                     runtime::revert(NFTCoreError::UnlistedContractHash)
                 }
             }
             KeyTag::Account => {
-                if utils::get_dictionary_value_from_key::<bool>(
-                    ACL_WHITELIST,
-                    &utils::encode_dictionary_item_key(caller),
-                )
-                .is_none()
-                {
+                if !is_whitelisted {
                     runtime::revert(NFTCoreError::InvalidMinter);
                 }
             }
