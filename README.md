@@ -100,7 +100,7 @@ The minting mode governs the behavior of contract when minting new tokens. The m
 
 1. `Installer`: This mode restricts the ability to mint new NFT tokens only to the installing account of the NFT contract.
 2. `Public`: This mode allows any account to mint NFT tokens.
-3. `ACL`: This mode allows whitelisted accounts, contracts or contracts from a package to mint NFT tokens.
+3. `ACL`: This mode allows whitelisted accounts or contracts to mint NFT tokens.
 
 This modality is an optional installation parameter and will default to the `Installer` mode if not provided. However, this
 mode cannot be changed once the contract has been installed. The mode is set by passing a `u8` value to the `minting_mode` runtime argument.
@@ -118,7 +118,7 @@ The `WhitelistMode` dictates if the ACL whitelist restricting access to the mint
 1. `Unlocked`: The ACL whitelist is unlocked and can be updated via the set variables endpoint.
 2. `Locked`: The ACL whitelist is locked and cannot be updated further.
 
-If the `WhitelistMode` is set to `Locked` an ACL whitelist of entity keys must be provided on installation. This whitelist dictates which entities can mint NFTs in the restricted `ACL` minting mode. These entities include `Accounts`, `Contracts` and `Contracts from a package`.
+If the `WhitelistMode` is set to `Locked` an ACL whitelist of entity keys must be provided on installation. This whitelist dictates which entities can mint NFTs in the restricted `ACL` minting mode. These entities include `Accounts` and/or `Contracts`.
 
 This `WhitelistMode` is an optional installation parameter and will be set to unlocked if not passed. However, the whitelist mode itself cannot be changed once the contract has been installed. The mode is passed in as a `u8` value to `whitelist_mode` runtime argument.
 
@@ -382,7 +382,7 @@ The following are the optional parameters that can be passed in at the time of i
 - `"allow_minting"`: The `"allow_minting"` flag allows the installer of the contract to pause the minting of new NFTs. The `allow_minting` is a boolean toggle that allows minting when `true`. If not provided at install the toggle will default to `true`. This value can be changed by the installer by calling the `set_variables()` entrypoint.
 - `"whitelist_mode"`: The [`WhitelistMode`](#whitelistmode) modality dictates whether the acl whitelist can be updated. This optional parameter will default to an unlocked whitelist that can be updated post installation. This parameter cannot be changed once the contract has been installed.
 - `"holder_mode"`: The [`NFTHolderMode`](#nftholdermode) modality dictates which entities can hold NFTs. This is an optional parameter and will default to a mixed mode allowing either `Accounts` or `Contracts` to hold NFTs. This parameter cannot be changed once the contract has been installed.
-- `"acl_whitelist"`: The acl whitelist is a list of account / contract / packages hashes that specifies which entity can call the `mint()` entrypoint to mint NFTs. This is an optional parameter which will default to an empty whitelist. This value can be changed via the `set_variables` post installation. If the whitelist mode is set to locked, a non-empty whitelist must be passed. If the whitelist mode is set to locked and you do not provide a non-empty whitelist, the contract will fail to install.
+- `"acl_whitelist"`: The acl whitelist is a list of account and/or contract hashes that specifies which entity can call the `mint()` entrypoint to mint NFTs. This is an optional parameter which will default to an empty whitelist. This value can be changed via the `set_variables` post installation. If the whitelist mode is set to locked, a non-empty whitelist must be passed. If the whitelist mode is set to locked and you do not provide a non-empty whitelist, the contract will fail to install.
 - `"burn_mode"`: The [`BurnMode`](#burnmode) modality dictates whether minted NFTs can be burnt. This is an optional parameter and will allow tokens to be burnt by default. This parameter cannot be changed once the contract has been installed.
 - `"owner_reverse_lookup_mode"`: The [`OwnerReverseLookupMode`](#reportingmode) modality dictates whether the lookup for owners to token identifiers is available. This is an optional parameter and will not provide the lookup by default. This parameter cannot be changed once the contract has been installed.
 - `"events_mode"`: The [`EventsMode`](#eventsmode) modality selects the event schema used to record any changes that occur to tokens issued by the contract instance.

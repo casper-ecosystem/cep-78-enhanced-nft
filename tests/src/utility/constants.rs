@@ -20,8 +20,6 @@ pub const ARG_REVERSE_LOOKUP: &str = "reverse_lookup";
 
 pub const CONTRACT_NAME: &str = "cep78_contract_hash_nft-test";
 pub const MINTING_CONTRACT_NAME: &str = "minting_contract_hash";
-pub const MINTING_CONTRACT_PACKAGE_NAME: &str = "minting_contract_package_hash";
-pub const MINTING_CONTRACT_VERSION: &str = "minting_contract_version";
 pub const NFT_TEST_COLLECTION: &str = "nft-test";
 pub const NFT_TEST_SYMBOL: &str = "TEST";
 

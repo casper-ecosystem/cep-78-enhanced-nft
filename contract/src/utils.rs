@@ -18,7 +18,7 @@ use casper_types::{
     api_error,
     bytesrepr::{self, FromBytes, ToBytes},
     system::CallStackElement,
-    ApiError, CLTyped, ContractHash, ContractPackageHash, Key, URef,
+    ApiError, CLTyped, ContractHash, Key, URef,
 };
 
 use crate::{
@@ -288,12 +288,7 @@ pub fn to_ptr<T: ToBytes>(t: T) -> (*const u8, usize, Vec<u8>) {
     (ptr, size, bytes)
 }
 
-pub enum Caller {
-    Session(AccountHash),
-    StoredCaller(ContractHash, ContractPackageHash),
-}
-
-pub fn get_verified_caller() -> Result<Caller, NFTCoreError> {
+pub fn get_verified_caller() -> Result<Key, NFTCoreError> {
     let holder_mode = get_holder_mode()?;
     match *runtime::get_call_stack()
         .iter()
@@ -307,24 +302,18 @@ pub fn get_verified_caller() -> Result<Caller, NFTCoreError> {
             if let NFTHolderMode::Contracts = holder_mode {
                 return Err(NFTCoreError::InvalidHolderMode);
             }
-            Ok(Caller::Session(calling_account_hash))
+            Ok(Key::Account(calling_account_hash))
         }
-        CallStackElement::StoredSession {
-            contract_hash,
-            contract_package_hash,
-            ..
-        }
-        | CallStackElement::StoredContract {
-            contract_hash,
-            contract_package_hash,
-        } => {
+        CallStackElement::StoredSession { contract_hash, .. }
+        | CallStackElement::StoredContract { contract_hash, .. } => {
             if let NFTHolderMode::Accounts = holder_mode {
                 return Err(NFTCoreError::InvalidHolderMode);
             }
-            Ok(Caller::StoredCaller(contract_hash, contract_package_hash))
+            Ok(contract_hash.into())
         }
     }
 }
+
 pub fn get_token_identifier_from_runtime_args(
     identifier_mode: &NFTIdentifierMode,
 ) -> TokenIdentifier {
