@@ -1560,8 +1560,9 @@ pub extern "C" fn set_token_metadata() {
 
 #[no_mangle]
 pub extern "C" fn migrate() {
+    runtime::print("heelo");
     let requires_rlo_migration = utils::requires_rlo_migration();
-
+    runtime::print("heelo");
     if !requires_rlo_migration && runtime::get_key(RLO_MFLAG).is_some() {
         runtime::revert(NFTCoreError::ContractAlreadyMigrated)
     }
