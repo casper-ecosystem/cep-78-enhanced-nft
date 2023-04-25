@@ -9,8 +9,8 @@ use contract::{
         ACCESS_KEY_NAME_1_0_0, ARG_ACCESS_KEY_NAME_1_0_0, ARG_COLLECTION_NAME, ARG_EVENTS_MODE,
         ARG_HASH_KEY_NAME_1_0_0, ARG_NAMED_KEY_CONVENTION, ARG_SOURCE_KEY, ARG_TARGET_KEY,
         ARG_TOKEN_HASH, ARG_TOKEN_META_DATA, ARG_TOKEN_OWNER, ARG_TOTAL_TOKEN_SUPPLY,
-        ENTRY_POINT_REGISTER_OWNER, PAGE_LIMIT, PREFIX_ACCESS_KEY_NAME, PREFIX_HASH_KEY_NAME,
-        RECEIPT_NAME, UNMATCHED_HASH_COUNT,
+        ENTRY_POINT_REGISTER_OWNER, NUMBER_OF_MINTED_TOKENS, PAGE_LIMIT, PREFIX_ACCESS_KEY_NAME,
+        PREFIX_HASH_KEY_NAME, RECEIPT_NAME, UNMATCHED_HASH_COUNT,
     },
     events::events_ces::Migration,
     modalities::EventsMode,
@@ -741,74 +741,33 @@ fn should_safely_upgrade_from_1_2_0_to_1_3_0() {
             ARG_NAMED_KEY_CONVENTION => NamedKeyConventionMode::V1_0Custom as u8,
             ARG_ACCESS_KEY_NAME_1_0_0 => format!("{PREFIX_ACCESS_KEY_NAME}_{NFT_TEST_COLLECTION}"),
             ARG_HASH_KEY_NAME_1_0_0 => format!("{PREFIX_HASH_KEY_NAME}_{NFT_TEST_COLLECTION}"),
-          //  ARG_TOTAL_TOKEN_SUPPLY => 10u64
+            ARG_TOTAL_TOKEN_SUPPLY => 10u64
         },
     )
     .build();
 
     builder.exec(upgrade_request).expect_success().commit();
 
-    // let nft_contract_hash = support::get_nft_contract_hash(&builder);
-    // let nft_contract_key: Key = nft_contract_hash.into();
+    let nft_contract_hash = support::get_nft_contract_hash(&builder);
+    let nft_contract_key: Key = nft_contract_hash.into();
 
-    // let number_of_tokens_at_upgrade = support::get_stored_value_from_global_state::<u64>(
-    //     &builder,
-    //     nft_contract_key,
-    //     vec![UNMATCHED_HASH_COUNT.to_string()],
-    // )
-    // .expect("must get u64 value");
+    let number_of_tokens_at_upgrade = support::get_stored_value_from_global_state::<u64>(
+        &builder,
+        nft_contract_key,
+        vec![NUMBER_OF_MINTED_TOKENS.to_string()],
+    )
+    .expect("must get u64 value");
 
-    // assert_eq!(number_of_tokens_at_upgrade, 3);
+    assert_eq!(number_of_tokens_at_upgrade, 3);
 
-    // let total_token_supply_post_upgrade = support::get_stored_value_from_global_state::<u64>(
-    //     &builder,
-    //     nft_contract_key,
-    //     vec![ARG_TOTAL_TOKEN_SUPPLY.to_string()],
-    // )
-    // .expect("must get u64 value");
+    let total_token_supply_post_upgrade = support::get_stored_value_from_global_state::<u64>(
+        &builder,
+        nft_contract_key,
+        vec![ARG_TOTAL_TOKEN_SUPPLY.to_string()],
+    )
+    .expect("must get u64 value");
 
-    // assert_eq!(total_token_supply_post_upgrade, 10);
-
-    // let token_metadata = support::CEP78Metadata::with_random_checksum(
-    //     "Some Name".to_string(),
-    //     format!("https://www.foobar.com/{}", 90),
-    // );
-
-    // let json_token_metadata =
-    //     serde_json::to_string(&token_metadata).expect("must convert to string");
-
-    // let post_upgrade_mint_request = ExecuteRequestBuilder::standard(
-    //     *DEFAULT_ACCOUNT_ADDR,
-    //     MINT_SESSION_WASM,
-    //     runtime_args! {
-    //         ARG_NFT_CONTRACT_HASH => nft_contract_key,
-    //         ARG_TOKEN_OWNER => Key::Account(*DEFAULT_ACCOUNT_ADDR),
-    //         ARG_TOKEN_META_DATA => json_token_metadata,
-    //         ARG_COLLECTION_NAME => NFT_TEST_COLLECTION.to_string()
-    //     },
-    // )
-    // .build();
-
-    // builder
-    //     .exec(post_upgrade_mint_request)
-    //     .expect_success()
-    //     .commit();
-
-    // let actual_page = support::get_token_page_by_hash(
-    //     &builder,
-    //     &nft_contract_key,
-    //     &Key::Account(*DEFAULT_ACCOUNT_ADDR),
-    //     expected_metadata[0].clone(),
-    // );
-
-    // let expected_page = {
-    //     let mut page = vec![false; PAGE_SIZE as usize];
-    //     for page_ownership in page.iter_mut().take(4) {
-    //         *page_ownership = true;
-    //     }
-    //     page
-    // };
-    // assert_eq!(actual_page, expected_page);
+    assert_eq!(total_token_supply_post_upgrade, 10);
 }
 
 #[test]
@@ -846,6 +805,15 @@ fn should_safely_upgrade_from_1_0_0_to_1_2_0_to_1_3_0() {
 
     builder.exec(upgrade_request).expect_success().commit();
 
+    let total_token_supply_post_upgrade = support::get_stored_value_from_global_state::<u64>(
+        &builder,
+        nft_contract_key_1_0_0,
+        vec![ARG_TOTAL_TOKEN_SUPPLY.to_string()],
+    )
+    .expect("must get u64 value");
+
+    assert_eq!(total_token_supply_post_upgrade, 50);
+
     let nft_contract_hash_1_2_0: ContractHash = support::get_nft_contract_hash(&builder);
     let nft_contract_key_1_2_0: Key = nft_contract_hash_1_2_0.into();
 
@@ -877,72 +845,31 @@ fn should_safely_upgrade_from_1_0_0_to_1_2_0_to_1_3_0() {
             ARG_NAMED_KEY_CONVENTION => NamedKeyConventionMode::V1_0Custom as u8,
             ARG_ACCESS_KEY_NAME_1_0_0 => format!("{PREFIX_ACCESS_KEY_NAME}_{NFT_TEST_COLLECTION}"),
             ARG_HASH_KEY_NAME_1_0_0 => format!("{PREFIX_HASH_KEY_NAME}_{NFT_TEST_COLLECTION}"),
-          //  ARG_TOTAL_TOKEN_SUPPLY => 10u64
+            ARG_TOTAL_TOKEN_SUPPLY => 10u64
         },
     )
     .build();
 
     builder.exec(upgrade_request).expect_success().commit();
 
-    // let nft_contract_hash = support::get_nft_contract_hash(&builder);
-    // let nft_contract_key: Key = nft_contract_hash.into();
+    let nft_contract_hash = support::get_nft_contract_hash(&builder);
+    let nft_contract_key: Key = nft_contract_hash.into();
 
-    // let number_of_tokens_at_upgrade = support::get_stored_value_from_global_state::<u64>(
-    //     &builder,
-    //     nft_contract_key,
-    //     vec![UNMATCHED_HASH_COUNT.to_string()],
-    // )
-    // .expect("must get u64 value");
+    let number_of_tokens_at_upgrade = support::get_stored_value_from_global_state::<u64>(
+        &builder,
+        nft_contract_key,
+        vec![NUMBER_OF_MINTED_TOKENS.to_string()],
+    )
+    .expect("must get u64 value");
 
-    // assert_eq!(number_of_tokens_at_upgrade, 3);
+    assert_eq!(number_of_tokens_at_upgrade, 3);
 
-    // let total_token_supply_post_upgrade = support::get_stored_value_from_global_state::<u64>(
-    //     &builder,
-    //     nft_contract_key,
-    //     vec![ARG_TOTAL_TOKEN_SUPPLY.to_string()],
-    // )
-    // .expect("must get u64 value");
+    let total_token_supply_post_upgrade = support::get_stored_value_from_global_state::<u64>(
+        &builder,
+        nft_contract_key,
+        vec![ARG_TOTAL_TOKEN_SUPPLY.to_string()],
+    )
+    .expect("must get u64 value");
 
-    // assert_eq!(total_token_supply_post_upgrade, 10);
-
-    // let token_metadata = support::CEP78Metadata::with_random_checksum(
-    //     "Some Name".to_string(),
-    //     format!("https://www.foobar.com/{}", 90),
-    // );
-
-    // let json_token_metadata =
-    //     serde_json::to_string(&token_metadata).expect("must convert to string");
-
-    // let post_upgrade_mint_request = ExecuteRequestBuilder::standard(
-    //     *DEFAULT_ACCOUNT_ADDR,
-    //     MINT_SESSION_WASM,
-    //     runtime_args! {
-    //         ARG_NFT_CONTRACT_HASH => nft_contract_key,
-    //         ARG_TOKEN_OWNER => Key::Account(*DEFAULT_ACCOUNT_ADDR),
-    //         ARG_TOKEN_META_DATA => json_token_metadata,
-    //         ARG_COLLECTION_NAME => NFT_TEST_COLLECTION.to_string()
-    //     },
-    // )
-    // .build();
-
-    // builder
-    //     .exec(post_upgrade_mint_request)
-    //     .expect_success()
-    //     .commit();
-
-    // let actual_page = support::get_token_page_by_hash(
-    //     &builder,
-    //     &nft_contract_key,
-    //     &Key::Account(*DEFAULT_ACCOUNT_ADDR),
-    //     expected_metadata[0].clone(),
-    // );
-
-    // let expected_page = {
-    //     let mut page = vec![false; PAGE_SIZE as usize];
-    //     for page_ownership in page.iter_mut().take(4) {
-    //         *page_ownership = true;
-    //     }
-    //     page
-    // };
-    // assert_eq!(actual_page, expected_page);
+    assert_eq!(total_token_supply_post_upgrade, 10);
 }
