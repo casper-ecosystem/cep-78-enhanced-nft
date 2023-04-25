@@ -9,7 +9,8 @@ use contract::{
         ACCESS_KEY_NAME_1_0_0, ARG_ACCESS_KEY_NAME_1_0_0, ARG_COLLECTION_NAME, ARG_EVENTS_MODE,
         ARG_HASH_KEY_NAME_1_0_0, ARG_NAMED_KEY_CONVENTION, ARG_SOURCE_KEY, ARG_TARGET_KEY,
         ARG_TOKEN_HASH, ARG_TOKEN_META_DATA, ARG_TOKEN_OWNER, ARG_TOTAL_TOKEN_SUPPLY,
-        ENTRY_POINT_REGISTER_OWNER, PAGE_LIMIT, RECEIPT_NAME, UNMATCHED_HASH_COUNT,
+        ENTRY_POINT_REGISTER_OWNER, PAGE_LIMIT, PREFIX_ACCESS_KEY_NAME, PREFIX_HASH_KEY_NAME,
+        RECEIPT_NAME, UNMATCHED_HASH_COUNT,
     },
     events::events_ces::Migration,
     modalities::EventsMode,
@@ -737,7 +738,9 @@ fn should_safely_upgrade_from_1_2_0_to_1_3_0() {
         runtime_args! {
             ARG_NFT_CONTRACT_HASH => nft_contract_key_1_2_0,
             ARG_COLLECTION_NAME => NFT_TEST_COLLECTION.to_string(),
-            ARG_NAMED_KEY_CONVENTION => NamedKeyConventionMode::V1_0Standard as u8,
+            ARG_NAMED_KEY_CONVENTION => NamedKeyConventionMode::V1_0Custom as u8,
+            ARG_ACCESS_KEY_NAME_1_0_0 => format!("{PREFIX_ACCESS_KEY_NAME}_{NFT_TEST_COLLECTION}"),
+            ARG_HASH_KEY_NAME_1_0_0 => format!("{PREFIX_HASH_KEY_NAME}_{NFT_TEST_COLLECTION}"),
           //  ARG_TOTAL_TOKEN_SUPPLY => 10u64
         },
     )
