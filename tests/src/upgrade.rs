@@ -693,7 +693,7 @@ fn should_not_upgrade_with_larger_total_token_supply() {
 }
 
 #[test]
-fn should_safely_upgrade_from_1_2_0_to_1_3_0() {
+fn should_safely_upgrade_from_1_2_0_to_current_version() {
     let mut builder = InMemoryWasmTestBuilder::default();
     builder.run_genesis(&DEFAULT_RUN_GENESIS_REQUEST).commit();
 
@@ -771,7 +771,7 @@ fn should_safely_upgrade_from_1_2_0_to_1_3_0() {
 }
 
 #[test]
-fn should_safely_upgrade_from_1_0_0_to_1_2_0_to_1_3_0() {
+fn should_safely_upgrade_from_1_0_0_to_1_2_0_to_current_version() {
     let mut builder = InMemoryWasmTestBuilder::default();
     builder.run_genesis(&DEFAULT_RUN_GENESIS_REQUEST).commit();
 
