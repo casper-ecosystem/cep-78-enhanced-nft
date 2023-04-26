@@ -1560,12 +1560,6 @@ pub extern "C" fn set_token_metadata() {
 
 #[no_mangle]
 pub extern "C" fn migrate() {
-    let requires_rlo_migration = utils::requires_rlo_migration();
-
-    if !requires_rlo_migration && runtime::get_key(RLO_MFLAG).is_some() {
-        return;
-    }
-
     let total_token_supply: u64 = match utils::get_optional_named_arg_with_user_errors(
         ARG_TOTAL_TOKEN_SUPPLY,
         NFTCoreError::InvalidTotalTokenSupply,
@@ -1608,6 +1602,12 @@ pub extern "C" fn migrate() {
 
     if total_token_supply < current_number_of_minted_tokens {
         runtime::revert(NFTCoreError::ExceededMaxTotalSupply)
+    }
+
+    let requires_rlo_migration = utils::requires_rlo_migration();
+
+    if !requires_rlo_migration && runtime::get_key(RLO_MFLAG).is_some() {
+        return;
     }
 
     if requires_rlo_migration {

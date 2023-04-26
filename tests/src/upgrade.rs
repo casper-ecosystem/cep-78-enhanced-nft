@@ -780,7 +780,7 @@ fn should_safely_upgrade_from_1_0_0_to_1_2_0_to_current_version() {
         .with_collection_symbol(NFT_TEST_SYMBOL.to_string())
         .with_total_token_supply(100u64)
         .with_ownership_mode(OwnershipMode::Transferable)
-        .with_reporting_mode(OwnerReverseLookupMode::Complete)
+        .with_reporting_mode(OwnerReverseLookupMode::NoLookUp)
         .with_metadata_mutability(MetadataMutability::Mutable)
         .with_identifier_mode(NFTIdentifierMode::Ordinal)
         .with_nft_metadata_kind(NFTMetadataKind::Raw)
