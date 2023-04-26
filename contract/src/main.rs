@@ -585,7 +585,7 @@ pub extern "C" fn mint() {
             ACL_WHITELIST,
             &utils::encode_dictionary_item_key(caller),
         )
-        .is_some();
+        .unwrap_or_default();
         match caller.tag() {
             KeyTag::Hash => {
                 if !is_whitelisted {
