@@ -478,7 +478,7 @@ fn should_not_be_able_to_reinvoke_migrate_entrypoint() {
 
     let upgrade_request = ExecuteRequestBuilder::standard(
         *DEFAULT_ACCOUNT_ADDR,
-        NFT_CONTRACT_WASM,
+        CONTRACT_1_2_0_WASM,
         runtime_args! {
             ARG_NFT_CONTRACT_PACKAGE_HASH => support::get_nft_contract_package_hash(&builder),
             ARG_COLLECTION_NAME => NFT_TEST_COLLECTION.to_string(),
@@ -495,7 +495,7 @@ fn should_not_be_able_to_reinvoke_migrate_entrypoint() {
     // calling the updated_receipts entrypoint should cause an error to be returned.
     let incorrect_upgrade_request = ExecuteRequestBuilder::standard(
         *DEFAULT_ACCOUNT_ADDR,
-        NFT_CONTRACT_WASM,
+        CONTRACT_1_2_0_WASM,
         runtime_args! {
             ARG_COLLECTION_NAME => NFT_TEST_COLLECTION.to_string(),
             ARG_NAMED_KEY_CONVENTION => NamedKeyConventionMode::V1_0Standard as u8,

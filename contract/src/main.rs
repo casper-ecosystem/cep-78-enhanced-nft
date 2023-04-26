@@ -1560,6 +1560,12 @@ pub extern "C" fn set_token_metadata() {
 
 #[no_mangle]
 pub extern "C" fn migrate() {
+    let requires_rlo_migration = utils::requires_rlo_migration();
+
+    if !requires_rlo_migration && runtime::get_key(RLO_MFLAG).is_some() {
+        return;
+    }
+
     let total_token_supply: u64 = match utils::get_optional_named_arg_with_user_errors(
         ARG_TOTAL_TOKEN_SUPPLY,
         NFTCoreError::InvalidTotalTokenSupply,
@@ -1604,7 +1610,7 @@ pub extern "C" fn migrate() {
         runtime::revert(NFTCoreError::ExceededMaxTotalSupply)
     }
 
-    if utils::requires_rlo_migration() {
+    if requires_rlo_migration {
         storage::new_dictionary(PAGE_TABLE)
             .unwrap_or_revert_with(NFTCoreError::FailedToCreateDictionary);
         let page_table_width = utils::max_number_of_pages(total_token_supply);
