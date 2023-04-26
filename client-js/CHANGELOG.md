@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [1.3.0] - 2023-04-03
 
+### Added
+
+- Support for browsers (as WASM are now converted to JS modules and bundled that way).
+
 ### Changed
 
 - Added `casper-js-sdk` and `@make-software/ces-js-parser` as peer dependencies. This will prevent conflicts between multiple versions of dependencies.
