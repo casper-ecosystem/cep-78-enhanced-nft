@@ -1614,7 +1614,10 @@ pub extern "C" fn migrate() {
             return;
         }
 
-        if requires_rlo_migration {
+       ! if requires_rlo_migration {
+            return;
+            }
+       
             storage::new_dictionary(PAGE_TABLE)
                 .unwrap_or_revert_with(NFTCoreError::FailedToCreateDictionary);
             let page_table_width = utils::max_number_of_pages(total_token_supply);
