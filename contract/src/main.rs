@@ -1561,7 +1561,10 @@ pub extern "C" fn set_token_metadata() {
 
 #[no_mangle]
 pub extern "C" fn migrate() {
-    let reporting_mode = utils::get_reporting_mode();
+    let reporting_mode = match runtime::get_key(REPORTING_MODE).is_some() {
+        true => utils::get_reporting_mode(),
+        _ => OwnerReverseLookupMode::NoLookUp,
+    };
 
     if OwnerReverseLookupMode::NoLookUp == reporting_mode {
         let total_token_supply: u64 = match utils::get_optional_named_arg_with_user_errors(
@@ -1608,72 +1611,63 @@ pub extern "C" fn migrate() {
             runtime::revert(NFTCoreError::ExceededMaxTotalSupply)
         }
 
-        let requires_rlo_migration = utils::requires_rlo_migration();
-
-        if !requires_rlo_migration && runtime::get_key(RLO_MFLAG).is_some() {
+        if !utils::requires_rlo_migration() || runtime::get_key(RLO_MFLAG).is_some() {
             return;
         }
 
-       ! if requires_rlo_migration {
-            return;
-            }
-       
-            storage::new_dictionary(PAGE_TABLE)
-                .unwrap_or_revert_with(NFTCoreError::FailedToCreateDictionary);
-            let page_table_width = utils::max_number_of_pages(total_token_supply);
-            runtime::put_key(PAGE_LIMIT, storage::new_uref(page_table_width).into());
-            runtime::put_key(
-                REPORTING_MODE,
-                storage::new_uref(OwnerReverseLookupMode::Complete as u8).into(),
-            );
+        storage::new_dictionary(PAGE_TABLE)
+            .unwrap_or_revert_with(NFTCoreError::FailedToCreateDictionary);
+        let page_table_width = utils::max_number_of_pages(total_token_supply);
+        runtime::put_key(PAGE_LIMIT, storage::new_uref(page_table_width).into());
+        runtime::put_key(
+            REPORTING_MODE,
+            storage::new_uref(OwnerReverseLookupMode::Complete as u8).into(),
+        );
 
-            let collection_name = utils::get_stored_value_with_user_errors::<String>(
-                COLLECTION_NAME,
-                NFTCoreError::MissingCollectionName,
-                NFTCoreError::InvalidCollectionName,
-            );
+        let collection_name = utils::get_stored_value_with_user_errors::<String>(
+            COLLECTION_NAME,
+            NFTCoreError::MissingCollectionName,
+            NFTCoreError::InvalidCollectionName,
+        );
 
-            let new_contract_package_hash_representation =
-                runtime::get_named_arg::<ContractPackageHash>(ARG_NFT_PACKAGE_KEY);
+        let new_contract_package_hash_representation =
+            runtime::get_named_arg::<ContractPackageHash>(ARG_NFT_PACKAGE_KEY);
 
-            let receipt_uref = utils::get_uref(
-                RECEIPT_NAME,
-                NFTCoreError::MissingReceiptName,
-                NFTCoreError::InvalidReceiptName,
-            );
+        let receipt_uref = utils::get_uref(
+            RECEIPT_NAME,
+            NFTCoreError::MissingReceiptName,
+            NFTCoreError::InvalidReceiptName,
+        );
 
-            let new_receipt_string_representation = format!("{PREFIX_CEP78}_{collection_name}");
-            runtime::put_key(
-                &new_receipt_string_representation,
-                storage::new_uref(new_contract_package_hash_representation.to_formatted_string())
-                    .into(),
-            );
-            storage::write(receipt_uref, new_receipt_string_representation);
+        let new_receipt_string_representation = format!("{PREFIX_CEP78}_{collection_name}");
+        runtime::put_key(
+            &new_receipt_string_representation,
+            storage::new_uref(new_contract_package_hash_representation.to_formatted_string())
+                .into(),
+        );
+        storage::write(receipt_uref, new_receipt_string_representation);
 
-            let identifier: NFTIdentifierMode = utils::get_stored_value_with_user_errors::<u8>(
-                IDENTIFIER_MODE,
-                NFTCoreError::MissingIdentifierMode,
-                NFTCoreError::InvalidIdentifierMode,
-            )
-            .try_into()
-            .unwrap_or_revert();
+        let identifier: NFTIdentifierMode = utils::get_stored_value_with_user_errors::<u8>(
+            IDENTIFIER_MODE,
+            NFTCoreError::MissingIdentifierMode,
+            NFTCoreError::InvalidIdentifierMode,
+        )
+        .try_into()
+        .unwrap_or_revert();
 
-            match identifier {
-                NFTIdentifierMode::Ordinal => utils::migrate_owned_tokens_in_ordinal_mode(),
-                NFTIdentifierMode::Hash => {
-                    storage::new_dictionary(HASH_BY_INDEX)
-                        .unwrap_or_revert_with(NFTCoreError::FailedToCreateDictionary);
-                    storage::new_dictionary(INDEX_BY_HASH)
-                        .unwrap_or_revert_with(NFTCoreError::FailedToCreateDictionary);
-                    runtime::put_key(
-                        UNMATCHED_HASH_COUNT,
-                        storage::new_uref(current_number_of_minted_tokens).into(),
-                    );
-                }
+        match identifier {
+            NFTIdentifierMode::Ordinal => utils::migrate_owned_tokens_in_ordinal_mode(),
+            NFTIdentifierMode::Hash => {
+                storage::new_dictionary(HASH_BY_INDEX)
+                    .unwrap_or_revert_with(NFTCoreError::FailedToCreateDictionary);
+                storage::new_dictionary(INDEX_BY_HASH)
+                    .unwrap_or_revert_with(NFTCoreError::FailedToCreateDictionary);
+                runtime::put_key(
+                    UNMATCHED_HASH_COUNT,
+                    storage::new_uref(current_number_of_minted_tokens).into(),
+                );
             }
         }
-    } else {
-        return;
     }
 
     let metadata_kind: NFTMetadataKind = utils::get_stored_value_with_user_errors(
