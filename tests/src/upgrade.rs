@@ -785,21 +785,6 @@ fn should_safely_upgrade_from_1_2_0_to_current_version_with_reporting_mode(
     );
 }
 
-#[test]
-fn should_safely_upgrade_from_1_2_0_to_current_version() {
-    //* starting total_token_supply 100u64
-    let expected_total_token_supply_post_upgrade = 10;
-    should_safely_upgrade_from_1_2_0_to_current_version_with_reporting_mode(
-        OwnerReverseLookupMode::NoLookUp,
-        expected_total_token_supply_post_upgrade,
-    );
-    let expected_total_token_supply_post_upgrade = 100;
-    should_safely_upgrade_from_1_2_0_to_current_version_with_reporting_mode(
-        OwnerReverseLookupMode::Complete,
-        expected_total_token_supply_post_upgrade,
-    );
-}
-
 fn should_safely_upgrade_from_1_0_0_to_1_2_0_to_current_version_with_reporting_mode(
     reporting_mode: OwnerReverseLookupMode,
     expected_total_token_supply_post_upgrade: u64,
@@ -877,7 +862,8 @@ fn should_safely_upgrade_from_1_0_0_to_1_2_0_to_current_version_with_reporting_m
             ARG_NAMED_KEY_CONVENTION => NamedKeyConventionMode::V1_0Custom as u8,
             ARG_ACCESS_KEY_NAME_1_0_0 => format!("{PREFIX_ACCESS_KEY_NAME}_{NFT_TEST_COLLECTION}"),
             ARG_HASH_KEY_NAME_1_0_0 => format!("{PREFIX_HASH_KEY_NAME}_{NFT_TEST_COLLECTION}"),
-            ARG_TOTAL_TOKEN_SUPPLY => 10u64
+            ARG_EVENTS_MODE => EventsMode::CES as u8,
+            ARG_TOTAL_TOKEN_SUPPLY => 10u64,
         },
     )
     .build();
@@ -907,21 +893,11 @@ fn should_safely_upgrade_from_1_0_0_to_1_2_0_to_current_version_with_reporting_m
         total_token_supply_post_upgrade,
         expected_total_token_supply_post_upgrade
     );
-}
 
-#[test]
-fn should_safely_upgrade_from_1_0_0_to_1_2_0_to_current_version() {
-    //* starting total_token_supply 100u64
-    let expected_total_token_supply_post_upgrade = 50;
-    should_safely_upgrade_from_1_0_0_to_1_2_0_to_current_version_with_reporting_mode(
-        OwnerReverseLookupMode::NoLookUp,
-        expected_total_token_supply_post_upgrade,
-    );
-    let expected_total_token_supply_post_upgrade = 50;
-    should_safely_upgrade_from_1_0_0_to_1_2_0_to_current_version_with_reporting_mode(
-        OwnerReverseLookupMode::Complete,
-        expected_total_token_supply_post_upgrade,
-    );
+    // Expect Migration event.
+    let expected_event = Migration::new();
+    let actual_event: Migration = support::get_event(&builder, &nft_contract_key, 0);
+    assert_eq!(actual_event, expected_event, "Expected Migration event.");
 }
 
 fn should_safely_upgrade_from_1_0_0_to_current_version_with_reporting_mode(
@@ -971,7 +947,8 @@ fn should_safely_upgrade_from_1_0_0_to_current_version_with_reporting_mode(
             ARG_NFT_CONTRACT_HASH => support::get_nft_contract_package_hash(&builder),
             ARG_COLLECTION_NAME => NFT_TEST_COLLECTION.to_string(),
             ARG_NAMED_KEY_CONVENTION => NamedKeyConventionMode::V1_0Standard as u8,
-            ARG_TOTAL_TOKEN_SUPPLY => 10u64
+            ARG_EVENTS_MODE => EventsMode::CES as u8,
+            ARG_TOTAL_TOKEN_SUPPLY => 10u64,
         },
     )
     .build();
@@ -1001,6 +978,40 @@ fn should_safely_upgrade_from_1_0_0_to_current_version_with_reporting_mode(
         total_token_supply_post_upgrade,
         expected_total_token_supply_post_upgrade
     );
+
+    let actual_page_record_width = builder
+        .query(None, nft_contract_key, &[PAGE_LIMIT.to_string()])
+        .expect("must have the stored value")
+        .as_cl_value()
+        .map(|page_cl_value| CLValue::into_t::<u64>(page_cl_value.clone()))
+        .unwrap()
+        .expect("must convert");
+
+    let expected_page_record_width = 1000u64 / PAGE_SIZE;
+
+    assert_eq!(expected_page_record_width, actual_page_record_width);
+
+    let actual_page = support::get_token_page_by_id(
+        &builder,
+        &nft_contract_key,
+        &Key::Account(*DEFAULT_ACCOUNT_ADDR),
+        0u64,
+    );
+
+    let expected_page = {
+        let mut page = vec![false; PAGE_SIZE as usize];
+        for page_entry in page.iter_mut().take(number_of_tokens_pre_migration) {
+            *page_entry = true;
+        }
+        page
+    };
+
+    assert_eq!(actual_page, expected_page);
+
+    // Expect Migration event.
+    let expected_event = Migration::new();
+    let actual_event: Migration = support::get_event(&builder, &nft_contract_key, 0);
+    assert_eq!(actual_event, expected_event, "Expected Migration event.");
 }
 
 #[test]
@@ -1013,6 +1024,36 @@ fn should_safely_upgrade_from_1_0_0_to_current_version() {
     );
     let expected_total_token_supply_post_upgrade = 10;
     should_safely_upgrade_from_1_0_0_to_current_version_with_reporting_mode(
+        OwnerReverseLookupMode::Complete,
+        expected_total_token_supply_post_upgrade,
+    );
+}
+
+#[test]
+fn should_safely_upgrade_from_1_0_0_to_1_2_0_to_current_version() {
+    //* starting total_token_supply 100u64
+    let expected_total_token_supply_post_upgrade = 50;
+    should_safely_upgrade_from_1_0_0_to_1_2_0_to_current_version_with_reporting_mode(
+        OwnerReverseLookupMode::NoLookUp,
+        expected_total_token_supply_post_upgrade,
+    );
+    let expected_total_token_supply_post_upgrade = 50;
+    should_safely_upgrade_from_1_0_0_to_1_2_0_to_current_version_with_reporting_mode(
+        OwnerReverseLookupMode::Complete,
+        expected_total_token_supply_post_upgrade,
+    );
+}
+
+#[test]
+fn should_safely_upgrade_from_1_2_0_to_current_version() {
+    //* starting total_token_supply 100u64
+    let expected_total_token_supply_post_upgrade = 10;
+    should_safely_upgrade_from_1_2_0_to_current_version_with_reporting_mode(
+        OwnerReverseLookupMode::NoLookUp,
+        expected_total_token_supply_post_upgrade,
+    );
+    let expected_total_token_supply_post_upgrade = 100;
+    should_safely_upgrade_from_1_2_0_to_current_version_with_reporting_mode(
         OwnerReverseLookupMode::Complete,
         expected_total_token_supply_post_upgrade,
     );
