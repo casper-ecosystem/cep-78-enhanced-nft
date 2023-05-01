@@ -3,9 +3,7 @@ use casper_engine_test_support::{
     DEFAULT_RUN_GENESIS_REQUEST,
 };
 
-use casper_types::{
-    account::AccountHash, bytesrepr::Bytes, runtime_args, CLValue, ContractHash, Key, RuntimeArgs,
-};
+use casper_types::{account::AccountHash, runtime_args, CLValue, ContractHash, Key, RuntimeArgs};
 use contract::{
     constants::{
         ACCESS_KEY_NAME_1_0_0, ARG_ACCESS_KEY_NAME_1_0_0, ARG_COLLECTION_NAME, ARG_EVENTS_MODE,
@@ -30,7 +28,7 @@ use crate::utility::{
         InstallerRequestBuilder, MetadataMutability, NFTIdentifierMode, NFTMetadataKind,
         NamedKeyConventionMode, OwnerReverseLookupMode, OwnershipMode,
     },
-    support::{self, get_dictionary_value_from_key},
+    support::{self},
 };
 
 const OWNED_TOKENS: &str = "owned_tokens";
