@@ -785,10 +785,23 @@ fn should_safely_upgrade_from_1_2_0_to_current_version_with_reporting_mode(
     );
 }
 
-fn should_safely_upgrade_from_1_0_0_to_1_2_0_to_current_version_with_reporting_mode(
-    reporting_mode: OwnerReverseLookupMode,
-    expected_total_token_supply_post_upgrade: u64,
-) {
+#[test]
+fn should_safely_upgrade_from_1_2_0_to_current_version() {
+    //* starting total_token_supply 100u64
+    let expected_total_token_supply_post_upgrade = 10;
+    should_safely_upgrade_from_1_2_0_to_current_version_with_reporting_mode(
+        OwnerReverseLookupMode::NoLookUp,
+        expected_total_token_supply_post_upgrade,
+    );
+    let expected_total_token_supply_post_upgrade = 100;
+    should_safely_upgrade_from_1_2_0_to_current_version_with_reporting_mode(
+        OwnerReverseLookupMode::Complete,
+        expected_total_token_supply_post_upgrade,
+    );
+}
+
+#[test]
+fn should_safely_upgrade_from_1_0_0_to_1_2_0_to_current_version() {
     let mut builder = InMemoryWasmTestBuilder::default();
     builder.run_genesis(&DEFAULT_RUN_GENESIS_REQUEST).commit();
 
@@ -797,7 +810,6 @@ fn should_safely_upgrade_from_1_0_0_to_1_2_0_to_current_version_with_reporting_m
         .with_collection_symbol(NFT_TEST_SYMBOL.to_string())
         .with_total_token_supply(100u64)
         .with_ownership_mode(OwnershipMode::Transferable)
-        .with_reporting_mode(reporting_mode)
         .with_metadata_mutability(MetadataMutability::Mutable)
         .with_identifier_mode(NFTIdentifierMode::Ordinal)
         .with_nft_metadata_kind(NFTMetadataKind::Raw)
@@ -829,7 +841,7 @@ fn should_safely_upgrade_from_1_0_0_to_1_2_0_to_current_version_with_reporting_m
     )
     .expect("must get u64 value");
 
-    assert_eq!(total_token_supply_post_upgrade, 50);
+    assert_eq!(total_token_supply_post_upgrade, 50u64);
 
     let nft_contract_hash_1_2_0: ContractHash = support::get_nft_contract_hash(&builder);
     let nft_contract_key_1_2_0: Key = nft_contract_hash_1_2_0.into();
@@ -889,10 +901,7 @@ fn should_safely_upgrade_from_1_0_0_to_1_2_0_to_current_version_with_reporting_m
     )
     .expect("must get u64 value");
 
-    assert_eq!(
-        total_token_supply_post_upgrade,
-        expected_total_token_supply_post_upgrade
-    );
+    assert_eq!(total_token_supply_post_upgrade, 50u64);
 
     // Expect Migration event.
     let expected_event = Migration::new();
@@ -900,10 +909,8 @@ fn should_safely_upgrade_from_1_0_0_to_1_2_0_to_current_version_with_reporting_m
     assert_eq!(actual_event, expected_event, "Expected Migration event.");
 }
 
-fn should_safely_upgrade_from_1_0_0_to_current_version_with_reporting_mode(
-    reporting_mode: OwnerReverseLookupMode,
-    expected_total_token_supply_post_upgrade: u64,
-) {
+#[test]
+fn should_safely_upgrade_from_1_0_0_to_current_version() {
     let mut builder = InMemoryWasmTestBuilder::default();
     builder.run_genesis(&DEFAULT_RUN_GENESIS_REQUEST).commit();
 
@@ -912,7 +919,6 @@ fn should_safely_upgrade_from_1_0_0_to_current_version_with_reporting_mode(
         .with_collection_symbol(NFT_TEST_SYMBOL.to_string())
         .with_total_token_supply(100u64)
         .with_ownership_mode(OwnershipMode::Transferable)
-        .with_reporting_mode(reporting_mode)
         .with_metadata_mutability(MetadataMutability::Mutable)
         .with_identifier_mode(NFTIdentifierMode::Ordinal)
         .with_nft_metadata_kind(NFTMetadataKind::Raw)
@@ -974,10 +980,7 @@ fn should_safely_upgrade_from_1_0_0_to_current_version_with_reporting_mode(
     )
     .expect("must get u64 value");
 
-    assert_eq!(
-        total_token_supply_post_upgrade,
-        expected_total_token_supply_post_upgrade
-    );
+    assert_eq!(total_token_supply_post_upgrade, 10u64);
 
     let actual_page_record_width = builder
         .query(None, nft_contract_key, &[PAGE_LIMIT.to_string()])
@@ -1012,49 +1015,4 @@ fn should_safely_upgrade_from_1_0_0_to_current_version_with_reporting_mode(
     let expected_event = Migration::new();
     let actual_event: Migration = support::get_event(&builder, &nft_contract_key, 0);
     assert_eq!(actual_event, expected_event, "Expected Migration event.");
-}
-
-#[test]
-fn should_safely_upgrade_from_1_0_0_to_current_version() {
-    //* starting total_token_supply 100u64
-    let expected_total_token_supply_post_upgrade = 10;
-    should_safely_upgrade_from_1_0_0_to_current_version_with_reporting_mode(
-        OwnerReverseLookupMode::NoLookUp,
-        expected_total_token_supply_post_upgrade,
-    );
-    let expected_total_token_supply_post_upgrade = 10;
-    should_safely_upgrade_from_1_0_0_to_current_version_with_reporting_mode(
-        OwnerReverseLookupMode::Complete,
-        expected_total_token_supply_post_upgrade,
-    );
-}
-
-#[test]
-fn should_safely_upgrade_from_1_0_0_to_1_2_0_to_current_version() {
-    //* starting total_token_supply 100u64
-    let expected_total_token_supply_post_upgrade = 50;
-    should_safely_upgrade_from_1_0_0_to_1_2_0_to_current_version_with_reporting_mode(
-        OwnerReverseLookupMode::NoLookUp,
-        expected_total_token_supply_post_upgrade,
-    );
-    let expected_total_token_supply_post_upgrade = 50;
-    should_safely_upgrade_from_1_0_0_to_1_2_0_to_current_version_with_reporting_mode(
-        OwnerReverseLookupMode::Complete,
-        expected_total_token_supply_post_upgrade,
-    );
-}
-
-#[test]
-fn should_safely_upgrade_from_1_2_0_to_current_version() {
-    //* starting total_token_supply 100u64
-    let expected_total_token_supply_post_upgrade = 10;
-    should_safely_upgrade_from_1_2_0_to_current_version_with_reporting_mode(
-        OwnerReverseLookupMode::NoLookUp,
-        expected_total_token_supply_post_upgrade,
-    );
-    let expected_total_token_supply_post_upgrade = 100;
-    should_safely_upgrade_from_1_2_0_to_current_version_with_reporting_mode(
-        OwnerReverseLookupMode::Complete,
-        expected_total_token_supply_post_upgrade,
-    );
 }
