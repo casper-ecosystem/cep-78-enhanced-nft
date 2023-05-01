@@ -923,3 +923,97 @@ fn should_safely_upgrade_from_1_0_0_to_1_2_0_to_current_version() {
         expected_total_token_supply_post_upgrade,
     );
 }
+
+fn should_safely_upgrade_from_1_0_0_to_current_version_with_reporting_mode(
+    reporting_mode: OwnerReverseLookupMode,
+    expected_total_token_supply_post_upgrade: u64,
+) {
+    let mut builder = InMemoryWasmTestBuilder::default();
+    builder.run_genesis(&DEFAULT_RUN_GENESIS_REQUEST).commit();
+
+    let install_request = InstallerRequestBuilder::new(*DEFAULT_ACCOUNT_ADDR, CONTRACT_1_0_0_WASM)
+        .with_collection_name(NFT_TEST_COLLECTION.to_string())
+        .with_collection_symbol(NFT_TEST_SYMBOL.to_string())
+        .with_total_token_supply(100u64)
+        .with_ownership_mode(OwnershipMode::Transferable)
+        .with_reporting_mode(reporting_mode)
+        .with_metadata_mutability(MetadataMutability::Mutable)
+        .with_identifier_mode(NFTIdentifierMode::Ordinal)
+        .with_nft_metadata_kind(NFTMetadataKind::Raw)
+        .build();
+
+    builder.exec(install_request).expect_success().commit();
+
+    let nft_contract_hash_1_0_0 = support::get_nft_contract_hash_1_0_0(&builder);
+
+    let number_of_tokens_pre_migration = 3usize;
+
+    // Build of prestate before migration.
+    for _i in 0..number_of_tokens_pre_migration {
+        let mint_request = ExecuteRequestBuilder::contract_call_by_hash(
+            *DEFAULT_ACCOUNT_ADDR,
+            nft_contract_hash_1_0_0,
+            ENTRY_POINT_MINT,
+            runtime_args! {
+                ARG_TOKEN_OWNER => Key::Account(*DEFAULT_ACCOUNT_ADDR),
+                ARG_TOKEN_META_DATA => "",
+            },
+        )
+        .build();
+
+        builder.exec(mint_request).expect_success().commit();
+    }
+
+    let upgrade_request = ExecuteRequestBuilder::standard(
+        *DEFAULT_ACCOUNT_ADDR,
+        NFT_CONTRACT_WASM,
+        runtime_args! {
+            ARG_NFT_CONTRACT_HASH => support::get_nft_contract_package_hash(&builder),
+            ARG_COLLECTION_NAME => NFT_TEST_COLLECTION.to_string(),
+            ARG_NAMED_KEY_CONVENTION => NamedKeyConventionMode::V1_0Standard as u8,
+            ARG_TOTAL_TOKEN_SUPPLY => 10u64
+        },
+    )
+    .build();
+
+    builder.exec(upgrade_request).expect_success().commit();
+
+    let nft_contract_hash = support::get_nft_contract_hash(&builder);
+    let nft_contract_key: Key = nft_contract_hash.into();
+
+    let number_of_tokens_at_upgrade = support::get_stored_value_from_global_state::<u64>(
+        &builder,
+        nft_contract_key,
+        vec![NUMBER_OF_MINTED_TOKENS.to_string()],
+    )
+    .expect("must get u64 value");
+
+    assert_eq!(number_of_tokens_at_upgrade, 3);
+
+    let total_token_supply_post_upgrade = support::get_stored_value_from_global_state::<u64>(
+        &builder,
+        nft_contract_key,
+        vec![ARG_TOTAL_TOKEN_SUPPLY.to_string()],
+    )
+    .expect("must get u64 value");
+
+    assert_eq!(
+        total_token_supply_post_upgrade,
+        expected_total_token_supply_post_upgrade
+    );
+}
+
+#[test]
+fn should_safely_upgrade_from_1_0_0_to_current_version() {
+    //* starting total_token_supply 100u64
+    let expected_total_token_supply_post_upgrade = 10;
+    should_safely_upgrade_from_1_0_0_to_current_version_with_reporting_mode(
+        OwnerReverseLookupMode::NoLookUp,
+        expected_total_token_supply_post_upgrade,
+    );
+    let expected_total_token_supply_post_upgrade = 10;
+    should_safely_upgrade_from_1_0_0_to_current_version_with_reporting_mode(
+        OwnerReverseLookupMode::Complete,
+        expected_total_token_supply_post_upgrade,
+    );
+}
