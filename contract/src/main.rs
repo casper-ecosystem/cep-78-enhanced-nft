@@ -1560,12 +1560,13 @@ pub extern "C" fn set_token_metadata() {
 
 #[no_mangle]
 pub extern "C" fn migrate() {
-    let reporting_mode = match runtime::get_key(REPORTING_MODE).is_some() {
-        true => utils::get_reporting_mode(),
-        _ => OwnerReverseLookupMode::NoLookUp,
+    let reporting_mode = if runtime::get_key(REPORTING_MODE).is_some() {
+        Some(utils::get_reporting_mode())
+    } else {
+        None
     };
 
-    if OwnerReverseLookupMode::NoLookUp == reporting_mode {
+    if [None, Some(OwnerReverseLookupMode::NoLookUp)].contains(&reporting_mode) {
         let total_token_supply: u64 = match utils::get_optional_named_arg_with_user_errors(
             ARG_TOTAL_TOKEN_SUPPLY,
             NFTCoreError::InvalidTotalTokenSupply,
