@@ -3,7 +3,9 @@ use casper_engine_test_support::{
     DEFAULT_RUN_GENESIS_REQUEST,
 };
 
-use casper_types::{account::AccountHash, runtime_args, CLValue, ContractHash, Key, RuntimeArgs};
+use casper_types::{
+    account::AccountHash, bytesrepr::Bytes, runtime_args, CLValue, ContractHash, Key, RuntimeArgs,
+};
 use contract::{
     constants::{
         ACCESS_KEY_NAME_1_0_0, ARG_ACCESS_KEY_NAME_1_0_0, ARG_COLLECTION_NAME, ARG_EVENTS_MODE,
@@ -28,7 +30,7 @@ use crate::utility::{
         InstallerRequestBuilder, MetadataMutability, NFTIdentifierMode, NFTMetadataKind,
         NamedKeyConventionMode, OwnerReverseLookupMode, OwnershipMode,
     },
-    support,
+    support::{self, get_dictionary_value_from_key},
 };
 
 const OWNED_TOKENS: &str = "owned_tokens";
@@ -708,6 +710,7 @@ fn should_safely_upgrade_from_1_2_0_to_current_version_with_reporting_mode(
         .with_metadata_mutability(MetadataMutability::Mutable)
         .with_identifier_mode(NFTIdentifierMode::Ordinal)
         .with_nft_metadata_kind(NFTMetadataKind::Raw)
+        .with_events_mode(EventsMode::CES)
         .build();
 
     builder.exec(install_request).expect_success().commit();
@@ -783,9 +786,26 @@ fn should_safely_upgrade_from_1_2_0_to_current_version_with_reporting_mode(
         total_token_supply_post_upgrade,
         expected_total_token_supply_post_upgrade
     );
+
+    // Expect No Migration event after 3 Mint events.
+    let seed_uref = *builder
+        .query(None, nft_contract_key, &[])
+        .expect("must have nft contract")
+        .as_contract()
+        .expect("must convert contract")
+        .named_keys()
+        .get(casper_event_standard::EVENTS_DICT)
+        .expect("must have key")
+        .as_uref()
+        .expect("must convert to seed uref");
+
+    builder
+        .query_dictionary_item(None, seed_uref, "3")
+        .expect_err("should not have dictionary value for a third migration event");
 }
 
 #[test]
+
 fn should_safely_upgrade_from_1_2_0_to_current_version() {
     //* starting total_token_supply 100u64
     let expected_total_token_supply_post_upgrade = 10;
@@ -827,6 +847,7 @@ fn should_safely_upgrade_from_1_0_0_to_1_2_0_to_current_version() {
             ARG_NFT_CONTRACT_HASH => nft_contract_key_1_0_0,
             ARG_COLLECTION_NAME => NFT_TEST_COLLECTION.to_string(),
             ARG_NAMED_KEY_CONVENTION => NamedKeyConventionMode::V1_0Standard as u8,
+            ARG_EVENTS_MODE => EventsMode::CES as u8,
             ARG_TOTAL_TOKEN_SUPPLY => 50u64
         },
     )
@@ -874,7 +895,6 @@ fn should_safely_upgrade_from_1_0_0_to_1_2_0_to_current_version() {
             ARG_NAMED_KEY_CONVENTION => NamedKeyConventionMode::V1_0Custom as u8,
             ARG_ACCESS_KEY_NAME_1_0_0 => format!("{PREFIX_ACCESS_KEY_NAME}_{NFT_TEST_COLLECTION}"),
             ARG_HASH_KEY_NAME_1_0_0 => format!("{PREFIX_HASH_KEY_NAME}_{NFT_TEST_COLLECTION}"),
-            ARG_EVENTS_MODE => EventsMode::CES as u8,
             ARG_TOTAL_TOKEN_SUPPLY => 10u64,
         },
     )
