@@ -21,16 +21,6 @@ use alloc::{
     vec,
     vec::Vec,
 };
-use modalities::Requirement;
-
-use core::convert::{TryFrom, TryInto};
-
-use casper_types::{
-    contracts::NamedKeys, runtime_args, CLType, CLValue, ContractHash, ContractPackageHash,
-    EntryPoint, EntryPointAccess, EntryPointType, EntryPoints, Key, KeyTag, Parameter, RuntimeArgs,
-    Tagged,
-};
-
 use casper_contract::{
     contract_api::{
         runtime::{self},
@@ -38,7 +28,11 @@ use casper_contract::{
     },
     unwrap_or_revert::UnwrapOrRevert,
 };
-
+use casper_types::{
+    contracts::NamedKeys, runtime_args, CLType, CLValue, ContractHash, ContractPackageHash,
+    EntryPoint, EntryPointAccess, EntryPointType, EntryPoints, Key, KeyTag, Parameter, RuntimeArgs,
+    Tagged,
+};
 use constants::{
     ACCESS_KEY_NAME_1_0_0, ALLOW_MINTING, APPROVED, ARG_ACCESS_KEY_NAME_1_0_0,
     ARG_ADDITIONAL_REQUIRED_METADATA, ARG_ALLOW_MINTING, ARG_APPROVE_ALL, ARG_BURN_MODE,
@@ -64,7 +58,7 @@ use constants::{
     TOKEN_COUNT, TOKEN_ISSUERS, TOKEN_OWNERS, TOTAL_TOKEN_SUPPLY, UNMATCHED_HASH_COUNT,
     WHITELIST_MODE,
 };
-
+use core::convert::{TryFrom, TryInto};
 use error::NFTCoreError;
 use events::{
     events_cep47::{record_cep47_event_dictionary, CEP47Event},
@@ -77,7 +71,7 @@ use metadata::CustomMetadataSchema;
 use modalities::{
     BurnMode, EventsMode, MetadataMutability, MintingMode, NFTHolderMode, NFTIdentifierMode,
     NFTKind, NFTMetadataKind, NamedKeyConventionMode, OwnerReverseLookupMode, OwnershipMode,
-    TokenIdentifier, WhitelistMode,
+    Requirement, TokenIdentifier, WhitelistMode,
 };
 
 #[no_mangle]
