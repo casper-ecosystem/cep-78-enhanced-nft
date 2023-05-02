@@ -1664,16 +1664,11 @@ pub extern "C" fn migrate() {
         None
     };
 
-    match reporting_mode {
-        None => do_migration(),
-        Some(reporting_mode) => {
-            if OwnerReverseLookupMode::NoLookUp == reporting_mode {
-                if utils::requires_rlo_migration() && runtime::get_key(RLO_MFLAG).is_none() {
-                    do_migration();
-                } else {
-                    update_token_supply();
-                }
-            }
+    if [None, Some(OwnerReverseLookupMode::NoLookUp)].contains(&reporting_mode) {
+        if utils::requires_rlo_migration() && runtime::get_key(RLO_MFLAG).is_none() {
+            do_migration();
+        } else {
+            update_token_supply();
         }
     }
 
