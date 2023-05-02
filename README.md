@@ -402,7 +402,8 @@ casper-client put-deploy -n http://localhost:11101/rpc --chain-name "casper-net-
 --session-arg "ownership_mode:u8='0'" \
 --session-arg "nft_kind:u8='1'" \
 --session-arg "json_schema:string='nft-schema'" \
---session-arg "allow_minting:bool='true'"
+--session-arg "allow_minting:bool='true'" \
+--session-arg "owner_reverse_lookup_mode:u8='1'"
 ```
 
 #### Utility session code
