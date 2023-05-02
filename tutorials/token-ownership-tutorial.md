@@ -1,9 +1,13 @@
 # Token Ownership in Casper NFT Contracts (Release v1.1.1)
 
-This tutorial demonstrates how to check token ownership in CEP-78 NFT contracts, starting with version [v1.1.1](https://github.com/casper-ecosystem/cep-78-enhanced-nft/releases/tag/v1.1.1). As an account user or owner of a contract interacting with the NFT contract, I want to be able to answer the following questions:
+This tutorial demonstrates how to check token ownership in CEP-78 NFT contracts, starting with version [v1.1.1](https://github.com/casper-ecosystem/cep-78-enhanced-nft/releases/tag/v1.1.1). For this tutorial, the `OwnerReverseLookupMode` modality must be set to `Complete` as described [here](https://github.com/casper-ecosystem/cep-78-enhanced-nft/#ownerreverselookupmode).
+
+As someone interacting with an NFT contract, you might want to answer the following questions:
 
 1. Which NFTs do I own?
 2. Which NFTs does someone else own?
+
+You might be an account user or owner of a contract that interacts with the NFT contract.
 
 The first method to answer these questions is an [account-centric approach](#querying-the-account), in which you trust the account owner and the information stored in the account's NamedKeys. This account could be an account you own or someone else owns. This method is less secure and needs to be based on trust. To apply this method, proceed according to the following steps:
 
@@ -23,10 +27,10 @@ The tutorial presents sample accounts, contracts, and NamedKeys to explain, by e
 
 ## Prerequisites
 
-- You have installed or upgraded to a CEP-78 contract that uses release v1.1.1. 
+- You have installed or upgraded to a CEP-78 contract that uses release v1.1.1, and the `OwnerReverseLookupMode` modality is set to `Complete` as described [here](https://github.com/casper-ecosystem/cep-78-enhanced-nft/#ownerreverselookupmode).
 - The contract has minted one or more tokens, and you have access to the account or the contract that owns these tokens.
 - You have experience with the [Casper CEP-78 NFT Standard](https://github.com/casper-ecosystem/cep-78-enhanced-nft/) and the Casper command-line client and know how to interact with a Casper network.
-- You understand the [The CEP-78 Page System](../README.md#the-cep-78-page-system) introduced in [Version 1.1](https://github.com/casper-ecosystem/cep-78-enhanced-nft/#new-in-version-11) of the CEP-78 Enhanced NFT Standard.
+- You understand the [Owner Reverse Lookup Functionality](https://github.com/casper-ecosystem/cep-78-enhanced-nft/#owner-reverse-lookup-functionality) and [CEP-78 Page System](../README.md#the-cep-78-page-system) introduced in [Version 1.1](https://github.com/casper-ecosystem/cep-78-enhanced-nft/#new-in-version-11) of the CEP-78 Enhanced NFT Standard.
 
 ## Method 1 - Querying the Account 
 
