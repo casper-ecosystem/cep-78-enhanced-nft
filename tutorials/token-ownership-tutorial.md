@@ -1,6 +1,6 @@
 # Token Ownership in Casper NFT Contracts (Release v1.1.1)
 
-This tutorial demonstrates how to check token ownership in CEP-78 NFT contracts, starting with version [v1.1.1](https://github.com/casper-ecosystem/cep-78-enhanced-nft/releases/tag/v1.1.1). For this tutorial, the `OwnerReverseLookupMode` modality must be set to `Complete` as described [here](https://github.com/casper-ecosystem/cep-78-enhanced-nft/#ownerreverselookupmode).
+This tutorial demonstrates how to check token ownership in CEP-78 NFT contracts, starting with version [v1.1.1](https://github.com/casper-ecosystem/cep-78-enhanced-nft/releases/tag/v1.1.1). For this tutorial, the `OwnerReverseLookupMode` modality must be set to `Complete` as described [here](../README.md#ownerreverselookupmode).
 
 As someone interacting with an NFT contract, you might want to answer the following questions:
 
@@ -27,7 +27,7 @@ The tutorial presents sample accounts, contracts, and NamedKeys to explain, by e
 
 ## Prerequisites
 
-- You have installed or upgraded to a CEP-78 contract that uses release v1.1.1, and the `OwnerReverseLookupMode` modality is set to `Complete` as described [here](https://github.com/casper-ecosystem/cep-78-enhanced-nft/#ownerreverselookupmode).
+- You have installed or upgraded to a CEP-78 contract that uses release v1.1.1, and the `OwnerReverseLookupMode` modality is set to `Complete` as described [here](../README.md#ownerreverselookupmode).
 - The contract has minted one or more tokens, and you have access to the account or the contract that owns these tokens.
 - You have experience with the [Casper CEP-78 NFT Standard](https://github.com/casper-ecosystem/cep-78-enhanced-nft/) and the Casper command-line client and know how to interact with a Casper network.
 - You understand the [Owner Reverse Lookup Functionality](https://github.com/casper-ecosystem/cep-78-enhanced-nft/#owner-reverse-lookup-functionality) and [CEP-78 Page System](../README.md#the-cep-78-page-system) introduced in [Version 1.1](https://github.com/casper-ecosystem/cep-78-enhanced-nft/#new-in-version-11) of the CEP-78 Enhanced NFT Standard.
