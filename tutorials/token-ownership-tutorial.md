@@ -119,7 +119,7 @@ casper-client get-dictionary-item \
 
 **Sample response from the "hash_by_index" dictionary:**
 
-The sample response shows that the hash of the NFT token at index 0 is "2b66bf103522470b75a4dae645b03db974cdf0061c4ca7b9e5b812e85d7a7737".
+The sample response shows that the hash of the NFT token at index 0 is "2b66bf103522470b75a4dae645b03db974cdf0061c4ca7b9e5b812e85d7a7737". In other words, the account whose NamedKeys you are consulting owns the token with hash "2b66bf103522470b75a4dae645b03db974cdf0061c4ca7b9e5b812e85d7a7737".
 
 ```json
 {
