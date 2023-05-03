@@ -1,16 +1,20 @@
 # Token Ownership in Casper NFT Contracts (Release v1.1.1)
 
-This tutorial demonstrates how to check token ownership in CEP-78 NFT contracts, starting with version [v1.1.1](https://github.com/casper-ecosystem/cep-78-enhanced-nft/releases/tag/v1.1.1). As an account user or owner of a contract interacting with the NFT contract, I want to be able to answer the following questions:
+This tutorial demonstrates how to check token ownership in CEP-78 NFT contracts, starting with version [v1.1.1](https://github.com/casper-ecosystem/cep-78-enhanced-nft/releases/tag/v1.1.1). For this tutorial, the `OwnerReverseLookupMode` modality must be set to `Complete` as described [here](../README.md#ownerreverselookupmode).
+
+As someone interacting with an NFT contract, you might want to answer the following questions:
 
 1. Which NFTs do I own?
 2. Which NFTs does someone else own?
+
+You might be an account user or owner of a contract that interacts with the NFT contract.
 
 The first method to answer these questions is an [account-centric approach](#querying-the-account), in which you trust the account owner and the information stored in the account's NamedKeys. This account could be an account you own or someone else owns. This method is less secure and needs to be based on trust. To apply this method, proceed according to the following steps:
 
 - Look for NamedKeys in this format: "cep78_*_m_1000_p_#".
 - Query each "cep78_*_m_1000_p_#" dictionary using the `casper-client get-dictionary-item` and the `dictionary-address`.
 
-The second method is a [contract-centric approach](#querying-the-contract), in which you interrogate the NFT contract. This method is more secure than the first approach and can be used when you need to verify or cannot trust an account's NamedKeys. To apply this method, follow these steps:
+The second method is a [contract-centric approach](#querying-the-contract), in which you query the NFT contract. This method is more secure than the first approach and can be used when you need to verify or cannot trust an account's NamedKeys. To apply this method, follow these steps:
 
 - Query the "page_table" dictionary from the CEP-78 contract using its seed URef and the account hash (without the "account-hash-" prefix).
 - Then, query each page dictionary given its seed URef and the account hash (again, without the "account-hash-" prefix).
@@ -23,10 +27,10 @@ The tutorial presents sample accounts, contracts, and NamedKeys to explain, by e
 
 ## Prerequisites
 
-- You have installed or upgraded to a CEP-78 contract that uses release v1.1.1. 
+- You have installed or upgraded to a CEP-78 contract that uses release v1.1.1, and the `OwnerReverseLookupMode` modality is set to `Complete` as described [here](../README.md#ownerreverselookupmode).
 - The contract has minted one or more tokens, and you have access to the account or the contract that owns these tokens.
 - You have experience with the [Casper CEP-78 NFT Standard](https://github.com/casper-ecosystem/cep-78-enhanced-nft/) and the Casper command-line client and know how to interact with a Casper network.
-- You understand the [The CEP-78 Page System](../README.md#the-cep-78-page-system) introduced in [Version 1.1](https://github.com/casper-ecosystem/cep-78-enhanced-nft/#new-in-version-11) of the CEP-78 Enhanced NFT Standard.
+- You understand the [Owner Reverse Lookup Functionality](https://github.com/casper-ecosystem/cep-78-enhanced-nft/#owner-reverse-lookup-functionality) and [CEP-78 Page System](../README.md#the-cep-78-page-system) introduced in [Version 1.1](https://github.com/casper-ecosystem/cep-78-enhanced-nft/#new-in-version-11) of the CEP-78 Enhanced NFT Standard.
 
 ## Method 1 - Querying the Account 
 
@@ -115,7 +119,7 @@ casper-client get-dictionary-item \
 
 **Sample response from the "hash_by_index" dictionary:**
 
-The sample response shows that the hash of the NFT token at index 0 is "2b66bf103522470b75a4dae645b03db974cdf0061c4ca7b9e5b812e85d7a7737".
+The sample response shows that the hash of the NFT token at index 0 is "2b66bf103522470b75a4dae645b03db974cdf0061c4ca7b9e5b812e85d7a7737". In other words, the account whose NamedKeys you are consulting owns the token with hash "2b66bf103522470b75a4dae645b03db974cdf0061c4ca7b9e5b812e85d7a7737".
 
 ```json
 {
@@ -286,5 +290,5 @@ To answer the question "which NFTs does this account own" you need to consult th
 
 If you trust an account and want to see which NFT it owns, look at its NamedKeys. See how many NamedKeys the account has for a given collection (in the format "m_1000_p_#"). These NamedKeys point to the "page_#" dictionaries that contain token ownership information. Using the state root hash and the dictionary address for each page (in the format "dictionary-...", you can retrieve token ownership details.
 
-Suppose you want additional security or cannot trust the account's NamedKeys. In that case, you need to interrogate the NFT contract using the "page_table" dictionary to determine which pages are allocated to the account. Then, you can use the seed URef of the page-specific dictionaries and the account hash (without the "account-hash-" prefix) to retrieve the tokens assigned to the account specified.
+Suppose you want additional security or cannot trust the account's NamedKeys. In that case, you need to query the NFT contract using the "page_table" dictionary to determine which pages are allocated to the account. Then, you can use the seed URef of the page-specific dictionaries and the account hash (without the "account-hash-" prefix) to retrieve the tokens assigned to the account specified.
 
