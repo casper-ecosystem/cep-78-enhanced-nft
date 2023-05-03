@@ -7,7 +7,7 @@ edition = "2018"
 casper-contract = { version = "1.4.4", default-features = false, features = [
   "test-support",
 ], optional = true }
-casper-types = "1.5"
+casper-types = "=1.5"
 serde = { version = "1.0.80", default-features = false }
 serde_json = { version = "1.0.59", default-features = false }
 serde-json-wasm = { version = "0.5.0", default-features = false }
