@@ -14,7 +14,7 @@ The first method to answer these questions is an [account-centric approach](#que
 - Look for NamedKeys in this format: "cep78_*_m_1000_p_#".
 - Query each "cep78_*_m_1000_p_#" dictionary using the `casper-client get-dictionary-item` and the `dictionary-address`.
 
-The second method is a [contract-centric approach](#querying-the-contract), in which you interrogate the NFT contract. This method is more secure than the first approach and can be used when you need to verify or cannot trust an account's NamedKeys. To apply this method, follow these steps:
+The second method is a [contract-centric approach](#querying-the-contract), in which you explore the NFT contract. This method is more secure than the first approach and can be used when you need to verify or cannot trust an account's NamedKeys. To apply this method, follow these steps:
 
 - Query the "page_table" dictionary from the CEP-78 contract using its seed URef and the account hash (without the "account-hash-" prefix).
 - Then, query each page dictionary given its seed URef and the account hash (again, without the "account-hash-" prefix).
@@ -290,5 +290,5 @@ To answer the question "which NFTs does this account own" you need to consult th
 
 If you trust an account and want to see which NFT it owns, look at its NamedKeys. See how many NamedKeys the account has for a given collection (in the format "m_1000_p_#"). These NamedKeys point to the "page_#" dictionaries that contain token ownership information. Using the state root hash and the dictionary address for each page (in the format "dictionary-...", you can retrieve token ownership details.
 
-Suppose you want additional security or cannot trust the account's NamedKeys. In that case, you need to interrogate the NFT contract using the "page_table" dictionary to determine which pages are allocated to the account. Then, you can use the seed URef of the page-specific dictionaries and the account hash (without the "account-hash-" prefix) to retrieve the tokens assigned to the account specified.
+Suppose you want additional security or cannot trust the account's NamedKeys. In that case, you need to explore the NFT contract using the "page_table" dictionary to determine which pages are allocated to the account. Then, you can use the seed URef of the page-specific dictionaries and the account hash (without the "account-hash-" prefix) to retrieve the tokens assigned to the account specified.
 
