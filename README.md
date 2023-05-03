@@ -402,7 +402,8 @@ casper-client put-deploy -n http://localhost:11101/rpc --chain-name "casper-net-
 --session-arg "ownership_mode:u8='0'" \
 --session-arg "nft_kind:u8='1'" \
 --session-arg "json_schema:string='nft-schema'" \
---session-arg "allow_minting:bool='true'"
+--session-arg "allow_minting:bool='true'" \
+--session-arg "owner_reverse_lookup_mode:u8='1'"
 ```
 
 #### Utility session code
@@ -645,6 +646,15 @@ casper-client put-deploy -n http://localhost:11101/rpc --chain-name "casper-net-
 ```
 
 </details>
+
+#### Checking Token Ownership
+
+[Learn to check token ownership](./tutorials/token-ownership-tutorial.md) starting with version [v1.1.1](https://github.com/casper-ecosystem/cep-78-enhanced-nft/releases/tag/v1.1.1). The `OwnerReverseLookupMode` modality must be set to `Complete` as described [here](../README.md#ownerreverselookupmode).
+
+#### Upgrading to Version 1.1.1 
+
+Upgrade to v1.1.1 using a [Standard NamedKey Convention](./tutorials/standard-migration-tutorial.md) or a [Custom NamedKey Convention](./tutorials/custom-migration-tutorial.md).
+
 
 ## Test Suite and Specification
 
