@@ -23,7 +23,7 @@ use alloc::{
 };
 use casper_contract::{
     contract_api::{
-        runtime::{self},
+        runtime::{self, call_contract, revert},
         storage::{self},
     },
     unwrap_or_revert::UnwrapOrRevert,
@@ -41,10 +41,10 @@ use constants::{
     ARG_METADATA_MUTABILITY, ARG_MINTING_MODE, ARG_NAMED_KEY_CONVENTION, ARG_NFT_KIND,
     ARG_NFT_METADATA_KIND, ARG_NFT_PACKAGE_KEY, ARG_OPERATOR, ARG_OPTIONAL_METADATA,
     ARG_OWNERSHIP_MODE, ARG_OWNER_LOOKUP_MODE, ARG_RECEIPT_NAME, ARG_SOURCE_KEY, ARG_SPENDER,
-    ARG_TARGET_KEY, ARG_TOKEN_META_DATA, ARG_TOKEN_OWNER, ARG_TOTAL_TOKEN_SUPPLY,
-    ARG_WHITELIST_MODE, BURNT_TOKENS, BURN_MODE, COLLECTION_NAME, COLLECTION_SYMBOL,
-    CONTRACT_WHITELIST, ENTRY_POINT_APPROVE, ENTRY_POINT_BALANCE_OF, ENTRY_POINT_BURN,
-    ENTRY_POINT_GET_APPROVED, ENTRY_POINT_INIT, ENTRY_POINT_IS_APPROVED_FOR_ALL,
+    ARG_TARGET_KEY, ARG_TOKEN_ID, ARG_TOKEN_META_DATA, ARG_TOKEN_OWNER, ARG_TOTAL_TOKEN_SUPPLY,
+    ARG_TRANSFER_FILTER_CONTRACT, ARG_WHITELIST_MODE, BURNT_TOKENS, BURN_MODE, COLLECTION_NAME,
+    COLLECTION_SYMBOL, CONTRACT_WHITELIST, ENTRY_POINT_APPROVE, ENTRY_POINT_BALANCE_OF,
+    ENTRY_POINT_BURN, ENTRY_POINT_GET_APPROVED, ENTRY_POINT_INIT, ENTRY_POINT_IS_APPROVED_FOR_ALL,
     ENTRY_POINT_METADATA, ENTRY_POINT_MIGRATE, ENTRY_POINT_MINT, ENTRY_POINT_OWNER_OF,
     ENTRY_POINT_REGISTER_OWNER, ENTRY_POINT_REVOKE, ENTRY_POINT_SET_APPROVALL_FOR_ALL,
     ENTRY_POINT_SET_TOKEN_METADATA, ENTRY_POINT_SET_VARIABLES, ENTRY_POINT_TRANSFER,
@@ -55,8 +55,9 @@ use constants::{
     OPERATOR, OPERATORS, OWNED_TOKENS, OWNERSHIP_MODE, PAGE_LIMIT, PAGE_TABLE,
     PREFIX_ACCESS_KEY_NAME, PREFIX_CEP78, PREFIX_CONTRACT_NAME, PREFIX_CONTRACT_VERSION,
     PREFIX_HASH_KEY_NAME, PREFIX_PAGE_DICTIONARY, RECEIPT_NAME, REPORTING_MODE, RLO_MFLAG,
-    TOKEN_COUNT, TOKEN_ISSUERS, TOKEN_OWNERS, TOTAL_TOKEN_SUPPLY, UNMATCHED_HASH_COUNT,
-    WHITELIST_MODE,
+    TOKEN_COUNT, TOKEN_ISSUERS, TOKEN_OWNERS, TOTAL_TOKEN_SUPPLY, TRANSFER_FILTER_CONTRACT,
+    TRANSFER_FILTER_METHOD, TRANSFER_FILTER_RESULT_DENY, TRANSFER_FILTER_RESULT_FORCE_PROCEED,
+    TRANSFER_FILTER_RESULT_PROCEED, UNMATCHED_HASH_COUNT, WHITELIST_MODE,
 };
 use core::convert::{TryFrom, TryInto};
 use error::NFTCoreError;
@@ -297,6 +298,15 @@ pub extern "C" fn init() {
         runtime::revert(NFTCoreError::OwnerReverseLookupModeNotTransferable)
     }
 
+    let transfer_filter_contract = utils::get_optional_named_arg_with_user_errors::<ContractHash>(
+        ARG_TRANSFER_FILTER_CONTRACT,
+        NFTCoreError::InvalidTransferFilterContract,
+    );
+
+    if transfer_filter_contract.is_some() && ownership_mode != OwnershipMode::Transferable {
+        runtime::revert(NFTCoreError::TransferFilterContractNeedsTransferableMode)
+    }
+
     // Put all created URefs into the contract's context (necessary to retain access rights,
     // for future use).
     //
@@ -414,7 +424,11 @@ pub extern "C" fn init() {
         REPORTING_MODE,
         storage::new_uref(reporting_mode as u8).into(),
     );
-    runtime::put_key(RLO_MFLAG, storage::new_uref(false).into())
+    runtime::put_key(RLO_MFLAG, storage::new_uref(false).into());
+
+    if let Some(contract) = transfer_filter_contract {
+        runtime::put_key(TRANSFER_FILTER_CONTRACT, storage::new_uref(contract).into());
+    }
 }
 
 // set_variables allows the user to set any variable or any combination of variables simultaneously.
@@ -1161,8 +1175,39 @@ pub extern "C" fn transfer() {
         && utils::get_dictionary_value_from_key::<bool>(OPERATORS, &owner_operator_item_key)
             .unwrap_or_default();
 
+    let skip_checks = if let Some(contract) = utils::get_transfer_filter_contract() {
+        let mut args = RuntimeArgs::new();
+        args.insert(ARG_SOURCE_KEY, source_owner_key).unwrap();
+        args.insert(ARG_TARGET_KEY, owner).unwrap();
+
+        match &token_identifier {
+            TokenIdentifier::Index(idx) => {
+                args.insert(ARG_TOKEN_ID, *idx).unwrap();
+            }
+            TokenIdentifier::Hash(hash) => {
+                args.insert(ARG_TOKEN_ID, hash.clone()).unwrap();
+            }
+        }
+
+        let result = call_contract::<u8>(contract, TRANSFER_FILTER_METHOD, args);
+
+        match result {
+            TRANSFER_FILTER_RESULT_PROCEED => false,
+            TRANSFER_FILTER_RESULT_FORCE_PROCEED => true,
+            TRANSFER_FILTER_RESULT_DENY => {
+                revert(NFTCoreError::TransferFilterDenied);
+            }
+            _ => {
+                revert(NFTCoreError::TransferFilterInvalidResultCode);
+            }
+        }
+    } else {
+        false
+    };
+
     // Revert if caller is not owner nor approved nor an operator.
-    if !is_owner && !is_approved && !is_operator {
+    // Skip checks if indicated by transfer filter.
+    if !skip_checks && (!is_owner && !is_approved && !is_operator) {
         runtime::revert(NFTCoreError::InvalidTokenOwner);
     }
 
@@ -2285,6 +2330,12 @@ fn install_contract() {
     )
     .unwrap_or(0u8);
 
+    let transfer_filter_contract: Option<ContractHash> =
+        utils::get_optional_named_arg_with_user_errors(
+            ARG_TRANSFER_FILTER_CONTRACT,
+            NFTCoreError::InvalidTransferFilterContract,
+        );
+
     if ownership_mode == 0 && minting_mode == 0 && reporting_mode == 1 {
         runtime::revert(NFTCoreError::InvalidReportingMode)
     }
@@ -2335,34 +2386,37 @@ fn install_contract() {
     // the contract package from which the NFTs were obtained.
     let receipt_name = format!("{PREFIX_CEP78}_{collection_name}");
 
+    let mut args = runtime_args! {
+        ARG_COLLECTION_NAME => collection_name,
+        ARG_COLLECTION_SYMBOL => collection_symbol,
+        ARG_TOTAL_TOKEN_SUPPLY => total_token_supply,
+        ARG_ALLOW_MINTING => allow_minting,
+        ARG_OWNERSHIP_MODE => ownership_mode,
+        ARG_NFT_KIND => nft_kind,
+        ARG_MINTING_MODE => minting_mode,
+        ARG_HOLDER_MODE => holder_mode,
+        ARG_WHITELIST_MODE => whitelist_lock,
+        ARG_CONTRACT_WHITELIST => contract_white_list,
+        ARG_JSON_SCHEMA => json_schema,
+        ARG_RECEIPT_NAME => receipt_name,
+        ARG_NFT_METADATA_KIND => base_metadata_kind,
+        ARG_ADDITIONAL_REQUIRED_METADATA => additional_required_metadata,
+        ARG_OPTIONAL_METADATA => optional_metadata,
+        ARG_IDENTIFIER_MODE => identifier_mode,
+        ARG_METADATA_MUTABILITY => metadata_mutability,
+        ARG_BURN_MODE => burn_mode,
+        ARG_OWNER_LOOKUP_MODE => reporting_mode,
+        ARG_NFT_PACKAGE_KEY => nft_contract_package_hash.to_formatted_string(),
+        ARG_EVENTS_MODE => events_mode
+    };
+
+    if let Some(contract_hash) = transfer_filter_contract {
+        args.insert(ARG_TRANSFER_FILTER_CONTRACT, contract_hash)
+            .unwrap();
+    }
+
     // Call contract to initialize it
-    runtime::call_contract::<()>(
-        contract_hash,
-        ENTRY_POINT_INIT,
-        runtime_args! {
-            ARG_COLLECTION_NAME => collection_name,
-            ARG_COLLECTION_SYMBOL => collection_symbol,
-            ARG_TOTAL_TOKEN_SUPPLY => total_token_supply,
-            ARG_ALLOW_MINTING => allow_minting,
-            ARG_OWNERSHIP_MODE => ownership_mode,
-            ARG_NFT_KIND => nft_kind,
-            ARG_MINTING_MODE => minting_mode,
-            ARG_HOLDER_MODE => holder_mode,
-            ARG_WHITELIST_MODE => whitelist_lock,
-            ARG_CONTRACT_WHITELIST => contract_white_list,
-            ARG_JSON_SCHEMA => json_schema,
-            ARG_RECEIPT_NAME => receipt_name,
-            ARG_NFT_METADATA_KIND => base_metadata_kind,
-            ARG_ADDITIONAL_REQUIRED_METADATA => additional_required_metadata,
-            ARG_OPTIONAL_METADATA => optional_metadata,
-            ARG_IDENTIFIER_MODE => identifier_mode,
-            ARG_METADATA_MUTABILITY => metadata_mutability,
-            ARG_BURN_MODE => burn_mode,
-            ARG_OWNER_LOOKUP_MODE => reporting_mode,
-            ARG_NFT_PACKAGE_KEY => nft_contract_package_hash.to_formatted_string(),
-            ARG_EVENTS_MODE => events_mode
-        },
-    );
+    runtime::call_contract::<()>(contract_hash, ENTRY_POINT_INIT, args);
 }
 
 fn migrate_contract(access_key_name: String, package_key_name: String) {

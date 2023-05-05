@@ -158,6 +158,11 @@ pub enum NFTCoreError {
     MissingSpenderAccountHash = 153,
     InvalidSpenderAccountHash = 154,
     MissingOwnerTokenIdentifierKey = 155,
+    InvalidTransferFilterContract = 156,
+    MissingTransferFilterContract = 157,
+    TransferFilterContractNeedsTransferableMode = 158,
+    TransferFilterInvalidResultCode = 159,
+    TransferFilterDenied = 160,
 }
 
 impl From<NFTCoreError> for ApiError {

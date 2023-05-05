@@ -1,7 +1,7 @@
 use std::fmt::Debug;
 
 use crate::utility::constants::{
-    ARG_KEY_NAME, ARG_NFT_CONTRACT_HASH, MINTING_CONTRACT_NAME, PAGE_SIZE,
+    ARG_KEY_NAME, ARG_NFT_CONTRACT_HASH, MINTING_CONTRACT_NAME, PAGE_SIZE, TRANSFER_FILTER_NAME,
 };
 use blake2::{
     digest::{Update, VariableOutput},
@@ -70,6 +70,20 @@ pub(crate) fn get_minting_contract_hash(
         .expect("must get hash_addr");
 
     ContractHash::new(minting_contract_hash)
+}
+
+pub(crate) fn get_transfer_filter_hash(
+    builder: &WasmTestBuilder<InMemoryGlobalState>,
+) -> ContractHash {
+    let transfer_filter_hash = builder
+        .get_expected_account(*DEFAULT_ACCOUNT_ADDR)
+        .named_keys()
+        .get(TRANSFER_FILTER_NAME)
+        .expect("must have transfer filter hash entry in named keys")
+        .into_hash()
+        .expect("must get hash_addr");
+
+    ContractHash::new(transfer_filter_hash)
 }
 
 pub(crate) fn get_dictionary_value_from_key<T: CLTyped + FromBytes>(

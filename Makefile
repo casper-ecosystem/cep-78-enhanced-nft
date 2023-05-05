@@ -16,6 +16,7 @@ build-contract:
 	cd client/updated_receipts && cargo build --release --target wasm32-unknown-unknown
 	cd test-contracts/minting_contract && cargo build --release --target wasm32-unknown-unknown
 	cd test-contracts/mangle_named_keys && cargo build --release --target wasm32-unknown-unknown
+	cd test-contracts/transfer_filter && cargo build --release --target wasm32-unknown-unknown
 	wasm-strip contract/target/wasm32-unknown-unknown/release/contract.wasm
 	wasm-strip client/mint_session/target/wasm32-unknown-unknown/release/mint_call.wasm
 	wasm-strip client/balance_of_session/target/wasm32-unknown-unknown/release/balance_of_call.wasm
@@ -41,6 +42,7 @@ setup-test: build-contract
 	cp client/updated_receipts/target/wasm32-unknown-unknown/release/updated_receipts.wasm tests/wasm
 	cp test-contracts/minting_contract/target/wasm32-unknown-unknown/release/minting_contract.wasm tests/wasm
 	cp test-contracts/mangle_named_keys/target/wasm32-unknown-unknown/release/mangle_named_keys.wasm tests/wasm
+	cp test-contracts/transfer_filter/target/wasm32-unknown-unknown/release/transfer_filter.wasm tests/wasm
 
 test: setup-test
 	cd tests && cargo test
@@ -56,6 +58,7 @@ clippy:
 	cd client/updated_receipts && cargo clippy --release --target wasm32-unknown-unknown -- -D warnings
 	cd test-contracts/minting_contract && cargo clippy --release --target wasm32-unknown-unknown -- -D warnings
 	cd test-contracts/mangle_named_keys && cargo clippy --release --target wasm32-unknown-unknown -- -D warnings
+	cd test-contracts/transfer_filter && cargo clippy --release --target wasm32-unknown-unknown -- -D warnings
 	cd tests && cargo clippy --all-targets -- -D warnings
 
 check-lint: clippy
@@ -68,6 +71,7 @@ check-lint: clippy
 	cd client/updated_receipts && cargo fmt -- --check
 	cd test-contracts/minting_contract && cargo fmt -- --check
 	cd test-contracts/mangle_named_keys && cargo fmt -- --check
+	cd test-contracts/transfer_filter && cargo fmt -- --check
 	cd tests && cargo fmt -- --check
 
 lint: clippy
@@ -80,6 +84,7 @@ lint: clippy
 	cd client/updated_receipts && cargo fmt
 	cd test-contracts/minting_contract
 	cd test-contracts/mangle_named_keys
+	cd test-contracts/transfer_filter
 	cd tests && cargo fmt
 
 clean:
@@ -92,5 +97,6 @@ clean:
 	cd client/updated_receipts && cargo clean
 	cd test-contracts/minting_contract && cargo clean
 	cd test-contracts/mangle_named_keys && cargo clean
+	cd test-contracts/transfer_filter && cargo clean
 	cd tests && cargo clean
 	rm -rf tests/wasm

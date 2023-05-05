@@ -5,7 +5,8 @@ use contract::constants::{
     ARG_COLLECTION_SYMBOL, ARG_CONTRACT_WHITELIST, ARG_EVENTS_MODE, ARG_HOLDER_MODE,
     ARG_IDENTIFIER_MODE, ARG_JSON_SCHEMA, ARG_METADATA_MUTABILITY, ARG_MINTING_MODE,
     ARG_NAMED_KEY_CONVENTION, ARG_NFT_KIND, ARG_NFT_METADATA_KIND, ARG_OPTIONAL_METADATA,
-    ARG_OWNERSHIP_MODE, ARG_OWNER_LOOKUP_MODE, ARG_TOTAL_TOKEN_SUPPLY, ARG_WHITELIST_MODE,
+    ARG_OWNERSHIP_MODE, ARG_OWNER_LOOKUP_MODE, ARG_TOTAL_TOKEN_SUPPLY,
+    ARG_TRANSFER_FILTER_CONTRACT, ARG_WHITELIST_MODE,
 };
 use once_cell::sync::Lazy;
 use serde::{Deserialize, Serialize};
@@ -142,6 +143,7 @@ pub(crate) struct InstallerRequestBuilder {
     additional_required_metadata: CLValue,
     optional_metadata: CLValue,
     events_mode: CLValue,
+    transfer_filter_contract: Option<CLValue>,
 }
 
 impl InstallerRequestBuilder {
@@ -181,6 +183,7 @@ impl InstallerRequestBuilder {
             additional_required_metadata: CLValue::from_t(Bytes::new()).unwrap(),
             optional_metadata: CLValue::from_t(Bytes::new()).unwrap(),
             events_mode: CLValue::from_t(EventsMode::CES as u8).unwrap(),
+            transfer_filter_contract: None,
         }
     }
 
@@ -312,6 +315,14 @@ impl InstallerRequestBuilder {
         self
     }
 
+    pub(crate) fn with_transfer_filter_contract(
+        mut self,
+        transfer_filter_contract: ContractHash,
+    ) -> Self {
+        self.transfer_filter_contract = Some(CLValue::from_t(transfer_filter_contract).unwrap());
+        self
+    }
+
     pub(crate) fn build(self) -> ExecuteRequest {
         let mut runtime_args = RuntimeArgs::new();
         runtime_args.insert_cl_value(ARG_COLLECTION_NAME, self.collection_name);
@@ -343,6 +354,10 @@ impl InstallerRequestBuilder {
             .unwrap_or_default();
         if !json_schema.is_empty() {
             runtime_args.insert_cl_value(ARG_JSON_SCHEMA, self.json_schema);
+        }
+
+        if let Some(transfer_filter_contract) = self.transfer_filter_contract {
+            runtime_args.insert_cl_value(ARG_TRANSFER_FILTER_CONTRACT, transfer_filter_contract);
         }
         ExecuteRequestBuilder::standard(self.account_hash, &self.session_file, runtime_args).build()
     }
