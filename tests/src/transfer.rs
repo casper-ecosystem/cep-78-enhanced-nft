@@ -1994,7 +1994,7 @@ fn check_transfers_with_transfer_filter_contract_modes() {
     support::assert_expected_error(
         actual_error,
         159u16,
-        "should not allow transfer when transfer filter does not return TransferFilterContractResult::Allow",
+        "should not allow transfer when transfer filter does return TransferFilterContractResult::DenyTransfer",
     );
 
     let transfer_filter_contract_set_return_value_request = ExecuteRequestBuilder::contract_call_by_hash(
