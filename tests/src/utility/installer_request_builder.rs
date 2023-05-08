@@ -13,7 +13,9 @@ use serde::{Deserialize, Serialize};
 
 use casper_engine_test_support::ExecuteRequestBuilder;
 use casper_execution_engine::core::engine_state::ExecuteRequest;
-use casper_types::{account::AccountHash, bytesrepr::Bytes, CLValue, ContractHash, RuntimeArgs};
+use casper_types::{
+    account::AccountHash, bytesrepr::Bytes, CLValue, ContractHash, Key, RuntimeArgs,
+};
 
 // Modalities reexports.
 pub use contract::modalities::{
@@ -315,10 +317,7 @@ impl InstallerRequestBuilder {
         self
     }
 
-    pub(crate) fn with_transfer_filter_contract(
-        mut self,
-        transfer_filter_contract: ContractHash,
-    ) -> Self {
+    pub(crate) fn with_transfer_filter_contract(mut self, transfer_filter_contract: Key) -> Self {
         self.transfer_filter_contract = Some(CLValue::from_t(transfer_filter_contract).unwrap());
         self
     }
