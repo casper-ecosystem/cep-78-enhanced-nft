@@ -1198,7 +1198,7 @@ pub extern "C" fn transfer() {
                 TransferFilterContractResult::DenyTransfer => {
                     revert(NFTCoreError::TransferFilterContractDenied);
                 }
-                _ => result == TransferFilterContractResult::AllowTransfer,
+                _ => result == TransferFilterContractResult::ForceTransfer,
             }
         } else {
             false

@@ -1997,15 +1997,16 @@ fn check_transfers_with_transfer_filter_contract_modes() {
         "should not allow transfer when transfer filter does return TransferFilterContractResult::DenyTransfer",
     );
 
-    let transfer_filter_contract_set_return_value_request = ExecuteRequestBuilder::contract_call_by_hash(
-        *DEFAULT_ACCOUNT_ADDR,
-        transfer_filter_contract_hash,
-        "set_return_value",
-        runtime_args! {
-            ARG_FILTER_CONTRACT_RETURN_VALUE => TransferFilterContractResult::FilterNotEnabled as u8
-        },
-    )
-    .build();
+    let transfer_filter_contract_set_return_value_request =
+        ExecuteRequestBuilder::contract_call_by_hash(
+            *DEFAULT_ACCOUNT_ADDR,
+            transfer_filter_contract_hash,
+            "set_return_value",
+            runtime_args! {
+                ARG_FILTER_CONTRACT_RETURN_VALUE => TransferFilterContractResult::Noop as u8
+            },
+        )
+        .build();
 
     builder
         .exec(transfer_filter_contract_set_return_value_request)
@@ -2032,7 +2033,7 @@ fn check_transfers_with_transfer_filter_contract_modes() {
         transfer_filter_contract_hash,
         "set_return_value",
         runtime_args! {
-            ARG_FILTER_CONTRACT_RETURN_VALUE => TransferFilterContractResult::AllowTransfer as u8
+            ARG_FILTER_CONTRACT_RETURN_VALUE => TransferFilterContractResult::ForceTransfer as u8
         },
     )
     .build();

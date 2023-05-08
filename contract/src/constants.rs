@@ -112,16 +112,16 @@ pub const TRANSFER_FILTER_CONTRACT_METHOD: &str = "can_transfer";
 #[derive(PartialEq, Eq)]
 pub enum TransferFilterContractResult {
     DenyTransfer = 0,
-    AllowTransfer = 1,
-    FilterNotEnabled,
+    ForceTransfer = 1,
+    Noop,
 }
 
 impl From<u8> for TransferFilterContractResult {
     fn from(value: u8) -> Self {
         match value {
             0 => TransferFilterContractResult::DenyTransfer,
-            1 => TransferFilterContractResult::AllowTransfer,
-            _ => TransferFilterContractResult::FilterNotEnabled,
+            1 => TransferFilterContractResult::ForceTransfer,
+            _ => TransferFilterContractResult::Noop,
         }
     }
 }
