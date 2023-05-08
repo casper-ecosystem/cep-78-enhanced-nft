@@ -8,11 +8,12 @@ use casper_types::{
 };
 use contract::{
     constants::{
-        APPROVED, ARG_APPROVE_ALL, ARG_COLLECTION_NAME, ARG_CONTRACT_WHITELIST, ARG_OPERATOR,
-        ARG_SOURCE_KEY, ARG_SPENDER, ARG_TARGET_KEY, ARG_TOKEN_HASH, ARG_TOKEN_ID,
-        ARG_TOKEN_META_DATA, ARG_TOKEN_OWNER, ENTRY_POINT_APPROVE, ENTRY_POINT_MINT,
-        ENTRY_POINT_REGISTER_OWNER, ENTRY_POINT_REVOKE, ENTRY_POINT_SET_APPROVALL_FOR_ALL,
-        ENTRY_POINT_TRANSFER, PAGE_TABLE, TOKEN_COUNT, TOKEN_OWNERS,
+        TransferFilterContractResult, APPROVED, ARG_APPROVE_ALL, ARG_COLLECTION_NAME,
+        ARG_CONTRACT_WHITELIST, ARG_OPERATOR, ARG_SOURCE_KEY, ARG_SPENDER, ARG_TARGET_KEY,
+        ARG_TOKEN_HASH, ARG_TOKEN_ID, ARG_TOKEN_META_DATA, ARG_TOKEN_OWNER, ENTRY_POINT_APPROVE,
+        ENTRY_POINT_MINT, ENTRY_POINT_REGISTER_OWNER, ENTRY_POINT_REVOKE,
+        ENTRY_POINT_SET_APPROVALL_FOR_ALL, ENTRY_POINT_TRANSFER, PAGE_TABLE, TOKEN_COUNT,
+        TOKEN_OWNERS,
     },
     events::events_ces::{Approval, ApprovalRevoked, Transfer},
     modalities::TokenIdentifier,
@@ -20,10 +21,11 @@ use contract::{
 
 use crate::utility::{
     constants::{
-        ACCOUNT_USER_1, ACCOUNT_USER_2, ACCOUNT_USER_3, ARG_IS_HASH_IDENTIFIER_MODE,
-        ARG_NFT_CONTRACT_HASH, ARG_REVERSE_LOOKUP, CONTRACT_NAME, MINTING_CONTRACT_WASM,
-        MINT_SESSION_WASM, NFT_CONTRACT_WASM, NFT_TEST_COLLECTION, NFT_TEST_SYMBOL,
-        TEST_PRETTY_721_META_DATA, TRANSFER_FILTER_WASM, TRANSFER_SESSION_WASM,
+        ACCOUNT_USER_1, ACCOUNT_USER_2, ACCOUNT_USER_3, ARG_FILTER_CONTRACT_RETURN_VALUE,
+        ARG_IS_HASH_IDENTIFIER_MODE, ARG_NFT_CONTRACT_HASH, ARG_REVERSE_LOOKUP, CONTRACT_NAME,
+        MINTING_CONTRACT_WASM, MINT_SESSION_WASM, NFT_CONTRACT_WASM, NFT_TEST_COLLECTION,
+        NFT_TEST_SYMBOL, TEST_PRETTY_721_META_DATA, TRANSFER_FILTER_CONTRACT_WASM,
+        TRANSFER_SESSION_WASM,
     },
     installer_request_builder::{
         InstallerRequestBuilder, MetadataMutability, MintingMode, NFTHolderMode, NFTIdentifierMode,
@@ -31,7 +33,7 @@ use crate::utility::{
     },
     support::{
         self, assert_expected_error, create_funded_dummy_account, get_dictionary_value_from_key,
-        get_minting_contract_hash, get_nft_contract_hash, get_transfer_filter_hash,
+        get_minting_contract_hash, get_nft_contract_hash, get_transfer_filter_contract_hash,
         query_stored_value,
     },
 };
@@ -1894,36 +1896,37 @@ fn disallow_owner_to_approve_for_all_itself() {
 }
 
 #[test]
-fn check_transfers_with_transfer_filter_modes() {
+fn check_transfers_with_transfer_filter_contract_modes() {
     let mut builder = InMemoryWasmTestBuilder::default();
     builder.run_genesis(&DEFAULT_RUN_GENESIS_REQUEST).commit();
 
-    let transfer_filter_install_request = ExecuteRequestBuilder::standard(
+    let transfer_filter_contract_install_request = ExecuteRequestBuilder::standard(
         *DEFAULT_ACCOUNT_ADDR,
-        TRANSFER_FILTER_WASM,
+        TRANSFER_FILTER_CONTRACT_WASM,
         runtime_args! {},
     )
     .build();
 
     builder
-        .exec(transfer_filter_install_request)
+        .exec(transfer_filter_contract_install_request)
         .expect_success()
         .commit();
 
-    let transfer_filter_hash = get_transfer_filter_hash(&builder);
+    let transfer_filter_contract_hash = get_transfer_filter_contract_hash(&builder);
 
-    let transfer_filter_set_return_value_request = ExecuteRequestBuilder::contract_call_by_hash(
-        *DEFAULT_ACCOUNT_ADDR,
-        transfer_filter_hash,
-        "set_return_value",
-        runtime_args! {
-            "value" => 0u8
-        },
-    )
-    .build();
+    let transfer_filter_contract_set_return_value_request =
+        ExecuteRequestBuilder::contract_call_by_hash(
+            *DEFAULT_ACCOUNT_ADDR,
+            transfer_filter_contract_hash,
+            "set_return_value",
+            runtime_args! {
+                ARG_FILTER_CONTRACT_RETURN_VALUE => TransferFilterContractResult::DenyTransfer as u8
+            },
+        )
+        .build();
 
     builder
-        .exec(transfer_filter_set_return_value_request)
+        .exec(transfer_filter_contract_set_return_value_request)
         .expect_success()
         .commit();
 
@@ -1932,7 +1935,7 @@ fn check_transfers_with_transfer_filter_modes() {
         .with_collection_symbol(NFT_TEST_SYMBOL.to_string())
         .with_total_token_supply(2u64)
         .with_ownership_mode(OwnershipMode::Transferable)
-        .with_transfer_filter_contract(transfer_filter_hash)
+        .with_transfer_filter_contract(transfer_filter_contract_hash)
         .build();
 
     builder.exec(install_request).expect_success().commit();
@@ -1990,22 +1993,22 @@ fn check_transfers_with_transfer_filter_modes() {
     let actual_error = builder.get_error().expect("must have error");
     support::assert_expected_error(
         actual_error,
-        160u16,
-        "should not allow transfer when transfer filter returns 0",
+        159u16,
+        "should not allow transfer when transfer filter does not return TransferFilterContractResult::Allow",
     );
 
-    let transfer_filter_set_return_value_request = ExecuteRequestBuilder::contract_call_by_hash(
+    let transfer_filter_contract_set_return_value_request = ExecuteRequestBuilder::contract_call_by_hash(
         *DEFAULT_ACCOUNT_ADDR,
-        transfer_filter_hash,
+        transfer_filter_contract_hash,
         "set_return_value",
         runtime_args! {
-            "value" => 1u8
+            ARG_FILTER_CONTRACT_RETURN_VALUE => TransferFilterContractResult::FilterNotEnabled as u8
         },
     )
     .build();
 
     builder
-        .exec(transfer_filter_set_return_value_request)
+        .exec(transfer_filter_contract_set_return_value_request)
         .expect_success()
         .commit();
 
@@ -2024,18 +2027,18 @@ fn check_transfers_with_transfer_filter_modes() {
 
     builder.exec(transfer_request).expect_success().commit();
 
-    let transfer_filter_set_return_value_request = ExecuteRequestBuilder::contract_call_by_hash(
+    let transfer_filter_contract_set_return_value_request = ExecuteRequestBuilder::contract_call_by_hash(
         *DEFAULT_ACCOUNT_ADDR,
-        transfer_filter_hash,
+        transfer_filter_contract_hash,
         "set_return_value",
         runtime_args! {
-            "value" => 2u8
+            ARG_FILTER_CONTRACT_RETURN_VALUE => TransferFilterContractResult::AllowTransfer as u8
         },
     )
     .build();
 
     builder
-        .exec(transfer_filter_set_return_value_request)
+        .exec(transfer_filter_contract_set_return_value_request)
         .expect_success()
         .commit();
 
