@@ -34,18 +34,17 @@ use casper_types::{
     Tagged,
 };
 use constants::{
-    TransferFilterContractResult, ACCESS_KEY_NAME_1_0_0, ALLOW_MINTING, APPROVED,
-    ARG_ACCESS_KEY_NAME_1_0_0, ARG_ADDITIONAL_REQUIRED_METADATA, ARG_ALLOW_MINTING,
-    ARG_APPROVE_ALL, ARG_BURN_MODE, ARG_COLLECTION_NAME, ARG_COLLECTION_SYMBOL,
-    ARG_CONTRACT_WHITELIST, ARG_EVENTS_MODE, ARG_HASH_KEY_NAME_1_0_0, ARG_HOLDER_MODE,
-    ARG_IDENTIFIER_MODE, ARG_JSON_SCHEMA, ARG_METADATA_MUTABILITY, ARG_MINTING_MODE,
-    ARG_NAMED_KEY_CONVENTION, ARG_NFT_KIND, ARG_NFT_METADATA_KIND, ARG_NFT_PACKAGE_KEY,
-    ARG_OPERATOR, ARG_OPTIONAL_METADATA, ARG_OWNERSHIP_MODE, ARG_OWNER_LOOKUP_MODE,
-    ARG_RECEIPT_NAME, ARG_SOURCE_KEY, ARG_SPENDER, ARG_TARGET_KEY, ARG_TOKEN_ID,
-    ARG_TOKEN_META_DATA, ARG_TOKEN_OWNER, ARG_TOTAL_TOKEN_SUPPLY, ARG_TRANSFER_FILTER_CONTRACT,
-    ARG_WHITELIST_MODE, BURNT_TOKENS, BURN_MODE, COLLECTION_NAME, COLLECTION_SYMBOL,
-    CONTRACT_WHITELIST, ENTRY_POINT_APPROVE, ENTRY_POINT_BALANCE_OF, ENTRY_POINT_BURN,
-    ENTRY_POINT_GET_APPROVED, ENTRY_POINT_INIT, ENTRY_POINT_IS_APPROVED_FOR_ALL,
+    ACCESS_KEY_NAME_1_0_0, ALLOW_MINTING, APPROVED, ARG_ACCESS_KEY_NAME_1_0_0,
+    ARG_ADDITIONAL_REQUIRED_METADATA, ARG_ALLOW_MINTING, ARG_APPROVE_ALL, ARG_BURN_MODE,
+    ARG_COLLECTION_NAME, ARG_COLLECTION_SYMBOL, ARG_CONTRACT_WHITELIST, ARG_EVENTS_MODE,
+    ARG_HASH_KEY_NAME_1_0_0, ARG_HOLDER_MODE, ARG_IDENTIFIER_MODE, ARG_JSON_SCHEMA,
+    ARG_METADATA_MUTABILITY, ARG_MINTING_MODE, ARG_NAMED_KEY_CONVENTION, ARG_NFT_KIND,
+    ARG_NFT_METADATA_KIND, ARG_NFT_PACKAGE_KEY, ARG_OPERATOR, ARG_OPTIONAL_METADATA,
+    ARG_OWNERSHIP_MODE, ARG_OWNER_LOOKUP_MODE, ARG_RECEIPT_NAME, ARG_SOURCE_KEY, ARG_SPENDER,
+    ARG_TARGET_KEY, ARG_TOKEN_ID, ARG_TOKEN_META_DATA, ARG_TOKEN_OWNER, ARG_TOTAL_TOKEN_SUPPLY,
+    ARG_TRANSFER_FILTER_CONTRACT, ARG_WHITELIST_MODE, BURNT_TOKENS, BURN_MODE, COLLECTION_NAME,
+    COLLECTION_SYMBOL, CONTRACT_WHITELIST, ENTRY_POINT_APPROVE, ENTRY_POINT_BALANCE_OF,
+    ENTRY_POINT_BURN, ENTRY_POINT_GET_APPROVED, ENTRY_POINT_INIT, ENTRY_POINT_IS_APPROVED_FOR_ALL,
     ENTRY_POINT_METADATA, ENTRY_POINT_MIGRATE, ENTRY_POINT_MINT, ENTRY_POINT_OWNER_OF,
     ENTRY_POINT_REGISTER_OWNER, ENTRY_POINT_REVOKE, ENTRY_POINT_SET_APPROVALL_FOR_ALL,
     ENTRY_POINT_SET_TOKEN_METADATA, ENTRY_POINT_SET_VARIABLES, ENTRY_POINT_TRANSFER,
@@ -73,7 +72,7 @@ use metadata::CustomMetadataSchema;
 use modalities::{
     BurnMode, EventsMode, MetadataMutability, MintingMode, NFTHolderMode, NFTIdentifierMode,
     NFTKind, NFTMetadataKind, NamedKeyConventionMode, OwnerReverseLookupMode, OwnershipMode,
-    Requirement, TokenIdentifier, WhitelistMode,
+    Requirement, TokenIdentifier, TransferFilterContractResult, WhitelistMode,
 };
 
 #[no_mangle]
@@ -1192,36 +1191,29 @@ pub extern "C" fn transfer() {
         && utils::get_dictionary_value_from_key::<bool>(OPERATORS, &owner_operator_item_key)
             .unwrap_or_default();
 
-    let is_allowed_by_filter_contract =
-        if let Some(filter_contract) = utils::get_transfer_filter_contract() {
-            let mut args = RuntimeArgs::new();
-            args.insert(ARG_SOURCE_KEY, source_owner_key).unwrap();
-            args.insert(ARG_TARGET_KEY, owner).unwrap();
+    if let Some(filter_contract) = utils::get_transfer_filter_contract() {
+        let mut args = RuntimeArgs::new();
+        args.insert(ARG_SOURCE_KEY, source_owner_key).unwrap();
+        args.insert(ARG_TARGET_KEY, owner).unwrap();
 
-            match &token_identifier {
-                TokenIdentifier::Index(idx) => {
-                    args.insert(ARG_TOKEN_ID, *idx).unwrap();
-                }
-                TokenIdentifier::Hash(hash) => {
-                    args.insert(ARG_TOKEN_ID, hash.clone()).unwrap();
-                }
+        match &token_identifier {
+            TokenIdentifier::Index(idx) => {
+                args.insert(ARG_TOKEN_ID, *idx).unwrap();
             }
-
-            let result: TransferFilterContractResult =
-                call_contract::<u8>(filter_contract, TRANSFER_FILTER_CONTRACT_METHOD, args).into();
-
-            match result {
-                TransferFilterContractResult::DenyTransfer => {
-                    revert(NFTCoreError::TransferFilterContractDenied);
-                }
-                _ => result == TransferFilterContractResult::ForceTransfer,
+            TokenIdentifier::Hash(hash) => {
+                args.insert(ARG_TOKEN_ID, hash.clone()).unwrap();
             }
-        } else {
-            false
-        };
+        }
+
+        let result: TransferFilterContractResult =
+            call_contract::<u8>(filter_contract, TRANSFER_FILTER_CONTRACT_METHOD, args).into();
+        if TransferFilterContractResult::DenyTransfer == result {
+            revert(NFTCoreError::TransferFilterContractDenied);
+        }
+    }
 
     // Revert if caller is not owner nor approved nor an operator.
-    if !is_owner && !is_approved && !is_operator && !is_allowed_by_filter_contract {
+    if !is_owner && !is_approved && !is_operator {
         runtime::revert(NFTCoreError::InvalidTokenOwner);
     }
 

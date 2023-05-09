@@ -8,15 +8,14 @@ use casper_types::{
 };
 use contract::{
     constants::{
-        TransferFilterContractResult, APPROVED, ARG_APPROVE_ALL, ARG_COLLECTION_NAME,
-        ARG_CONTRACT_WHITELIST, ARG_OPERATOR, ARG_SOURCE_KEY, ARG_SPENDER, ARG_TARGET_KEY,
-        ARG_TOKEN_HASH, ARG_TOKEN_ID, ARG_TOKEN_META_DATA, ARG_TOKEN_OWNER, ENTRY_POINT_APPROVE,
-        ENTRY_POINT_MINT, ENTRY_POINT_REGISTER_OWNER, ENTRY_POINT_REVOKE,
-        ENTRY_POINT_SET_APPROVALL_FOR_ALL, ENTRY_POINT_TRANSFER, PAGE_TABLE, TOKEN_COUNT,
-        TOKEN_OWNERS,
+        APPROVED, ARG_APPROVE_ALL, ARG_COLLECTION_NAME, ARG_CONTRACT_WHITELIST, ARG_OPERATOR,
+        ARG_SOURCE_KEY, ARG_SPENDER, ARG_TARGET_KEY, ARG_TOKEN_HASH, ARG_TOKEN_ID,
+        ARG_TOKEN_META_DATA, ARG_TOKEN_OWNER, ENTRY_POINT_APPROVE, ENTRY_POINT_MINT,
+        ENTRY_POINT_REGISTER_OWNER, ENTRY_POINT_REVOKE, ENTRY_POINT_SET_APPROVALL_FOR_ALL,
+        ENTRY_POINT_TRANSFER, PAGE_TABLE, TOKEN_COUNT, TOKEN_OWNERS,
     },
     events::events_ces::{Approval, ApprovalRevoked, Transfer},
-    modalities::TokenIdentifier,
+    modalities::{TokenIdentifier, TransferFilterContractResult},
 };
 
 use crate::utility::{
@@ -1930,10 +1929,12 @@ fn check_transfers_with_transfer_filter_contract_modes() {
         .expect_success()
         .commit();
 
+    let token_supply = 2u64;
+
     let install_request = InstallerRequestBuilder::new(*DEFAULT_ACCOUNT_ADDR, NFT_CONTRACT_WASM)
         .with_collection_name(NFT_TEST_COLLECTION.to_string())
         .with_collection_symbol(NFT_TEST_SYMBOL.to_string())
-        .with_total_token_supply(2u64)
+        .with_total_token_supply(token_supply)
         .with_ownership_mode(OwnershipMode::Transferable)
         .with_transfer_filter_contract(Key::from(transfer_filter_contract_hash))
         .build();
@@ -1945,19 +1946,21 @@ fn check_transfers_with_transfer_filter_contract_modes() {
     let nft_contract_hash = get_nft_contract_hash(&builder);
     let nft_contract_key: Key = nft_contract_hash.into();
 
-    let mint_session_call = ExecuteRequestBuilder::standard(
-        *DEFAULT_ACCOUNT_ADDR,
-        MINT_SESSION_WASM,
-        runtime_args! {
-            ARG_NFT_CONTRACT_HASH => nft_contract_key,
-            ARG_TOKEN_OWNER => token_owner_key,
-            ARG_TOKEN_META_DATA => TEST_PRETTY_721_META_DATA.to_string(),
-            ARG_COLLECTION_NAME => NFT_TEST_COLLECTION.to_string()
-        },
-    )
-    .build();
+    for _i in 0..token_supply {
+        let mint_session_call = ExecuteRequestBuilder::standard(
+            *DEFAULT_ACCOUNT_ADDR,
+            MINT_SESSION_WASM,
+            runtime_args! {
+                ARG_NFT_CONTRACT_HASH => nft_contract_key,
+                ARG_TOKEN_OWNER => token_owner_key,
+                ARG_TOKEN_META_DATA => TEST_PRETTY_721_META_DATA.to_string(),
+                ARG_COLLECTION_NAME => NFT_TEST_COLLECTION.to_string()
+            },
+        )
+        .build();
 
-    builder.exec(mint_session_call).expect_success().commit();
+        builder.exec(mint_session_call).expect_success().commit();
+    }
 
     let token_receiver = support::create_funded_dummy_account(&mut builder, Some(ACCOUNT_USER_1));
     let token_receiver_key = Key::Account(token_receiver);
@@ -1990,11 +1993,12 @@ fn check_transfers_with_transfer_filter_contract_modes() {
     .build();
 
     builder.exec(transfer_request).expect_failure().commit();
-    let actual_error = builder.get_error().expect("must have error");
+
+    let error = builder.get_error().expect("must have error");
     support::assert_expected_error(
-        actual_error,
+        error,
         159u16,
-        "should not allow transfer when transfer filter does return TransferFilterContractResult::DenyTransfer",
+        "should not allow transfer when transfer filter returns TransferFilterContractResult::DenyTransfer",
     );
 
     let transfer_filter_contract_set_return_value_request =
@@ -2003,7 +2007,7 @@ fn check_transfers_with_transfer_filter_contract_modes() {
             transfer_filter_contract_hash,
             "set_return_value",
             runtime_args! {
-                ARG_FILTER_CONTRACT_RETURN_VALUE => TransferFilterContractResult::Noop as u8
+                ARG_FILTER_CONTRACT_RETURN_VALUE => TransferFilterContractResult::ProceedTransfer as u8
             },
         )
         .build();
@@ -2028,21 +2032,6 @@ fn check_transfers_with_transfer_filter_contract_modes() {
 
     builder.exec(transfer_request).expect_success().commit();
 
-    let transfer_filter_contract_set_return_value_request = ExecuteRequestBuilder::contract_call_by_hash(
-        *DEFAULT_ACCOUNT_ADDR,
-        transfer_filter_contract_hash,
-        "set_return_value",
-        runtime_args! {
-            ARG_FILTER_CONTRACT_RETURN_VALUE => TransferFilterContractResult::ForceTransfer as u8
-        },
-    )
-    .build();
-
-    builder
-        .exec(transfer_filter_contract_set_return_value_request)
-        .expect_success()
-        .commit();
-
     let transfer_request = ExecuteRequestBuilder::standard(
         *DEFAULT_ACCOUNT_ADDR,
         TRANSFER_SESSION_WASM,
@@ -2051,10 +2040,28 @@ fn check_transfers_with_transfer_filter_contract_modes() {
             ARG_TOKEN_ID => token_id,
             ARG_IS_HASH_IDENTIFIER_MODE => false,
             // NB: token_receiver and token_owner are swapped
-            // normally this would fail the call since we are calling as `token_owner_key`,
-            // but the transfer filter will return 2, which will allow the transfer to succeed
             ARG_SOURCE_KEY => token_receiver_key,
             ARG_TARGET_KEY => token_owner_key,
+        },
+    )
+    .build();
+
+    builder.exec(transfer_request).expect_failure().commit();
+
+    let error = builder.get_error().expect("must have error");
+    assert_expected_error(error, 6u16, "InvalidTokenOwner(6) must be raised");
+
+    let token_id = 1u64;
+
+    let transfer_request = ExecuteRequestBuilder::standard(
+        *DEFAULT_ACCOUNT_ADDR,
+        TRANSFER_SESSION_WASM,
+        runtime_args! {
+            ARG_NFT_CONTRACT_HASH => nft_contract_key,
+            ARG_TOKEN_ID => token_id,
+            ARG_IS_HASH_IDENTIFIER_MODE => false,
+            ARG_SOURCE_KEY => token_owner_key,
+            ARG_TARGET_KEY => token_receiver_key,
         },
     )
     .build();

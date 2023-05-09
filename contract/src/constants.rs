@@ -108,24 +108,6 @@ pub const WHITELIST_MODE: &str = "whitelist_mode";
 pub const TRANSFER_FILTER_CONTRACT: &str = "transfer_filter_contract";
 pub const TRANSFER_FILTER_CONTRACT_METHOD: &str = "can_transfer";
 
-#[repr(u8)]
-#[derive(PartialEq, Eq)]
-pub enum TransferFilterContractResult {
-    DenyTransfer = 0,
-    ForceTransfer = 1,
-    Noop,
-}
-
-impl From<u8> for TransferFilterContractResult {
-    fn from(value: u8) -> Self {
-        match value {
-            0 => TransferFilterContractResult::DenyTransfer,
-            1 => TransferFilterContractResult::ForceTransfer,
-            _ => TransferFilterContractResult::Noop,
-        }
-    }
-}
-
 // The cap on the amount of tokens within a given CEP-78 collection.
 pub const MAX_TOTAL_TOKEN_SUPPLY: u64 = 1_000_000u64;
 
