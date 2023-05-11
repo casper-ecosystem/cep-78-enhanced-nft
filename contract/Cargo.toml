@@ -10,7 +10,7 @@ casper-contract = { version = "2.0.0", default-features = false, features = [
 casper-types = "2.0.0"
 serde = { version = "1.0.80", default-features = false }
 serde_json = { version = "1.0.59", default-features = false }
-serde-json-wasm = { version = "0.5.0", default-features = false }
+serde-json-wasm = { version = "0.5.1", default-features = false }
 base16 = { version = "0.2.1", default-features = false }
 casper-event-standard = { version = "0.3.0", default-features = false }
 hex = { version = "0.4.3", default-features = false }
