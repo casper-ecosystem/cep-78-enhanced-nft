@@ -17,7 +17,7 @@ use crate::utility::{
 };
 use casper_engine_test_support::{
     ExecuteRequestBuilder, InMemoryWasmTestBuilder, DEFAULT_ACCOUNT_ADDR,
-    DEFAULT_RUN_GENESIS_REQUEST,
+    PRODUCTION_RUN_GENESIS_REQUEST,
 };
 use casper_types::{runtime_args, ContractHash, Key, RuntimeArgs};
 use contract::{
@@ -34,7 +34,9 @@ use contract::{
 #[test]
 fn should_install_with_acl_whitelist() {
     let mut builder = InMemoryWasmTestBuilder::default();
-    builder.run_genesis(&DEFAULT_RUN_GENESIS_REQUEST).commit();
+    builder
+        .run_genesis(&PRODUCTION_RUN_GENESIS_REQUEST)
+        .commit();
 
     let minting_contract_install_request = ExecuteRequestBuilder::standard(
         *DEFAULT_ACCOUNT_ADDR,
@@ -79,7 +81,9 @@ fn should_install_with_acl_whitelist() {
 #[test]
 fn should_install_with_deprecated_contract_whitelist() {
     let mut builder = InMemoryWasmTestBuilder::default();
-    builder.run_genesis(&DEFAULT_RUN_GENESIS_REQUEST).commit();
+    builder
+        .run_genesis(&PRODUCTION_RUN_GENESIS_REQUEST)
+        .commit();
 
     let minting_contract_install_request = ExecuteRequestBuilder::standard(
         *DEFAULT_ACCOUNT_ADDR,
@@ -124,7 +128,9 @@ fn should_install_with_deprecated_contract_whitelist() {
 #[test]
 fn should_not_install_with_minting_mode_not_acl_if_acl_whitelist_provided() {
     let mut builder = InMemoryWasmTestBuilder::default();
-    builder.run_genesis(&DEFAULT_RUN_GENESIS_REQUEST).commit();
+    builder
+        .run_genesis(&PRODUCTION_RUN_GENESIS_REQUEST)
+        .commit();
 
     let contract_whitelist = vec![ContractHash::default()];
 
@@ -152,7 +158,9 @@ fn should_disallow_installation_of_contract_with_empty_locked_whitelist_in_publi
     nft_holder_mode: NFTHolderMode,
 ) {
     let mut builder = InMemoryWasmTestBuilder::default();
-    builder.run_genesis(&DEFAULT_RUN_GENESIS_REQUEST).commit();
+    builder
+        .run_genesis(&PRODUCTION_RUN_GENESIS_REQUEST)
+        .commit();
 
     let install_request = InstallerRequestBuilder::new(*DEFAULT_ACCOUNT_ADDR, NFT_CONTRACT_WASM)
         .with_holder_mode(nft_holder_mode)
@@ -180,7 +188,9 @@ fn should_allow_installation_of_contract_with_empty_locked_whitelist_in_public_m
 #[test]
 fn should_disallow_installation_with_contract_holder_mode_and_installer_mode() {
     let mut builder = InMemoryWasmTestBuilder::default();
-    builder.run_genesis(&DEFAULT_RUN_GENESIS_REQUEST).commit();
+    builder
+        .run_genesis(&PRODUCTION_RUN_GENESIS_REQUEST)
+        .commit();
 
     let contract_whitelist = vec![
         Key::Hash([1u8; 32]),
@@ -209,7 +219,9 @@ fn should_disallow_installation_with_contract_holder_mode_and_installer_mode() {
 #[test]
 fn should_allow_whitelisted_account_to_mint() {
     let mut builder = InMemoryWasmTestBuilder::default();
-    builder.run_genesis(&DEFAULT_RUN_GENESIS_REQUEST).commit();
+    builder
+        .run_genesis(&PRODUCTION_RUN_GENESIS_REQUEST)
+        .commit();
 
     let account_user_1 = support::create_funded_dummy_account(&mut builder, Some(ACCOUNT_USER_1));
     let account_whitelist = vec![Key::from(account_user_1)];
@@ -272,7 +284,9 @@ fn should_allow_whitelisted_account_to_mint() {
 #[test]
 fn should_disallow_unlisted_account_from_minting() {
     let mut builder = InMemoryWasmTestBuilder::default();
-    builder.run_genesis(&DEFAULT_RUN_GENESIS_REQUEST).commit();
+    builder
+        .run_genesis(&PRODUCTION_RUN_GENESIS_REQUEST)
+        .commit();
 
     let account_whitelist = vec![Key::from(*DEFAULT_ACCOUNT_ADDR)];
 
@@ -330,7 +344,9 @@ fn should_disallow_unlisted_account_from_minting() {
 #[test]
 fn should_allow_whitelisted_contract_to_mint() {
     let mut builder = InMemoryWasmTestBuilder::default();
-    builder.run_genesis(&DEFAULT_RUN_GENESIS_REQUEST).commit();
+    builder
+        .run_genesis(&PRODUCTION_RUN_GENESIS_REQUEST)
+        .commit();
 
     let minting_contract_install_request = ExecuteRequestBuilder::standard(
         *DEFAULT_ACCOUNT_ADDR,
@@ -408,7 +424,9 @@ fn should_allow_whitelisted_contract_to_mint() {
 #[test]
 fn should_disallow_unlisted_contract_from_minting() {
     let mut builder = InMemoryWasmTestBuilder::default();
-    builder.run_genesis(&DEFAULT_RUN_GENESIS_REQUEST).commit();
+    builder
+        .run_genesis(&PRODUCTION_RUN_GENESIS_REQUEST)
+        .commit();
 
     let minting_contract_install_request = ExecuteRequestBuilder::standard(
         *DEFAULT_ACCOUNT_ADDR,
@@ -471,7 +489,9 @@ fn should_disallow_unlisted_contract_from_minting() {
 #[test]
 fn should_allow_mixed_account_contract_to_mint() {
     let mut builder = InMemoryWasmTestBuilder::default();
-    builder.run_genesis(&DEFAULT_RUN_GENESIS_REQUEST).commit();
+    builder
+        .run_genesis(&PRODUCTION_RUN_GENESIS_REQUEST)
+        .commit();
 
     let minting_contract_install_request = ExecuteRequestBuilder::standard(
         *DEFAULT_ACCOUNT_ADDR,
@@ -591,7 +611,9 @@ fn should_allow_mixed_account_contract_to_mint() {
 #[test]
 fn should_disallow_unlisted_contract_from_minting_with_mixed_account_contract() {
     let mut builder = InMemoryWasmTestBuilder::default();
-    builder.run_genesis(&DEFAULT_RUN_GENESIS_REQUEST).commit();
+    builder
+        .run_genesis(&PRODUCTION_RUN_GENESIS_REQUEST)
+        .commit();
 
     let minting_contract_install_request = ExecuteRequestBuilder::standard(
         *DEFAULT_ACCOUNT_ADDR,
@@ -654,7 +676,9 @@ fn should_disallow_unlisted_contract_from_minting_with_mixed_account_contract() 
 #[test]
 fn should_disallow_unlisted_account_from_minting_with_mixed_account_contract() {
     let mut builder = InMemoryWasmTestBuilder::default();
-    builder.run_genesis(&DEFAULT_RUN_GENESIS_REQUEST).commit();
+    builder
+        .run_genesis(&PRODUCTION_RUN_GENESIS_REQUEST)
+        .commit();
 
     let minting_contract_install_request = ExecuteRequestBuilder::standard(
         *DEFAULT_ACCOUNT_ADDR,
@@ -728,7 +752,9 @@ fn should_disallow_unlisted_account_from_minting_with_mixed_account_contract() {
 #[test]
 fn should_disallow_listed_account_from_minting_with_nftholder_contract() {
     let mut builder = InMemoryWasmTestBuilder::default();
-    builder.run_genesis(&DEFAULT_RUN_GENESIS_REQUEST).commit();
+    builder
+        .run_genesis(&PRODUCTION_RUN_GENESIS_REQUEST)
+        .commit();
 
     let minting_contract_install_request = ExecuteRequestBuilder::standard(
         *DEFAULT_ACCOUNT_ADDR,
@@ -800,7 +826,9 @@ fn should_disallow_listed_account_from_minting_with_nftholder_contract() {
 #[test]
 fn should_be_able_to_update_whitelist_for_minting_with_deprecated_arg_contract_whitelist() {
     let mut builder = InMemoryWasmTestBuilder::default();
-    builder.run_genesis(&DEFAULT_RUN_GENESIS_REQUEST).commit();
+    builder
+        .run_genesis(&PRODUCTION_RUN_GENESIS_REQUEST)
+        .commit();
 
     let minting_contract_install_request = ExecuteRequestBuilder::standard(
         *DEFAULT_ACCOUNT_ADDR,
@@ -917,7 +945,9 @@ fn should_be_able_to_update_whitelist_for_minting_with_deprecated_arg_contract_w
 #[test]
 fn should_be_able_to_update_whitelist_for_minting() {
     let mut builder = InMemoryWasmTestBuilder::default();
-    builder.run_genesis(&DEFAULT_RUN_GENESIS_REQUEST).commit();
+    builder
+        .run_genesis(&PRODUCTION_RUN_GENESIS_REQUEST)
+        .commit();
 
     let minting_contract_install_request = ExecuteRequestBuilder::standard(
         *DEFAULT_ACCOUNT_ADDR,
@@ -1036,7 +1066,9 @@ fn should_be_able_to_update_whitelist_for_minting() {
 #[test]
 fn should_upgrade_from_named_keys_to_dict_and_acl_minting_mode() {
     let mut builder = InMemoryWasmTestBuilder::default();
-    builder.run_genesis(&DEFAULT_RUN_GENESIS_REQUEST).commit();
+    builder
+        .run_genesis(&PRODUCTION_RUN_GENESIS_REQUEST)
+        .commit();
 
     let minting_contract_install_request = ExecuteRequestBuilder::standard(
         *DEFAULT_ACCOUNT_ADDR,

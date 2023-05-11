@@ -1,11 +1,11 @@
 [package]
 name = "get_approved_session"
-version = "1.2.0"
+version = "1.4.0"
 edition = "2018"
 
 [dependencies]
-casper-contract = "1.4.4"
-casper-types = "1.5"
+casper-contract = "2.0.0"
+casper-types = "2.0.0"
 
 [[bin]]
 name = "get_approved_call"
