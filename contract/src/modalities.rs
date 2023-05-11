@@ -62,7 +62,7 @@ pub enum MintingMode {
     /// The ability to mint NFTs is not restricted.
     Public = 1,
     /// The ability to mint NFTs is restricted by an ACL.
-    ACL = 2,
+    Acl = 2,
 }
 
 impl TryFrom<u8> for MintingMode {
@@ -72,7 +72,7 @@ impl TryFrom<u8> for MintingMode {
         match value {
             0 => Ok(MintingMode::Installer),
             1 => Ok(MintingMode::Public),
-            2 => Ok(MintingMode::ACL),
+            2 => Ok(MintingMode::Acl),
             _ => Err(NFTCoreError::InvalidMintingMode),
         }
     }

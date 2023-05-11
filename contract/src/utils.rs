@@ -848,7 +848,7 @@ pub fn migrate_contract_whitelist_to_acl_whitelist() {
             if MintingMode::Installer == minting_mode {
                 runtime::put_key(
                     MINTING_MODE,
-                    storage::new_uref(MintingMode::ACL as u8).into(),
+                    storage::new_uref(MintingMode::Acl as u8).into(),
                 );
             }
 

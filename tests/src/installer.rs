@@ -243,7 +243,7 @@ fn should_install_with_contract_holder_mode() {
         .with_holder_mode(NFTHolderMode::Contracts)
         .with_whitelist_mode(WhitelistMode::Unlocked)
         .with_reporting_mode(OwnerReverseLookupMode::NoLookUp)
-        .with_minting_mode(MintingMode::ACL)
+        .with_minting_mode(MintingMode::Acl)
         .with_acl_whitelist(contract_whitelist);
 
     builder
@@ -304,7 +304,7 @@ fn should_disallow_installation_of_contract_with_empty_locked_whitelist_with_hol
             .with_holder_mode(nft_holder_mode)
             .with_reporting_mode(OwnerReverseLookupMode::NoLookUp)
             .with_whitelist_mode(WhitelistMode::Locked)
-            .with_minting_mode(MintingMode::ACL);
+            .with_minting_mode(MintingMode::Acl);
 
     support::assert_expected_invalid_installer_request(
         install_request_builder,

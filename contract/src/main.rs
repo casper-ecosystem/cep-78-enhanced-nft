@@ -180,12 +180,12 @@ pub extern "C" fn init() {
     .unwrap_or_revert();
 
     // Revert if minting mode is not ACL and acl list is not empty
-    if MintingMode::ACL != minting_mode && !acl_whitelist.is_empty() {
+    if MintingMode::Acl != minting_mode && !acl_whitelist.is_empty() {
         runtime::revert(NFTCoreError::InvalidMintingMode)
     }
 
     // Revert if minting mode is ACL or holder_mode is contracts and acl list is locked and empty
-    if MintingMode::ACL == minting_mode
+    if MintingMode::Acl == minting_mode
         && acl_whitelist.is_empty()
         && WhitelistMode::Locked == whitelist_mode
     {
@@ -580,7 +580,7 @@ pub extern "C" fn mint() {
     }
 
     // Revert if minting is acl and caller is not whitelisted.
-    if MintingMode::ACL == minting_mode {
+    if MintingMode::Acl == minting_mode {
         let is_whitelisted = utils::get_dictionary_value_from_key::<bool>(
             ACL_WHITELIST,
             &utils::encode_dictionary_item_key(caller),

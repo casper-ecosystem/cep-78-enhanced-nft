@@ -428,7 +428,7 @@ fn should_get_metadata_using_token_id() {
         .with_whitelist_mode(WhitelistMode::Locked)
         .with_ownership_mode(OwnershipMode::Transferable)
         .with_reporting_mode(OwnerReverseLookupMode::NoLookUp)
-        .with_minting_mode(MintingMode::ACL)
+        .with_minting_mode(MintingMode::Acl)
         .with_acl_whitelist(contract_whitelist)
         .build();
 

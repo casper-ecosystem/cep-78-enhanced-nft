@@ -443,7 +443,7 @@ fn should_allow_contract_to_burn_token() {
         .with_holder_mode(NFTHolderMode::Contracts)
         .with_whitelist_mode(WhitelistMode::Locked)
         .with_ownership_mode(OwnershipMode::Minter)
-        .with_minting_mode(MintingMode::ACL)
+        .with_minting_mode(MintingMode::Acl)
         .with_reporting_mode(OwnerReverseLookupMode::NoLookUp)
         .with_acl_whitelist(contract_whitelist)
         .build();
