@@ -383,14 +383,14 @@ pub fn is_token_burned(token_identifier: &TokenIdentifier) -> bool {
 }
 
 pub fn get_transfer_filter_contract() -> Option<ContractHash> {
-    if named_uref_exists(TRANSFER_FILTER_CONTRACT) {
+    if !named_uref_exists(TRANSFER_FILTER_CONTRACT) {
+        None
+    } else {
         Some(get_stored_value_with_user_errors::<ContractHash>(
             TRANSFER_FILTER_CONTRACT,
             NFTCoreError::MissingTransferFilterContract,
             NFTCoreError::InvalidTransferFilterContract,
         ))
-    } else {
-        None
     }
 }
 

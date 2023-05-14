@@ -17,12 +17,13 @@ use casper_types::{
     EntryPointAccess, EntryPointType, EntryPoints, Key, Parameter,
 };
 
-const CONTRACT_NAME: &str = "transfer_filter_hash";
-const CONTRACT_VERSION: &str = "transfer_filter_version";
-const HASH_KEY_NAME: &str = "transfer_filter_package_hash";
-const ACCESS_KEY_NAME: &str = "transfer_filter_access_uref";
+const CONTRACT_NAME: &str = "transfer_filter_contract_hash";
+const CONTRACT_VERSION: &str = "transfer_filter_contract_version";
+const HASH_KEY_NAME: &str = "transfer_filter_contract_package_hash";
+const ACCESS_KEY_NAME: &str = "transfer_filter_contract_access_uref";
+const ARG_FILTER_CONTRACT_RETURN_VALUE: &str = "return_value";
 
-fn install_minting_contract() -> (ContractHash, ContractVersion) {
+fn install_filter_contract() -> (ContractHash, ContractVersion) {
     let can_transfer_entry_point = EntryPoint::new(
         "can_transfer",
         vec![
@@ -36,7 +37,7 @@ fn install_minting_contract() -> (ContractHash, ContractVersion) {
 
     let set_return_value = EntryPoint::new(
         "set_return_value",
-        vec![Parameter::new("value", CLType::U8)],
+        vec![Parameter::new(ARG_FILTER_CONTRACT_RETURN_VALUE, CLType::U8)],
         CLType::Unit,
         EntryPointAccess::Public,
         EntryPointType::Contract,
@@ -47,7 +48,10 @@ fn install_minting_contract() -> (ContractHash, ContractVersion) {
     entry_points.add_entry_point(set_return_value);
 
     let mut named_keys = NamedKeys::new();
-    named_keys.insert("return_value".to_string(), storage::new_uref(0u8).into());
+    named_keys.insert(
+        ARG_FILTER_CONTRACT_RETURN_VALUE.to_string(),
+        storage::new_uref(0u8).into(),
+    );
 
     storage::new_contract(
         entry_points,
@@ -59,32 +63,32 @@ fn install_minting_contract() -> (ContractHash, ContractVersion) {
 
 #[no_mangle]
 pub extern "C" fn set_return_value() {
-    let value: u8 = runtime::get_named_arg("value");
-    let uref = runtime::get_key("return_value")
+    let return_value: u8 = runtime::get_named_arg(ARG_FILTER_CONTRACT_RETURN_VALUE);
+    let uref = runtime::get_key(ARG_FILTER_CONTRACT_RETURN_VALUE)
         .unwrap()
         .into_uref()
         .unwrap();
 
-    storage::write(uref, value);
+    storage::write(uref, return_value);
 
-    runtime::put_key("return_value", Key::from(uref));
+    runtime::put_key(ARG_FILTER_CONTRACT_RETURN_VALUE, Key::from(uref));
 }
 
 #[no_mangle]
 pub extern "C" fn can_transfer() {
-    let uref = runtime::get_key("return_value")
+    let uref = runtime::get_key(ARG_FILTER_CONTRACT_RETURN_VALUE)
         .unwrap()
         .into_uref()
         .unwrap();
 
-    let value = storage::read::<u8>(uref).unwrap().unwrap();
+    let return_value = storage::read::<u8>(uref).unwrap().unwrap();
 
-    ret(CLValue::from_t(value).unwrap());
+    ret(CLValue::from_t(return_value).unwrap());
 }
 
 #[no_mangle]
 pub extern "C" fn call() {
-    let (contract_hash, contract_version) = install_minting_contract();
+    let (contract_hash, contract_version) = install_filter_contract();
 
     runtime::put_key(CONTRACT_NAME, contract_hash.into());
     runtime::put_key(CONTRACT_VERSION, storage::new_uref(contract_version).into());

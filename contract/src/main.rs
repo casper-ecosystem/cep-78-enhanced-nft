@@ -56,9 +56,9 @@ use constants::{
     PREFIX_ACCESS_KEY_NAME, PREFIX_CEP78, PREFIX_CONTRACT_NAME, PREFIX_CONTRACT_VERSION,
     PREFIX_HASH_KEY_NAME, PREFIX_PAGE_DICTIONARY, RECEIPT_NAME, REPORTING_MODE, RLO_MFLAG,
     TOKEN_COUNT, TOKEN_ISSUERS, TOKEN_OWNERS, TOTAL_TOKEN_SUPPLY, TRANSFER_FILTER_CONTRACT,
-    TRANSFER_FILTER_METHOD, TRANSFER_FILTER_RESULT_DENY, TRANSFER_FILTER_RESULT_FORCE_PROCEED,
-    TRANSFER_FILTER_RESULT_PROCEED, UNMATCHED_HASH_COUNT, WHITELIST_MODE,
+    TRANSFER_FILTER_CONTRACT_METHOD, UNMATCHED_HASH_COUNT, WHITELIST_MODE,
 };
+
 use core::convert::{TryFrom, TryInto};
 use error::NFTCoreError;
 use events::{
@@ -72,7 +72,7 @@ use metadata::CustomMetadataSchema;
 use modalities::{
     BurnMode, EventsMode, MetadataMutability, MintingMode, NFTHolderMode, NFTIdentifierMode,
     NFTKind, NFTMetadataKind, NamedKeyConventionMode, OwnerReverseLookupMode, OwnershipMode,
-    Requirement, TokenIdentifier, WhitelistMode,
+    Requirement, TokenIdentifier, TransferFilterContractResult, WhitelistMode,
 };
 
 #[no_mangle]
@@ -298,12 +298,25 @@ pub extern "C" fn init() {
         runtime::revert(NFTCoreError::OwnerReverseLookupModeNotTransferable)
     }
 
-    let transfer_filter_contract = utils::get_optional_named_arg_with_user_errors::<ContractHash>(
-        ARG_TRANSFER_FILTER_CONTRACT,
-        NFTCoreError::InvalidTransferFilterContract,
-    );
+    let transfer_filter_contract_contract_key =
+        utils::get_optional_named_arg_with_user_errors::<Option<Key>>(
+            ARG_TRANSFER_FILTER_CONTRACT,
+            NFTCoreError::InvalidTransferFilterContract,
+        )
+        .unwrap_or_revert();
 
-    if transfer_filter_contract.is_some() && ownership_mode != OwnershipMode::Transferable {
+    let transfer_filter_contract_contract_hash: Option<ContractHash> =
+        transfer_filter_contract_contract_key.map(|transfer_filter_contract_contract_key| {
+            ContractHash::from(
+                transfer_filter_contract_contract_key
+                    .into_hash()
+                    .unwrap_or_revert(),
+            )
+        });
+
+    if ownership_mode != OwnershipMode::Transferable
+        && transfer_filter_contract_contract_hash.is_some()
+    {
         runtime::revert(NFTCoreError::TransferFilterContractNeedsTransferableMode)
     }
 
@@ -426,8 +439,11 @@ pub extern "C" fn init() {
     );
     runtime::put_key(RLO_MFLAG, storage::new_uref(false).into());
 
-    if let Some(contract) = transfer_filter_contract {
-        runtime::put_key(TRANSFER_FILTER_CONTRACT, storage::new_uref(contract).into());
+    if let Some(transfer_filter_contract) = transfer_filter_contract_contract_hash {
+        runtime::put_key(
+            TRANSFER_FILTER_CONTRACT,
+            storage::new_uref(transfer_filter_contract).into(),
+        );
     }
 }
 
@@ -1175,7 +1191,7 @@ pub extern "C" fn transfer() {
         && utils::get_dictionary_value_from_key::<bool>(OPERATORS, &owner_operator_item_key)
             .unwrap_or_default();
 
-    let skip_checks = if let Some(contract) = utils::get_transfer_filter_contract() {
+    if let Some(filter_contract) = utils::get_transfer_filter_contract() {
         let mut args = RuntimeArgs::new();
         args.insert(ARG_SOURCE_KEY, source_owner_key).unwrap();
         args.insert(ARG_TARGET_KEY, owner).unwrap();
@@ -1189,25 +1205,15 @@ pub extern "C" fn transfer() {
             }
         }
 
-        let result = call_contract::<u8>(contract, TRANSFER_FILTER_METHOD, args);
-
-        match result {
-            TRANSFER_FILTER_RESULT_PROCEED => false,
-            TRANSFER_FILTER_RESULT_FORCE_PROCEED => true,
-            TRANSFER_FILTER_RESULT_DENY => {
-                revert(NFTCoreError::TransferFilterDenied);
-            }
-            _ => {
-                revert(NFTCoreError::TransferFilterInvalidResultCode);
-            }
+        let result: TransferFilterContractResult =
+            call_contract::<u8>(filter_contract, TRANSFER_FILTER_CONTRACT_METHOD, args).into();
+        if TransferFilterContractResult::DenyTransfer == result {
+            revert(NFTCoreError::TransferFilterContractDenied);
         }
-    } else {
-        false
-    };
+    }
 
     // Revert if caller is not owner nor approved nor an operator.
-    // Skip checks if indicated by transfer filter.
-    if !skip_checks && (!is_owner && !is_approved && !is_operator) {
+    if !is_owner && !is_approved && !is_operator {
         runtime::revert(NFTCoreError::InvalidTokenOwner);
     }
 
@@ -1904,6 +1910,10 @@ fn generate_entry_points() -> EntryPoints {
             Parameter::new(ARG_METADATA_MUTABILITY, CLType::U8),
             Parameter::new(ARG_OWNER_LOOKUP_MODE, CLType::U8),
             Parameter::new(ARG_EVENTS_MODE, CLType::U8),
+            Parameter::new(
+                ARG_TRANSFER_FILTER_CONTRACT,
+                CLType::Option(Box::new(CLType::Key)),
+            ),
         ],
         CLType::Unit,
         EntryPointAccess::Public,
@@ -2330,7 +2340,7 @@ fn install_contract() {
     )
     .unwrap_or(0u8);
 
-    let transfer_filter_contract: Option<ContractHash> =
+    let transfer_filter_contract_contract_key: Option<Key> =
         utils::get_optional_named_arg_with_user_errors(
             ARG_TRANSFER_FILTER_CONTRACT,
             NFTCoreError::InvalidTransferFilterContract,
@@ -2386,7 +2396,7 @@ fn install_contract() {
     // the contract package from which the NFTs were obtained.
     let receipt_name = format!("{PREFIX_CEP78}_{collection_name}");
 
-    let mut args = runtime_args! {
+    let args = runtime_args! {
         ARG_COLLECTION_NAME => collection_name,
         ARG_COLLECTION_SYMBOL => collection_symbol,
         ARG_TOTAL_TOKEN_SUPPLY => total_token_supply,
@@ -2407,13 +2417,10 @@ fn install_contract() {
         ARG_BURN_MODE => burn_mode,
         ARG_OWNER_LOOKUP_MODE => reporting_mode,
         ARG_NFT_PACKAGE_KEY => nft_contract_package_hash.to_formatted_string(),
-        ARG_EVENTS_MODE => events_mode
+        ARG_EVENTS_MODE => events_mode,
+        ARG_TRANSFER_FILTER_CONTRACT =>
+        transfer_filter_contract_contract_key,
     };
-
-    if let Some(contract_hash) = transfer_filter_contract {
-        args.insert(ARG_TRANSFER_FILTER_CONTRACT, contract_hash)
-            .unwrap();
-    }
 
     // Call contract to initialize it
     runtime::call_contract::<()>(contract_hash, ENTRY_POINT_INIT, args);

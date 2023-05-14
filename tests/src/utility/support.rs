@@ -1,7 +1,8 @@
 use std::fmt::Debug;
 
 use crate::utility::constants::{
-    ARG_KEY_NAME, ARG_NFT_CONTRACT_HASH, MINTING_CONTRACT_NAME, PAGE_SIZE, TRANSFER_FILTER_NAME,
+    ARG_KEY_NAME, ARG_NFT_CONTRACT_HASH, CONTRACT_NAME, MINTING_CONTRACT_NAME, PAGE_SIZE,
+    TRANSFER_FILTER_CONTRACT_NAME,
 };
 use blake2::{
     digest::{Update, VariableOutput},
@@ -12,7 +13,7 @@ use rand::prelude::*;
 use serde::{Deserialize, Serialize};
 use sha256::digest;
 
-use super::{constants::CONTRACT_NAME, installer_request_builder::InstallerRequestBuilder};
+use super::installer_request_builder::InstallerRequestBuilder;
 use casper_engine_test_support::{
     ExecuteRequestBuilder, InMemoryWasmTestBuilder, WasmTestBuilder, ARG_AMOUNT,
     DEFAULT_ACCOUNT_ADDR, DEFAULT_RUN_GENESIS_REQUEST,
@@ -72,18 +73,18 @@ pub(crate) fn get_minting_contract_hash(
     ContractHash::new(minting_contract_hash)
 }
 
-pub(crate) fn get_transfer_filter_hash(
+pub(crate) fn get_transfer_filter_contract_hash(
     builder: &WasmTestBuilder<InMemoryGlobalState>,
 ) -> ContractHash {
-    let transfer_filter_hash = builder
+    let transfer_filter_contract_hash = builder
         .get_expected_account(*DEFAULT_ACCOUNT_ADDR)
         .named_keys()
-        .get(TRANSFER_FILTER_NAME)
+        .get(TRANSFER_FILTER_CONTRACT_NAME)
         .expect("must have transfer filter hash entry in named keys")
         .into_hash()
         .expect("must get hash_addr");
 
-    ContractHash::new(transfer_filter_hash)
+    ContractHash::new(transfer_filter_contract_hash)
 }
 
 pub(crate) fn get_dictionary_value_from_key<T: CLTyped + FromBytes>(

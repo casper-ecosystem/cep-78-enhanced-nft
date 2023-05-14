@@ -161,8 +161,7 @@ pub enum NFTCoreError {
     InvalidTransferFilterContract = 156,
     MissingTransferFilterContract = 157,
     TransferFilterContractNeedsTransferableMode = 158,
-    TransferFilterInvalidResultCode = 159,
-    TransferFilterDenied = 160,
+    TransferFilterContractDenied = 159,
 }
 
 impl From<NFTCoreError> for ApiError {
