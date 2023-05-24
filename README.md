@@ -322,7 +322,7 @@ method on the specified callback contract, which is expected to return a value o
 * `TransferFilterContractResult::DenyTransfer` will block the transfer regardless of the outcome of other checks
 * `TransferFilterContractResult::ProceedTransfer` will allow the transfer to proceed if other checks also pass
 
-The transfer filter can be enabled by passing a `ARG_TRANSFER_FILTER_CONTRACT` argument to the install method, with a value of type `Option<ContractPackageHash>`
+The transfer filter can be enabled by passing a `ARG_TRANSFER_FILTER_CONTRACT` argument to the install method, with a value of type `Option<Key>`
 
 ##### CEP47 Mode
 
