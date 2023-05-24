@@ -443,3 +443,20 @@ impl TryFrom<u8> for EventsMode {
         }
     }
 }
+
+#[repr(u8)]
+#[non_exhaustive]
+#[derive(PartialEq, Eq)]
+pub enum TransferFilterContractResult {
+    DenyTransfer = 0,
+    ProceedTransfer,
+}
+
+impl From<u8> for TransferFilterContractResult {
+    fn from(value: u8) -> Self {
+        match value {
+            0 => TransferFilterContractResult::DenyTransfer,
+            _ => TransferFilterContractResult::ProceedTransfer,
+        }
+    }
+}

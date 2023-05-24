@@ -308,7 +308,7 @@ fn should_disallow_installation_of_contract_with_empty_locked_whitelist_with_hol
 
     support::assert_expected_invalid_installer_request(
         install_request_builder,
-        158,
+        162,
         "should fail execution since whitelist mode is locked and the provided whitelist is empty",
     );
 }

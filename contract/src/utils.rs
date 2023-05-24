@@ -27,7 +27,7 @@ use crate::{
         HASH_BY_INDEX, HOLDER_MODE, INDEX_BY_HASH, MIGRATION_FLAG, MINTING_MODE,
         NUMBER_OF_MINTED_TOKENS, OWNED_TOKENS, OWNERSHIP_MODE, PAGE_LIMIT, PAGE_TABLE,
         PREFIX_PAGE_DICTIONARY, RECEIPT_NAME, REPORTING_MODE, RLO_MFLAG, TOKEN_OWNERS,
-        UNMATCHED_HASH_COUNT,
+        TRANSFER_FILTER_CONTRACT, UNMATCHED_HASH_COUNT,
     },
     error::NFTCoreError,
     events::events_ces::{
@@ -377,6 +377,18 @@ pub fn get_burn_mode() -> BurnMode {
 pub fn is_token_burned(token_identifier: &TokenIdentifier) -> bool {
     get_dictionary_value_from_key::<()>(BURNT_TOKENS, &token_identifier.get_dictionary_item_key())
         .is_some()
+}
+
+pub fn get_transfer_filter_contract() -> Option<ContractHash> {
+    if !named_uref_exists(TRANSFER_FILTER_CONTRACT) {
+        None
+    } else {
+        Some(get_stored_value_with_user_errors::<ContractHash>(
+            TRANSFER_FILTER_CONTRACT,
+            NFTCoreError::MissingTransferFilterContract,
+            NFTCoreError::InvalidTransferFilterContract,
+        ))
+    }
 }
 
 pub fn max_number_of_pages(total_token_supply: u64) -> u64 {
