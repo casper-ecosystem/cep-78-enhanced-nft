@@ -16,7 +16,7 @@ use sha256::digest;
 use super::installer_request_builder::InstallerRequestBuilder;
 use casper_engine_test_support::{
     ExecuteRequestBuilder, InMemoryWasmTestBuilder, WasmTestBuilder, ARG_AMOUNT,
-    DEFAULT_ACCOUNT_ADDR, DEFAULT_RUN_GENESIS_REQUEST,
+    DEFAULT_ACCOUNT_ADDR, PRODUCTION_RUN_GENESIS_REQUEST,
 };
 use casper_execution_engine::{
     core::{engine_state::Error as EngineStateError, execution},
@@ -115,10 +115,10 @@ pub(crate) fn get_dictionary_value_from_key<T: CLTyped + FromBytes>(
 }
 
 pub(crate) fn create_dummy_key_pair(account_string: [u8; 32]) -> (SecretKey, PublicKey) {
-    let secrete_key =
+    let secret_key =
         SecretKey::ed25519_from_bytes(account_string).expect("failed to create secret key");
-    let public_key = PublicKey::from(&secrete_key);
-    (secrete_key, public_key)
+    let public_key = PublicKey::from(&secret_key);
+    (secret_key, public_key)
 }
 
 // Creates a dummy account and transfer funds to it
@@ -154,7 +154,9 @@ pub(crate) fn assert_expected_invalid_installer_request(
 ) {
     let mut builder = InMemoryWasmTestBuilder::default();
 
-    builder.run_genesis(&DEFAULT_RUN_GENESIS_REQUEST).commit();
+    builder
+        .run_genesis(&PRODUCTION_RUN_GENESIS_REQUEST)
+        .commit();
     builder
         .exec(install_request_builder.build())
         .expect_failure(); // Should test against expected error

@@ -1,6 +1,6 @@
 use casper_engine_test_support::{
     ExecuteRequestBuilder, InMemoryWasmTestBuilder, WasmTestBuilder, DEFAULT_ACCOUNT_ADDR,
-    DEFAULT_ACCOUNT_PUBLIC_KEY, DEFAULT_RUN_GENESIS_REQUEST, MINIMUM_ACCOUNT_CREATION_BALANCE,
+    DEFAULT_ACCOUNT_PUBLIC_KEY, MINIMUM_ACCOUNT_CREATION_BALANCE, PRODUCTION_RUN_GENESIS_REQUEST,
 };
 use casper_execution_engine::storage::global_state::in_memory::InMemoryGlobalState;
 use casper_types::{
@@ -8,7 +8,7 @@ use casper_types::{
 };
 use contract::{
     constants::{
-        APPROVED, ARG_APPROVE_ALL, ARG_COLLECTION_NAME, ARG_CONTRACT_WHITELIST, ARG_OPERATOR,
+        ACL_WHITELIST, APPROVED, ARG_APPROVE_ALL, ARG_COLLECTION_NAME, ARG_OPERATOR,
         ARG_SOURCE_KEY, ARG_SPENDER, ARG_TARGET_KEY, ARG_TOKEN_HASH, ARG_TOKEN_ID,
         ARG_TOKEN_META_DATA, ARG_TOKEN_OWNER, ENTRY_POINT_APPROVE, ENTRY_POINT_MINT,
         ENTRY_POINT_REGISTER_OWNER, ENTRY_POINT_REVOKE, ENTRY_POINT_SET_APPROVALL_FOR_ALL,
@@ -33,14 +33,15 @@ use crate::utility::{
     support::{
         self, assert_expected_error, create_funded_dummy_account, get_dictionary_value_from_key,
         get_minting_contract_hash, get_nft_contract_hash, get_transfer_filter_contract_hash,
-        query_stored_value,
     },
 };
 
 #[test]
 fn should_dissallow_transfer_with_minter_or_assigned_ownership_mode() {
     let mut builder = InMemoryWasmTestBuilder::default();
-    builder.run_genesis(&DEFAULT_RUN_GENESIS_REQUEST).commit();
+    builder
+        .run_genesis(&PRODUCTION_RUN_GENESIS_REQUEST)
+        .commit();
 
     let install_request = InstallerRequestBuilder::new(*DEFAULT_ACCOUNT_ADDR, NFT_CONTRACT_WASM)
         .with_collection_name(NFT_TEST_COLLECTION.to_string())
@@ -137,7 +138,9 @@ fn should_dissallow_transfer_with_minter_or_assigned_ownership_mode() {
 #[test]
 fn should_transfer_token_from_sender_to_receiver() {
     let mut builder = InMemoryWasmTestBuilder::default();
-    builder.run_genesis(&DEFAULT_RUN_GENESIS_REQUEST).commit();
+    builder
+        .run_genesis(&PRODUCTION_RUN_GENESIS_REQUEST)
+        .commit();
 
     let install_request = InstallerRequestBuilder::new(*DEFAULT_ACCOUNT_ADDR, NFT_CONTRACT_WASM)
         .with_collection_name(NFT_TEST_COLLECTION.to_string())
@@ -360,14 +363,18 @@ fn approve_token_for_transfer_should_add_entry_to_approved_dictionary(
 #[test]
 fn approve_token_for_transfer_from_an_account_should_add_entry_to_approved_dictionary() {
     let mut builder = InMemoryWasmTestBuilder::default();
-    builder.run_genesis(&DEFAULT_RUN_GENESIS_REQUEST).commit();
+    builder
+        .run_genesis(&PRODUCTION_RUN_GENESIS_REQUEST)
+        .commit();
     approve_token_for_transfer_should_add_entry_to_approved_dictionary(builder, None)
 }
 
 #[test]
 fn approve_token_for_transfer_from_an_operator_should_add_entry_to_approved_dictionary() {
     let mut builder = InMemoryWasmTestBuilder::default();
-    builder.run_genesis(&DEFAULT_RUN_GENESIS_REQUEST).commit();
+    builder
+        .run_genesis(&PRODUCTION_RUN_GENESIS_REQUEST)
+        .commit();
     let operator = create_funded_dummy_account(&mut builder, None);
     approve_token_for_transfer_should_add_entry_to_approved_dictionary(builder, Some(operator))
 }
@@ -495,14 +502,18 @@ fn revoke_token_for_transfer_should_remove_entry_to_approved_dictionary(
 #[test]
 fn revoke_token_for_transfer_from_account_should_remove_entry_to_approved_dictionary() {
     let mut builder = InMemoryWasmTestBuilder::default();
-    builder.run_genesis(&DEFAULT_RUN_GENESIS_REQUEST).commit();
+    builder
+        .run_genesis(&PRODUCTION_RUN_GENESIS_REQUEST)
+        .commit();
     revoke_token_for_transfer_should_remove_entry_to_approved_dictionary(builder, None)
 }
 
 #[test]
 fn revoke_token_for_transfer_from_operator_should_remove_entry_to_approved_dictionary() {
     let mut builder = InMemoryWasmTestBuilder::default();
-    builder.run_genesis(&DEFAULT_RUN_GENESIS_REQUEST).commit();
+    builder
+        .run_genesis(&PRODUCTION_RUN_GENESIS_REQUEST)
+        .commit();
     let operator = create_funded_dummy_account(&mut builder, None);
     revoke_token_for_transfer_should_remove_entry_to_approved_dictionary(builder, Some(operator))
 }
@@ -510,7 +521,9 @@ fn revoke_token_for_transfer_from_operator_should_remove_entry_to_approved_dicti
 #[test]
 fn should_dissallow_approving_when_ownership_mode_is_minter_or_assigned() {
     let mut builder = InMemoryWasmTestBuilder::default();
-    builder.run_genesis(&DEFAULT_RUN_GENESIS_REQUEST).commit();
+    builder
+        .run_genesis(&PRODUCTION_RUN_GENESIS_REQUEST)
+        .commit();
 
     let install_request = InstallerRequestBuilder::new(*DEFAULT_ACCOUNT_ADDR, NFT_CONTRACT_WASM)
         .with_collection_name(NFT_TEST_COLLECTION.to_string())
@@ -695,14 +708,18 @@ fn should_be_able_to_transfer_token(
 #[test]
 fn should_be_able_to_transfer_token_using_approved_account() {
     let mut builder = InMemoryWasmTestBuilder::default();
-    builder.run_genesis(&DEFAULT_RUN_GENESIS_REQUEST).commit();
+    builder
+        .run_genesis(&PRODUCTION_RUN_GENESIS_REQUEST)
+        .commit();
     should_be_able_to_transfer_token(builder, None)
 }
 
 #[test]
 fn should_be_able_to_transfer_token_using_operator() {
     let mut builder = InMemoryWasmTestBuilder::default();
-    builder.run_genesis(&DEFAULT_RUN_GENESIS_REQUEST).commit();
+    builder
+        .run_genesis(&PRODUCTION_RUN_GENESIS_REQUEST)
+        .commit();
     let operator = create_funded_dummy_account(&mut builder, None);
     should_be_able_to_transfer_token(builder, Some(operator))
 }
@@ -710,7 +727,9 @@ fn should_be_able_to_transfer_token_using_operator() {
 #[test]
 fn should_dissallow_same_approved_account_to_transfer_token_twice() {
     let mut builder = InMemoryWasmTestBuilder::default();
-    builder.run_genesis(&DEFAULT_RUN_GENESIS_REQUEST).commit();
+    builder
+        .run_genesis(&PRODUCTION_RUN_GENESIS_REQUEST)
+        .commit();
 
     let install_request = InstallerRequestBuilder::new(*DEFAULT_ACCOUNT_ADDR, NFT_CONTRACT_WASM)
         .with_collection_name(NFT_TEST_COLLECTION.to_string())
@@ -992,14 +1011,18 @@ fn should_disallow_to_transfer_token_using_revoked_hash(
 #[test]
 fn should_disallow_to_transfer_token_using_revoked_account() {
     let mut builder = InMemoryWasmTestBuilder::default();
-    builder.run_genesis(&DEFAULT_RUN_GENESIS_REQUEST).commit();
+    builder
+        .run_genesis(&PRODUCTION_RUN_GENESIS_REQUEST)
+        .commit();
     should_disallow_to_transfer_token_using_revoked_hash(builder, None)
 }
 
 #[test]
 fn should_disallow_to_transfer_token_using_revoked_operator() {
     let mut builder = InMemoryWasmTestBuilder::default();
-    builder.run_genesis(&DEFAULT_RUN_GENESIS_REQUEST).commit();
+    builder
+        .run_genesis(&PRODUCTION_RUN_GENESIS_REQUEST)
+        .commit();
     let operator = create_funded_dummy_account(&mut builder, None);
     should_disallow_to_transfer_token_using_revoked_hash(builder, Some(operator))
 }
@@ -1009,7 +1032,9 @@ fn should_disallow_to_transfer_token_using_revoked_operator() {
 #[test]
 fn should_be_able_to_approve_with_deprecated_operator_argument() {
     let mut builder = InMemoryWasmTestBuilder::default();
-    builder.run_genesis(&DEFAULT_RUN_GENESIS_REQUEST).commit();
+    builder
+        .run_genesis(&PRODUCTION_RUN_GENESIS_REQUEST)
+        .commit();
 
     let install_request = InstallerRequestBuilder::new(*DEFAULT_ACCOUNT_ADDR, NFT_CONTRACT_WASM)
         .with_collection_name(NFT_TEST_COLLECTION.to_string())
@@ -1073,7 +1098,9 @@ fn should_be_able_to_approve_with_deprecated_operator_argument() {
 #[test]
 fn should_transfer_between_contract_to_account() {
     let mut builder = InMemoryWasmTestBuilder::default();
-    builder.run_genesis(&DEFAULT_RUN_GENESIS_REQUEST).commit();
+    builder
+        .run_genesis(&PRODUCTION_RUN_GENESIS_REQUEST)
+        .commit();
 
     let minting_contract_install_request = ExecuteRequestBuilder::standard(
         *DEFAULT_ACCOUNT_ADDR,
@@ -1090,15 +1117,15 @@ fn should_transfer_between_contract_to_account() {
     let minting_contract_hash = get_minting_contract_hash(&builder);
     let minting_contract_key: Key = minting_contract_hash.into();
 
-    let contract_whitelist = vec![minting_contract_hash];
+    let contract_whitelist = vec![Key::from(minting_contract_hash)];
 
     let install_request = InstallerRequestBuilder::new(*DEFAULT_ACCOUNT_ADDR, NFT_CONTRACT_WASM)
         .with_total_token_supply(100u64)
         .with_holder_mode(NFTHolderMode::Contracts)
         .with_whitelist_mode(WhitelistMode::Locked)
         .with_ownership_mode(OwnershipMode::Transferable)
-        .with_minting_mode(MintingMode::Installer)
-        .with_contract_whitelist(contract_whitelist.clone())
+        .with_minting_mode(MintingMode::Acl)
+        .with_acl_whitelist(contract_whitelist)
         .build();
 
     builder.exec(install_request).expect_success().commit();
@@ -1106,13 +1133,14 @@ fn should_transfer_between_contract_to_account() {
     let nft_contract_hash = get_nft_contract_hash(&builder);
     let nft_contract_key: Key = nft_contract_hash.into();
 
-    let actual_contract_whitelist: Vec<ContractHash> = query_stored_value(
+    let is_whitelisted_account = support::get_dictionary_value_from_key::<bool>(
         &builder,
-        nft_contract_key,
-        vec![ARG_CONTRACT_WHITELIST.to_string()],
+        &nft_contract_key,
+        ACL_WHITELIST,
+        &minting_contract_hash.to_string(),
     );
 
-    assert_eq!(actual_contract_whitelist, contract_whitelist);
+    assert!(is_whitelisted_account, "acl whitelist is incorrectly set");
 
     let mint_runtime_args = runtime_args! {
         ARG_NFT_CONTRACT_HASH => nft_contract_key,
@@ -1189,7 +1217,9 @@ fn should_prevent_transfer_when_caller_is_not_owner() {
     const ID_NONE: Option<u64> = None;
 
     let mut builder = InMemoryWasmTestBuilder::default();
-    builder.run_genesis(&DEFAULT_RUN_GENESIS_REQUEST).commit();
+    builder
+        .run_genesis(&PRODUCTION_RUN_GENESIS_REQUEST)
+        .commit();
 
     // Create an account that is not the owner of the NFT to transfer the token itself.
     let other_account_secret_key = SecretKey::ed25519_from_bytes([9u8; 32]).unwrap();
@@ -1278,7 +1308,9 @@ fn should_prevent_transfer_when_caller_is_not_owner() {
 #[test]
 fn should_transfer_token_in_hash_identifier_mode() {
     let mut builder = InMemoryWasmTestBuilder::default();
-    builder.run_genesis(&DEFAULT_RUN_GENESIS_REQUEST).commit();
+    builder
+        .run_genesis(&PRODUCTION_RUN_GENESIS_REQUEST)
+        .commit();
 
     let install_request = InstallerRequestBuilder::new(*DEFAULT_ACCOUNT_ADDR, NFT_CONTRACT_WASM)
         .with_identifier_mode(NFTIdentifierMode::Hash)
@@ -1340,7 +1372,9 @@ fn should_transfer_token_in_hash_identifier_mode() {
 #[test]
 fn should_not_allow_non_approved_contract_to_transfer() {
     let mut builder = InMemoryWasmTestBuilder::default();
-    builder.run_genesis(&DEFAULT_RUN_GENESIS_REQUEST).commit();
+    builder
+        .run_genesis(&PRODUCTION_RUN_GENESIS_REQUEST)
+        .commit();
 
     let minting_contract_install_request = ExecuteRequestBuilder::standard(
         *DEFAULT_ACCOUNT_ADDR,
@@ -1449,7 +1483,9 @@ fn should_not_allow_non_approved_contract_to_transfer() {
 #[test]
 fn transfer_should_correctly_track_page_table_entries() {
     let mut builder = InMemoryWasmTestBuilder::default();
-    builder.run_genesis(&DEFAULT_RUN_GENESIS_REQUEST).commit();
+    builder
+        .run_genesis(&PRODUCTION_RUN_GENESIS_REQUEST)
+        .commit();
 
     let install_request = InstallerRequestBuilder::new(*DEFAULT_ACCOUNT_ADDR, NFT_CONTRACT_WASM)
         .with_collection_name(NFT_TEST_COLLECTION.to_string())
@@ -1521,7 +1557,9 @@ fn transfer_should_correctly_track_page_table_entries() {
 #[test]
 fn should_prevent_transfer_to_unregistered_owner() {
     let mut builder = InMemoryWasmTestBuilder::default();
-    builder.run_genesis(&DEFAULT_RUN_GENESIS_REQUEST).commit();
+    builder
+        .run_genesis(&PRODUCTION_RUN_GENESIS_REQUEST)
+        .commit();
 
     let install_request = InstallerRequestBuilder::new(*DEFAULT_ACCOUNT_ADDR, NFT_CONTRACT_WASM)
         .with_total_token_supply(1000u64)
@@ -1576,7 +1614,9 @@ fn should_prevent_transfer_to_unregistered_owner() {
 #[test]
 fn should_transfer_token_from_sender_to_receiver_with_transfer_only_reporting() {
     let mut builder = InMemoryWasmTestBuilder::default();
-    builder.run_genesis(&DEFAULT_RUN_GENESIS_REQUEST).commit();
+    builder
+        .run_genesis(&PRODUCTION_RUN_GENESIS_REQUEST)
+        .commit();
 
     let install_request = InstallerRequestBuilder::new(*DEFAULT_ACCOUNT_ADDR, NFT_CONTRACT_WASM)
         .with_collection_name(NFT_TEST_COLLECTION.to_string())
@@ -1699,7 +1739,9 @@ fn should_transfer_token_from_sender_to_receiver_with_transfer_only_reporting() 
 #[test]
 fn disallow_owner_to_approve_itself() {
     let mut builder = InMemoryWasmTestBuilder::default();
-    builder.run_genesis(&DEFAULT_RUN_GENESIS_REQUEST).commit();
+    builder
+        .run_genesis(&PRODUCTION_RUN_GENESIS_REQUEST)
+        .commit();
 
     let install_request = InstallerRequestBuilder::new(*DEFAULT_ACCOUNT_ADDR, NFT_CONTRACT_WASM)
         .with_collection_name(NFT_TEST_COLLECTION.to_string())
@@ -1761,7 +1803,9 @@ fn disallow_owner_to_approve_itself() {
 #[test]
 fn disallow_operator_to_approve_itself() {
     let mut builder = InMemoryWasmTestBuilder::default();
-    builder.run_genesis(&DEFAULT_RUN_GENESIS_REQUEST).commit();
+    builder
+        .run_genesis(&PRODUCTION_RUN_GENESIS_REQUEST)
+        .commit();
 
     let install_request = InstallerRequestBuilder::new(*DEFAULT_ACCOUNT_ADDR, NFT_CONTRACT_WASM)
         .with_collection_name(NFT_TEST_COLLECTION.to_string())
@@ -1837,7 +1881,9 @@ fn disallow_operator_to_approve_itself() {
 #[test]
 fn disallow_owner_to_approve_for_all_itself() {
     let mut builder = InMemoryWasmTestBuilder::default();
-    builder.run_genesis(&DEFAULT_RUN_GENESIS_REQUEST).commit();
+    builder
+        .run_genesis(&PRODUCTION_RUN_GENESIS_REQUEST)
+        .commit();
 
     let install_request = InstallerRequestBuilder::new(*DEFAULT_ACCOUNT_ADDR, NFT_CONTRACT_WASM)
         .with_collection_name(NFT_TEST_COLLECTION.to_string())
@@ -1897,7 +1943,9 @@ fn disallow_owner_to_approve_for_all_itself() {
 #[test]
 fn check_transfers_with_transfer_filter_contract_modes() {
     let mut builder = InMemoryWasmTestBuilder::default();
-    builder.run_genesis(&DEFAULT_RUN_GENESIS_REQUEST).commit();
+    builder
+        .run_genesis(&PRODUCTION_RUN_GENESIS_REQUEST)
+        .commit();
 
     let transfer_filter_contract_install_request = ExecuteRequestBuilder::standard(
         *DEFAULT_ACCOUNT_ADDR,
