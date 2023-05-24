@@ -402,7 +402,8 @@ casper-client put-deploy -n http://localhost:11101/rpc --chain-name "casper-net-
 --session-arg "ownership_mode:u8='0'" \
 --session-arg "nft_kind:u8='1'" \
 --session-arg "json_schema:string='nft-schema'" \
---session-arg "allow_minting:bool='true'"
+--session-arg "allow_minting:bool='true'" \
+--session-arg "owner_reverse_lookup_mode:u8='1'"
 ```
 
 #### Utility session code
@@ -646,6 +647,15 @@ casper-client put-deploy -n http://localhost:11101/rpc --chain-name "casper-net-
 
 </details>
 
+#### Checking Token Ownership
+
+[Learn to check token ownership](./tutorials/token-ownership-tutorial.md) starting with version [v1.1.1](https://github.com/casper-ecosystem/cep-78-enhanced-nft/releases/tag/v1.1.1). The `OwnerReverseLookupMode` modality must be set to `Complete` as described [here](../README.md#ownerreverselookupmode).
+
+#### Upgrading to Version 1.1.1 
+
+Upgrade to v1.1.1 using a [Standard NamedKey Convention](./tutorials/standard-migration-tutorial.md) or a [Custom NamedKey Convention](./tutorials/custom-migration-tutorial.md).
+
+
 ## Test Suite and Specification
 
 The expected behavior of the NFT contract implementation is asserted by its test suite found in the `tests` folder.
@@ -657,7 +667,7 @@ by using the provided `Makefile` and running the `make test` command.
 
 ## Owner Reverse Lookup Functionality
 
-In version 1.0 of the CEP-78 Enhanced NFT Standard contract, tracking minted tokens consisted of a single, unbounded list that would grow in size with each additional token. As a result, gas costs would increase over time as the list must be overwritten with each new minting.
+In version 1.0 of the CEP-78 Enhanced NFT Standard contract, tracking minted tokens consisted of a single, unbounded list that would grow in size with each additional token. As a result, gas costs would increase over time as the list must be overwritten with each new minting. The related tutorial can be found [here](./tutorials/token-ownership-tutorial.md).
 
 In an effort to stabilize the gas costs of larger NFT collections, version 1.1 of CEP-78 includes the use of a pre-allocated page system to track ownership of NFTs within the contract.
 
