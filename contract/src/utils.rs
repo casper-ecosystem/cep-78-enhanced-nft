@@ -23,10 +23,11 @@ use casper_types::{
 
 use crate::{
     constants::{
-        ARG_TOKEN_HASH, ARG_TOKEN_ID, BURNT_TOKENS, BURN_MODE, HASH_BY_INDEX, HOLDER_MODE,
-        INDEX_BY_HASH, MIGRATION_FLAG, NUMBER_OF_MINTED_TOKENS, OWNED_TOKENS, OWNERSHIP_MODE,
-        PAGE_LIMIT, PAGE_TABLE, PREFIX_PAGE_DICTIONARY, RECEIPT_NAME, REPORTING_MODE, RLO_MFLAG,
-        TOKEN_OWNERS, UNMATCHED_HASH_COUNT,
+        ACL_WHITELIST, ARG_TOKEN_HASH, ARG_TOKEN_ID, BURNT_TOKENS, BURN_MODE, CONTRACT_WHITELIST,
+        HASH_BY_INDEX, HOLDER_MODE, INDEX_BY_HASH, MIGRATION_FLAG, MINTING_MODE,
+        NUMBER_OF_MINTED_TOKENS, OWNED_TOKENS, OWNERSHIP_MODE, PAGE_LIMIT, PAGE_TABLE,
+        PREFIX_PAGE_DICTIONARY, RECEIPT_NAME, REPORTING_MODE, RLO_MFLAG, TOKEN_OWNERS,
+        UNMATCHED_HASH_COUNT,
     },
     error::NFTCoreError,
     events::events_ces::{
@@ -34,8 +35,8 @@ use crate::{
         Transfer, VariablesSet,
     },
     modalities::{
-        BurnMode, MetadataRequirement, NFTHolderMode, NFTIdentifierMode, NFTMetadataKind,
-        OwnerReverseLookupMode, OwnershipMode, Requirement, TokenIdentifier,
+        BurnMode, MetadataRequirement, MintingMode, NFTHolderMode, NFTIdentifierMode,
+        NFTMetadataKind, OwnerReverseLookupMode, OwnershipMode, Requirement, TokenIdentifier,
     },
     utils,
 };
@@ -211,11 +212,7 @@ pub fn named_uref_exists(name: &str) -> bool {
     api_error::result_from(ret).is_ok()
 }
 
-pub(crate) fn get_key_with_user_errors(
-    name: &str,
-    missing: NFTCoreError,
-    invalid: NFTCoreError,
-) -> Key {
+pub fn get_key_with_user_errors(name: &str, missing: NFTCoreError, invalid: NFTCoreError) -> Key {
     let (name_ptr, name_size, _bytes) = to_ptr(name);
     let mut key_bytes = vec![0u8; Key::max_serialized_length()];
     let mut total_bytes: usize = 0;
@@ -238,7 +235,7 @@ pub(crate) fn get_key_with_user_errors(
     bytesrepr::deserialize(key_bytes).unwrap_or_revert_with(invalid)
 }
 
-pub(crate) fn read_with_user_errors<T: CLTyped + FromBytes>(
+pub fn read_with_user_errors<T: CLTyped + FromBytes>(
     uref: URef,
     missing: NFTCoreError,
     invalid: NFTCoreError,
@@ -261,7 +258,7 @@ pub(crate) fn read_with_user_errors<T: CLTyped + FromBytes>(
     bytesrepr::deserialize(value_bytes).unwrap_or_revert_with(invalid)
 }
 
-pub(crate) fn read_host_buffer_into(dest: &mut [u8]) -> Result<usize, ApiError> {
+pub fn read_host_buffer_into(dest: &mut [u8]) -> Result<usize, ApiError> {
     let mut bytes_written = MaybeUninit::uninit();
     let ret = unsafe {
         ext_ffi::casper_read_host_buffer(dest.as_mut_ptr(), dest.len(), bytes_written.as_mut_ptr())
@@ -273,7 +270,7 @@ pub(crate) fn read_host_buffer_into(dest: &mut [u8]) -> Result<usize, ApiError> 
     Ok(unsafe { bytes_written.assume_init() })
 }
 
-pub(crate) fn read_host_buffer(size: usize) -> Result<Vec<u8>, ApiError> {
+pub fn read_host_buffer(size: usize) -> Result<Vec<u8>, ApiError> {
     let mut dest: Vec<u8> = if size == 0 {
         Vec::new()
     } else {
@@ -284,7 +281,7 @@ pub(crate) fn read_host_buffer(size: usize) -> Result<Vec<u8>, ApiError> {
     Ok(dest)
 }
 
-pub(crate) fn to_ptr<T: ToBytes>(t: T) -> (*const u8, usize, Vec<u8>) {
+pub fn to_ptr<T: ToBytes>(t: T) -> (*const u8, usize, Vec<u8>) {
     let bytes = t.into_bytes().unwrap_or_revert();
     let ptr = bytes.as_ptr();
     let size = bytes.len();
@@ -822,5 +819,47 @@ pub fn requires_rlo_migration() -> bool {
             }
             None => true,
         },
+    }
+}
+
+pub fn migrate_contract_whitelist_to_acl_whitelist() {
+    // Add ACL whitelist dict and migrate old contract whitelist to new ACL dict
+    if runtime::get_key(ACL_WHITELIST).is_none() {
+        storage::new_dictionary(ACL_WHITELIST)
+            .unwrap_or_revert_with(NFTCoreError::FailedToCreateDictionary);
+        let contract_whitelist = utils::get_stored_value_with_user_errors::<Vec<ContractHash>>(
+            CONTRACT_WHITELIST,
+            NFTCoreError::MissingWhitelistMode,
+            NFTCoreError::InvalidWhitelistMode,
+        );
+
+        // If mining mode is Installer and contract whitelist is not empty then migrate to minting
+        // mode ACL and fill ACL_WHITELIST dictionnary
+        if !contract_whitelist.is_empty() {
+            let minting_mode: MintingMode = utils::get_stored_value_with_user_errors::<u8>(
+                MINTING_MODE,
+                NFTCoreError::MissingMintingMode,
+                NFTCoreError::InvalidMintingMode,
+            )
+            .try_into()
+            .unwrap_or_revert();
+
+            // Migrate to ACL
+            if MintingMode::Installer == minting_mode {
+                runtime::put_key(
+                    MINTING_MODE,
+                    storage::new_uref(MintingMode::Acl as u8).into(),
+                );
+            }
+
+            // Update acl whitelist
+            for contract_hash in contract_whitelist.iter() {
+                utils::upsert_dictionary_value_from_key(
+                    ACL_WHITELIST,
+                    &contract_hash.to_string(),
+                    true,
+                );
+            }
+        }
     }
 }

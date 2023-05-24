@@ -158,6 +158,9 @@ pub enum NFTCoreError {
     MissingSpenderAccountHash = 153,
     InvalidSpenderAccountHash = 154,
     MissingOwnerTokenIdentifierKey = 155,
+    MissingACLWhiteList = 156,
+    InvalidACLWhitelist = 157,
+    EmptyACLWhitelist = 158,
 }
 
 impl From<NFTCoreError> for ApiError {

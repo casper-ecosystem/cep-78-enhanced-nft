@@ -1,6 +1,6 @@
 use casper_engine_test_support::{
     ExecuteRequestBuilder, InMemoryWasmTestBuilder, DEFAULT_ACCOUNT_ADDR,
-    DEFAULT_RUN_GENESIS_REQUEST,
+    PRODUCTION_RUN_GENESIS_REQUEST,
 };
 
 use casper_types::{account::AccountHash, runtime_args, CLValue, ContractHash, Key, RuntimeArgs};
@@ -38,7 +38,9 @@ const MANGLED_HASH_KEY_NAME: &str = "mangled_hash_key";
 #[test]
 fn should_safely_upgrade_in_ordinal_identifier_mode() {
     let mut builder = InMemoryWasmTestBuilder::default();
-    builder.run_genesis(&DEFAULT_RUN_GENESIS_REQUEST).commit();
+    builder
+        .run_genesis(&PRODUCTION_RUN_GENESIS_REQUEST)
+        .commit();
 
     let install_request = InstallerRequestBuilder::new(*DEFAULT_ACCOUNT_ADDR, CONTRACT_1_0_0_WASM)
         .with_collection_name(NFT_TEST_COLLECTION.to_string())
@@ -99,7 +101,6 @@ fn should_safely_upgrade_in_ordinal_identifier_mode() {
             ARG_NFT_CONTRACT_PACKAGE_HASH => contract_package_hash,
             ARG_COLLECTION_NAME => NFT_TEST_COLLECTION.to_string(),
             ARG_NAMED_KEY_CONVENTION => NamedKeyConventionMode::V1_0Standard as u8,
-            ARG_ACCESS_KEY_NAME_1_0_0 => ACCESS_KEY_NAME_1_0_0.to_string(),
             ARG_EVENTS_MODE => EventsMode::CES as u8
         },
     )
@@ -161,7 +162,9 @@ fn should_safely_upgrade_in_ordinal_identifier_mode() {
 #[test]
 fn should_safely_upgrade_in_hash_identifier_mode() {
     let mut builder = InMemoryWasmTestBuilder::default();
-    builder.run_genesis(&DEFAULT_RUN_GENESIS_REQUEST).commit();
+    builder
+        .run_genesis(&PRODUCTION_RUN_GENESIS_REQUEST)
+        .commit();
 
     let install_request = InstallerRequestBuilder::new(*DEFAULT_ACCOUNT_ADDR, CONTRACT_1_0_0_WASM)
         .with_collection_name(NFT_TEST_COLLECTION.to_string())
@@ -237,7 +240,6 @@ fn should_safely_upgrade_in_hash_identifier_mode() {
             ARG_NFT_CONTRACT_HASH => support::get_nft_contract_package_hash(&builder),
             ARG_COLLECTION_NAME => NFT_TEST_COLLECTION.to_string(),
             ARG_NAMED_KEY_CONVENTION => NamedKeyConventionMode::V1_0Standard as u8,
-            ARG_ACCESS_KEY_NAME_1_0_0 => ACCESS_KEY_NAME_1_0_0.to_string(),
             ARG_TOTAL_TOKEN_SUPPLY => 10u64
         },
     )
@@ -352,7 +354,9 @@ fn should_safely_upgrade_in_hash_identifier_mode() {
 #[test]
 fn should_update_receipts_post_upgrade_paged() {
     let mut builder = InMemoryWasmTestBuilder::default();
-    builder.run_genesis(&DEFAULT_RUN_GENESIS_REQUEST).commit();
+    builder
+        .run_genesis(&PRODUCTION_RUN_GENESIS_REQUEST)
+        .commit();
 
     let install_request = InstallerRequestBuilder::new(*DEFAULT_ACCOUNT_ADDR, CONTRACT_1_0_0_WASM)
         .with_collection_name(NFT_TEST_COLLECTION.to_string())
@@ -393,7 +397,6 @@ fn should_update_receipts_post_upgrade_paged() {
         runtime_args! {
             ARG_COLLECTION_NAME => NFT_TEST_COLLECTION.to_string(),
             ARG_NAMED_KEY_CONVENTION => NamedKeyConventionMode::V1_0Standard as u8,
-            ARG_ACCESS_KEY_NAME_1_0_0 => ACCESS_KEY_NAME_1_0_0.to_string()
         },
     )
     .build();
@@ -446,7 +449,9 @@ fn should_update_receipts_post_upgrade_paged() {
 #[test]
 fn should_not_be_able_to_reinvoke_migrate_entrypoint() {
     let mut builder = InMemoryWasmTestBuilder::default();
-    builder.run_genesis(&DEFAULT_RUN_GENESIS_REQUEST).commit();
+    builder
+        .run_genesis(&PRODUCTION_RUN_GENESIS_REQUEST)
+        .commit();
 
     let install_request = InstallerRequestBuilder::new(*DEFAULT_ACCOUNT_ADDR, CONTRACT_1_0_0_WASM)
         .with_collection_name(NFT_TEST_COLLECTION.to_string())
@@ -466,7 +471,6 @@ fn should_not_be_able_to_reinvoke_migrate_entrypoint() {
             ARG_NFT_CONTRACT_HASH => support::get_nft_contract_package_hash(&builder),
             ARG_COLLECTION_NAME => NFT_TEST_COLLECTION.to_string(),
             ARG_NAMED_KEY_CONVENTION => NamedKeyConventionMode::V1_0Standard as u8,
-            ARG_ACCESS_KEY_NAME_1_0_0 => ACCESS_KEY_NAME_1_0_0.to_string()
         },
     )
     .build();
@@ -483,7 +487,6 @@ fn should_not_be_able_to_reinvoke_migrate_entrypoint() {
             ARG_NFT_CONTRACT_PACKAGE_HASH => support::get_nft_contract_package_hash(&builder),
             ARG_COLLECTION_NAME => NFT_TEST_COLLECTION.to_string(),
             ARG_NAMED_KEY_CONVENTION => NamedKeyConventionMode::V1_0Standard as u8,
-            ARG_ACCESS_KEY_NAME_1_0_0 => ACCESS_KEY_NAME_1_0_0.to_string(),
             ARG_EVENTS_MODE => EventsMode::CES as u8
         },
     )
@@ -499,7 +502,6 @@ fn should_not_be_able_to_reinvoke_migrate_entrypoint() {
         runtime_args! {
             ARG_COLLECTION_NAME => NFT_TEST_COLLECTION.to_string(),
             ARG_NAMED_KEY_CONVENTION => NamedKeyConventionMode::V1_0Standard as u8,
-            ARG_ACCESS_KEY_NAME_1_0_0 => ACCESS_KEY_NAME_1_0_0.to_string(),
             ARG_EVENTS_MODE => EventsMode::CES as u8
         },
     )
@@ -515,7 +517,9 @@ fn should_not_be_able_to_reinvoke_migrate_entrypoint() {
 #[test]
 fn should_not_migrate_contracts_with_zero_token_issuance() {
     let mut builder = InMemoryWasmTestBuilder::default();
-    builder.run_genesis(&DEFAULT_RUN_GENESIS_REQUEST).commit();
+    builder
+        .run_genesis(&PRODUCTION_RUN_GENESIS_REQUEST)
+        .commit();
 
     let install_request = InstallerRequestBuilder::new(*DEFAULT_ACCOUNT_ADDR, CONTRACT_1_0_0_WASM)
         .with_collection_name(NFT_TEST_COLLECTION.to_string())
@@ -535,7 +539,6 @@ fn should_not_migrate_contracts_with_zero_token_issuance() {
             ARG_NFT_CONTRACT_PACKAGE_HASH => support::get_nft_contract_package_hash(&builder),
             ARG_COLLECTION_NAME => NFT_TEST_COLLECTION.to_string(),
             ARG_NAMED_KEY_CONVENTION => NamedKeyConventionMode::V1_0Standard as u8,
-            ARG_ACCESS_KEY_NAME_1_0_0 => ACCESS_KEY_NAME_1_0_0.to_string()
         },
     )
     .build();
@@ -549,7 +552,9 @@ fn should_not_migrate_contracts_with_zero_token_issuance() {
 #[test]
 fn should_upgrade_with_custom_named_keys() {
     let mut builder = InMemoryWasmTestBuilder::default();
-    builder.run_genesis(&DEFAULT_RUN_GENESIS_REQUEST).commit();
+    builder
+        .run_genesis(&PRODUCTION_RUN_GENESIS_REQUEST)
+        .commit();
 
     let install_request = InstallerRequestBuilder::new(*DEFAULT_ACCOUNT_ADDR, CONTRACT_1_0_0_WASM)
         .with_collection_name(NFT_TEST_COLLECTION.to_string())
@@ -655,7 +660,9 @@ fn should_upgrade_with_custom_named_keys() {
 #[test]
 fn should_not_upgrade_with_larger_total_token_supply() {
     let mut builder = InMemoryWasmTestBuilder::default();
-    builder.run_genesis(&DEFAULT_RUN_GENESIS_REQUEST).commit();
+    builder
+        .run_genesis(&PRODUCTION_RUN_GENESIS_REQUEST)
+        .commit();
 
     let install_request = InstallerRequestBuilder::new(*DEFAULT_ACCOUNT_ADDR, CONTRACT_1_0_0_WASM)
         .with_collection_name(NFT_TEST_COLLECTION.to_string())
@@ -676,7 +683,6 @@ fn should_not_upgrade_with_larger_total_token_supply() {
             ARG_NFT_CONTRACT_PACKAGE_HASH => support::get_nft_contract_package_hash(&builder),
             ARG_COLLECTION_NAME => NFT_TEST_COLLECTION.to_string(),
             ARG_NAMED_KEY_CONVENTION => NamedKeyConventionMode::V1_0Standard as u8,
-            ARG_ACCESS_KEY_NAME_1_0_0 => ACCESS_KEY_NAME_1_0_0.to_string(),
             ARG_TOTAL_TOKEN_SUPPLY => 1000u64
         },
     )
@@ -697,7 +703,9 @@ fn should_safely_upgrade_from_1_2_0_to_current_version_with_reporting_mode(
     expected_total_token_supply_post_upgrade: u64,
 ) {
     let mut builder = InMemoryWasmTestBuilder::default();
-    builder.run_genesis(&DEFAULT_RUN_GENESIS_REQUEST).commit();
+    builder
+        .run_genesis(&PRODUCTION_RUN_GENESIS_REQUEST)
+        .commit();
 
     let install_request = InstallerRequestBuilder::new(*DEFAULT_ACCOUNT_ADDR, CONTRACT_1_2_0_WASM)
         .with_collection_name(NFT_TEST_COLLECTION.to_string())
@@ -821,7 +829,9 @@ fn should_safely_upgrade_from_1_2_0_to_current_version() {
 #[test]
 fn should_safely_upgrade_from_1_0_0_to_1_2_0_to_current_version() {
     let mut builder = InMemoryWasmTestBuilder::default();
-    builder.run_genesis(&DEFAULT_RUN_GENESIS_REQUEST).commit();
+    builder
+        .run_genesis(&PRODUCTION_RUN_GENESIS_REQUEST)
+        .commit();
 
     let install_request = InstallerRequestBuilder::new(*DEFAULT_ACCOUNT_ADDR, CONTRACT_1_0_0_WASM)
         .with_collection_name(NFT_TEST_COLLECTION.to_string())
@@ -930,7 +940,9 @@ fn should_safely_upgrade_from_1_0_0_to_1_2_0_to_current_version() {
 #[test]
 fn should_safely_upgrade_from_1_0_0_to_current_version() {
     let mut builder = InMemoryWasmTestBuilder::default();
-    builder.run_genesis(&DEFAULT_RUN_GENESIS_REQUEST).commit();
+    builder
+        .run_genesis(&PRODUCTION_RUN_GENESIS_REQUEST)
+        .commit();
 
     let install_request = InstallerRequestBuilder::new(*DEFAULT_ACCOUNT_ADDR, CONTRACT_1_0_0_WASM)
         .with_collection_name(NFT_TEST_COLLECTION.to_string())

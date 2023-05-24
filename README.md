@@ -84,9 +84,6 @@ The `NFTHolderMode` dictates which entities on a Casper network can own and mint
 2. `Contracts`: In this mode, only `Contracts` can own and mint NFTs.
 3. `Mixed`: In this mode both `Accounts` and `Contracts` can own and mint NFTs.
 
-If the `NFTHolderMode` is set to `Contracts` a `ContractHash` whitelist must be provided. This whitelist dictates which
-`Contracts` are allowed to mint NFTs in the restricted `Installer` minting mode.
-
 | NFTHolderMode | u8  |
 | ------------- | --- |
 | Accounts      | 0   |
@@ -97,28 +94,13 @@ This modality is an optional installation parameter and will default to the `Mix
 mode cannot be changed once the contract has been installed.
 The mode is passed in as a `u8` value to `nft_holder_mode` runtime argument.
 
-#### WhitelistMode
-
-The `WhitelistMode` dictates if the contract whitelist restricting access to the mint entrypoint can be updated. There are currently
-two options:
-
-1. `Unlocked`: The contract whitelist is unlocked and can be updated via the set variables endpoint.
-2. `Locked`: The contract whitelist is locked and cannot be updated further.
-
-This `WhitelistMode` is an optional installation parameter and will be set to unlocked if not passed. However, the whitelist mode itself
-cannot be changed once the contract has been installed. The mode is passed in as a `u8` value to `whitelist_mode` runtime argument.
-
-| WhitelistMode | u8  |
-| ------------- | --- |
-| Unlocked      | 0   |
-| Locked        | 1   |
-
 #### Minting
 
 The minting mode governs the behavior of contract when minting new tokens. The minting modality provides two options:
 
 1. `Installer`: This mode restricts the ability to mint new NFT tokens only to the installing account of the NFT contract.
 2. `Public`: This mode allows any account to mint NFT tokens.
+3. `ACL`: This mode allows whitelisted accounts or contracts to mint NFT tokens.
 
 This modality is an optional installation parameter and will default to the `Installer` mode if not provided. However, this
 mode cannot be changed once the contract has been installed. The mode is set by passing a `u8` value to the `minting_mode` runtime argument.
@@ -127,6 +109,23 @@ mode cannot be changed once the contract has been installed. The mode is set by 
 | ----------- | --- |
 | Installer   | 0   |
 | Public      | 1   |
+| ACL         | 2   |
+
+#### WhitelistMode
+
+The `WhitelistMode` dictates if the ACL whitelist restricting access to the mint entry point can be updated. There are currently two options:
+
+1. `Unlocked`: The ACL whitelist is unlocked and can be updated via the set variables endpoint.
+2. `Locked`: The ACL whitelist is locked and cannot be updated further.
+
+If the `WhitelistMode` is set to `Locked` an ACL whitelist of entity keys must be provided on installation. This whitelist dictates which entities can mint NFTs in the restricted `ACL` minting mode. These entities include `Accounts` and/or `Contracts`.
+
+This `WhitelistMode` is an optional installation parameter and will be set to unlocked if not passed. However, the whitelist mode itself cannot be changed once the contract has been installed. The mode is passed in as a `u8` value to `whitelist_mode` runtime argument.
+
+| WhitelistMode | u8  |
+| ------------- | --- |
+| Unlocked      | 0   |
+| Locked        | 1   |
 
 #### NFTMetadataKind
 
@@ -381,9 +380,9 @@ The following are the optional parameters that can be passed in at the time of i
 
 - `"minting_mode"`: The [`MintingMode`](#minting) modality that dictates the access to the `mint()` entry-point in the NFT contract. This is an optional parameter that will default to restricting access to the installer of the contract. This parameter cannot be changed once the contract has been installed.
 - `"allow_minting"`: The `"allow_minting"` flag allows the installer of the contract to pause the minting of new NFTs. The `allow_minting` is a boolean toggle that allows minting when `true`. If not provided at install the toggle will default to `true`. This value can be changed by the installer by calling the `set_variables()` entrypoint.
-- `"whitelist_mode"`: The [`WhitelistMode`](#whitelistmode) modality dictates whether the contract whitelist can be updated. This optional parameter will default to an unlocked whitelist that can be updated post installation. This parameter cannot be changed once the contract has been installed.
+- `"whitelist_mode"`: The [`WhitelistMode`](#whitelistmode) modality dictates whether the acl whitelist can be updated. This optional parameter will default to an unlocked whitelist that can be updated post installation. This parameter cannot be changed once the contract has been installed.
 - `"holder_mode"`: The [`NFTHolderMode`](#nftholdermode) modality dictates which entities can hold NFTs. This is an optional parameter and will default to a mixed mode allowing either `Accounts` or `Contracts` to hold NFTs. This parameter cannot be changed once the contract has been installed.
-- `"contract_whitelist"`: The contract whitelist is a list of contract hashes that specifies which contracts can call the `mint()` entrypoint to mint NFTs. This is an optional parameter which will default to an empty whitelist. This value can be changed via the `set_variables` post installation. If the whitelist mode is set to locked, a non-empty whitelist must be passed; else, installation of the contract will fail.
+- `"acl_whitelist"`: The acl whitelist is a list of account and/or contract hashes that specifies which entity can call the `mint()` entrypoint to mint NFTs. This is an optional parameter which will default to an empty whitelist. This value can be changed via the `set_variables` post installation. If the whitelist mode is set to locked, a non-empty whitelist must be passed. If the whitelist mode is set to locked and you do not provide a non-empty whitelist, the contract will fail to install.
 - `"burn_mode"`: The [`BurnMode`](#burnmode) modality dictates whether minted NFTs can be burnt. This is an optional parameter and will allow tokens to be burnt by default. This parameter cannot be changed once the contract has been installed.
 - `"owner_reverse_lookup_mode"`: The [`OwnerReverseLookupMode`](#reportingmode) modality dictates whether the lookup for owners to token identifiers is available. This is an optional parameter and will not provide the lookup by default. This parameter cannot be changed once the contract has been installed.
 - `"events_mode"`: The [`EventsMode`](#eventsmode) modality selects the event schema used to record any changes that occur to tokens issued by the contract instance.
@@ -651,10 +650,9 @@ casper-client put-deploy -n http://localhost:11101/rpc --chain-name "casper-net-
 
 [Learn to check token ownership](./tutorials/token-ownership-tutorial.md) starting with version [v1.1.1](https://github.com/casper-ecosystem/cep-78-enhanced-nft/releases/tag/v1.1.1). The `OwnerReverseLookupMode` modality must be set to `Complete` as described [here](../README.md#ownerreverselookupmode).
 
-#### Upgrading to Version 1.1.1 
+#### Upgrading to Version 1.1.1
 
 Upgrade to v1.1.1 using a [Standard NamedKey Convention](./tutorials/standard-migration-tutorial.md) or a [Custom NamedKey Convention](./tutorials/custom-migration-tutorial.md).
-
 
 ## Test Suite and Specification
 
@@ -872,3 +870,6 @@ If it is set to `Hash`, you will need to reference the `HASH_BY_INDEX` dictionar
 | 153  | MissingSpenderAccountHash             |
 | 154  | InvalidSpenderAccountHash             |
 | 155  | MissingOwnerTokenIdentifierKey        |
+| 156  | MissingACLWhiteList                   |
+| 157  | InvalidACLWhitelist                   |
+| 158  | EmptyACLWhitelist                     |

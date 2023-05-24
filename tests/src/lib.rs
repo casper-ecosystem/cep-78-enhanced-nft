@@ -30,6 +30,10 @@ mod upgrade;
 // around token events.
 #[cfg(test)]
 mod events;
+// A collection of tests that are focused
+// around acl whitelist.
+#[cfg(test)]
+mod acl;
 
 // A collection of helper methods and constants.
 #[cfg(test)]
