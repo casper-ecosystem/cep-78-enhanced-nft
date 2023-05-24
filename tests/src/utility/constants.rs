@@ -1,6 +1,7 @@
 pub const BALANCE_OF_SESSION_WASM: &str = "balance_of_call.wasm";
 pub const CONTRACT_1_0_0_WASM: &str = "1_0_0/contract.wasm";
-pub const CONTRACT_1_1_O_WASM: &str = "1_1_0/contract.wasm";
+pub const CONTRACT_1_1_0_WASM: &str = "1_1_0/contract.wasm";
+pub const CONTRACT_1_2_0_WASM: &str = "1_2_0/contract.wasm";
 pub const GET_APPROVED_WASM: &str = "get_approved_call.wasm";
 pub const IS_APPROVED_FOR_ALL_WASM: &str = "is_approved_for_all_call.wasm";
 pub const MANGLE_NAMED_KEYS: &str = "mangle_named_keys.wasm";

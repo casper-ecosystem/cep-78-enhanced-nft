@@ -3,13 +3,14 @@ use casper_engine_test_support::{
     PRODUCTION_RUN_GENESIS_REQUEST,
 };
 
-use casper_types::{account::AccountHash, runtime_args, CLValue, Key, RuntimeArgs};
+use casper_types::{account::AccountHash, runtime_args, CLValue, ContractHash, Key, RuntimeArgs};
 use contract::{
     constants::{
         ACCESS_KEY_NAME_1_0_0, ARG_ACCESS_KEY_NAME_1_0_0, ARG_COLLECTION_NAME, ARG_EVENTS_MODE,
         ARG_HASH_KEY_NAME_1_0_0, ARG_NAMED_KEY_CONVENTION, ARG_SOURCE_KEY, ARG_TARGET_KEY,
         ARG_TOKEN_HASH, ARG_TOKEN_META_DATA, ARG_TOKEN_OWNER, ARG_TOTAL_TOKEN_SUPPLY,
-        ENTRY_POINT_REGISTER_OWNER, PAGE_LIMIT, RECEIPT_NAME, UNMATCHED_HASH_COUNT,
+        ENTRY_POINT_MINT, ENTRY_POINT_REGISTER_OWNER, NUMBER_OF_MINTED_TOKENS, PAGE_LIMIT,
+        PREFIX_ACCESS_KEY_NAME, PREFIX_HASH_KEY_NAME, RECEIPT_NAME, UNMATCHED_HASH_COUNT,
     },
     events::events_ces::Migration,
     modalities::EventsMode,
@@ -18,15 +19,16 @@ use contract::{
 use crate::utility::{
     constants::{
         ACCOUNT_USER_1, ARG_IS_HASH_IDENTIFIER_MODE, ARG_NFT_CONTRACT_HASH,
-        ARG_NFT_CONTRACT_PACKAGE_HASH, CONTRACT_1_0_0_WASM, CONTRACT_1_1_O_WASM, MANGLE_NAMED_KEYS,
-        MINT_1_0_0_WASM, MINT_SESSION_WASM, NFT_CONTRACT_WASM, NFT_TEST_COLLECTION,
-        NFT_TEST_SYMBOL, PAGE_SIZE, TRANSFER_SESSION_WASM, UPDATED_RECEIPTS_WASM,
+        ARG_NFT_CONTRACT_PACKAGE_HASH, CONTRACT_1_0_0_WASM, CONTRACT_1_1_0_WASM,
+        CONTRACT_1_2_0_WASM, MANGLE_NAMED_KEYS, MINT_1_0_0_WASM, MINT_SESSION_WASM,
+        NFT_CONTRACT_WASM, NFT_TEST_COLLECTION, NFT_TEST_SYMBOL, PAGE_SIZE, TRANSFER_SESSION_WASM,
+        UPDATED_RECEIPTS_WASM,
     },
     installer_request_builder::{
         InstallerRequestBuilder, MetadataMutability, NFTIdentifierMode, NFTMetadataKind,
-        NamedKeyConventionMode, OwnershipMode,
+        NamedKeyConventionMode, OwnerReverseLookupMode, OwnershipMode,
     },
-    support,
+    support::{self},
 };
 
 const OWNED_TOKENS: &str = "owned_tokens";
@@ -464,7 +466,7 @@ fn should_not_be_able_to_reinvoke_migrate_entrypoint() {
 
     let upgrade_to_1_1_request = ExecuteRequestBuilder::standard(
         *DEFAULT_ACCOUNT_ADDR,
-        CONTRACT_1_1_O_WASM,
+        CONTRACT_1_1_0_WASM,
         runtime_args! {
             ARG_NFT_CONTRACT_HASH => support::get_nft_contract_package_hash(&builder),
             ARG_COLLECTION_NAME => NFT_TEST_COLLECTION.to_string(),
@@ -480,7 +482,7 @@ fn should_not_be_able_to_reinvoke_migrate_entrypoint() {
 
     let upgrade_request = ExecuteRequestBuilder::standard(
         *DEFAULT_ACCOUNT_ADDR,
-        NFT_CONTRACT_WASM,
+        CONTRACT_1_2_0_WASM,
         runtime_args! {
             ARG_NFT_CONTRACT_PACKAGE_HASH => support::get_nft_contract_package_hash(&builder),
             ARG_COLLECTION_NAME => NFT_TEST_COLLECTION.to_string(),
@@ -496,7 +498,7 @@ fn should_not_be_able_to_reinvoke_migrate_entrypoint() {
     // calling the updated_receipts entrypoint should cause an error to be returned.
     let incorrect_upgrade_request = ExecuteRequestBuilder::standard(
         *DEFAULT_ACCOUNT_ADDR,
-        NFT_CONTRACT_WASM,
+        CONTRACT_1_2_0_WASM,
         runtime_args! {
             ARG_COLLECTION_NAME => NFT_TEST_COLLECTION.to_string(),
             ARG_NAMED_KEY_CONVENTION => NamedKeyConventionMode::V1_0Standard as u8,
@@ -694,4 +696,347 @@ fn should_not_upgrade_with_larger_total_token_supply() {
         150u16,
         "cannot upgrade when new total token supply is larger than pre-migration one",
     );
+}
+
+fn should_safely_upgrade_from_1_2_0_to_current_version_with_reporting_mode(
+    reporting_mode: OwnerReverseLookupMode,
+    expected_total_token_supply_post_upgrade: u64,
+) {
+    let mut builder = InMemoryWasmTestBuilder::default();
+    builder.run_genesis(&DEFAULT_RUN_GENESIS_REQUEST).commit();
+
+    let install_request = InstallerRequestBuilder::new(*DEFAULT_ACCOUNT_ADDR, CONTRACT_1_2_0_WASM)
+        .with_collection_name(NFT_TEST_COLLECTION.to_string())
+        .with_collection_symbol(NFT_TEST_SYMBOL.to_string())
+        .with_total_token_supply(100u64)
+        .with_ownership_mode(OwnershipMode::Transferable)
+        .with_reporting_mode(reporting_mode)
+        .with_metadata_mutability(MetadataMutability::Mutable)
+        .with_identifier_mode(NFTIdentifierMode::Ordinal)
+        .with_nft_metadata_kind(NFTMetadataKind::Raw)
+        .with_events_mode(EventsMode::CES)
+        .build();
+
+    builder.exec(install_request).expect_success().commit();
+
+    let nft_contract_hash_1_2_0: ContractHash = support::get_nft_contract_hash(&builder);
+    let nft_contract_key_1_2_0: Key = nft_contract_hash_1_2_0.into();
+
+    let number_of_tokens_pre_migration = 3usize;
+
+    // Build of prestate before migration.
+    for _i in 0..number_of_tokens_pre_migration {
+        let register_request = ExecuteRequestBuilder::contract_call_by_hash(
+            *DEFAULT_ACCOUNT_ADDR,
+            nft_contract_hash_1_2_0,
+            ENTRY_POINT_REGISTER_OWNER,
+            runtime_args! {
+                ARG_TOKEN_OWNER => Key::Account(*DEFAULT_ACCOUNT_ADDR),
+            },
+        )
+        .build();
+
+        builder.exec(register_request).expect_success().commit();
+        let mint_request = ExecuteRequestBuilder::contract_call_by_hash(
+            *DEFAULT_ACCOUNT_ADDR,
+            nft_contract_hash_1_2_0,
+            ENTRY_POINT_MINT,
+            runtime_args! {
+                ARG_TOKEN_OWNER => Key::Account(*DEFAULT_ACCOUNT_ADDR),
+                ARG_TOKEN_META_DATA => "",
+            },
+        )
+        .build();
+
+        builder.exec(mint_request).expect_success().commit();
+    }
+
+    let upgrade_request = ExecuteRequestBuilder::standard(
+        *DEFAULT_ACCOUNT_ADDR,
+        NFT_CONTRACT_WASM,
+        runtime_args! {
+            ARG_NFT_CONTRACT_HASH => nft_contract_key_1_2_0,
+            ARG_COLLECTION_NAME => NFT_TEST_COLLECTION.to_string(),
+            ARG_NAMED_KEY_CONVENTION => NamedKeyConventionMode::V1_0Custom as u8,
+            ARG_ACCESS_KEY_NAME_1_0_0 => format!("{PREFIX_ACCESS_KEY_NAME}_{NFT_TEST_COLLECTION}"),
+            ARG_HASH_KEY_NAME_1_0_0 => format!("{PREFIX_HASH_KEY_NAME}_{NFT_TEST_COLLECTION}"),
+            ARG_TOTAL_TOKEN_SUPPLY => 10u64
+        },
+    )
+    .build();
+
+    builder.exec(upgrade_request).expect_success().commit();
+
+    let nft_contract_hash = support::get_nft_contract_hash(&builder);
+    let nft_contract_key: Key = nft_contract_hash.into();
+
+    let number_of_tokens_at_upgrade = support::get_stored_value_from_global_state::<u64>(
+        &builder,
+        nft_contract_key,
+        vec![NUMBER_OF_MINTED_TOKENS.to_string()],
+    )
+    .expect("must get u64 value");
+
+    assert_eq!(number_of_tokens_at_upgrade, 3);
+
+    let total_token_supply_post_upgrade = support::get_stored_value_from_global_state::<u64>(
+        &builder,
+        nft_contract_key,
+        vec![ARG_TOTAL_TOKEN_SUPPLY.to_string()],
+    )
+    .expect("must get u64 value");
+
+    assert_eq!(
+        total_token_supply_post_upgrade,
+        expected_total_token_supply_post_upgrade
+    );
+
+    // Expect No Migration event after 3 Mint events.
+    let seed_uref = *builder
+        .query(None, nft_contract_key, &[])
+        .expect("must have nft contract")
+        .as_contract()
+        .expect("must convert contract")
+        .named_keys()
+        .get(casper_event_standard::EVENTS_DICT)
+        .expect("must have key")
+        .as_uref()
+        .expect("must convert to seed uref");
+
+    builder
+        .query_dictionary_item(None, seed_uref, "3")
+        .expect_err("should not have dictionary value for a third migration event");
+}
+
+#[test]
+
+fn should_safely_upgrade_from_1_2_0_to_current_version() {
+    //* starting total_token_supply 100u64
+    let expected_total_token_supply_post_upgrade = 10;
+    should_safely_upgrade_from_1_2_0_to_current_version_with_reporting_mode(
+        OwnerReverseLookupMode::NoLookUp,
+        expected_total_token_supply_post_upgrade,
+    );
+    let expected_total_token_supply_post_upgrade = 100;
+    should_safely_upgrade_from_1_2_0_to_current_version_with_reporting_mode(
+        OwnerReverseLookupMode::Complete,
+        expected_total_token_supply_post_upgrade,
+    );
+}
+
+#[test]
+fn should_safely_upgrade_from_1_0_0_to_1_2_0_to_current_version() {
+    let mut builder = InMemoryWasmTestBuilder::default();
+    builder.run_genesis(&DEFAULT_RUN_GENESIS_REQUEST).commit();
+
+    let install_request = InstallerRequestBuilder::new(*DEFAULT_ACCOUNT_ADDR, CONTRACT_1_0_0_WASM)
+        .with_collection_name(NFT_TEST_COLLECTION.to_string())
+        .with_collection_symbol(NFT_TEST_SYMBOL.to_string())
+        .with_total_token_supply(100u64)
+        .with_ownership_mode(OwnershipMode::Transferable)
+        .with_metadata_mutability(MetadataMutability::Mutable)
+        .with_identifier_mode(NFTIdentifierMode::Ordinal)
+        .with_nft_metadata_kind(NFTMetadataKind::Raw)
+        .build();
+
+    builder.exec(install_request).expect_success().commit();
+
+    let nft_contract_hash_1_0_0 = support::get_nft_contract_hash_1_0_0(&builder);
+    let nft_contract_key_1_0_0: Key = nft_contract_hash_1_0_0.into();
+
+    let upgrade_request = ExecuteRequestBuilder::standard(
+        *DEFAULT_ACCOUNT_ADDR,
+        CONTRACT_1_2_0_WASM,
+        runtime_args! {
+            ARG_NFT_CONTRACT_HASH => nft_contract_key_1_0_0,
+            ARG_COLLECTION_NAME => NFT_TEST_COLLECTION.to_string(),
+            ARG_NAMED_KEY_CONVENTION => NamedKeyConventionMode::V1_0Standard as u8,
+            ARG_EVENTS_MODE => EventsMode::CES as u8,
+            ARG_TOTAL_TOKEN_SUPPLY => 50u64
+        },
+    )
+    .build();
+
+    builder.exec(upgrade_request).expect_success().commit();
+
+    let total_token_supply_post_upgrade = support::get_stored_value_from_global_state::<u64>(
+        &builder,
+        nft_contract_key_1_0_0,
+        vec![ARG_TOTAL_TOKEN_SUPPLY.to_string()],
+    )
+    .expect("must get u64 value");
+
+    assert_eq!(total_token_supply_post_upgrade, 50u64);
+
+    let nft_contract_hash_1_2_0: ContractHash = support::get_nft_contract_hash(&builder);
+    let nft_contract_key_1_2_0: Key = nft_contract_hash_1_2_0.into();
+
+    let number_of_tokens_pre_migration = 3usize;
+
+    // Build of prestate before migration.
+    for _i in 0..number_of_tokens_pre_migration {
+        let mint_request = ExecuteRequestBuilder::standard(
+            *DEFAULT_ACCOUNT_ADDR,
+            MINT_SESSION_WASM,
+            runtime_args! {
+                ARG_NFT_CONTRACT_HASH => nft_contract_key_1_2_0,
+                ARG_TOKEN_OWNER => Key::Account(*DEFAULT_ACCOUNT_ADDR),
+                ARG_TOKEN_META_DATA => "",
+                ARG_COLLECTION_NAME => NFT_TEST_COLLECTION.to_string()
+            },
+        )
+        .build();
+
+        builder.exec(mint_request).expect_success().commit();
+    }
+
+    let upgrade_request = ExecuteRequestBuilder::standard(
+        *DEFAULT_ACCOUNT_ADDR,
+        NFT_CONTRACT_WASM,
+        runtime_args! {
+            ARG_NFT_CONTRACT_HASH => nft_contract_key_1_2_0,
+            ARG_COLLECTION_NAME => NFT_TEST_COLLECTION.to_string(),
+            ARG_NAMED_KEY_CONVENTION => NamedKeyConventionMode::V1_0Custom as u8,
+            ARG_ACCESS_KEY_NAME_1_0_0 => format!("{PREFIX_ACCESS_KEY_NAME}_{NFT_TEST_COLLECTION}"),
+            ARG_HASH_KEY_NAME_1_0_0 => format!("{PREFIX_HASH_KEY_NAME}_{NFT_TEST_COLLECTION}"),
+            ARG_TOTAL_TOKEN_SUPPLY => 10u64,
+        },
+    )
+    .build();
+
+    builder.exec(upgrade_request).expect_success().commit();
+
+    let nft_contract_hash = support::get_nft_contract_hash(&builder);
+    let nft_contract_key: Key = nft_contract_hash.into();
+
+    let number_of_tokens_at_upgrade = support::get_stored_value_from_global_state::<u64>(
+        &builder,
+        nft_contract_key,
+        vec![NUMBER_OF_MINTED_TOKENS.to_string()],
+    )
+    .expect("must get u64 value");
+
+    assert_eq!(number_of_tokens_at_upgrade, 3);
+
+    let total_token_supply_post_upgrade = support::get_stored_value_from_global_state::<u64>(
+        &builder,
+        nft_contract_key,
+        vec![ARG_TOTAL_TOKEN_SUPPLY.to_string()],
+    )
+    .expect("must get u64 value");
+
+    assert_eq!(total_token_supply_post_upgrade, 50u64);
+
+    // Expect Migration event.
+    let expected_event = Migration::new();
+    let actual_event: Migration = support::get_event(&builder, &nft_contract_key, 0);
+    assert_eq!(actual_event, expected_event, "Expected Migration event.");
+}
+
+#[test]
+fn should_safely_upgrade_from_1_0_0_to_current_version() {
+    let mut builder = InMemoryWasmTestBuilder::default();
+    builder.run_genesis(&DEFAULT_RUN_GENESIS_REQUEST).commit();
+
+    let install_request = InstallerRequestBuilder::new(*DEFAULT_ACCOUNT_ADDR, CONTRACT_1_0_0_WASM)
+        .with_collection_name(NFT_TEST_COLLECTION.to_string())
+        .with_collection_symbol(NFT_TEST_SYMBOL.to_string())
+        .with_total_token_supply(100u64)
+        .with_ownership_mode(OwnershipMode::Transferable)
+        .with_metadata_mutability(MetadataMutability::Mutable)
+        .with_identifier_mode(NFTIdentifierMode::Ordinal)
+        .with_nft_metadata_kind(NFTMetadataKind::Raw)
+        .build();
+
+    builder.exec(install_request).expect_success().commit();
+
+    let nft_contract_hash_1_0_0 = support::get_nft_contract_hash_1_0_0(&builder);
+
+    let number_of_tokens_pre_migration = 3usize;
+
+    // Build of prestate before migration.
+    for _i in 0..number_of_tokens_pre_migration {
+        let mint_request = ExecuteRequestBuilder::contract_call_by_hash(
+            *DEFAULT_ACCOUNT_ADDR,
+            nft_contract_hash_1_0_0,
+            ENTRY_POINT_MINT,
+            runtime_args! {
+                ARG_TOKEN_OWNER => Key::Account(*DEFAULT_ACCOUNT_ADDR),
+                ARG_TOKEN_META_DATA => "",
+            },
+        )
+        .build();
+
+        builder.exec(mint_request).expect_success().commit();
+    }
+
+    let upgrade_request = ExecuteRequestBuilder::standard(
+        *DEFAULT_ACCOUNT_ADDR,
+        NFT_CONTRACT_WASM,
+        runtime_args! {
+            ARG_NFT_CONTRACT_HASH => support::get_nft_contract_package_hash(&builder),
+            ARG_COLLECTION_NAME => NFT_TEST_COLLECTION.to_string(),
+            ARG_NAMED_KEY_CONVENTION => NamedKeyConventionMode::V1_0Standard as u8,
+            ARG_EVENTS_MODE => EventsMode::CES as u8,
+            ARG_TOTAL_TOKEN_SUPPLY => 10u64,
+        },
+    )
+    .build();
+
+    builder.exec(upgrade_request).expect_success().commit();
+
+    let nft_contract_hash = support::get_nft_contract_hash(&builder);
+    let nft_contract_key: Key = nft_contract_hash.into();
+
+    let number_of_tokens_at_upgrade = support::get_stored_value_from_global_state::<u64>(
+        &builder,
+        nft_contract_key,
+        vec![NUMBER_OF_MINTED_TOKENS.to_string()],
+    )
+    .expect("must get u64 value");
+
+    assert_eq!(number_of_tokens_at_upgrade, 3);
+
+    let total_token_supply_post_upgrade = support::get_stored_value_from_global_state::<u64>(
+        &builder,
+        nft_contract_key,
+        vec![ARG_TOTAL_TOKEN_SUPPLY.to_string()],
+    )
+    .expect("must get u64 value");
+
+    assert_eq!(total_token_supply_post_upgrade, 10u64);
+
+    let actual_page_record_width = builder
+        .query(None, nft_contract_key, &[PAGE_LIMIT.to_string()])
+        .expect("must have the stored value")
+        .as_cl_value()
+        .map(|page_cl_value| CLValue::into_t::<u64>(page_cl_value.clone()))
+        .unwrap()
+        .expect("must convert");
+
+    let expected_page_record_width = 1000u64 / PAGE_SIZE;
+
+    assert_eq!(expected_page_record_width, actual_page_record_width);
+
+    let actual_page = support::get_token_page_by_id(
+        &builder,
+        &nft_contract_key,
+        &Key::Account(*DEFAULT_ACCOUNT_ADDR),
+        0u64,
+    );
+
+    let expected_page = {
+        let mut page = vec![false; PAGE_SIZE as usize];
+        for page_entry in page.iter_mut().take(number_of_tokens_pre_migration) {
+            *page_entry = true;
+        }
+        page
+    };
+
+    assert_eq!(actual_page, expected_page);
+
+    // Expect Migration event.
+    let expected_event = Migration::new();
+    let actual_event: Migration = support::get_event(&builder, &nft_contract_key, 0);
+    assert_eq!(actual_event, expected_event, "Expected Migration event.");
 }
