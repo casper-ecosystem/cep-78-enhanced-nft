@@ -84,9 +84,6 @@ The `NFTHolderMode` dictates which entities on a Casper network can own and mint
 2. `Contracts`: In this mode, only `Contracts` can own and mint NFTs.
 3. `Mixed`: In this mode both `Accounts` and `Contracts` can own and mint NFTs.
 
-If the `NFTHolderMode` is set to `Contracts` a `ContractHash` whitelist must be provided. This whitelist dictates which
-`Contracts` are allowed to mint NFTs in the restricted `Installer` minting mode.
-
 | NFTHolderMode | u8  |
 | ------------- | --- |
 | Accounts      | 0   |
@@ -97,28 +94,13 @@ This modality is an optional installation parameter and will default to the `Mix
 mode cannot be changed once the contract has been installed.
 The mode is passed in as a `u8` value to `nft_holder_mode` runtime argument.
 
-#### WhitelistMode
-
-The `WhitelistMode` dictates if the contract whitelist restricting access to the mint entrypoint can be updated. There are currently
-two options:
-
-1. `Unlocked`: The contract whitelist is unlocked and can be updated via the set variables endpoint.
-2. `Locked`: The contract whitelist is locked and cannot be updated further.
-
-This `WhitelistMode` is an optional installation parameter and will be set to unlocked if not passed. However, the whitelist mode itself
-cannot be changed once the contract has been installed. The mode is passed in as a `u8` value to `whitelist_mode` runtime argument.
-
-| WhitelistMode | u8  |
-| ------------- | --- |
-| Unlocked      | 0   |
-| Locked        | 1   |
-
 #### Minting
 
 The minting mode governs the behavior of contract when minting new tokens. The minting modality provides two options:
 
 1. `Installer`: This mode restricts the ability to mint new NFT tokens only to the installing account of the NFT contract.
 2. `Public`: This mode allows any account to mint NFT tokens.
+3. `ACL`: This mode allows whitelisted accounts or contracts to mint NFT tokens.
 
 This modality is an optional installation parameter and will default to the `Installer` mode if not provided. However, this
 mode cannot be changed once the contract has been installed. The mode is set by passing a `u8` value to the `minting_mode` runtime argument.
@@ -127,6 +109,23 @@ mode cannot be changed once the contract has been installed. The mode is set by 
 | ----------- | --- |
 | Installer   | 0   |
 | Public      | 1   |
+| ACL         | 2   |
+
+#### WhitelistMode
+
+The `WhitelistMode` dictates if the ACL whitelist restricting access to the mint entry point can be updated. There are currently two options:
+
+1. `Unlocked`: The ACL whitelist is unlocked and can be updated via the set variables endpoint.
+2. `Locked`: The ACL whitelist is locked and cannot be updated further.
+
+If the `WhitelistMode` is set to `Locked` an ACL whitelist of entity keys must be provided on installation. This whitelist dictates which entities can mint NFTs in the restricted `ACL` minting mode. These entities include `Accounts` and/or `Contracts`.
+
+This `WhitelistMode` is an optional installation parameter and will be set to unlocked if not passed. However, the whitelist mode itself cannot be changed once the contract has been installed. The mode is passed in as a `u8` value to `whitelist_mode` runtime argument.
+
+| WhitelistMode | u8  |
+| ------------- | --- |
+| Unlocked      | 0   |
+| Locked        | 1   |
 
 #### NFTMetadataKind
 
@@ -319,8 +318,8 @@ The modality provides three options:
 The transfer filter modality, if enabled, specifies a contract package hash pointing to a contract that will be called when the `transfer` method is invoked on the contract. CEP-78 will call the `can_transfer`
 method on the specified callback contract, which is expected to return a value of `TransferFilterContractResult`, represented as a u8.
 
-* `TransferFilterContractResult::DenyTransfer` will block the transfer regardless of the outcome of other checks
-* `TransferFilterContractResult::ProceedTransfer` will allow the transfer to proceed if other checks also pass
+- `TransferFilterContractResult::DenyTransfer` will block the transfer regardless of the outcome of other checks
+- `TransferFilterContractResult::ProceedTransfer` will allow the transfer to proceed if other checks also pass
 
 The transfer filter can be enabled by passing a `ARG_TRANSFER_FILTER_CONTRACT` argument to the install method, with a value of type `Option<Key>`
 
@@ -391,9 +390,9 @@ The following are the optional parameters that can be passed in at the time of i
 
 - `"minting_mode"`: The [`MintingMode`](#minting) modality that dictates the access to the `mint()` entry-point in the NFT contract. This is an optional parameter that will default to restricting access to the installer of the contract. This parameter cannot be changed once the contract has been installed.
 - `"allow_minting"`: The `"allow_minting"` flag allows the installer of the contract to pause the minting of new NFTs. The `allow_minting` is a boolean toggle that allows minting when `true`. If not provided at install the toggle will default to `true`. This value can be changed by the installer by calling the `set_variables()` entrypoint.
-- `"whitelist_mode"`: The [`WhitelistMode`](#whitelistmode) modality dictates whether the contract whitelist can be updated. This optional parameter will default to an unlocked whitelist that can be updated post installation. This parameter cannot be changed once the contract has been installed.
+- `"whitelist_mode"`: The [`WhitelistMode`](#whitelistmode) modality dictates whether the acl whitelist can be updated. This optional parameter will default to an unlocked whitelist that can be updated post installation. This parameter cannot be changed once the contract has been installed.
 - `"holder_mode"`: The [`NFTHolderMode`](#nftholdermode) modality dictates which entities can hold NFTs. This is an optional parameter and will default to a mixed mode allowing either `Accounts` or `Contracts` to hold NFTs. This parameter cannot be changed once the contract has been installed.
-- `"contract_whitelist"`: The contract whitelist is a list of contract hashes that specifies which contracts can call the `mint()` entrypoint to mint NFTs. This is an optional parameter which will default to an empty whitelist. This value can be changed via the `set_variables` post installation. If the whitelist mode is set to locked, a non-empty whitelist must be passed; else, installation of the contract will fail.
+- `"acl_whitelist"`: The acl whitelist is a list of account and/or contract hashes that specifies which entity can call the `mint()` entrypoint to mint NFTs. This is an optional parameter which will default to an empty whitelist. This value can be changed via the `set_variables` post installation. If the whitelist mode is set to locked, a non-empty whitelist must be passed. If the whitelist mode is set to locked and you do not provide a non-empty whitelist, the contract will fail to install.
 - `"burn_mode"`: The [`BurnMode`](#burnmode) modality dictates whether minted NFTs can be burnt. This is an optional parameter and will allow tokens to be burnt by default. This parameter cannot be changed once the contract has been installed.
 - `"owner_reverse_lookup_mode"`: The [`OwnerReverseLookupMode`](#reportingmode) modality dictates whether the lookup for owners to token identifiers is available. This is an optional parameter and will not provide the lookup by default. This parameter cannot be changed once the contract has been installed.
 - `"events_mode"`: The [`EventsMode`](#eventsmode) modality selects the event schema used to record any changes that occur to tokens issued by the contract instance.
@@ -661,10 +660,9 @@ casper-client put-deploy -n http://localhost:11101/rpc --chain-name "casper-net-
 
 [Learn to check token ownership](./tutorials/token-ownership-tutorial.md) starting with version [v1.1.1](https://github.com/casper-ecosystem/cep-78-enhanced-nft/releases/tag/v1.1.1). The `OwnerReverseLookupMode` modality must be set to `Complete` as described [here](../README.md#ownerreverselookupmode).
 
-#### Upgrading to Version 1.1.1 
+#### Upgrading to Version 1.1.1
 
 Upgrade to v1.1.1 using a [Standard NamedKey Convention](./tutorials/standard-migration-tutorial.md) or a [Custom NamedKey Convention](./tutorials/custom-migration-tutorial.md).
-
 
 ## Test Suite and Specification
 
@@ -725,160 +723,167 @@ If it is set to `Hash`, you will need to reference the `HASH_BY_INDEX` dictionar
 
 ## Error Codes
 
-| Code | Error                                 |
-| ---- | ------------------------------------- |
-| 1    | InvalidAccount                        |
-| 2    | MissingInstaller                      |
-| 3    | InvalidInstaller                      |
-| 4    | UnexpectedKeyVariant                  |
-| 5    | MissingTokenOwner                     |
-| 6    | InvalidTokenOwner                     |
-| 7    | FailedToGetArgBytes                   |
-| 8    | FailedToCreateDictionary              |
-| 9    | MissingStorageUref                    |
-| 10   | InvalidStorageUref                    |
-| 11   | MissingOwnerUref                      |
-| 12   | InvalidOwnersUref                     |
-| 13   | FailedToAccessStorageDictionary       |
-| 14   | FailedToAccessOwnershipDictionary     |
-| 15   | DuplicateMinted                       |
-| 16   | FailedToConvertCLValue                |
-| 17   | MissingCollectionName                 |
-| 18   | InvalidCollectionName                 |
-| 19   | FailedToSerializeMetaData             |
-| 20   | MissingAccount                        |
-| 21   | MissingMintingStatus                  |
-| 22   | InvalidMintingStatus                  |
-| 23   | MissingCollectionSymbol               |
-| 24   | InvalidCollectionSymbol               |
-| 25   | MissingTotalTokenSupply               |
-| 26   | InvalidTotalTokenSupply               |
-| 27   | MissingTokenID                        |
-| 28   | InvalidTokenIdentifier                |
-| 29   | MissingTokenOwners                    |
-| 30   | MissingAccountHash                    |
-| 31   | InvalidAccountHash                    |
-| 32   | TokenSupplyDepleted                   |
-| 33   | MissingOwnedTokensDictionary          |
-| 34   | TokenAlreadyBelongsToMinterFatal      |
-| 35   | FatalTokenIdDuplication               |
-| 36   | InvalidMinter                         |
-| 37   | MissingMintingMode                    |
-| 38   | InvalidMintingMode                    |
-| 39   | MissingInstallerKey                   |
-| 40   | FailedToConvertToAccountHash          |
-| 41   | InvalidBurner                         |
-| 42   | PreviouslyBurntToken                  |
-| 43   | MissingAllowMinting                   |
-| 44   | InvalidAllowMinting                   |
-| 45   | MissingNumberOfMintedTokens           |
-| 46   | InvalidNumberOfMintedTokens           |
-| 47   | MissingTokenMetaData                  |
-| 48   | InvalidTokenMetaData                  |
-| 49   | MissingApprovedAccountHash            |
-| 50   | InvalidApprovedAccountHash            |
-| 51   | MissingApprovedTokensDictionary       |
-| 52   | TokenAlreadyApproved                  |
-| 53   | MissingApproveAll                     |
-| 54   | InvalidApproveAll                     |
-| 55   | MissingOperator                       |
-| 56   | InvalidOperator                       |
-| 57   | Phantom                               |
-| 58   | ContractAlreadyInitialized            |
-| 59   | MintingIsPaused                       |
-| 60   | FailureToParseAccountHash             |
-| 61   | VacantValueInDictionary               |
-| 62   | MissingOwnershipMode                  |
-| 63   | InvalidOwnershipMode                  |
-| 64   | InvalidTokenMinter                    |
-| 65   | MissingOwnedTokens                    |
-| 66   | InvalidAccountKeyInDictionary         |
-| 67   | MissingJsonSchema                     |
-| 68   | InvalidJsonSchema                     |
-| 69   | InvalidKey                            |
-| 70   | InvalidOwnedTokens                    |
-| 71   | MissingTokenURI                       |
-| 72   | InvalidTokenURI                       |
-| 73   | MissingNftKind                        |
-| 74   | InvalidNftKind                        |
-| 75   | MissingHolderMode                     |
-| 76   | InvalidHolderMode                     |
-| 77   | MissingWhitelistMode                  |
-| 78   | InvalidWhitelistMode                  |
-| 79   | MissingContractWhiteList              |
-| 80   | InvalidContractWhitelist              |
-| 81   | UnlistedContractHash                  |
-| 82   | InvalidContract                       |
-| 83   | EmptyContractWhitelist                |
-| 84   | MissingReceiptName                    |
-| 85   | InvalidReceiptName                    |
-| 86   | InvalidJsonMetadata                   |
-| 87   | InvalidJsonFormat                     |
-| 88   | FailedToParseCep78Metadata            |
-| 89   | FailedToParse721Metadata              |
-| 90   | FailedToParseCustomMetadata           |
-| 91   | InvalidCEP78Metadata                  |
-| 92   | FailedToJsonifyCEP78Metadata          |
-| 93   | InvalidNFT721Metadata                 |
-| 94   | FailedToJsonifyNFT721Metadata         |
-| 95   | InvalidCustomMetadata                 |
-| 96   | MissingNFTMetadataKind                |
-| 97   | InvalidNFTMetadataKind                |
-| 98   | MissingIdentifierMode                 |
-| 99   | InvalidIdentifierMode                 |
-| 100  | FailedToParseTokenId                  |
-| 101  | MissingMetadataMutability             |
-| 102  | InvalidMetadataMutability             |
-| 103  | FailedToJsonifyCustomMetadata         |
-| 104  | ForbiddenMetadataUpdate               |
-| 105  | MissingBurnMode                       |
-| 106  | InvalidBurnMode                       |
-| 107  | MissingHashByIndex                    |
-| 108  | InvalidHashByIndex                    |
-| 109  | MissingIndexByHash                    |
-| 110  | InvalidIndexByHash                    |
-| 111  | MissingPageTableURef                  |
-| 112  | InvalidPageTableURef                  |
-| 113  | MissingPageLimit                      |
-| 114  | InvalidPageLimit                      |
-| 115  | InvalidPageNumber                     |
-| 116  | InvalidPageIndex                      |
-| 117  | MissingUnmatchedHashCount             |
-| 118  | InvalidUnmatchedHashCount             |
-| 119  | MissingPackageHashForUpgrade          |
-| 120  | MissingPageUref                       |
-| 121  | InvalidPageUref                       |
-| 122  | CannotUpgradeWithZeroSupply           |
-| 123  | CannotInstallWithZeroSupply           |
-| 124  | MissingMigrationFlag                  |
-| 125  | InvalidMigrationFlag                  |
-| 126  | ContractAlreadyMigrated               |
-| 127  | UnregisteredOwnerInMint               |
-| 128  | UnregisteredOwnerInTransfer           |
-| 129  | MissingReportingMode                  |
-| 130  | InvalidReportingMode                  |
-| 131  | MissingPage                           |
-| 132  | UnregisteredOwnerFromMigration        |
-| 133  | ExceededMaxTotalSupply                |
-| 134  | MissingCep78PackageHash               |
-| 135  | InvalidCep78InvalidHash               |
-| 136  | InvalidPackageHashName                |
-| 137  | InvalidAccessKeyName                  |
-| 138  | InvalidCheckForUpgrade                |
-| 139  | InvalidNamedKeyConvention             |
-| 140  | OwnerReverseLookupModeNotTransferable |
-| 141  | InvalidAdditionalRequiredMetadata     |
-| 142  | InvalidOptionalMetadata               |
-| 143  | MissingOptionalNFTMetadataKind        |
-| 144  | InvalidOptionalNFTMetadataKind        |
-| 145  | MissingAdditionalNFTMetadataKind      |
-| 146  | InvalidAdditionalNFTMetadataKind      |
-| 147  | InvalidRequirement                    |
-| 148  | MissingEventsMode                     |
-| 149  | InvalidEventsMode                     |
-| 150  | CannotUpgradeToMoreSupply             |
-| 151  | MissingOperatorDict                   |
-| 152  | MissingApprovedDict                   |
-| 153  | MissingSpenderAccountHash             |
-| 154  | InvalidSpenderAccountHash             |
-| 155  | MissingOwnerTokenIdentifierKey        |
+| Code | Error                                       |
+| ---- | ------------------------------------------- |
+| 1    | InvalidAccount                              |
+| 2    | MissingInstaller                            |
+| 3    | InvalidInstaller                            |
+| 4    | UnexpectedKeyVariant                        |
+| 5    | MissingTokenOwner                           |
+| 6    | InvalidTokenOwner                           |
+| 7    | FailedToGetArgBytes                         |
+| 8    | FailedToCreateDictionary                    |
+| 9    | MissingStorageUref                          |
+| 10   | InvalidStorageUref                          |
+| 11   | MissingOwnerUref                            |
+| 12   | InvalidOwnersUref                           |
+| 13   | FailedToAccessStorageDictionary             |
+| 14   | FailedToAccessOwnershipDictionary           |
+| 15   | DuplicateMinted                             |
+| 16   | FailedToConvertCLValue                      |
+| 17   | MissingCollectionName                       |
+| 18   | InvalidCollectionName                       |
+| 19   | FailedToSerializeMetaData                   |
+| 20   | MissingAccount                              |
+| 21   | MissingMintingStatus                        |
+| 22   | InvalidMintingStatus                        |
+| 23   | MissingCollectionSymbol                     |
+| 24   | InvalidCollectionSymbol                     |
+| 25   | MissingTotalTokenSupply                     |
+| 26   | InvalidTotalTokenSupply                     |
+| 27   | MissingTokenID                              |
+| 28   | InvalidTokenIdentifier                      |
+| 29   | MissingTokenOwners                          |
+| 30   | MissingAccountHash                          |
+| 31   | InvalidAccountHash                          |
+| 32   | TokenSupplyDepleted                         |
+| 33   | MissingOwnedTokensDictionary                |
+| 34   | TokenAlreadyBelongsToMinterFatal            |
+| 35   | FatalTokenIdDuplication                     |
+| 36   | InvalidMinter                               |
+| 37   | MissingMintingMode                          |
+| 38   | InvalidMintingMode                          |
+| 39   | MissingInstallerKey                         |
+| 40   | FailedToConvertToAccountHash                |
+| 41   | InvalidBurner                               |
+| 42   | PreviouslyBurntToken                        |
+| 43   | MissingAllowMinting                         |
+| 44   | InvalidAllowMinting                         |
+| 45   | MissingNumberOfMintedTokens                 |
+| 46   | InvalidNumberOfMintedTokens                 |
+| 47   | MissingTokenMetaData                        |
+| 48   | InvalidTokenMetaData                        |
+| 49   | MissingApprovedAccountHash                  |
+| 50   | InvalidApprovedAccountHash                  |
+| 51   | MissingApprovedTokensDictionary             |
+| 52   | TokenAlreadyApproved                        |
+| 53   | MissingApproveAll                           |
+| 54   | InvalidApproveAll                           |
+| 55   | MissingOperator                             |
+| 56   | InvalidOperator                             |
+| 57   | Phantom                                     |
+| 58   | ContractAlreadyInitialized                  |
+| 59   | MintingIsPaused                             |
+| 60   | FailureToParseAccountHash                   |
+| 61   | VacantValueInDictionary                     |
+| 62   | MissingOwnershipMode                        |
+| 63   | InvalidOwnershipMode                        |
+| 64   | InvalidTokenMinter                          |
+| 65   | MissingOwnedTokens                          |
+| 66   | InvalidAccountKeyInDictionary               |
+| 67   | MissingJsonSchema                           |
+| 68   | InvalidJsonSchema                           |
+| 69   | InvalidKey                                  |
+| 70   | InvalidOwnedTokens                          |
+| 71   | MissingTokenURI                             |
+| 72   | InvalidTokenURI                             |
+| 73   | MissingNftKind                              |
+| 74   | InvalidNftKind                              |
+| 75   | MissingHolderMode                           |
+| 76   | InvalidHolderMode                           |
+| 77   | MissingWhitelistMode                        |
+| 78   | InvalidWhitelistMode                        |
+| 79   | MissingContractWhiteList                    |
+| 80   | InvalidContractWhitelist                    |
+| 81   | UnlistedContractHash                        |
+| 82   | InvalidContract                             |
+| 83   | EmptyContractWhitelist                      |
+| 84   | MissingReceiptName                          |
+| 85   | InvalidReceiptName                          |
+| 86   | InvalidJsonMetadata                         |
+| 87   | InvalidJsonFormat                           |
+| 88   | FailedToParseCep78Metadata                  |
+| 89   | FailedToParse721Metadata                    |
+| 90   | FailedToParseCustomMetadata                 |
+| 91   | InvalidCEP78Metadata                        |
+| 92   | FailedToJsonifyCEP78Metadata                |
+| 93   | InvalidNFT721Metadata                       |
+| 94   | FailedToJsonifyNFT721Metadata               |
+| 95   | InvalidCustomMetadata                       |
+| 96   | MissingNFTMetadataKind                      |
+| 97   | InvalidNFTMetadataKind                      |
+| 98   | MissingIdentifierMode                       |
+| 99   | InvalidIdentifierMode                       |
+| 100  | FailedToParseTokenId                        |
+| 101  | MissingMetadataMutability                   |
+| 102  | InvalidMetadataMutability                   |
+| 103  | FailedToJsonifyCustomMetadata               |
+| 104  | ForbiddenMetadataUpdate                     |
+| 105  | MissingBurnMode                             |
+| 106  | InvalidBurnMode                             |
+| 107  | MissingHashByIndex                          |
+| 108  | InvalidHashByIndex                          |
+| 109  | MissingIndexByHash                          |
+| 110  | InvalidIndexByHash                          |
+| 111  | MissingPageTableURef                        |
+| 112  | InvalidPageTableURef                        |
+| 113  | MissingPageLimit                            |
+| 114  | InvalidPageLimit                            |
+| 115  | InvalidPageNumber                           |
+| 116  | InvalidPageIndex                            |
+| 117  | MissingUnmatchedHashCount                   |
+| 118  | InvalidUnmatchedHashCount                   |
+| 119  | MissingPackageHashForUpgrade                |
+| 120  | MissingPageUref                             |
+| 121  | InvalidPageUref                             |
+| 122  | CannotUpgradeWithZeroSupply                 |
+| 123  | CannotInstallWithZeroSupply                 |
+| 124  | MissingMigrationFlag                        |
+| 125  | InvalidMigrationFlag                        |
+| 126  | ContractAlreadyMigrated                     |
+| 127  | UnregisteredOwnerInMint                     |
+| 128  | UnregisteredOwnerInTransfer                 |
+| 129  | MissingReportingMode                        |
+| 130  | InvalidReportingMode                        |
+| 131  | MissingPage                                 |
+| 132  | UnregisteredOwnerFromMigration              |
+| 133  | ExceededMaxTotalSupply                      |
+| 134  | MissingCep78PackageHash                     |
+| 135  | InvalidCep78InvalidHash                     |
+| 136  | InvalidPackageHashName                      |
+| 137  | InvalidAccessKeyName                        |
+| 138  | InvalidCheckForUpgrade                      |
+| 139  | InvalidNamedKeyConvention                   |
+| 140  | OwnerReverseLookupModeNotTransferable       |
+| 141  | InvalidAdditionalRequiredMetadata           |
+| 142  | InvalidOptionalMetadata                     |
+| 143  | MissingOptionalNFTMetadataKind              |
+| 144  | InvalidOptionalNFTMetadataKind              |
+| 145  | MissingAdditionalNFTMetadataKind            |
+| 146  | InvalidAdditionalNFTMetadataKind            |
+| 147  | InvalidRequirement                          |
+| 148  | MissingEventsMode                           |
+| 149  | InvalidEventsMode                           |
+| 150  | CannotUpgradeToMoreSupply                   |
+| 151  | MissingOperatorDict                         |
+| 152  | MissingApprovedDict                         |
+| 153  | MissingSpenderAccountHash                   |
+| 154  | InvalidSpenderAccountHash                   |
+| 155  | MissingOwnerTokenIdentifierKey              |
+| 156  | InvalidTransferFilterContract               |
+| 157  | MissingTransferFilterContract               |
+| 158  | TransferFilterContractNeedsTransferableMode |
+| 159  | TransferFilterContractDenied                |
+| 160  | MissingACLWhiteList                         |
+| 161  | InvalidACLWhitelist                         |
+| 162  | EmptyACLWhitelist                           |

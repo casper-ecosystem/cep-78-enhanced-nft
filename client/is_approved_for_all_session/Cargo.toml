@@ -1,11 +1,11 @@
 [package]
 name = "is_approved_for_all_session"
-version = "1.2.0"
+version = "1.4.0"
 edition = "2018"
 
 [dependencies]
-casper-contract = "1.4.3"
-casper-types = "1.4.5"
+casper-contract = "2.0.0"
+casper-types = "2.0.0"
 
 [[bin]]
 name = "is_approved_for_all_call"

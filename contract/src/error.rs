@@ -162,6 +162,9 @@ pub enum NFTCoreError {
     MissingTransferFilterContract = 157,
     TransferFilterContractNeedsTransferableMode = 158,
     TransferFilterContractDenied = 159,
+    MissingACLWhiteList = 160,
+    InvalidACLWhitelist = 161,
+    EmptyACLWhitelist = 162,
 }
 
 impl From<NFTCoreError> for ApiError {
