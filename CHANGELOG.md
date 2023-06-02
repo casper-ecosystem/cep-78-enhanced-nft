@@ -13,11 +13,15 @@ All notable changes to this project will be documented in this file. The format 
 
 ### Changed
 
-- Contracts whitelist migrated to an ACL Whitelist.The acl whitelist is a list of account and/or contract hashes that specifies which entity can call the `mint()` entrypoint to mint NFTs.
+- Contracts whitelist migrated to an ACL Whitelist. The ACL whitelist is a list of account and/or contract hashes that specifies which entity can call the `mint()` entrypoint to mint NFTs.
+
+- This change results in the `contract_whitelist` dictionary being deprecated in favor of the new `acl_whitelist` dictionary.
 
 ### Added
 
 - Transfer Filter Hook. The transfer filter modality, if enabled, specifies a contract package hash pointing to a contract that will be called when the `transfer` method is invoked on the contract.
+
+- Added the `ACL` option to the `minting_mode` modality. This option allows only whitelisted accounts or contracts to mint tokens. More information can be found [here](./README.md/#minting).
 
 ## Release 1.3.0
 
