@@ -2,7 +2,7 @@ use core::panic;
 
 use casper_engine_test_support::{
     ExecuteRequestBuilder, InMemoryWasmTestBuilder, DEFAULT_ACCOUNT_ADDR,
-    DEFAULT_RUN_GENESIS_REQUEST,
+    PRODUCTION_RUN_GENESIS_REQUEST,
 };
 use casper_types::{account::AccountHash, runtime_args, ContractHash, Key, RuntimeArgs};
 use contract::{
@@ -37,7 +37,9 @@ use crate::utility::{
 #[test]
 fn should_prevent_update_in_immutable_mode() {
     let mut builder = InMemoryWasmTestBuilder::default();
-    builder.run_genesis(&DEFAULT_RUN_GENESIS_REQUEST).commit();
+    builder
+        .run_genesis(&PRODUCTION_RUN_GENESIS_REQUEST)
+        .commit();
 
     let install_request = InstallerRequestBuilder::new(*DEFAULT_ACCOUNT_ADDR, NFT_CONTRACT_WASM)
         .with_total_token_supply(10u64)
@@ -89,7 +91,9 @@ fn should_prevent_update_in_immutable_mode() {
 #[test]
 fn should_prevent_install_with_hash_identifier_in_mutable_mode() {
     let mut builder = InMemoryWasmTestBuilder::default();
-    builder.run_genesis(&DEFAULT_RUN_GENESIS_REQUEST).commit();
+    builder
+        .run_genesis(&PRODUCTION_RUN_GENESIS_REQUEST)
+        .commit();
 
     let install_request = InstallerRequestBuilder::new(*DEFAULT_ACCOUNT_ADDR, NFT_CONTRACT_WASM)
         .with_total_token_supply(10u64)
@@ -108,7 +112,9 @@ fn should_prevent_install_with_hash_identifier_in_mutable_mode() {
 #[test]
 fn should_prevent_update_for_invalid_metadata() {
     let mut builder = InMemoryWasmTestBuilder::default();
-    builder.run_genesis(&DEFAULT_RUN_GENESIS_REQUEST).commit();
+    builder
+        .run_genesis(&PRODUCTION_RUN_GENESIS_REQUEST)
+        .commit();
 
     let install_request = InstallerRequestBuilder::new(*DEFAULT_ACCOUNT_ADDR, NFT_CONTRACT_WASM)
         .with_total_token_supply(10u64)
@@ -162,7 +168,9 @@ fn should_prevent_update_for_invalid_metadata() {
 #[test]
 fn should_prevent_metadata_update_by_non_owner_key() {
     let mut builder = InMemoryWasmTestBuilder::default();
-    builder.run_genesis(&DEFAULT_RUN_GENESIS_REQUEST).commit();
+    builder
+        .run_genesis(&PRODUCTION_RUN_GENESIS_REQUEST)
+        .commit();
 
     let install_request = InstallerRequestBuilder::new(*DEFAULT_ACCOUNT_ADDR, NFT_CONTRACT_WASM)
         .with_total_token_supply(10u64)
@@ -233,7 +241,9 @@ fn should_allow_update_for_valid_metadata_based_on_kind(
     identifier_mode: NFTIdentifierMode,
 ) {
     let mut builder = InMemoryWasmTestBuilder::default();
-    builder.run_genesis(&DEFAULT_RUN_GENESIS_REQUEST).commit();
+    builder
+        .run_genesis(&PRODUCTION_RUN_GENESIS_REQUEST)
+        .commit();
 
     let install_request = InstallerRequestBuilder::new(*DEFAULT_ACCOUNT_ADDR, NFT_CONTRACT_WASM)
         .with_total_token_supply(10u64)
@@ -394,7 +404,9 @@ fn should_update_metadata_for_custom_validated_using_token_id() {
 #[test]
 fn should_get_metadata_using_token_id() {
     let mut builder = InMemoryWasmTestBuilder::default();
-    builder.run_genesis(&DEFAULT_RUN_GENESIS_REQUEST).commit();
+    builder
+        .run_genesis(&PRODUCTION_RUN_GENESIS_REQUEST)
+        .commit();
 
     let minting_contract_install_request = ExecuteRequestBuilder::standard(
         *DEFAULT_ACCOUNT_ADDR,
@@ -486,7 +498,9 @@ fn get_schema() {
 #[test]
 fn should_require_valid_json_schema_when_kind_is_custom_validated() {
     let mut builder = InMemoryWasmTestBuilder::default();
-    builder.run_genesis(&DEFAULT_RUN_GENESIS_REQUEST).commit();
+    builder
+        .run_genesis(&PRODUCTION_RUN_GENESIS_REQUEST)
+        .commit();
 
     let nft_metadata_kind = NFTMetadataKind::CustomValidated;
 
@@ -507,7 +521,9 @@ fn should_require_valid_json_schema_when_kind_is_custom_validated() {
 #[test]
 fn should_require_json_schema_when_kind_is_custom_validated() {
     let mut builder = InMemoryWasmTestBuilder::default();
-    builder.run_genesis(&DEFAULT_RUN_GENESIS_REQUEST).commit();
+    builder
+        .run_genesis(&PRODUCTION_RUN_GENESIS_REQUEST)
+        .commit();
 
     let nft_metadata_kind = NFTMetadataKind::CustomValidated;
 
@@ -528,7 +544,9 @@ fn should_require_json_schema_when_kind_is_custom_validated() {
 
 fn should_not_require_json_schema_when_kind_is(nft_metadata_kind: NFTMetadataKind) {
     let mut builder = InMemoryWasmTestBuilder::default();
-    builder.run_genesis(&DEFAULT_RUN_GENESIS_REQUEST).commit();
+    builder
+        .run_genesis(&PRODUCTION_RUN_GENESIS_REQUEST)
+        .commit();
 
     let install_request = InstallerRequestBuilder::new(*DEFAULT_ACCOUNT_ADDR, NFT_CONTRACT_WASM)
         .with_total_token_supply(10u64)

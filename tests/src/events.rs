@@ -2,7 +2,7 @@ use std::collections::BTreeMap;
 
 use casper_engine_test_support::{
     ExecuteRequestBuilder, InMemoryWasmTestBuilder, DEFAULT_ACCOUNT_ADDR,
-    DEFAULT_RUN_GENESIS_REQUEST,
+    PRODUCTION_RUN_GENESIS_REQUEST,
 };
 use casper_types::{account::AccountHash, runtime_args, Key, RuntimeArgs};
 
@@ -45,7 +45,9 @@ use crate::utility::{
 #[test]
 fn should_record_cep47_dictionary_style_mint_event() {
     let mut builder = InMemoryWasmTestBuilder::default();
-    builder.run_genesis(&DEFAULT_RUN_GENESIS_REQUEST).commit();
+    builder
+        .run_genesis(&PRODUCTION_RUN_GENESIS_REQUEST)
+        .commit();
 
     let install_request_builder =
         InstallerRequestBuilder::new(*DEFAULT_ACCOUNT_ADDR, NFT_CONTRACT_WASM)
@@ -108,7 +110,9 @@ fn should_record_cep47_dictionary_style_mint_event() {
 #[test]
 fn should_record_cep47_dictionary_style_transfer_token_event_in_hash_identifier_mode() {
     let mut builder = InMemoryWasmTestBuilder::default();
-    builder.run_genesis(&DEFAULT_RUN_GENESIS_REQUEST).commit();
+    builder
+        .run_genesis(&PRODUCTION_RUN_GENESIS_REQUEST)
+        .commit();
 
     let install_request = InstallerRequestBuilder::new(*DEFAULT_ACCOUNT_ADDR, NFT_CONTRACT_WASM)
         .with_identifier_mode(NFTIdentifierMode::Hash)
@@ -213,7 +217,9 @@ fn should_record_cep47_dictionary_style_metadata_update_event_for_nft721_using_t
     let identifier_mode = NFTIdentifierMode::Ordinal;
 
     let mut builder = InMemoryWasmTestBuilder::default();
-    builder.run_genesis(&DEFAULT_RUN_GENESIS_REQUEST).commit();
+    builder
+        .run_genesis(&PRODUCTION_RUN_GENESIS_REQUEST)
+        .commit();
 
     let install_request = InstallerRequestBuilder::new(*DEFAULT_ACCOUNT_ADDR, NFT_CONTRACT_WASM)
         .with_total_token_supply(10u64)
@@ -366,7 +372,9 @@ fn should_record_cep47_dictionary_style_metadata_update_event_for_nft721_using_t
 fn should_cep47_dictionary_style_burn_event() {
     let token_id = 0u64;
     let mut builder = InMemoryWasmTestBuilder::default();
-    builder.run_genesis(&DEFAULT_RUN_GENESIS_REQUEST).commit();
+    builder
+        .run_genesis(&PRODUCTION_RUN_GENESIS_REQUEST)
+        .commit();
 
     let install_request_builder =
         InstallerRequestBuilder::new(*DEFAULT_ACCOUNT_ADDR, NFT_CONTRACT_WASM)
@@ -486,7 +494,9 @@ fn should_cep47_dictionary_style_burn_event() {
 #[test]
 fn should_cep47_dictionary_style_approve_event_in_hash_identifier_mode() {
     let mut builder = InMemoryWasmTestBuilder::default();
-    builder.run_genesis(&DEFAULT_RUN_GENESIS_REQUEST).commit();
+    builder
+        .run_genesis(&PRODUCTION_RUN_GENESIS_REQUEST)
+        .commit();
 
     let install_request = InstallerRequestBuilder::new(*DEFAULT_ACCOUNT_ADDR, NFT_CONTRACT_WASM)
         .with_total_token_supply(100u64)
@@ -583,7 +593,9 @@ fn should_cep47_dictionary_style_approve_event_in_hash_identifier_mode() {
 #[test]
 fn should_cep47_dictionary_style_approvall_for_all_event() {
     let mut builder = InMemoryWasmTestBuilder::default();
-    builder.run_genesis(&DEFAULT_RUN_GENESIS_REQUEST).commit();
+    builder
+        .run_genesis(&PRODUCTION_RUN_GENESIS_REQUEST)
+        .commit();
 
     let install_request_builder =
         InstallerRequestBuilder::new(*DEFAULT_ACCOUNT_ADDR, NFT_CONTRACT_WASM)
@@ -683,7 +695,9 @@ fn should_cep47_dictionary_style_approvall_for_all_event() {
 #[test]
 fn should_cep47_dictionary_style_revoked_for_all_event() {
     let mut builder = InMemoryWasmTestBuilder::default();
-    builder.run_genesis(&DEFAULT_RUN_GENESIS_REQUEST).commit();
+    builder
+        .run_genesis(&PRODUCTION_RUN_GENESIS_REQUEST)
+        .commit();
 
     let install_request_builder =
         InstallerRequestBuilder::new(*DEFAULT_ACCOUNT_ADDR, NFT_CONTRACT_WASM)
@@ -801,7 +815,9 @@ fn should_record_migration_event_in_cep47() {
     const OWNED_TOKENS: &str = "owned_tokens";
 
     let mut builder = InMemoryWasmTestBuilder::default();
-    builder.run_genesis(&DEFAULT_RUN_GENESIS_REQUEST).commit();
+    builder
+        .run_genesis(&PRODUCTION_RUN_GENESIS_REQUEST)
+        .commit();
 
     let install_request = InstallerRequestBuilder::new(*DEFAULT_ACCOUNT_ADDR, CONTRACT_1_0_0_WASM)
         .with_collection_name(NFT_TEST_COLLECTION.to_string())
@@ -905,7 +921,9 @@ fn should_record_migration_event_in_cep47() {
 #[should_panic]
 fn should_not_record_events_in_no_events_mode() {
     let mut builder = InMemoryWasmTestBuilder::default();
-    builder.run_genesis(&DEFAULT_RUN_GENESIS_REQUEST).commit();
+    builder
+        .run_genesis(&PRODUCTION_RUN_GENESIS_REQUEST)
+        .commit();
 
     let install_request_builder =
         InstallerRequestBuilder::new(*DEFAULT_ACCOUNT_ADDR, NFT_CONTRACT_WASM)

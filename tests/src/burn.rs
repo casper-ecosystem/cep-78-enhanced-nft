@@ -1,6 +1,6 @@
 use casper_engine_test_support::{
     ExecuteRequestBuilder, InMemoryWasmTestBuilder, DEFAULT_ACCOUNT_ADDR,
-    DEFAULT_RUN_GENESIS_REQUEST,
+    PRODUCTION_RUN_GENESIS_REQUEST,
 };
 use casper_types::{account::AccountHash, runtime_args, ContractHash, Key, RuntimeArgs};
 use contract::{
@@ -30,7 +30,9 @@ use crate::utility::{
 
 fn should_burn_minted_token(reporting: OwnerReverseLookupMode) {
     let mut builder = InMemoryWasmTestBuilder::default();
-    builder.run_genesis(&DEFAULT_RUN_GENESIS_REQUEST).commit();
+    builder
+        .run_genesis(&PRODUCTION_RUN_GENESIS_REQUEST)
+        .commit();
 
     let install_request_builder =
         InstallerRequestBuilder::new(*DEFAULT_ACCOUNT_ADDR, NFT_CONTRACT_WASM)
@@ -154,7 +156,9 @@ fn should_burn_minted_token_with_transfer_only_reporting() {
 #[test]
 fn should_not_burn_previously_burnt_token() {
     let mut builder = InMemoryWasmTestBuilder::default();
-    builder.run_genesis(&DEFAULT_RUN_GENESIS_REQUEST).commit();
+    builder
+        .run_genesis(&PRODUCTION_RUN_GENESIS_REQUEST)
+        .commit();
 
     let install_request_builder =
         InstallerRequestBuilder::new(*DEFAULT_ACCOUNT_ADDR, NFT_CONTRACT_WASM)
@@ -232,7 +236,9 @@ fn should_not_burn_previously_burnt_token() {
 #[test]
 fn should_return_expected_error_when_burning_non_existing_token() {
     let mut builder = InMemoryWasmTestBuilder::default();
-    builder.run_genesis(&DEFAULT_RUN_GENESIS_REQUEST).commit();
+    builder
+        .run_genesis(&PRODUCTION_RUN_GENESIS_REQUEST)
+        .commit();
 
     let install_request_builder =
         InstallerRequestBuilder::new(*DEFAULT_ACCOUNT_ADDR, NFT_CONTRACT_WASM)
@@ -270,7 +276,9 @@ fn should_return_expected_error_when_burning_non_existing_token() {
 #[test]
 fn should_return_expected_error_burning_of_others_users_token() {
     let mut builder = InMemoryWasmTestBuilder::default();
-    builder.run_genesis(&DEFAULT_RUN_GENESIS_REQUEST).commit();
+    builder
+        .run_genesis(&PRODUCTION_RUN_GENESIS_REQUEST)
+        .commit();
 
     let install_request_builder =
         InstallerRequestBuilder::new(*DEFAULT_ACCOUNT_ADDR, NFT_CONTRACT_WASM)
@@ -337,7 +345,9 @@ fn should_return_expected_error_burning_of_others_users_token() {
 #[test]
 fn should_return_expected_error_when_burning_not_owned_token() {
     let mut builder = InMemoryWasmTestBuilder::default();
-    builder.run_genesis(&DEFAULT_RUN_GENESIS_REQUEST).commit();
+    builder
+        .run_genesis(&PRODUCTION_RUN_GENESIS_REQUEST)
+        .commit();
 
     let install_request_builder =
         InstallerRequestBuilder::new(*DEFAULT_ACCOUNT_ADDR, NFT_CONTRACT_WASM)
@@ -408,7 +418,9 @@ fn should_return_expected_error_when_burning_not_owned_token() {
 #[test]
 fn should_allow_contract_to_burn_token() {
     let mut builder = InMemoryWasmTestBuilder::default();
-    builder.run_genesis(&DEFAULT_RUN_GENESIS_REQUEST).commit();
+    builder
+        .run_genesis(&PRODUCTION_RUN_GENESIS_REQUEST)
+        .commit();
 
     let minting_contract_install_request = ExecuteRequestBuilder::standard(
         *DEFAULT_ACCOUNT_ADDR,
@@ -498,7 +510,9 @@ fn should_allow_contract_to_burn_token() {
 #[test]
 fn should_not_burn_in_non_burn_mode() {
     let mut builder = InMemoryWasmTestBuilder::default();
-    builder.run_genesis(&DEFAULT_RUN_GENESIS_REQUEST).commit();
+    builder
+        .run_genesis(&PRODUCTION_RUN_GENESIS_REQUEST)
+        .commit();
 
     let install_request = InstallerRequestBuilder::new(*DEFAULT_ACCOUNT_ADDR, NFT_CONTRACT_WASM)
         .with_total_token_supply(100u64)
@@ -555,7 +569,9 @@ fn should_not_burn_in_non_burn_mode() {
 #[test]
 fn should_let_approve_all_with_burnt_tokens() {
     let mut builder = InMemoryWasmTestBuilder::default();
-    builder.run_genesis(&DEFAULT_RUN_GENESIS_REQUEST).commit();
+    builder
+        .run_genesis(&PRODUCTION_RUN_GENESIS_REQUEST)
+        .commit();
 
     let install_request = InstallerRequestBuilder::new(*DEFAULT_ACCOUNT_ADDR, NFT_CONTRACT_WASM)
         .with_total_token_supply(100u64)
@@ -616,7 +632,9 @@ fn should_let_approve_all_with_burnt_tokens() {
 #[test]
 fn should_burn_token_in_hash_identifier_mode() {
     let mut builder = InMemoryWasmTestBuilder::default();
-    builder.run_genesis(&DEFAULT_RUN_GENESIS_REQUEST).commit();
+    builder
+        .run_genesis(&PRODUCTION_RUN_GENESIS_REQUEST)
+        .commit();
 
     let install_request = InstallerRequestBuilder::new(*DEFAULT_ACCOUNT_ADDR, NFT_CONTRACT_WASM)
         .with_total_token_supply(100u64)

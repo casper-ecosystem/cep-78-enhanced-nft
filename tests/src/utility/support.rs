@@ -15,7 +15,7 @@ use sha256::digest;
 use super::{constants::CONTRACT_NAME, installer_request_builder::InstallerRequestBuilder};
 use casper_engine_test_support::{
     ExecuteRequestBuilder, InMemoryWasmTestBuilder, WasmTestBuilder, ARG_AMOUNT,
-    DEFAULT_ACCOUNT_ADDR, DEFAULT_RUN_GENESIS_REQUEST,
+    DEFAULT_ACCOUNT_ADDR, PRODUCTION_RUN_GENESIS_REQUEST,
 };
 use casper_execution_engine::{
     core::{engine_state::Error as EngineStateError, execution},
@@ -139,7 +139,9 @@ pub(crate) fn assert_expected_invalid_installer_request(
 ) {
     let mut builder = InMemoryWasmTestBuilder::default();
 
-    builder.run_genesis(&DEFAULT_RUN_GENESIS_REQUEST).commit();
+    builder
+        .run_genesis(&PRODUCTION_RUN_GENESIS_REQUEST)
+        .commit();
     builder
         .exec(install_request_builder.build())
         .expect_failure(); // Should test against expected error
