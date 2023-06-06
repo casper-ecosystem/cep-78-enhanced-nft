@@ -1,6 +1,6 @@
 use casper_engine_test_support::{
     ExecuteRequestBuilder, InMemoryWasmTestBuilder, DEFAULT_ACCOUNT_ADDR,
-    DEFAULT_RUN_GENESIS_REQUEST,
+    PRODUCTION_RUN_GENESIS_REQUEST,
 };
 use casper_types::{account::AccountHash, runtime_args, Key, RuntimeArgs};
 use contract::constants::{
@@ -23,7 +23,9 @@ use crate::utility::{
 #[test]
 fn mint_cost_should_remain_stable() {
     let mut builder = InMemoryWasmTestBuilder::default();
-    builder.run_genesis(&DEFAULT_RUN_GENESIS_REQUEST).commit();
+    builder
+        .run_genesis(&PRODUCTION_RUN_GENESIS_REQUEST)
+        .commit();
 
     let install_request = InstallerRequestBuilder::new(*DEFAULT_ACCOUNT_ADDR, NFT_CONTRACT_WASM)
         .with_collection_name(NFT_TEST_COLLECTION.to_string())
@@ -94,7 +96,9 @@ fn mint_cost_should_remain_stable() {
 #[test]
 fn transfer_costs_should_remain_stable() {
     let mut builder = InMemoryWasmTestBuilder::default();
-    builder.run_genesis(&DEFAULT_RUN_GENESIS_REQUEST).commit();
+    builder
+        .run_genesis(&PRODUCTION_RUN_GENESIS_REQUEST)
+        .commit();
 
     let install_request = InstallerRequestBuilder::new(*DEFAULT_ACCOUNT_ADDR, NFT_CONTRACT_WASM)
         .with_collection_name(NFT_TEST_COLLECTION.to_string())
@@ -204,7 +208,9 @@ fn transfer_costs_should_remain_stable() {
 
 fn should_cost_less_when_installing_without_reverse_lookup(reporting: OwnerReverseLookupMode) {
     let mut builder = InMemoryWasmTestBuilder::default();
-    builder.run_genesis(&DEFAULT_RUN_GENESIS_REQUEST).commit();
+    builder
+        .run_genesis(&PRODUCTION_RUN_GENESIS_REQUEST)
+        .commit();
 
     let install_request = InstallerRequestBuilder::new(*DEFAULT_ACCOUNT_ADDR, NFT_CONTRACT_WASM)
         .with_collection_name(NFT_TEST_COLLECTION.to_string())
