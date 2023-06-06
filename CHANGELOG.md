@@ -29,6 +29,13 @@ All notable changes to this project will be documented in this file. The format 
 
 - Modified the `json-schema` runtime argument to be an optional installation parameter.
 
+
+## Release 1.3.0
+
+### Changed
+
+* Modified the `json-schema` runtime argument to be an optional installation parameter.
+
 ## Release 1.2.0
 
 ### Added

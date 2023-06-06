@@ -7,7 +7,7 @@ edition = "2021"
 
 [dependencies]
 casper-contract = "2.0.0"
-casper-types = "1.5"
+casper-types = "2.0.0"
 
 [[bin]]
 name = "transfer_filter_contract"
