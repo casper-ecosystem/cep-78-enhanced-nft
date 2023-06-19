@@ -13,6 +13,7 @@ pub const ARG_BURN_MODE: &str = "burn_mode";
 pub const ARG_COLLECTION_NAME: &str = "collection_name";
 pub const ARG_COLLECTION_SYMBOL: &str = "collection_symbol";
 pub const ARG_CONTRACT_WHITELIST: &str = "contract_whitelist";
+pub const ARG_ACL_WHITELIST: &str = "acl_whitelist";
 pub const ARG_EVENTS_MODE: &str = "events_mode";
 pub const ARG_HASH_KEY_NAME_1_0_0: &str = "hash_key_name";
 pub const ARG_HOLDER_MODE: &str = "holder_mode";
@@ -38,6 +39,7 @@ pub const ARG_TOKEN_META_DATA: &str = "token_meta_data";
 pub const ARG_TOKEN_OWNER: &str = "token_owner";
 pub const ARG_TOTAL_TOKEN_SUPPLY: &str = "total_token_supply";
 pub const ARG_WHITELIST_MODE: &str = "whitelist_mode";
+pub const ARG_TRANSFER_FILTER_CONTRACT: &str = "transfer_filter_contract";
 
 pub const ENTRY_POINT_APPROVE: &str = "approve";
 pub const ENTRY_POINT_BALANCE_OF: &str = "balance_of";
@@ -64,6 +66,7 @@ pub const BURNT_TOKENS: &str = "burnt_tokens";
 pub const COLLECTION_NAME: &str = "collection_name";
 pub const COLLECTION_SYMBOL: &str = "collection_symbol";
 pub const CONTRACT_WHITELIST: &str = "contract_whitelist";
+pub const ACL_WHITELIST: &str = "acl_whitelist";
 pub const EVENT_TYPE: &str = "event_type";
 pub const EVENTS: &str = "events";
 pub const EVENTS_MODE: &str = "events_mode";
@@ -104,6 +107,8 @@ pub const TOKEN_OWNERS: &str = "token_owners";
 pub const TOTAL_TOKEN_SUPPLY: &str = "total_token_supply";
 pub const UNMATCHED_HASH_COUNT: &str = "unmatched_hash_count";
 pub const WHITELIST_MODE: &str = "whitelist_mode";
+pub const TRANSFER_FILTER_CONTRACT: &str = "transfer_filter_contract";
+pub const TRANSFER_FILTER_CONTRACT_METHOD: &str = "can_transfer";
 
 // The cap on the amount of tokens within a given CEP-78 collection.
 pub const MAX_TOTAL_TOKEN_SUPPLY: u64 = 1_000_000u64;

@@ -54,12 +54,15 @@ impl TryFrom<u8> for NFTHolderMode {
     }
 }
 
+#[derive(PartialEq, Eq)]
 #[repr(u8)]
 pub enum MintingMode {
     /// The ability to mint NFTs is restricted to the installing account only.
     Installer = 0,
     /// The ability to mint NFTs is not restricted.
     Public = 1,
+    /// The ability to mint NFTs is restricted by an ACL.
+    Acl = 2,
 }
 
 impl TryFrom<u8> for MintingMode {
@@ -69,6 +72,7 @@ impl TryFrom<u8> for MintingMode {
         match value {
             0 => Ok(MintingMode::Installer),
             1 => Ok(MintingMode::Public),
+            2 => Ok(MintingMode::Acl),
             _ => Err(NFTCoreError::InvalidMintingMode),
         }
     }
@@ -436,6 +440,23 @@ impl TryFrom<u8> for EventsMode {
             1 => Ok(EventsMode::CEP47),
             2 => Ok(EventsMode::CES),
             _ => Err(NFTCoreError::InvalidEventsMode),
+        }
+    }
+}
+
+#[repr(u8)]
+#[non_exhaustive]
+#[derive(PartialEq, Eq)]
+pub enum TransferFilterContractResult {
+    DenyTransfer = 0,
+    ProceedTransfer,
+}
+
+impl From<u8> for TransferFilterContractResult {
+    fn from(value: u8) -> Self {
+        match value {
+            0 => TransferFilterContractResult::DenyTransfer,
+            _ => TransferFilterContractResult::ProceedTransfer,
         }
     }
 }
