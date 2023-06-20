@@ -86,28 +86,29 @@ This modality is an optional installation parameter and will default to the `Mix
 mode cannot be changed once the contract has been installed.
 The mode is passed in as a `u8` value to `nft_holder_mode` runtime argument.
 
-## WhitelistMode
+#### WhitelistMode
 
-The `WhitelistMode` dictates if the contract whitelist restricting access to the mint entrypoint can be updated. There are currently
-two options:
+The `WhitelistMode` dictates if the ACL whitelist restricting access to the mint entry point can be updated. There are currently two options:
 
-1. `Unlocked`: The contract whitelist is unlocked and can be updated via the set variables endpoint.
-2. `Locked`: The contract whitelist is locked and cannot be updated further.
+1. `Unlocked`: The ACL whitelist is unlocked and can be updated via the set variables endpoint.
+2. `Locked`: The ACL whitelist is locked and cannot be updated further.
 
-This `WhitelistMode` is an optional installation parameter and will be set to unlocked if not passed. However, the whitelist mode itself
-cannot be changed once the contract has been installed. The mode is passed in as a `u8` value to `whitelist_mode` runtime argument.
+If the `WhitelistMode` is set to `Locked` an ACL whitelist of entity keys must be provided on installation. This whitelist dictates which entities can mint NFTs in the restricted `ACL` minting mode. These entities include `Accounts` and/or `Contracts`.
+
+This `WhitelistMode` is an optional installation parameter and will be set to unlocked if not passed. However, the whitelist mode itself cannot be changed once the contract has been installed. The mode is passed in as a `u8` value to `whitelist_mode` runtime argument.
 
 | WhitelistMode | u8  |
 | ------------- | --- |
 | Unlocked      | 0   |
 | Locked        | 1   |
 
-## Minting
+#### Minting
 
 The minting mode governs the behavior of contract when minting new tokens. The minting modality provides two options:
 
 1. `Installer`: This mode restricts the ability to mint new NFT tokens only to the installing account of the NFT contract.
 2. `Public`: This mode allows any account to mint NFT tokens.
+3. `ACL`: This mode allows whitelisted accounts or contracts to mint NFT tokens.
 
 This modality is an optional installation parameter and will default to the `Installer` mode if not provided. However, this
 mode cannot be changed once the contract has been installed. The mode is set by passing a `u8` value to the `minting_mode` runtime argument.
@@ -116,6 +117,7 @@ mode cannot be changed once the contract has been installed. The mode is set by 
 | ----------- | --- |
 | Installer   | 0   |
 | Public      | 1   |
+| ACL         | 2   |
 
 ## NFTMetadataKind
 
