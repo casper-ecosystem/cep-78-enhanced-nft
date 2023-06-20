@@ -1,6 +1,6 @@
 [package]
-name = "transfer_session"
-version = "1.4.0"
+name = "transfer_filter_contract"
+version = "1.1.1"
 edition = "2021"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
@@ -10,7 +10,7 @@ casper-contract = "2.0.0"
 casper-types = "2.0.0"
 
 [[bin]]
-name = "transfer_call"
+name = "transfer_filter_contract"
 path = "src/main.rs"
 bench = false
 doctest = false

@@ -1,18 +1,21 @@
 use std::collections::BTreeMap;
 
 use contract::constants::{
-    ARG_ADDITIONAL_REQUIRED_METADATA, ARG_ALLOW_MINTING, ARG_BURN_MODE, ARG_COLLECTION_NAME,
-    ARG_COLLECTION_SYMBOL, ARG_CONTRACT_WHITELIST, ARG_EVENTS_MODE, ARG_HOLDER_MODE,
-    ARG_IDENTIFIER_MODE, ARG_JSON_SCHEMA, ARG_METADATA_MUTABILITY, ARG_MINTING_MODE,
-    ARG_NAMED_KEY_CONVENTION, ARG_NFT_KIND, ARG_NFT_METADATA_KIND, ARG_OPTIONAL_METADATA,
-    ARG_OWNERSHIP_MODE, ARG_OWNER_LOOKUP_MODE, ARG_TOTAL_TOKEN_SUPPLY, ARG_WHITELIST_MODE,
+    ARG_ACL_WHITELIST, ARG_ADDITIONAL_REQUIRED_METADATA, ARG_ALLOW_MINTING, ARG_BURN_MODE,
+    ARG_COLLECTION_NAME, ARG_COLLECTION_SYMBOL, ARG_CONTRACT_WHITELIST, ARG_EVENTS_MODE,
+    ARG_HOLDER_MODE, ARG_IDENTIFIER_MODE, ARG_JSON_SCHEMA, ARG_METADATA_MUTABILITY,
+    ARG_MINTING_MODE, ARG_NAMED_KEY_CONVENTION, ARG_NFT_KIND, ARG_NFT_METADATA_KIND,
+    ARG_OPTIONAL_METADATA, ARG_OWNERSHIP_MODE, ARG_OWNER_LOOKUP_MODE, ARG_TOTAL_TOKEN_SUPPLY,
+    ARG_TRANSFER_FILTER_CONTRACT, ARG_WHITELIST_MODE,
 };
 use once_cell::sync::Lazy;
 use serde::{Deserialize, Serialize};
 
 use casper_engine_test_support::ExecuteRequestBuilder;
 use casper_execution_engine::core::engine_state::ExecuteRequest;
-use casper_types::{account::AccountHash, bytesrepr::Bytes, CLValue, ContractHash, RuntimeArgs};
+use casper_types::{
+    account::AccountHash, bytesrepr::Bytes, CLValue, ContractHash, Key, RuntimeArgs,
+};
 
 // Modalities reexports.
 pub use contract::modalities::{
@@ -131,7 +134,8 @@ pub(crate) struct InstallerRequestBuilder {
     nft_kind: CLValue,
     holder_mode: CLValue,
     whitelist_mode: CLValue,
-    contract_whitelist: CLValue,
+    contract_whitelist: CLValue, // Deprecated in 1.4
+    acl_whitelist: CLValue,
     json_schema: CLValue,
     nft_metadata_kind: CLValue,
     identifier_mode: CLValue,
@@ -142,6 +146,7 @@ pub(crate) struct InstallerRequestBuilder {
     additional_required_metadata: CLValue,
     optional_metadata: CLValue,
     events_mode: CLValue,
+    transfer_filter_contract: Option<CLValue>,
 }
 
 impl InstallerRequestBuilder {
@@ -167,6 +172,7 @@ impl InstallerRequestBuilder {
             holder_mode: CLValue::from_t(NFTHolderMode::Mixed as u8).unwrap(),
             whitelist_mode: CLValue::from_t(WhitelistMode::Unlocked as u8).unwrap(),
             contract_whitelist: CLValue::from_t(Vec::<ContractHash>::new()).unwrap(),
+            acl_whitelist: CLValue::from_t(Vec::<Key>::new()).unwrap(),
             json_schema: CLValue::from_t("test".to_string())
                 .expect("test_metadata was created from a concrete value"),
             nft_metadata_kind: CLValue::from_t(NFTMetadataKind::NFT721 as u8).unwrap(),
@@ -181,6 +187,7 @@ impl InstallerRequestBuilder {
             additional_required_metadata: CLValue::from_t(Bytes::new()).unwrap(),
             optional_metadata: CLValue::from_t(Bytes::new()).unwrap(),
             events_mode: CLValue::from_t(EventsMode::CES as u8).unwrap(),
+            transfer_filter_contract: None,
         }
     }
 
@@ -255,8 +262,14 @@ impl InstallerRequestBuilder {
         self
     }
 
+    // Deprecated in 1.4
     pub(crate) fn with_contract_whitelist(mut self, contract_whitelist: Vec<ContractHash>) -> Self {
         self.contract_whitelist = CLValue::from_t(contract_whitelist).unwrap();
+        self
+    }
+
+    pub(crate) fn with_acl_whitelist(mut self, acl_whitelist: Vec<Key>) -> Self {
+        self.acl_whitelist = CLValue::from_t(acl_whitelist).unwrap();
         self
     }
 
@@ -312,6 +325,11 @@ impl InstallerRequestBuilder {
         self
     }
 
+    pub(crate) fn with_transfer_filter_contract(mut self, transfer_filter_contract: Key) -> Self {
+        self.transfer_filter_contract = Some(CLValue::from_t(transfer_filter_contract).unwrap());
+        self
+    }
+
     pub(crate) fn build(self) -> ExecuteRequest {
         let mut runtime_args = RuntimeArgs::new();
         runtime_args.insert_cl_value(ARG_COLLECTION_NAME, self.collection_name);
@@ -323,7 +341,8 @@ impl InstallerRequestBuilder {
         runtime_args.insert_cl_value(ARG_NFT_KIND, self.nft_kind);
         runtime_args.insert_cl_value(ARG_HOLDER_MODE, self.holder_mode);
         runtime_args.insert_cl_value(ARG_WHITELIST_MODE, self.whitelist_mode);
-        runtime_args.insert_cl_value(ARG_CONTRACT_WHITELIST, self.contract_whitelist);
+        runtime_args.insert_cl_value(ARG_CONTRACT_WHITELIST, self.contract_whitelist); // Deprecated in 1.4
+        runtime_args.insert_cl_value(ARG_ACL_WHITELIST, self.acl_whitelist);
         runtime_args.insert_cl_value(ARG_NFT_METADATA_KIND, self.nft_metadata_kind);
         runtime_args.insert_cl_value(ARG_IDENTIFIER_MODE, self.identifier_mode);
         runtime_args.insert_cl_value(ARG_METADATA_MUTABILITY, self.metadata_mutability);
@@ -343,6 +362,10 @@ impl InstallerRequestBuilder {
             .unwrap_or_default();
         if !json_schema.is_empty() {
             runtime_args.insert_cl_value(ARG_JSON_SCHEMA, self.json_schema);
+        }
+
+        if let Some(transfer_filter_contract) = self.transfer_filter_contract {
+            runtime_args.insert_cl_value(ARG_TRANSFER_FILTER_CONTRACT, transfer_filter_contract);
         }
         ExecuteRequestBuilder::standard(self.account_hash, &self.session_file, runtime_args).build()
     }
