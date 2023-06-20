@@ -16,6 +16,7 @@ build-contract:
 	cd client/updated_receipts && cargo build --release --target wasm32-unknown-unknown
 	cd test-contracts/minting_contract && cargo build --release --target wasm32-unknown-unknown
 	cd test-contracts/mangle_named_keys && cargo build --release --target wasm32-unknown-unknown
+	cd test-contracts/transfer_filter_contract && cargo build --release --target wasm32-unknown-unknown
 	wasm-strip contract/target/wasm32-unknown-unknown/release/contract.wasm
 	wasm-strip client/mint_session/target/wasm32-unknown-unknown/release/mint_call.wasm
 	wasm-strip client/balance_of_session/target/wasm32-unknown-unknown/release/balance_of_call.wasm
@@ -25,12 +26,15 @@ build-contract:
 	wasm-strip client/transfer_session/target/wasm32-unknown-unknown/release/transfer_call.wasm
 	wasm-strip client/updated_receipts/target/wasm32-unknown-unknown/release/updated_receipts.wasm
 	wasm-strip test-contracts/minting_contract/target/wasm32-unknown-unknown/release/minting_contract.wasm
+	wasm-strip test-contracts/transfer_filter_contract/target/wasm32-unknown-unknown/release/transfer_filter_contract.wasm
 
 setup-test: build-contract
 	mkdir -p tests/wasm
 	mkdir -p tests/wasm/1_0_0; curl -L https://github.com/casper-ecosystem/cep-78-enhanced-nft/releases/download/v1.0.0/cep-78-wasm.tar.gz | tar zxv -C tests/wasm/1_0_0/
 	mkdir -p tests/wasm/1_1_0; curl -L https://github.com/casper-ecosystem/cep-78-enhanced-nft/releases/download/v1.1.0/cep-78-wasm.tar.gz | tar zxv -C tests/wasm/1_1_0/
 	mkdir -p tests/wasm/1_2_0; curl -L https://github.com/casper-ecosystem/cep-78-enhanced-nft/releases/download/v1.2.0/cep-78-wasm.tar.gz | tar zxv -C tests/wasm/1_2_0/
+	mkdir -p tests/wasm/1_3_0; curl -L https://github.com/casper-ecosystem/cep-78-enhanced-nft/releases/download/v1.3.0/cep-78-wasm.tar.gz | tar zxv -C tests/wasm/1_3_0/
+
 	cp contract/target/wasm32-unknown-unknown/release/contract.wasm tests/wasm
 	cp client/mint_session/target/wasm32-unknown-unknown/release/mint_call.wasm tests/wasm
 	cp client/balance_of_session/target/wasm32-unknown-unknown/release/balance_of_call.wasm tests/wasm
@@ -41,6 +45,7 @@ setup-test: build-contract
 	cp client/updated_receipts/target/wasm32-unknown-unknown/release/updated_receipts.wasm tests/wasm
 	cp test-contracts/minting_contract/target/wasm32-unknown-unknown/release/minting_contract.wasm tests/wasm
 	cp test-contracts/mangle_named_keys/target/wasm32-unknown-unknown/release/mangle_named_keys.wasm tests/wasm
+	cp test-contracts/transfer_filter_contract/target/wasm32-unknown-unknown/release/transfer_filter_contract.wasm tests/wasm
 
 test: setup-test
 	cd tests && cargo test
@@ -56,6 +61,7 @@ clippy:
 	cd client/updated_receipts && cargo clippy --release --target wasm32-unknown-unknown -- -D warnings
 	cd test-contracts/minting_contract && cargo clippy --release --target wasm32-unknown-unknown -- -D warnings
 	cd test-contracts/mangle_named_keys && cargo clippy --release --target wasm32-unknown-unknown -- -D warnings
+	cd test-contracts/transfer_filter_contract && cargo clippy --release --target wasm32-unknown-unknown -- -D warnings
 	cd tests && cargo clippy --all-targets -- -D warnings
 
 check-lint: clippy
@@ -68,6 +74,7 @@ check-lint: clippy
 	cd client/updated_receipts && cargo fmt -- --check
 	cd test-contracts/minting_contract && cargo fmt -- --check
 	cd test-contracts/mangle_named_keys && cargo fmt -- --check
+	cd test-contracts/transfer_filter_contract && cargo fmt -- --check
 	cd tests && cargo fmt -- --check
 
 lint: clippy
@@ -80,6 +87,7 @@ lint: clippy
 	cd client/updated_receipts && cargo fmt
 	cd test-contracts/minting_contract
 	cd test-contracts/mangle_named_keys
+	cd test-contracts/transfer_filter_contract
 	cd tests && cargo fmt
 
 clean:
@@ -92,5 +100,6 @@ clean:
 	cd client/updated_receipts && cargo clean
 	cd test-contracts/minting_contract && cargo clean
 	cd test-contracts/mangle_named_keys && cargo clean
+	cd test-contracts/transfer_filter_contract && cargo clean
 	cd tests && cargo clean
 	rm -rf tests/wasm

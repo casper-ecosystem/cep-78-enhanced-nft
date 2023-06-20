@@ -20,9 +20,9 @@ use crate::utility::{
     constants::{
         ACCOUNT_USER_1, ARG_IS_HASH_IDENTIFIER_MODE, ARG_NFT_CONTRACT_HASH,
         ARG_NFT_CONTRACT_PACKAGE_HASH, CONTRACT_1_0_0_WASM, CONTRACT_1_1_0_WASM,
-        CONTRACT_1_2_0_WASM, MANGLE_NAMED_KEYS, MINT_1_0_0_WASM, MINT_SESSION_WASM,
-        NFT_CONTRACT_WASM, NFT_TEST_COLLECTION, NFT_TEST_SYMBOL, PAGE_SIZE, TRANSFER_SESSION_WASM,
-        UPDATED_RECEIPTS_WASM,
+        CONTRACT_1_2_0_WASM, CONTRACT_1_3_0_WASM, MANGLE_NAMED_KEYS, MINT_1_0_0_WASM,
+        MINT_SESSION_WASM, NFT_CONTRACT_WASM, NFT_TEST_COLLECTION, NFT_TEST_SYMBOL, PAGE_SIZE,
+        TRANSFER_SESSION_WASM, UPDATED_RECEIPTS_WASM,
     },
     installer_request_builder::{
         InstallerRequestBuilder, MetadataMutability, NFTIdentifierMode, NFTMetadataKind,
@@ -101,7 +101,6 @@ fn should_safely_upgrade_in_ordinal_identifier_mode() {
             ARG_NFT_CONTRACT_PACKAGE_HASH => contract_package_hash,
             ARG_COLLECTION_NAME => NFT_TEST_COLLECTION.to_string(),
             ARG_NAMED_KEY_CONVENTION => NamedKeyConventionMode::V1_0Standard as u8,
-            ARG_ACCESS_KEY_NAME_1_0_0 => ACCESS_KEY_NAME_1_0_0.to_string(),
             ARG_EVENTS_MODE => EventsMode::CES as u8
         },
     )
@@ -241,7 +240,6 @@ fn should_safely_upgrade_in_hash_identifier_mode() {
             ARG_NFT_CONTRACT_HASH => support::get_nft_contract_package_hash(&builder),
             ARG_COLLECTION_NAME => NFT_TEST_COLLECTION.to_string(),
             ARG_NAMED_KEY_CONVENTION => NamedKeyConventionMode::V1_0Standard as u8,
-            ARG_ACCESS_KEY_NAME_1_0_0 => ACCESS_KEY_NAME_1_0_0.to_string(),
             ARG_TOTAL_TOKEN_SUPPLY => 10u64
         },
     )
@@ -399,7 +397,6 @@ fn should_update_receipts_post_upgrade_paged() {
         runtime_args! {
             ARG_COLLECTION_NAME => NFT_TEST_COLLECTION.to_string(),
             ARG_NAMED_KEY_CONVENTION => NamedKeyConventionMode::V1_0Standard as u8,
-            ARG_ACCESS_KEY_NAME_1_0_0 => ACCESS_KEY_NAME_1_0_0.to_string()
         },
     )
     .build();
@@ -474,7 +471,6 @@ fn should_not_be_able_to_reinvoke_migrate_entrypoint() {
             ARG_NFT_CONTRACT_HASH => support::get_nft_contract_package_hash(&builder),
             ARG_COLLECTION_NAME => NFT_TEST_COLLECTION.to_string(),
             ARG_NAMED_KEY_CONVENTION => NamedKeyConventionMode::V1_0Standard as u8,
-            ARG_ACCESS_KEY_NAME_1_0_0 => ACCESS_KEY_NAME_1_0_0.to_string()
         },
     )
     .build();
@@ -491,7 +487,6 @@ fn should_not_be_able_to_reinvoke_migrate_entrypoint() {
             ARG_NFT_CONTRACT_PACKAGE_HASH => support::get_nft_contract_package_hash(&builder),
             ARG_COLLECTION_NAME => NFT_TEST_COLLECTION.to_string(),
             ARG_NAMED_KEY_CONVENTION => NamedKeyConventionMode::V1_0Standard as u8,
-            ARG_ACCESS_KEY_NAME_1_0_0 => ACCESS_KEY_NAME_1_0_0.to_string(),
             ARG_EVENTS_MODE => EventsMode::CES as u8
         },
     )
@@ -507,7 +502,6 @@ fn should_not_be_able_to_reinvoke_migrate_entrypoint() {
         runtime_args! {
             ARG_COLLECTION_NAME => NFT_TEST_COLLECTION.to_string(),
             ARG_NAMED_KEY_CONVENTION => NamedKeyConventionMode::V1_0Standard as u8,
-            ARG_ACCESS_KEY_NAME_1_0_0 => ACCESS_KEY_NAME_1_0_0.to_string(),
             ARG_EVENTS_MODE => EventsMode::CES as u8
         },
     )
@@ -545,7 +539,6 @@ fn should_not_migrate_contracts_with_zero_token_issuance() {
             ARG_NFT_CONTRACT_PACKAGE_HASH => support::get_nft_contract_package_hash(&builder),
             ARG_COLLECTION_NAME => NFT_TEST_COLLECTION.to_string(),
             ARG_NAMED_KEY_CONVENTION => NamedKeyConventionMode::V1_0Standard as u8,
-            ARG_ACCESS_KEY_NAME_1_0_0 => ACCESS_KEY_NAME_1_0_0.to_string()
         },
     )
     .build();
@@ -690,7 +683,6 @@ fn should_not_upgrade_with_larger_total_token_supply() {
             ARG_NFT_CONTRACT_PACKAGE_HASH => support::get_nft_contract_package_hash(&builder),
             ARG_COLLECTION_NAME => NFT_TEST_COLLECTION.to_string(),
             ARG_NAMED_KEY_CONVENTION => NamedKeyConventionMode::V1_0Standard as u8,
-            ARG_ACCESS_KEY_NAME_1_0_0 => ACCESS_KEY_NAME_1_0_0.to_string(),
             ARG_TOTAL_TOKEN_SUPPLY => 1000u64
         },
     )
@@ -706,7 +698,9 @@ fn should_not_upgrade_with_larger_total_token_supply() {
     );
 }
 
-fn should_safely_upgrade_from_1_2_0_to_current_version_with_reporting_mode(
+fn should_safely_upgrade_from_old_version_to_new_version_with_reporting_mode(
+    old_version: &str,
+    new_version: &str,
     reporting_mode: OwnerReverseLookupMode,
     expected_total_token_supply_post_upgrade: u64,
 ) {
@@ -715,7 +709,7 @@ fn should_safely_upgrade_from_1_2_0_to_current_version_with_reporting_mode(
         .run_genesis(&PRODUCTION_RUN_GENESIS_REQUEST)
         .commit();
 
-    let install_request = InstallerRequestBuilder::new(*DEFAULT_ACCOUNT_ADDR, CONTRACT_1_2_0_WASM)
+    let install_request = InstallerRequestBuilder::new(*DEFAULT_ACCOUNT_ADDR, old_version)
         .with_collection_name(NFT_TEST_COLLECTION.to_string())
         .with_collection_symbol(NFT_TEST_SYMBOL.to_string())
         .with_total_token_supply(100u64)
@@ -729,8 +723,8 @@ fn should_safely_upgrade_from_1_2_0_to_current_version_with_reporting_mode(
 
     builder.exec(install_request).expect_success().commit();
 
-    let nft_contract_hash_1_2_0: ContractHash = support::get_nft_contract_hash(&builder);
-    let nft_contract_key_1_2_0: Key = nft_contract_hash_1_2_0.into();
+    let nft_contract_hash: ContractHash = support::get_nft_contract_hash(&builder);
+    let nft_contract_key: Key = nft_contract_hash.into();
 
     let number_of_tokens_pre_migration = 3usize;
 
@@ -738,7 +732,7 @@ fn should_safely_upgrade_from_1_2_0_to_current_version_with_reporting_mode(
     for _i in 0..number_of_tokens_pre_migration {
         let register_request = ExecuteRequestBuilder::contract_call_by_hash(
             *DEFAULT_ACCOUNT_ADDR,
-            nft_contract_hash_1_2_0,
+            nft_contract_hash,
             ENTRY_POINT_REGISTER_OWNER,
             runtime_args! {
                 ARG_TOKEN_OWNER => Key::Account(*DEFAULT_ACCOUNT_ADDR),
@@ -749,7 +743,7 @@ fn should_safely_upgrade_from_1_2_0_to_current_version_with_reporting_mode(
         builder.exec(register_request).expect_success().commit();
         let mint_request = ExecuteRequestBuilder::contract_call_by_hash(
             *DEFAULT_ACCOUNT_ADDR,
-            nft_contract_hash_1_2_0,
+            nft_contract_hash,
             ENTRY_POINT_MINT,
             runtime_args! {
                 ARG_TOKEN_OWNER => Key::Account(*DEFAULT_ACCOUNT_ADDR),
@@ -763,9 +757,9 @@ fn should_safely_upgrade_from_1_2_0_to_current_version_with_reporting_mode(
 
     let upgrade_request = ExecuteRequestBuilder::standard(
         *DEFAULT_ACCOUNT_ADDR,
-        NFT_CONTRACT_WASM,
+        new_version,
         runtime_args! {
-            ARG_NFT_CONTRACT_HASH => nft_contract_key_1_2_0,
+            ARG_NFT_CONTRACT_HASH => nft_contract_key,
             ARG_COLLECTION_NAME => NFT_TEST_COLLECTION.to_string(),
             ARG_NAMED_KEY_CONVENTION => NamedKeyConventionMode::V1_0Custom as u8,
             ARG_ACCESS_KEY_NAME_1_0_0 => format!("{PREFIX_ACCESS_KEY_NAME}_{NFT_TEST_COLLECTION}"),
@@ -819,16 +813,38 @@ fn should_safely_upgrade_from_1_2_0_to_current_version_with_reporting_mode(
 }
 
 #[test]
-
-fn should_safely_upgrade_from_1_2_0_to_current_version() {
+fn should_safely_upgrade_from_1_2_0_to_1_3_0() {
     //* starting total_token_supply 100u64
     let expected_total_token_supply_post_upgrade = 10;
-    should_safely_upgrade_from_1_2_0_to_current_version_with_reporting_mode(
+    should_safely_upgrade_from_old_version_to_new_version_with_reporting_mode(
+        CONTRACT_1_2_0_WASM,
+        CONTRACT_1_3_0_WASM,
         OwnerReverseLookupMode::NoLookUp,
         expected_total_token_supply_post_upgrade,
     );
     let expected_total_token_supply_post_upgrade = 100;
-    should_safely_upgrade_from_1_2_0_to_current_version_with_reporting_mode(
+    should_safely_upgrade_from_old_version_to_new_version_with_reporting_mode(
+        CONTRACT_1_2_0_WASM,
+        CONTRACT_1_3_0_WASM,
+        OwnerReverseLookupMode::Complete,
+        expected_total_token_supply_post_upgrade,
+    );
+}
+
+#[test]
+fn should_safely_upgrade_from_1_3_0_to_current_version() {
+    //* starting total_token_supply 100u64
+    let expected_total_token_supply_post_upgrade = 10;
+    should_safely_upgrade_from_old_version_to_new_version_with_reporting_mode(
+        CONTRACT_1_3_0_WASM,
+        NFT_CONTRACT_WASM,
+        OwnerReverseLookupMode::NoLookUp,
+        expected_total_token_supply_post_upgrade,
+    );
+    let expected_total_token_supply_post_upgrade = 100;
+    should_safely_upgrade_from_old_version_to_new_version_with_reporting_mode(
+        CONTRACT_1_3_0_WASM,
+        NFT_CONTRACT_WASM,
         OwnerReverseLookupMode::Complete,
         expected_total_token_supply_post_upgrade,
     );

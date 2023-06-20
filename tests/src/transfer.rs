@@ -8,22 +8,23 @@ use casper_types::{
 };
 use contract::{
     constants::{
-        APPROVED, ARG_APPROVE_ALL, ARG_COLLECTION_NAME, ARG_CONTRACT_WHITELIST, ARG_OPERATOR,
+        ACL_WHITELIST, APPROVED, ARG_APPROVE_ALL, ARG_COLLECTION_NAME, ARG_OPERATOR,
         ARG_SOURCE_KEY, ARG_SPENDER, ARG_TARGET_KEY, ARG_TOKEN_HASH, ARG_TOKEN_ID,
         ARG_TOKEN_META_DATA, ARG_TOKEN_OWNER, ENTRY_POINT_APPROVE, ENTRY_POINT_MINT,
         ENTRY_POINT_REGISTER_OWNER, ENTRY_POINT_REVOKE, ENTRY_POINT_SET_APPROVALL_FOR_ALL,
         ENTRY_POINT_TRANSFER, PAGE_TABLE, TOKEN_COUNT, TOKEN_OWNERS,
     },
     events::events_ces::{Approval, ApprovalRevoked, Transfer},
-    modalities::TokenIdentifier,
+    modalities::{TokenIdentifier, TransferFilterContractResult},
 };
 
 use crate::utility::{
     constants::{
-        ACCOUNT_USER_1, ACCOUNT_USER_2, ACCOUNT_USER_3, ARG_IS_HASH_IDENTIFIER_MODE,
-        ARG_NFT_CONTRACT_HASH, ARG_REVERSE_LOOKUP, CONTRACT_NAME, MINTING_CONTRACT_WASM,
-        MINT_SESSION_WASM, NFT_CONTRACT_WASM, NFT_TEST_COLLECTION, NFT_TEST_SYMBOL,
-        TEST_PRETTY_721_META_DATA, TRANSFER_SESSION_WASM,
+        ACCOUNT_USER_1, ACCOUNT_USER_2, ACCOUNT_USER_3, ARG_FILTER_CONTRACT_RETURN_VALUE,
+        ARG_IS_HASH_IDENTIFIER_MODE, ARG_NFT_CONTRACT_HASH, ARG_REVERSE_LOOKUP, CONTRACT_NAME,
+        MINTING_CONTRACT_WASM, MINT_SESSION_WASM, NFT_CONTRACT_WASM, NFT_TEST_COLLECTION,
+        NFT_TEST_SYMBOL, TEST_PRETTY_721_META_DATA, TRANSFER_FILTER_CONTRACT_WASM,
+        TRANSFER_SESSION_WASM,
     },
     installer_request_builder::{
         InstallerRequestBuilder, MetadataMutability, MintingMode, NFTHolderMode, NFTIdentifierMode,
@@ -31,7 +32,7 @@ use crate::utility::{
     },
     support::{
         self, assert_expected_error, create_funded_dummy_account, get_dictionary_value_from_key,
-        get_minting_contract_hash, get_nft_contract_hash, query_stored_value,
+        get_minting_contract_hash, get_nft_contract_hash, get_transfer_filter_contract_hash,
     },
 };
 
@@ -1116,15 +1117,15 @@ fn should_transfer_between_contract_to_account() {
     let minting_contract_hash = get_minting_contract_hash(&builder);
     let minting_contract_key: Key = minting_contract_hash.into();
 
-    let contract_whitelist = vec![minting_contract_hash];
+    let contract_whitelist = vec![Key::from(minting_contract_hash)];
 
     let install_request = InstallerRequestBuilder::new(*DEFAULT_ACCOUNT_ADDR, NFT_CONTRACT_WASM)
         .with_total_token_supply(100u64)
         .with_holder_mode(NFTHolderMode::Contracts)
         .with_whitelist_mode(WhitelistMode::Locked)
         .with_ownership_mode(OwnershipMode::Transferable)
-        .with_minting_mode(MintingMode::Installer)
-        .with_contract_whitelist(contract_whitelist.clone())
+        .with_minting_mode(MintingMode::Acl)
+        .with_acl_whitelist(contract_whitelist)
         .build();
 
     builder.exec(install_request).expect_success().commit();
@@ -1132,13 +1133,14 @@ fn should_transfer_between_contract_to_account() {
     let nft_contract_hash = get_nft_contract_hash(&builder);
     let nft_contract_key: Key = nft_contract_hash.into();
 
-    let actual_contract_whitelist: Vec<ContractHash> = query_stored_value(
+    let is_whitelisted_account = support::get_dictionary_value_from_key::<bool>(
         &builder,
-        nft_contract_key,
-        vec![ARG_CONTRACT_WHITELIST.to_string()],
+        &nft_contract_key,
+        ACL_WHITELIST,
+        &minting_contract_hash.to_string(),
     );
 
-    assert_eq!(actual_contract_whitelist, contract_whitelist);
+    assert!(is_whitelisted_account, "acl whitelist is incorrectly set");
 
     let mint_runtime_args = runtime_args! {
         ARG_NFT_CONTRACT_HASH => nft_contract_key,
@@ -1936,4 +1938,181 @@ fn disallow_owner_to_approve_for_all_itself() {
         1u16,
         "should not allow an owner to approve_for_all itself",
     );
+}
+
+#[test]
+fn check_transfers_with_transfer_filter_contract_modes() {
+    let mut builder = InMemoryWasmTestBuilder::default();
+    builder
+        .run_genesis(&PRODUCTION_RUN_GENESIS_REQUEST)
+        .commit();
+
+    let transfer_filter_contract_install_request = ExecuteRequestBuilder::standard(
+        *DEFAULT_ACCOUNT_ADDR,
+        TRANSFER_FILTER_CONTRACT_WASM,
+        runtime_args! {},
+    )
+    .build();
+
+    builder
+        .exec(transfer_filter_contract_install_request)
+        .expect_success()
+        .commit();
+
+    let transfer_filter_contract_hash = get_transfer_filter_contract_hash(&builder);
+
+    let transfer_filter_contract_set_return_value_request =
+        ExecuteRequestBuilder::contract_call_by_hash(
+            *DEFAULT_ACCOUNT_ADDR,
+            transfer_filter_contract_hash,
+            "set_return_value",
+            runtime_args! {
+                ARG_FILTER_CONTRACT_RETURN_VALUE => TransferFilterContractResult::DenyTransfer as u8
+            },
+        )
+        .build();
+
+    builder
+        .exec(transfer_filter_contract_set_return_value_request)
+        .expect_success()
+        .commit();
+
+    let token_supply = 2u64;
+
+    let install_request = InstallerRequestBuilder::new(*DEFAULT_ACCOUNT_ADDR, NFT_CONTRACT_WASM)
+        .with_collection_name(NFT_TEST_COLLECTION.to_string())
+        .with_collection_symbol(NFT_TEST_SYMBOL.to_string())
+        .with_total_token_supply(token_supply)
+        .with_ownership_mode(OwnershipMode::Transferable)
+        .with_transfer_filter_contract(Key::from(transfer_filter_contract_hash))
+        .build();
+
+    builder.exec(install_request).expect_success().commit();
+
+    let token_owner_key = Key::Account(*DEFAULT_ACCOUNT_ADDR);
+
+    let nft_contract_hash = get_nft_contract_hash(&builder);
+    let nft_contract_key: Key = nft_contract_hash.into();
+
+    for _i in 0..token_supply {
+        let mint_session_call = ExecuteRequestBuilder::standard(
+            *DEFAULT_ACCOUNT_ADDR,
+            MINT_SESSION_WASM,
+            runtime_args! {
+                ARG_NFT_CONTRACT_HASH => nft_contract_key,
+                ARG_TOKEN_OWNER => token_owner_key,
+                ARG_TOKEN_META_DATA => TEST_PRETTY_721_META_DATA.to_string(),
+                ARG_COLLECTION_NAME => NFT_TEST_COLLECTION.to_string()
+            },
+        )
+        .build();
+
+        builder.exec(mint_session_call).expect_success().commit();
+    }
+
+    let token_receiver = support::create_funded_dummy_account(&mut builder, Some(ACCOUNT_USER_1));
+    let token_receiver_key = Key::Account(token_receiver);
+
+    let register_request = ExecuteRequestBuilder::contract_call_by_hash(
+        *DEFAULT_ACCOUNT_ADDR,
+        nft_contract_hash,
+        ENTRY_POINT_REGISTER_OWNER,
+        runtime_args! {
+            ARG_TOKEN_OWNER => token_receiver_key
+        },
+    )
+    .build();
+
+    builder.exec(register_request).expect_success().commit();
+
+    let token_id = 0u64;
+
+    let transfer_request = ExecuteRequestBuilder::standard(
+        *DEFAULT_ACCOUNT_ADDR,
+        TRANSFER_SESSION_WASM,
+        runtime_args! {
+            ARG_NFT_CONTRACT_HASH => nft_contract_key,
+            ARG_TOKEN_ID => token_id,
+            ARG_IS_HASH_IDENTIFIER_MODE => false,
+            ARG_SOURCE_KEY => token_owner_key,
+            ARG_TARGET_KEY => token_receiver_key,
+        },
+    )
+    .build();
+
+    builder.exec(transfer_request).expect_failure().commit();
+
+    let error = builder.get_error().expect("must have error");
+    support::assert_expected_error(
+        error,
+        159u16,
+        "should not allow transfer when transfer filter returns TransferFilterContractResult::DenyTransfer",
+    );
+
+    let transfer_filter_contract_set_return_value_request =
+        ExecuteRequestBuilder::contract_call_by_hash(
+            *DEFAULT_ACCOUNT_ADDR,
+            transfer_filter_contract_hash,
+            "set_return_value",
+            runtime_args! {
+                ARG_FILTER_CONTRACT_RETURN_VALUE => TransferFilterContractResult::ProceedTransfer as u8
+            },
+        )
+        .build();
+
+    builder
+        .exec(transfer_filter_contract_set_return_value_request)
+        .expect_success()
+        .commit();
+
+    let transfer_request = ExecuteRequestBuilder::standard(
+        *DEFAULT_ACCOUNT_ADDR,
+        TRANSFER_SESSION_WASM,
+        runtime_args! {
+            ARG_NFT_CONTRACT_HASH => nft_contract_key,
+            ARG_TOKEN_ID => token_id,
+            ARG_IS_HASH_IDENTIFIER_MODE => false,
+            ARG_SOURCE_KEY => token_owner_key,
+            ARG_TARGET_KEY => token_receiver_key,
+        },
+    )
+    .build();
+
+    builder.exec(transfer_request).expect_success().commit();
+
+    let transfer_request = ExecuteRequestBuilder::standard(
+        *DEFAULT_ACCOUNT_ADDR,
+        TRANSFER_SESSION_WASM,
+        runtime_args! {
+            ARG_NFT_CONTRACT_HASH => nft_contract_key,
+            ARG_TOKEN_ID => token_id,
+            ARG_IS_HASH_IDENTIFIER_MODE => false,
+            // NB: token_receiver and token_owner are swapped
+            ARG_SOURCE_KEY => token_receiver_key,
+            ARG_TARGET_KEY => token_owner_key,
+        },
+    )
+    .build();
+
+    builder.exec(transfer_request).expect_failure().commit();
+
+    let error = builder.get_error().expect("must have error");
+    assert_expected_error(error, 6u16, "InvalidTokenOwner(6) must be raised");
+
+    let token_id = 1u64;
+
+    let transfer_request = ExecuteRequestBuilder::standard(
+        *DEFAULT_ACCOUNT_ADDR,
+        TRANSFER_SESSION_WASM,
+        runtime_args! {
+            ARG_NFT_CONTRACT_HASH => nft_contract_key,
+            ARG_TOKEN_ID => token_id,
+            ARG_IS_HASH_IDENTIFIER_MODE => false,
+            ARG_SOURCE_KEY => token_owner_key,
+            ARG_TARGET_KEY => token_receiver_key,
+        },
+    )
+    .build();
+
+    builder.exec(transfer_request).expect_success().commit();
 }
