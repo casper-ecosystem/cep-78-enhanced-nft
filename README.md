@@ -20,7 +20,7 @@ Please refer to the [release notes](https://github.com/casper-ecosystem/cep-78-e
 
 1. [Usage](#usage)
 
-   - [Installing the Contract](#installing-the-contract)
+   - [Installing the Contract](#building-the-contract)
 
    - [Utility Session Code](#utility-session-code)
 
@@ -32,13 +32,15 @@ Please refer to the [release notes](https://github.com/casper-ecosystem/cep-78-e
 
 ## Usage
 
-### Installing the Contract
+### Building the Contract
 
-The `main.rs` file within the contract provides the installer for the NFT contract. Users can compile the contract to Wasm using the `make build-contract` with the provided Makefile.
+The `main.rs` file within the contract provides the installer for the NFT contract. Users can compile the contract to Wasm using the `make build-contract` command from the Makefile provided.
 
-The pre-built Wasm for the contract and all other utility session code can be found as part of the most current release. Users wishing to build the Wasm themselves can pull the code and the `make build-contract` provided in the included Makefile. Please note, however, that as part of building the contract, you will need to install `wasm-strip`.
+The pre-built Wasm for the contract and all other utility session code can be found as part of the most current release. Users wishing to build the Wasm themselves can pull the code and use the `make build-contract` command provided in the Makefile. Please note, however, that you must install `wasm-strip` to build the contract.
 
-The `call` method will install the contract with the necessary entrypoints and call the `init()` entrypoint to allow the contract to self initialize and setup the necessary state to allow for operation,
+The `call` method will install the contract with the necessary entrypoints and call the `init()` entrypoint, which allows the contract to self-initialize and set up the necessary state variables for operation.
+
+### Required Runtime Arguments
 
 The following are the required runtime arguments that must be passed to the installer session code to correctly install the NFT contract. For more information on the modalities that these arguments set, please refer to the [Modalities](/docs/modalities.md) documentation.
 
@@ -67,7 +69,7 @@ The following are the optional parameters that can be passed in at the time of i
 
 #### Example deploy
 
-The following is an example of deploying the installation of the NFT contract via the Rust Casper command client.
+The following is an example of installing the NFT contract via a deploy using the Rust CLI Casper client. You can find more examples [here](/docs/using-casper-client.md).
 
 ```bash
 casper-client put-deploy -n http://localhost:11101/rpc --chain-name "casper-net-1" --payment-amount 500000000000 -k ~/casper/casper-node/utils/nctl/assets/net-1/nodes/node-1/keys/secret_key.pem --session-path ~/casper/enhanced-nft/contract/target/wasm32-unknown-unknown/release/contract.wasm \

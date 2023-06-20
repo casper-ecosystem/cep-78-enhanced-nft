@@ -306,6 +306,16 @@ The modality provides three options:
 | CEP47      | 1   |
 | CES        | 2   |
 
+### Transfer Filter Hook
+
+The transfer filter modality, if enabled, specifies a contract package hash pointing to a contract that will be called when the `transfer` method is invoked on the contract. CEP-78 will call the `can_transfer`
+method on the specified callback contract, which is expected to return a value of `TransferFilterContractResult`, represented as a u8.
+
+- `TransferFilterContractResult::DenyTransfer` will block the transfer regardless of the outcome of other checks
+- `TransferFilterContractResult::ProceedTransfer` will allow the transfer to proceed if other checks also pass
+
+The transfer filter can be enabled by passing a `ARG_TRANSFER_FILTER_CONTRACT` argument to the install method, with a value of type `Option<Key>`
+
 ### CEP47 Mode
 
 The CEP47 `EventsMode` modality mimics the event schema previously used in the CEP47 NFT standard. Events are stored as a `BTreeMap` within a dictionary (`EVENTS`) in the contract's context. Entries consist of the `PREFIX_HASH_KEY_NAME`, followed by the `EVENT_TYPE` and then variable data as listed in the table below. The events can be retrieved directly via their dictionary entry using the JSON-RPC, with more information on this process available [here](https://docs.casper.network/concepts/dictionaries/).
