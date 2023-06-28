@@ -22,7 +22,7 @@ use crate::utility::{
         InstallerRequestBuilder, MintingMode, NFTHolderMode, NFTIdentifierMode, NFTMetadataKind,
         OwnerReverseLookupMode, OwnershipMode, WhitelistMode,
     },
-    support::{self, get_dictionary_value_from_key},
+    support::{self, get_dictionary_value_from_key, get_nft_contract_hash},
 };
 
 #[test]
@@ -41,15 +41,11 @@ fn should_install_contract() {
 
     builder.exec(install_request).expect_success().commit();
 
-    let account = builder.get_expected_account(*DEFAULT_ACCOUNT_ADDR);
-    let nft_contract_key = account
-        .named_keys()
-        .get(CONTRACT_NAME)
-        .expect("must have key in named keys");
+    let nft_contract_key: Key = get_nft_contract_hash(&builder).into();
 
     let query_result: String = support::query_stored_value(
         &builder,
-        *nft_contract_key,
+        nft_contract_key,
         vec![ARG_COLLECTION_NAME.to_string()],
     );
 
@@ -61,7 +57,7 @@ fn should_install_contract() {
 
     let query_result: String = support::query_stored_value(
         &builder,
-        *nft_contract_key,
+        nft_contract_key,
         vec![ARG_COLLECTION_SYMBOL.to_string()],
     );
 
@@ -73,7 +69,7 @@ fn should_install_contract() {
 
     let query_result: u64 = support::query_stored_value(
         &builder,
-        *nft_contract_key,
+        nft_contract_key,
         vec![ARG_TOTAL_TOKEN_SUPPLY.to_string()],
     );
 
@@ -84,7 +80,7 @@ fn should_install_contract() {
 
     let query_result: bool = support::query_stored_value(
         &builder,
-        *nft_contract_key,
+        nft_contract_key,
         vec![ARG_ALLOW_MINTING.to_string()],
     );
 
@@ -92,7 +88,7 @@ fn should_install_contract() {
 
     let query_result: u8 = support::query_stored_value(
         &builder,
-        *nft_contract_key,
+        nft_contract_key,
         vec![ARG_MINTING_MODE.to_string()],
     );
 
@@ -103,7 +99,7 @@ fn should_install_contract() {
 
     let query_result: u64 = support::query_stored_value(
         &builder,
-        *nft_contract_key,
+        nft_contract_key,
         vec![NUMBER_OF_MINTED_TOKENS.to_string()],
     );
 
@@ -125,7 +121,7 @@ fn should_install_contract() {
         .with::<Migration>();
     let actual_schemas: Schemas = support::query_stored_value(
         &builder,
-        *nft_contract_key,
+        nft_contract_key,
         vec![casper_event_standard::EVENTS_SCHEMA.to_string()],
     );
     assert_eq!(actual_schemas, expected_schemas, "Schemas mismatch.");
@@ -251,15 +247,11 @@ fn should_install_with_contract_holder_mode() {
         .expect_success()
         .commit();
 
-    let account = builder.get_expected_account(*DEFAULT_ACCOUNT_ADDR);
-    let nft_contract_key = account
-        .named_keys()
-        .get(CONTRACT_NAME)
-        .expect("must have key in named keys");
+    let nft_contract_key: Key = get_nft_contract_hash(&builder).into();
 
     let actual_holder_mode: u8 = support::query_stored_value(
         &builder,
-        *nft_contract_key,
+        nft_contract_key,
         vec![ARG_HOLDER_MODE.to_string()],
     );
 
@@ -271,7 +263,7 @@ fn should_install_with_contract_holder_mode() {
 
     let actual_whitelist_mode: u8 = support::query_stored_value(
         &builder,
-        *nft_contract_key,
+        nft_contract_key,
         vec![ARG_WHITELIST_MODE.to_string()],
     );
 
@@ -283,7 +275,7 @@ fn should_install_with_contract_holder_mode() {
 
     let is_whitelisted_account = get_dictionary_value_from_key::<bool>(
         &builder,
-        nft_contract_key,
+        &nft_contract_key,
         ACL_WHITELIST,
         &ContractHash::default().to_string(),
     );

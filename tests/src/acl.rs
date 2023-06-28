@@ -909,7 +909,7 @@ fn should_be_able_to_update_whitelist_for_minting_with_deprecated_arg_contract_w
         nft_contract_hash,
         ENTRY_POINT_SET_VARIABLES,
         runtime_args! {
-          ARG_CONTRACT_WHITELIST => vec![minting_contract_hash]
+            ARG_CONTRACT_WHITELIST => vec![minting_contract_hash]
         },
     )
     .build();
@@ -1128,8 +1128,7 @@ fn should_upgrade_from_named_keys_to_dict_and_acl_minting_mode() {
 
     builder.exec(upgrade_request).expect_success().commit();
 
-    let nft_contract_hash = support::get_nft_contract_hash(&builder);
-    let nft_contract_key: Key = nft_contract_hash.into();
+    let nft_contract_key: Key = support::get_nft_contract_hash(&builder).into();
 
     let is_updated_acl_whitelist = get_dictionary_value_from_key::<bool>(
         &builder,
