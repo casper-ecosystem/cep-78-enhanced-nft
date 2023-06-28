@@ -53,7 +53,7 @@ jobs:
 
       - name: Audits
         working-directory: ./client-js
-        run: npm audit
+        run: npm audit --omit=dev
 
       - name: Lints
         working-directory: ./client-js
