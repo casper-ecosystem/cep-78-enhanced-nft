@@ -1947,10 +1947,7 @@ fn generate_entry_points() -> EntryPoints {
             Parameter::new(ARG_METADATA_MUTABILITY, CLType::U8),
             Parameter::new(ARG_OWNER_LOOKUP_MODE, CLType::U8),
             Parameter::new(ARG_EVENTS_MODE, CLType::U8),
-            Parameter::new(
-                ARG_TRANSFER_FILTER_CONTRACT,
-                CLType::Option(Box::new(CLType::Key)),
-            ),
+            Parameter::new(ARG_TRANSFER_FILTER_CONTRACT, CLType::Key),
         ],
         CLType::Unit,
         EntryPointAccess::Public,
