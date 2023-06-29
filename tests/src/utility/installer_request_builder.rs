@@ -326,7 +326,7 @@ impl InstallerRequestBuilder {
     }
 
     pub(crate) fn with_transfer_filter_contract(mut self, transfer_filter_contract: Key) -> Self {
-        self.transfer_filter_contract = CLValue::from_t(transfer_filter_contract).unwrap();
+        self.transfer_filter_contract = Some(CLValue::from_t(transfer_filter_contract).unwrap());
         self
     }
 
@@ -364,7 +364,9 @@ impl InstallerRequestBuilder {
             runtime_args.insert_cl_value(ARG_JSON_SCHEMA, self.json_schema);
         }
 
-        runtime_args.insert_cl_value(ARG_TRANSFER_FILTER_CONTRACT, transfer_filter_contract);
+        if let Some(transfer_filter_contract) = self.transfer_filter_contract {
+            runtime_args.insert_cl_value(ARG_TRANSFER_FILTER_CONTRACT, transfer_filter_contract);
+        }
         ExecuteRequestBuilder::standard(self.account_hash, &self.session_file, runtime_args).build()
     }
 }
