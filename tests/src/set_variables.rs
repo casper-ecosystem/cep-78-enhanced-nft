@@ -16,12 +16,13 @@ use crate::utility::{
 
 #[test]
 fn only_installer_should_be_able_to_toggle_allow_minting() {
-    let (_, other_user_public_key) = support::create_dummy_key_pair(ACCOUNT_USER_1); //<-- Choose MINTER2 for failing red test
-    let other_user_account = other_user_public_key.to_account_hash();
     let mut builder = InMemoryWasmTestBuilder::default();
     builder
         .run_genesis(&PRODUCTION_RUN_GENESIS_REQUEST)
         .commit();
+
+    let other_user_account =
+        support::create_funded_dummy_account(&mut builder, Some(ACCOUNT_USER_1)); //<-- Choose MINTER2 for failing red test
 
     let install_request = InstallerRequestBuilder::new(*DEFAULT_ACCOUNT_ADDR, NFT_CONTRACT_WASM)
         .with_collection_name(NFT_TEST_COLLECTION.to_string())

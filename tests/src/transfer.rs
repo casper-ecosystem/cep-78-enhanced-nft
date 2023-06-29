@@ -1603,14 +1603,14 @@ fn should_transfer_token_from_sender_to_receiver_with_transfer_only_reporting() 
     let expected_owner_balance = 1u64;
     assert_eq!(actual_owner_balance, expected_owner_balance);
 
-    let (_, token_receiver) = support::create_dummy_key_pair(ACCOUNT_USER_1);
+    let token_receiver = support::create_funded_dummy_account(&mut builder, Some(ACCOUNT_USER_1));
 
     let register_request = ExecuteRequestBuilder::contract_call_by_hash(
         *DEFAULT_ACCOUNT_ADDR,
         nft_contract_hash,
         ENTRY_POINT_REGISTER_OWNER,
         runtime_args! {
-            ARG_TOKEN_OWNER => Key::Account(token_receiver.to_account_hash())
+            ARG_TOKEN_OWNER => Key::Account(token_receiver)
         },
     )
     .build();
@@ -1625,7 +1625,7 @@ fn should_transfer_token_from_sender_to_receiver_with_transfer_only_reporting() 
             ARG_TOKEN_ID => 0u64,
             ARG_IS_HASH_IDENTIFIER_MODE => false,
             ARG_SOURCE_KEY => Key::Account(token_owner),
-            ARG_TARGET_KEY =>  Key::Account(token_receiver.to_account_hash()),
+            ARG_TARGET_KEY =>  Key::Account(token_receiver),
         },
     )
     .build();
@@ -1640,12 +1640,12 @@ fn should_transfer_token_from_sender_to_receiver_with_transfer_only_reporting() 
     .into_account()
     .unwrap();
 
-    assert_eq!(actual_token_owner, token_receiver.to_account_hash());
+    assert_eq!(actual_token_owner, token_receiver);
 
     let token_receiver_page = support::get_token_page_by_id(
         &builder,
         &nft_contract_key,
-        &Key::Account(token_receiver.to_account_hash()),
+        &Key::Account(token_receiver),
         0u64,
     );
 
@@ -1664,7 +1664,7 @@ fn should_transfer_token_from_sender_to_receiver_with_transfer_only_reporting() 
         &builder,
         &nft_contract_key,
         TOKEN_COUNT,
-        &token_receiver.to_account_hash().to_string(),
+        &token_receiver.to_string(),
     );
     let expected_receiver_balance = 1u64;
     assert_eq!(actual_receiver_balance, expected_receiver_balance);
