@@ -4,7 +4,7 @@ use casper_engine_test_support::{
 };
 use casper_execution_engine::storage::global_state::in_memory::InMemoryGlobalState;
 use casper_types::{
-    account::AccountHash, runtime_args, ContractHash, Key, PublicKey, RuntimeArgs, SecretKey, U512,
+    account::AccountHash, runtime_args, Key, PublicKey, RuntimeArgs, SecretKey, U512,
 };
 use contract::{
     constants::{
@@ -21,7 +21,7 @@ use contract::{
 use crate::utility::{
     constants::{
         ACCOUNT_USER_1, ACCOUNT_USER_2, ACCOUNT_USER_3, ARG_FILTER_CONTRACT_RETURN_VALUE,
-        ARG_IS_HASH_IDENTIFIER_MODE, ARG_NFT_CONTRACT_HASH, ARG_REVERSE_LOOKUP, CONTRACT_NAME,
+        ARG_IS_HASH_IDENTIFIER_MODE, ARG_NFT_CONTRACT_HASH, ARG_REVERSE_LOOKUP,
         MINTING_CONTRACT_WASM, MINT_SESSION_WASM, NFT_CONTRACT_WASM, NFT_TEST_COLLECTION,
         NFT_TEST_SYMBOL, TEST_PRETTY_721_META_DATA, TRANSFER_FILTER_CONTRACT_WASM,
         TRANSFER_SESSION_WASM,
@@ -54,17 +54,8 @@ fn should_dissallow_transfer_with_minter_or_assigned_ownership_mode() {
 
     builder.exec(install_request).expect_success().commit();
 
-    let account = builder.get_expected_account(*DEFAULT_ACCOUNT_ADDR);
-    let nft_contract_hash = account
-        .named_keys()
-        .get(CONTRACT_NAME)
-        .cloned()
-        .and_then(Key::into_hash)
-        .map(ContractHash::new)
-        .expect("failed to find nft contract");
-
     let token_owner = *DEFAULT_ACCOUNT_ADDR;
-
+    let nft_contract_hash = get_nft_contract_hash(&builder);
     let nft_contract_key: Key = get_nft_contract_hash(&builder).into();
 
     let mint_session_call = ExecuteRequestBuilder::standard(
@@ -81,15 +72,9 @@ fn should_dissallow_transfer_with_minter_or_assigned_ownership_mode() {
 
     builder.exec(mint_session_call).expect_success().commit();
 
-    let installing_account = builder.get_expected_account(*DEFAULT_ACCOUNT_ADDR);
-    let nft_contract_key = installing_account
-        .named_keys()
-        .get(CONTRACT_NAME)
-        .expect("must have key in named keys");
-
     let actual_owner_balance: u64 = support::get_dictionary_value_from_key(
         &builder,
-        nft_contract_key,
+        &nft_contract_key,
         TOKEN_COUNT,
         &token_owner.to_string(),
     );
@@ -171,11 +156,8 @@ fn should_transfer_token_from_sender_to_receiver() {
 
     builder.exec(mint_session_call).expect_success().commit();
 
-    let installing_account = builder.get_expected_account(*DEFAULT_ACCOUNT_ADDR);
-    let nft_contract_key = *installing_account
-        .named_keys()
-        .get(CONTRACT_NAME)
-        .expect("must have key in named keys");
+    let nft_contract_hash = get_nft_contract_hash(&builder);
+    let nft_contract_key: Key = nft_contract_hash.into();
 
     let actual_owner_balance: u64 = support::get_dictionary_value_from_key(
         &builder,
@@ -276,16 +258,8 @@ fn approve_token_for_transfer_should_add_entry_to_approved_dictionary(
 
     builder.exec(install_request).expect_success().commit();
 
-    let account = builder.get_expected_account(*DEFAULT_ACCOUNT_ADDR);
-    let nft_contract_hash = account
-        .named_keys()
-        .get(CONTRACT_NAME)
-        .cloned()
-        .and_then(Key::into_hash)
-        .map(ContractHash::new)
-        .expect("failed to find nft contract");
-
-    let nft_contract_key: Key = get_nft_contract_hash(&builder).into();
+    let nft_contract_hash = get_nft_contract_hash(&builder);
+    let nft_contract_key: Key = nft_contract_hash.into();
     let owner_key = Key::Account(*DEFAULT_ACCOUNT_ADDR);
 
     let mint_session_call = ExecuteRequestBuilder::standard(
@@ -337,15 +311,12 @@ fn approve_token_for_transfer_should_add_entry_to_approved_dictionary(
     .build();
     builder.exec(approve_request).expect_success().commit();
 
-    let installing_account = builder.get_expected_account(*DEFAULT_ACCOUNT_ADDR);
-    let nft_contract_key = installing_account
-        .named_keys()
-        .get(CONTRACT_NAME)
-        .expect("must have key in named keys");
+    let nft_contract_hash = get_nft_contract_hash(&builder);
+    let nft_contract_key: Key = nft_contract_hash.into();
 
     let actual_approved_key: Option<Key> = support::get_dictionary_value_from_key(
         &builder,
-        nft_contract_key,
+        &nft_contract_key,
         APPROVED,
         &token_id.to_string(),
     );
@@ -356,7 +327,7 @@ fn approve_token_for_transfer_should_add_entry_to_approved_dictionary(
     let expected_event = Approval::new(owner_key, spender_key, TokenIdentifier::Index(token_id));
     let expected_event_index = if operator.is_some() { 2 } else { 1 };
     let actual_event: Approval =
-        support::get_event(&builder, nft_contract_key, expected_event_index);
+        support::get_event(&builder, &nft_contract_key, expected_event_index);
     assert_eq!(actual_event, expected_event, "Expected Approval event.");
 }
 
@@ -392,16 +363,8 @@ fn revoke_token_for_transfer_should_remove_entry_to_approved_dictionary(
 
     builder.exec(install_request).expect_success().commit();
 
-    let account = builder.get_expected_account(*DEFAULT_ACCOUNT_ADDR);
-    let nft_contract_hash = account
-        .named_keys()
-        .get(CONTRACT_NAME)
-        .cloned()
-        .and_then(Key::into_hash)
-        .map(ContractHash::new)
-        .expect("failed to find nft contract");
-
-    let nft_contract_key: Key = get_nft_contract_hash(&builder).into();
+    let nft_contract_hash = get_nft_contract_hash(&builder);
+    let nft_contract_key: Key = nft_contract_hash.into();
     let owner_key = Key::Account(*DEFAULT_ACCOUNT_ADDR);
 
     let mint_session_call = ExecuteRequestBuilder::standard(
@@ -453,15 +416,11 @@ fn revoke_token_for_transfer_should_remove_entry_to_approved_dictionary(
     .build();
     builder.exec(approve_request).expect_success().commit();
 
-    let installing_account = builder.get_expected_account(*DEFAULT_ACCOUNT_ADDR);
-    let nft_contract_key = installing_account
-        .named_keys()
-        .get(CONTRACT_NAME)
-        .expect("must have key in named keys");
+    let nft_contract_key: Key = nft_contract_hash.into();
 
     let actual_approved_key: Option<Key> = support::get_dictionary_value_from_key(
         &builder,
-        nft_contract_key,
+        &nft_contract_key,
         APPROVED,
         &token_id.to_string(),
     );
@@ -481,7 +440,7 @@ fn revoke_token_for_transfer_should_remove_entry_to_approved_dictionary(
 
     let actual_approved_key: Option<Key> = support::get_dictionary_value_from_key(
         &builder,
-        nft_contract_key,
+        &nft_contract_key,
         APPROVED,
         &token_id.to_string(),
     );
@@ -492,7 +451,7 @@ fn revoke_token_for_transfer_should_remove_entry_to_approved_dictionary(
     let expected_event = ApprovalRevoked::new(owner_key, TokenIdentifier::Index(token_id));
     let expected_event_index = if operator.is_some() { 3 } else { 2 };
     let actual_event: ApprovalRevoked =
-        support::get_event(&builder, nft_contract_key, expected_event_index);
+        support::get_event(&builder, &nft_contract_key, expected_event_index);
     assert_eq!(
         actual_event, expected_event,
         "Expected ApprovalRevoked event."
@@ -534,16 +493,8 @@ fn should_dissallow_approving_when_ownership_mode_is_minter_or_assigned() {
 
     builder.exec(install_request).expect_success().commit();
 
-    let account = builder.get_expected_account(*DEFAULT_ACCOUNT_ADDR);
-    let nft_contract_hash = account
-        .named_keys()
-        .get(CONTRACT_NAME)
-        .cloned()
-        .and_then(Key::into_hash)
-        .map(ContractHash::new)
-        .expect("failed to find nft contract");
-
-    let nft_contract_key: Key = get_nft_contract_hash(&builder).into();
+    let nft_contract_hash = get_nft_contract_hash(&builder);
+    let nft_contract_key: Key = nft_contract_hash.into();
 
     let mint_session_call = ExecuteRequestBuilder::standard(
         *DEFAULT_ACCOUNT_ADDR,
@@ -650,11 +601,9 @@ fn should_be_able_to_transfer_token(
     .build();
     builder.exec(approve_request).expect_success().commit();
 
-    let installing_account = builder.get_expected_account(*DEFAULT_ACCOUNT_ADDR);
-    let nft_contract_key = *installing_account
-        .named_keys()
-        .get(CONTRACT_NAME)
-        .expect("must have key in named keys");
+    let nft_contract_hash = get_nft_contract_hash(&builder);
+    let nft_contract_key: Key = nft_contract_hash.into();
+
     let actual_approved_account: Option<Key> =
         get_dictionary_value_from_key(&builder, &nft_contract_key, APPROVED, &token_id.to_string());
 
@@ -740,17 +689,10 @@ fn should_dissallow_same_approved_account_to_transfer_token_twice() {
 
     builder.exec(install_request).expect_success().commit();
 
-    let account = builder.get_expected_account(*DEFAULT_ACCOUNT_ADDR);
-    let nft_contract_hash = account
-        .named_keys()
-        .get(CONTRACT_NAME)
-        .cloned()
-        .and_then(Key::into_hash)
-        .map(ContractHash::new)
-        .expect("failed to find nft contract");
+    let nft_contract_hash = get_nft_contract_hash(&builder);
+    let nft_contract_key: Key = nft_contract_hash.into();
 
     // mint token for DEFAULT_ACCOUNT_ADDR
-    let nft_contract_key: Key = get_nft_contract_hash(&builder).into();
     let mint_session_call = ExecuteRequestBuilder::standard(
         *DEFAULT_ACCOUNT_ADDR,
         MINT_SESSION_WASM,
@@ -783,11 +725,9 @@ fn should_dissallow_same_approved_account_to_transfer_token_twice() {
     .build();
     builder.exec(approve_request).expect_success().commit();
 
-    let installing_account = builder.get_expected_account(*DEFAULT_ACCOUNT_ADDR);
-    let nft_contract_key = *installing_account
-        .named_keys()
-        .get(CONTRACT_NAME)
-        .expect("must have key in named keys");
+    let nft_contract_hash = get_nft_contract_hash(&builder);
+    let nft_contract_key: Key = nft_contract_hash.into();
+
     let actual_approved_account: Option<Key> =
         get_dictionary_value_from_key(&builder, &nft_contract_key, APPROVED, &token_id.to_string());
 
@@ -932,11 +872,9 @@ fn should_disallow_to_transfer_token_using_revoked_hash(
     .build();
     builder.exec(approve_request).expect_success().commit();
 
-    let installing_account = builder.get_expected_account(*DEFAULT_ACCOUNT_ADDR);
-    let nft_contract_key = *installing_account
-        .named_keys()
-        .get(CONTRACT_NAME)
-        .expect("must have key in named keys");
+    let nft_contract_hash = get_nft_contract_hash(&builder);
+    let nft_contract_key: Key = nft_contract_hash.into();
+
     let actual_approved_account: Option<Key> =
         get_dictionary_value_from_key(&builder, &nft_contract_key, APPROVED, &token_id.to_string());
 
@@ -1080,11 +1018,7 @@ fn should_be_able_to_approve_with_deprecated_operator_argument() {
     .build();
     builder.exec(approve_request).expect_success().commit();
 
-    let installing_account = builder.get_expected_account(*DEFAULT_ACCOUNT_ADDR);
-    let nft_contract_key = *installing_account
-        .named_keys()
-        .get(CONTRACT_NAME)
-        .expect("must have key in named keys");
+    let nft_contract_key: Key = get_nft_contract_hash(&builder).into();
     let actual_approved_account: Option<Key> =
         get_dictionary_value_from_key(&builder, &nft_contract_key, APPROVED, &token_id.to_string());
 
@@ -1669,14 +1603,14 @@ fn should_transfer_token_from_sender_to_receiver_with_transfer_only_reporting() 
     let expected_owner_balance = 1u64;
     assert_eq!(actual_owner_balance, expected_owner_balance);
 
-    let (_, token_receiver) = support::create_dummy_key_pair(ACCOUNT_USER_1);
+    let token_receiver = support::create_funded_dummy_account(&mut builder, Some(ACCOUNT_USER_1));
 
     let register_request = ExecuteRequestBuilder::contract_call_by_hash(
         *DEFAULT_ACCOUNT_ADDR,
         nft_contract_hash,
         ENTRY_POINT_REGISTER_OWNER,
         runtime_args! {
-            ARG_TOKEN_OWNER => Key::Account(token_receiver.to_account_hash())
+            ARG_TOKEN_OWNER => Key::Account(token_receiver)
         },
     )
     .build();
@@ -1691,7 +1625,7 @@ fn should_transfer_token_from_sender_to_receiver_with_transfer_only_reporting() 
             ARG_TOKEN_ID => 0u64,
             ARG_IS_HASH_IDENTIFIER_MODE => false,
             ARG_SOURCE_KEY => Key::Account(token_owner),
-            ARG_TARGET_KEY =>  Key::Account(token_receiver.to_account_hash()),
+            ARG_TARGET_KEY =>  Key::Account(token_receiver),
         },
     )
     .build();
@@ -1706,12 +1640,12 @@ fn should_transfer_token_from_sender_to_receiver_with_transfer_only_reporting() 
     .into_account()
     .unwrap();
 
-    assert_eq!(actual_token_owner, token_receiver.to_account_hash());
+    assert_eq!(actual_token_owner, token_receiver);
 
     let token_receiver_page = support::get_token_page_by_id(
         &builder,
         &nft_contract_key,
-        &Key::Account(token_receiver.to_account_hash()),
+        &Key::Account(token_receiver),
         0u64,
     );
 
@@ -1730,7 +1664,7 @@ fn should_transfer_token_from_sender_to_receiver_with_transfer_only_reporting() 
         &builder,
         &nft_contract_key,
         TOKEN_COUNT,
-        &token_receiver.to_account_hash().to_string(),
+        &token_receiver.to_string(),
     );
     let expected_receiver_balance = 1u64;
     assert_eq!(actual_receiver_balance, expected_receiver_balance);
@@ -1752,16 +1686,8 @@ fn disallow_owner_to_approve_itself() {
 
     builder.exec(install_request).expect_success().commit();
 
-    let account = builder.get_expected_account(*DEFAULT_ACCOUNT_ADDR);
-    let nft_contract_hash = account
-        .named_keys()
-        .get(CONTRACT_NAME)
-        .cloned()
-        .and_then(Key::into_hash)
-        .map(ContractHash::new)
-        .expect("failed to find nft contract");
-
-    let nft_contract_key: Key = get_nft_contract_hash(&builder).into();
+    let nft_contract_hash = get_nft_contract_hash(&builder);
+    let nft_contract_key: Key = nft_contract_hash.into();
     let owner_key = Key::Account(*DEFAULT_ACCOUNT_ADDR);
 
     let mint_session_call = ExecuteRequestBuilder::standard(
@@ -1816,16 +1742,8 @@ fn disallow_operator_to_approve_itself() {
 
     builder.exec(install_request).expect_success().commit();
 
-    let account = builder.get_expected_account(*DEFAULT_ACCOUNT_ADDR);
-    let nft_contract_hash = account
-        .named_keys()
-        .get(CONTRACT_NAME)
-        .cloned()
-        .and_then(Key::into_hash)
-        .map(ContractHash::new)
-        .expect("failed to find nft contract");
-
-    let nft_contract_key: Key = get_nft_contract_hash(&builder).into();
+    let nft_contract_hash = get_nft_contract_hash(&builder);
+    let nft_contract_key: Key = nft_contract_hash.into();
     let owner_key = Key::Account(*DEFAULT_ACCOUNT_ADDR);
 
     let mint_session_call = ExecuteRequestBuilder::standard(
@@ -1894,16 +1812,8 @@ fn disallow_owner_to_approve_for_all_itself() {
 
     builder.exec(install_request).expect_success().commit();
 
-    let account = builder.get_expected_account(*DEFAULT_ACCOUNT_ADDR);
-    let nft_contract_hash = account
-        .named_keys()
-        .get(CONTRACT_NAME)
-        .cloned()
-        .and_then(Key::into_hash)
-        .map(ContractHash::new)
-        .expect("failed to find nft contract");
-
-    let nft_contract_key: Key = get_nft_contract_hash(&builder).into();
+    let nft_contract_hash = get_nft_contract_hash(&builder);
+    let nft_contract_key: Key = nft_contract_hash.into();
     let owner_key = Key::Account(*DEFAULT_ACCOUNT_ADDR);
 
     let mint_session_call = ExecuteRequestBuilder::standard(

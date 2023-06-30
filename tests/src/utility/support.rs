@@ -114,7 +114,7 @@ pub(crate) fn get_dictionary_value_from_key<T: CLTyped + FromBytes>(
         .unwrap()
 }
 
-pub(crate) fn create_dummy_key_pair(account_string: [u8; 32]) -> (SecretKey, PublicKey) {
+fn create_dummy_key_pair(account_string: [u8; 32]) -> (SecretKey, PublicKey) {
     let secret_key =
         SecretKey::ed25519_from_bytes(account_string).expect("failed to create secret key");
     let public_key = PublicKey::from(&secret_key);

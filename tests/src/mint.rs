@@ -317,7 +317,8 @@ fn mint_should_increment_number_of_minted_tokens_by_one_and_add_public_key_to_to
         .expect_success()
         .commit();
 
-    let nft_contract_key: Key = get_nft_contract_hash(&builder).into();
+    let nft_contract_hash = get_nft_contract_hash(&builder);
+    let nft_contract_key: Key = nft_contract_hash.into();
 
     let mint_session_call = ExecuteRequestBuilder::standard(
         *DEFAULT_ACCOUNT_ADDR,
@@ -333,17 +334,10 @@ fn mint_should_increment_number_of_minted_tokens_by_one_and_add_public_key_to_to
 
     builder.exec(mint_session_call).expect_success().commit();
 
-    //Let's start querying
-    let account = builder.get_expected_account(*DEFAULT_ACCOUNT_ADDR);
-    let nft_contract_key = account
-        .named_keys()
-        .get(CONTRACT_NAME)
-        .expect("must have key in named keys");
-
     //mint should have incremented number_of_minted_tokens by one
     let query_result: u64 = support::query_stored_value(
         &builder,
-        *nft_contract_key,
+        nft_contract_key,
         vec![NUMBER_OF_MINTED_TOKENS.to_string()],
     );
 
@@ -356,7 +350,7 @@ fn mint_should_increment_number_of_minted_tokens_by_one_and_add_public_key_to_to
 
     let actual_token_meta_data = support::get_dictionary_value_from_key::<String>(
         &builder,
-        nft_contract_key,
+        &nft_contract_key,
         METADATA_NFT721,
         &token_id.to_string(),
     );
@@ -365,7 +359,7 @@ fn mint_should_increment_number_of_minted_tokens_by_one_and_add_public_key_to_to
 
     let minter_account_hash = support::get_dictionary_value_from_key::<Key>(
         &builder,
-        nft_contract_key,
+        &nft_contract_key,
         TOKEN_OWNERS,
         &token_id.to_string(),
     )
@@ -376,7 +370,7 @@ fn mint_should_increment_number_of_minted_tokens_by_one_and_add_public_key_to_to
 
     let token_page = support::get_token_page_by_id(
         &builder,
-        nft_contract_key,
+        &nft_contract_key,
         &Key::Account(*DEFAULT_ACCOUNT_ADDR),
         token_id,
     );
@@ -390,7 +384,7 @@ fn mint_should_increment_number_of_minted_tokens_by_one_and_add_public_key_to_to
         *DEFAULT_ACCOUNT_ADDR,
         MINT_SESSION_WASM,
         runtime_args! {
-            ARG_NFT_CONTRACT_HASH => *nft_contract_key,
+            ARG_NFT_CONTRACT_HASH => nft_contract_key,
             ARG_TOKEN_OWNER => Key::Account(*DEFAULT_ACCOUNT_ADDR),
             ARG_TOKEN_META_DATA => TEST_PRETTY_721_META_DATA.to_string(),
             ARG_COLLECTION_NAME => NFT_TEST_COLLECTION.to_string()
@@ -432,18 +426,13 @@ fn should_set_meta_data() {
     .build();
     builder.exec(mint_session_call).expect_success().commit();
 
-    //Let's start querying
-    let account = builder.get_expected_account(*DEFAULT_ACCOUNT_ADDR);
-    let nft_contract_key = account
-        .named_keys()
-        .get(CONTRACT_NAME)
-        .expect("must have key in named keys");
+    let nft_contract_key: Key = get_nft_contract_hash(&builder).into();
 
     let token_id = 0u64;
 
     let actual_token_meta_data = support::get_dictionary_value_from_key::<String>(
         &builder,
-        nft_contract_key,
+        &nft_contract_key,
         METADATA_NFT721,
         &token_id.to_string(),
     );
@@ -484,17 +473,12 @@ fn should_set_issuer() {
     builder.exec(mint_session_call).expect_success().commit();
 
     //Let's start querying
-    let account = builder.get_expected_account(*DEFAULT_ACCOUNT_ADDR);
-    let nft_contract_key = account
-        .named_keys()
-        .get(CONTRACT_NAME)
-        .expect("must have key in named keys");
-
+    let nft_contract_key: Key = get_nft_contract_hash(&builder).into();
     let token_id = 0u64;
 
     let actual_token_issuer = support::get_dictionary_value_from_key::<Key>(
         &builder,
-        nft_contract_key,
+        &nft_contract_key,
         TOKEN_ISSUERS,
         &token_id.to_string(),
     )
@@ -538,17 +522,13 @@ fn should_set_issuer_with_different_owner() {
     builder.exec(mint_session_call).expect_success().commit();
 
     //Let's start querying
-    let account = builder.get_expected_account(*DEFAULT_ACCOUNT_ADDR);
-    let nft_contract_key = account
-        .named_keys()
-        .get(CONTRACT_NAME)
-        .expect("must have key in named keys");
+    let nft_contract_key: Key = get_nft_contract_hash(&builder).into();
 
     let token_id = 0u64;
 
     let actual_token_issuer = support::get_dictionary_value_from_key::<Key>(
         &builder,
-        nft_contract_key,
+        &nft_contract_key,
         TOKEN_ISSUERS,
         &token_id.to_string(),
     )
@@ -589,18 +569,10 @@ fn should_track_token_balance_by_owner() {
     .build();
     builder.exec(mint_session_call).expect_success().commit();
 
-    //Let's start querying
-    let account = builder.get_expected_account(*DEFAULT_ACCOUNT_ADDR);
-    let nft_contract_key = account
-        .named_keys()
-        .get(CONTRACT_NAME)
-        .expect("must have key in named keys");
-
     let token_owner = DEFAULT_ACCOUNT_ADDR.clone().to_string();
-
     let actual_minter_balance = support::get_dictionary_value_from_key::<u64>(
         &builder,
-        nft_contract_key,
+        &nft_contract_key,
         TOKEN_COUNT,
         &token_owner,
     );
@@ -621,17 +593,13 @@ fn should_allow_public_minting_with_flag_set_to_true() {
         .build();
     builder.exec(install_request).expect_success().commit();
 
-    let installing_account = builder.get_expected_account(*DEFAULT_ACCOUNT_ADDR);
-    let nft_contract_key = installing_account
-        .named_keys()
-        .get(CONTRACT_NAME)
-        .expect("must have key in named keys");
+    let nft_contract_key: Key = get_nft_contract_hash(&builder).into();
 
     let account_user_1 = support::create_funded_dummy_account(&mut builder, Some(ACCOUNT_USER_1));
 
     let public_minting_status = support::query_stored_value::<u8>(
         &builder,
-        *nft_contract_key,
+        nft_contract_key,
         vec![ARG_MINTING_MODE.to_string()],
     );
 
@@ -640,8 +608,6 @@ fn should_allow_public_minting_with_flag_set_to_true() {
         MintingMode::Public as u8,
         "public minting should be set to true"
     );
-
-    let nft_contract_key: Key = get_nft_contract_hash(&builder).into();
 
     let mint_session_call = ExecuteRequestBuilder::standard(
         account_user_1,
@@ -685,17 +651,14 @@ fn should_disallow_public_minting_with_flag_set_to_false() {
         .build();
     builder.exec(install_request).expect_success().commit();
 
-    let installing_account = builder.get_expected_account(*DEFAULT_ACCOUNT_ADDR);
-    let nft_contract_key = installing_account
-        .named_keys()
-        .get(CONTRACT_NAME)
-        .expect("must have key in named keys");
+    let nft_contract_hash = get_nft_contract_hash(&builder);
+    let nft_contract_key: Key = nft_contract_hash.into();
 
     let account_user_1 = support::create_funded_dummy_account(&mut builder, Some(ACCOUNT_USER_1));
 
     let public_minting_status = support::query_stored_value::<u8>(
         &builder,
-        *nft_contract_key,
+        nft_contract_key,
         vec![ARG_MINTING_MODE.to_string()],
     );
 
@@ -709,7 +672,7 @@ fn should_disallow_public_minting_with_flag_set_to_false() {
         account_user_1,
         MINT_SESSION_WASM,
         runtime_args! {
-            ARG_NFT_CONTRACT_HASH => *nft_contract_key,
+            ARG_NFT_CONTRACT_HASH => nft_contract_key,
             ARG_TOKEN_OWNER => Key::Account(account_user_1),
             ARG_TOKEN_META_DATA => TEST_PRETTY_721_META_DATA.to_string(),
             ARG_COLLECTION_NAME => NFT_TEST_COLLECTION.to_string()
@@ -733,18 +696,14 @@ fn should_allow_minting_for_different_public_key_with_minting_mode_set_to_public
         .build();
     builder.exec(install_request).expect_success().commit();
 
-    let installing_account = builder.get_expected_account(*DEFAULT_ACCOUNT_ADDR);
-    let nft_contract_key = installing_account
-        .named_keys()
-        .get(CONTRACT_NAME)
-        .expect("must have key in named keys");
+    let nft_contract_key: Key = get_nft_contract_hash(&builder).into();
 
     let account_user_1 = support::create_funded_dummy_account(&mut builder, Some(ACCOUNT_USER_1));
     let account_user_2 = support::create_funded_dummy_account(&mut builder, Some(ACCOUNT_USER_2));
 
     let public_minting_status = support::query_stored_value::<u8>(
         &builder,
-        *nft_contract_key,
+        nft_contract_key,
         vec![ARG_MINTING_MODE.to_string()],
     );
 
@@ -753,8 +712,6 @@ fn should_allow_minting_for_different_public_key_with_minting_mode_set_to_public
         MintingMode::Public as u8,
         "minting mode should be set to public"
     );
-
-    let nft_contract_key: Key = get_nft_contract_hash(&builder).into();
 
     let mint_session_call = ExecuteRequestBuilder::standard(
         account_user_1,
@@ -956,8 +913,7 @@ fn should_revoke_approval_for_all() {
         .build();
     builder.exec(install_request).expect_success().commit();
 
-    let nft_contract_hash = get_nft_contract_hash(&builder);
-    let nft_contract_key: Key = nft_contract_hash.into();
+    let nft_contract_key: Key = get_nft_contract_hash(&builder).into();
     let owner_key = Key::Account(*DEFAULT_ACCOUNT_ADDR);
 
     let mint_session_call = ExecuteRequestBuilder::standard(
@@ -1913,8 +1869,7 @@ fn should_approve_all_with_flat_gas_cost() {
         .build();
     builder.exec(install_request).expect_success().commit();
 
-    let nft_contract_hash = get_nft_contract_hash(&builder);
-    let nft_contract_key: Key = nft_contract_hash.into();
+    let nft_contract_key: Key = get_nft_contract_hash(&builder).into();
     let owner_key = Key::Account(*DEFAULT_ACCOUNT_ADDR);
 
     let mint_session_call = ExecuteRequestBuilder::standard(
