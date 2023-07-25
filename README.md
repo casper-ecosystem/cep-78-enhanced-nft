@@ -73,15 +73,18 @@ The following are the optional parameters that can be passed in at the time of i
 The following is an example of installing the NFT contract via a deploy using the Rust CLI Casper client. You can find more examples [here](/docs/using-casper-client.md).
 
 ```bash
-casper-client put-deploy -n http://localhost:11101/rpc --chain-name "casper-net-1" --payment-amount 500000000000 -k ~/casper/casper-node/utils/nctl/assets/net-1/nodes/node-1/keys/secret_key.pem --session-path ~/casper/enhanced-nft/contract/target/wasm32-unknown-unknown/release/contract.wasm \
+casper-client put-deploy -n http://65.108.0.148:7777/rpc --chain-name "casper-test" --payment-amount 500000000000 -k keys/secret_key.pem --session-path contract/target/wasm32-unknown-unknown/release/contract.wasm \
 --session-arg "collection_name:string='enhanced-nft-1'" \
 --session-arg "collection_symbol:string='ENFT-1'" \
---session-arg "total_token_supply:u256='10'" \
+--session-arg "total_token_supply:u64='10'" \
 --session-arg "ownership_mode:u8='0'" \
 --session-arg "nft_kind:u8='1'" \
 --session-arg "json_schema:string='nft-schema'" \
 --session-arg "allow_minting:bool='true'" \
---session-arg "owner_reverse_lookup_mode:u8='1'"
+--session-arg "owner_reverse_lookup_mode:u8='0'" \
+--session-arg "nft_metadata_kind:u8='2'" \
+--session-arg "identifier_mode:u8='0'" \
+--session-arg "metadata_mutability:u8='1'"
 ```
 
 ### Utility Session Code
