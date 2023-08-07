@@ -86,7 +86,7 @@ This modality is an optional installation parameter and will default to the `Mix
 mode cannot be changed once the contract has been installed.
 The mode is passed in as a `u8` value to `nft_holder_mode` runtime argument.
 
-#### WhitelistMode
+## WhitelistMode
 
 The `WhitelistMode` dictates if the ACL whitelist restricting access to the mint entry point can be updated. There are currently two options:
 
@@ -102,7 +102,7 @@ This `WhitelistMode` is an optional installation parameter and will be set to un
 | Unlocked      | 0   |
 | Locked        | 1   |
 
-#### Minting
+## Minting
 
 The minting mode governs the behavior of contract when minting new tokens. The minting modality provides two options:
 
