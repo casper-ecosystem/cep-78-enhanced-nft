@@ -9,7 +9,7 @@ All notable changes to this project will be documented in this file. The format 
 [comment]: <> (Fixed: any bug fixes)
 [comment]: <> (Security: in case of vulnerabilities)
 
-## Release 1.4.0
+## Release 1.5.0
 
 ### Changed
 
