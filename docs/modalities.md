@@ -133,7 +133,6 @@ The ACL package mode governs the ability for whitelisting a package instead of a
 | -------------- | ---- |
 
 This modality is an optional installation parameter and will default to the `false` if not provided. This
-mode can be changed on contract upgrade or can be updated via the set variables endpoint.
 
 > Before using this modilty, please understand the security implications of having automatic whitelisting of versioned contracts.
 
