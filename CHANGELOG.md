@@ -23,7 +23,7 @@ All notable changes to this project will be documented in this file. The format 
 
 ### Added
 
-- ACL package mode. By whitelisting a package in `acl_whitelist`, any further version of a contract will be automaticaly whitelisted for minting.
+- ACL package mode - Including a contract package in the `acl_whitelist` will result in automatic whitelisting for any future versions of that contract.
 
 - Package operator mode. By approving a package in `operators`, any further version of a contract will be automaticaly operator for transfer/approve/revoke entrypoints.
 
