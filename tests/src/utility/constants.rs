@@ -3,6 +3,7 @@ pub const CONTRACT_1_0_0_WASM: &str = "1_0_0/contract.wasm";
 pub const CONTRACT_1_1_0_WASM: &str = "1_1_0/contract.wasm";
 pub const CONTRACT_1_2_0_WASM: &str = "1_2_0/contract.wasm";
 pub const CONTRACT_1_3_0_WASM: &str = "1_3_0/contract.wasm";
+pub const CONTRACT_1_4_0_WASM: &str = "1_4_0/contract.wasm";
 pub const GET_APPROVED_WASM: &str = "get_approved_call.wasm";
 pub const IS_APPROVED_FOR_ALL_WASM: &str = "is_approved_for_all_call.wasm";
 pub const MANGLE_NAMED_KEYS: &str = "mangle_named_keys.wasm";
@@ -24,6 +25,8 @@ pub const ARG_FILTER_CONTRACT_RETURN_VALUE: &str = "return_value";
 
 pub const CONTRACT_NAME: &str = "cep78_contract_hash_nft-test";
 pub const MINTING_CONTRACT_NAME: &str = "minting_contract_hash";
+pub const MINTING_CONTRACT_PACKAGE_NAME: &str = "minting_contract_package_hash";
+pub const MINTING_CONTRACT_VERSION: &str = "minting_contract_version";
 pub const TRANSFER_FILTER_CONTRACT_NAME: &str = "transfer_filter_contract_hash";
 pub const NFT_TEST_COLLECTION: &str = "nft-test";
 pub const NFT_TEST_SYMBOL: &str = "TEST";

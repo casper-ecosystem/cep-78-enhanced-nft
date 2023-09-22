@@ -6,11 +6,12 @@ use casper_engine_test_support::{
 use casper_types::{account::AccountHash, runtime_args, CLValue, ContractHash, Key, RuntimeArgs};
 use contract::{
     constants::{
-        ACCESS_KEY_NAME_1_0_0, ARG_ACCESS_KEY_NAME_1_0_0, ARG_COLLECTION_NAME, ARG_EVENTS_MODE,
-        ARG_HASH_KEY_NAME_1_0_0, ARG_NAMED_KEY_CONVENTION, ARG_SOURCE_KEY, ARG_TARGET_KEY,
-        ARG_TOKEN_HASH, ARG_TOKEN_META_DATA, ARG_TOKEN_OWNER, ARG_TOTAL_TOKEN_SUPPLY,
-        ENTRY_POINT_MINT, ENTRY_POINT_REGISTER_OWNER, NUMBER_OF_MINTED_TOKENS, PAGE_LIMIT,
-        PREFIX_ACCESS_KEY_NAME, PREFIX_HASH_KEY_NAME, RECEIPT_NAME, UNMATCHED_HASH_COUNT,
+        ACCESS_KEY_NAME_1_0_0, ACL_PACKAGE_MODE, ARG_ACCESS_KEY_NAME_1_0_0, ARG_ACL_PACKAGE_MODE,
+        ARG_COLLECTION_NAME, ARG_EVENTS_MODE, ARG_HASH_KEY_NAME_1_0_0, ARG_NAMED_KEY_CONVENTION,
+        ARG_SOURCE_KEY, ARG_TARGET_KEY, ARG_TOKEN_HASH, ARG_TOKEN_META_DATA, ARG_TOKEN_OWNER,
+        ARG_TOTAL_TOKEN_SUPPLY, ENTRY_POINT_MINT, ENTRY_POINT_REGISTER_OWNER,
+        NUMBER_OF_MINTED_TOKENS, PAGE_LIMIT, PREFIX_ACCESS_KEY_NAME, PREFIX_HASH_KEY_NAME,
+        RECEIPT_NAME, UNMATCHED_HASH_COUNT,
     },
     events::events_ces::Migration,
     modalities::EventsMode,
@@ -20,9 +21,9 @@ use crate::utility::{
     constants::{
         ACCOUNT_USER_1, ARG_IS_HASH_IDENTIFIER_MODE, ARG_NFT_CONTRACT_HASH,
         ARG_NFT_CONTRACT_PACKAGE_HASH, CONTRACT_1_0_0_WASM, CONTRACT_1_1_0_WASM,
-        CONTRACT_1_2_0_WASM, CONTRACT_1_3_0_WASM, MANGLE_NAMED_KEYS, MINT_1_0_0_WASM,
-        MINT_SESSION_WASM, NFT_CONTRACT_WASM, NFT_TEST_COLLECTION, NFT_TEST_SYMBOL, PAGE_SIZE,
-        TRANSFER_SESSION_WASM, UPDATED_RECEIPTS_WASM,
+        CONTRACT_1_2_0_WASM, CONTRACT_1_3_0_WASM, CONTRACT_1_4_0_WASM, MANGLE_NAMED_KEYS,
+        MINT_1_0_0_WASM, MINT_SESSION_WASM, NFT_CONTRACT_WASM, NFT_TEST_COLLECTION,
+        NFT_TEST_SYMBOL, PAGE_SIZE, TRANSFER_SESSION_WASM, UPDATED_RECEIPTS_WASM,
     },
     installer_request_builder::{
         InstallerRequestBuilder, MetadataMutability, NFTIdentifierMode, NFTMetadataKind,
@@ -813,6 +814,69 @@ fn should_safely_upgrade_from_old_version_to_new_version_with_reporting_mode(
 }
 
 #[test]
+fn should_safely_upgrade_with_acl_package_mode() {
+    let mut builder = InMemoryWasmTestBuilder::default();
+    builder
+        .run_genesis(&PRODUCTION_RUN_GENESIS_REQUEST)
+        .commit();
+
+    let install_request = InstallerRequestBuilder::new(*DEFAULT_ACCOUNT_ADDR, CONTRACT_1_0_0_WASM)
+        .with_collection_name(NFT_TEST_COLLECTION.to_string())
+        .with_collection_symbol(NFT_TEST_SYMBOL.to_string())
+        .with_total_token_supply(1000u64)
+        .with_ownership_mode(OwnershipMode::Minter)
+        .with_identifier_mode(NFTIdentifierMode::Ordinal)
+        .with_nft_metadata_kind(NFTMetadataKind::Raw)
+        .build();
+
+    builder.exec(install_request).expect_success().commit();
+
+    let nft_contract_hash_1_0_0 = support::get_nft_contract_hash_1_0_0(&builder);
+    let nft_contract_key_1_0_0: Key = nft_contract_hash_1_0_0.into();
+
+    let is_acl_packge_mode = builder
+        .query(None, nft_contract_key_1_0_0, &[])
+        .expect("must have nft contract")
+        .as_contract()
+        .expect("must convert contract")
+        .named_keys()
+        .contains_key(ACL_PACKAGE_MODE);
+
+    assert!(!is_acl_packge_mode);
+
+    let upgrade_request = ExecuteRequestBuilder::standard(
+        *DEFAULT_ACCOUNT_ADDR,
+        NFT_CONTRACT_WASM,
+        runtime_args! {
+            ARG_NFT_CONTRACT_HASH => nft_contract_hash_1_0_0,
+            ARG_COLLECTION_NAME => NFT_TEST_COLLECTION.to_string(),
+            ARG_NAMED_KEY_CONVENTION => NamedKeyConventionMode::V1_0Standard as u8,
+            ARG_EVENTS_MODE => EventsMode::CES as u8,
+            ARG_ACL_PACKAGE_MODE => true,
+        },
+    )
+    .build();
+
+    builder.exec(upgrade_request).expect_success().commit();
+
+    let nft_contract_hash = support::get_nft_contract_hash(&builder);
+    let nft_contract_key: Key = nft_contract_hash.into();
+
+    let is_acl_packge_mode: bool = support::query_stored_value(
+        &builder,
+        nft_contract_key,
+        vec![ACL_PACKAGE_MODE.to_string()],
+    );
+
+    assert!(is_acl_packge_mode);
+
+    // Expect Migration event.
+    let expected_event = Migration::new();
+    let actual_event: Migration = support::get_event(&builder, &nft_contract_key, 0);
+    assert_eq!(actual_event, expected_event, "Expected Migration event.");
+}
+
+#[test]
 fn should_safely_upgrade_from_1_2_0_to_1_3_0() {
     //* starting total_token_supply 100u64
     let expected_total_token_supply_post_upgrade = 10;
@@ -832,18 +896,37 @@ fn should_safely_upgrade_from_1_2_0_to_1_3_0() {
 }
 
 #[test]
-fn should_safely_upgrade_from_1_3_0_to_current_version() {
+fn should_safely_upgrade_from_1_3_0_to_1_4_0() {
     //* starting total_token_supply 100u64
     let expected_total_token_supply_post_upgrade = 10;
     should_safely_upgrade_from_old_version_to_new_version_with_reporting_mode(
         CONTRACT_1_3_0_WASM,
-        NFT_CONTRACT_WASM,
+        CONTRACT_1_4_0_WASM,
         OwnerReverseLookupMode::NoLookUp,
         expected_total_token_supply_post_upgrade,
     );
     let expected_total_token_supply_post_upgrade = 100;
     should_safely_upgrade_from_old_version_to_new_version_with_reporting_mode(
         CONTRACT_1_3_0_WASM,
+        CONTRACT_1_4_0_WASM,
+        OwnerReverseLookupMode::Complete,
+        expected_total_token_supply_post_upgrade,
+    );
+}
+
+#[test]
+fn should_safely_upgrade_from_1_4_0_to_current_version() {
+    //* starting total_token_supply 100u64
+    let expected_total_token_supply_post_upgrade = 10;
+    should_safely_upgrade_from_old_version_to_new_version_with_reporting_mode(
+        CONTRACT_1_4_0_WASM,
+        NFT_CONTRACT_WASM,
+        OwnerReverseLookupMode::NoLookUp,
+        expected_total_token_supply_post_upgrade,
+    );
+    let expected_total_token_supply_post_upgrade = 100;
+    should_safely_upgrade_from_old_version_to_new_version_with_reporting_mode(
+        CONTRACT_1_4_0_WASM,
         NFT_CONTRACT_WASM,
         OwnerReverseLookupMode::Complete,
         expected_total_token_supply_post_upgrade,

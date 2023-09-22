@@ -6,7 +6,6 @@ The following section discusses the currently implemented modalities and illustr
 
 <b>Modalities</b>
 
-
 - [Ownership](#ownership)
 - [NFTKind](#nftkind)
 - [NFTHolderMode](#nftholdermode)
@@ -93,7 +92,7 @@ The `WhitelistMode` dictates if the ACL whitelist restricting access to the mint
 1. `Unlocked`: The ACL whitelist is unlocked and can be updated via the set variables endpoint.
 2. `Locked`: The ACL whitelist is locked and cannot be updated further.
 
-If the `WhitelistMode` is set to `Locked` an ACL whitelist of entity keys must be provided on installation. This whitelist dictates which entities can mint NFTs in the restricted `ACL` minting mode. These entities include `Accounts` and/or `Contracts`.
+If the `WhitelistMode` is set to `Locked` an ACL whitelist of entity keys must be provided on installation. This whitelist dictates which entities can mint NFTs in the restricted `ACL` minting mode. These entities include `Accounts`, `Contracts` and `Contracts from a package` with [ ACL_PACKAGE_MODE]().
 
 This `WhitelistMode` is an optional installation parameter and will be set to unlocked if not passed. However, the whitelist mode itself cannot be changed once the contract has been installed. The mode is passed in as a `u8` value to `whitelist_mode` runtime argument.
 
@@ -108,7 +107,7 @@ The minting mode governs the behavior of contract when minting new tokens. The m
 
 1. `Installer`: This mode restricts the ability to mint new NFT tokens only to the installing account of the NFT contract.
 2. `Public`: This mode allows any account to mint NFT tokens.
-3. `ACL`: This mode allows whitelisted accounts or contracts to mint NFT tokens.
+3. `ACL`: This mode allows whitelisted accounts, contracts or contracts from a package with [ACL_PACKAGE_MODE]() to mint NFT tokens.
 
 This modality is an optional installation parameter and will default to the `Installer` mode if not provided. However, this
 mode cannot be changed once the contract has been installed. The mode is set by passing a `u8` value to the `minting_mode` runtime argument.
@@ -118,6 +117,23 @@ mode cannot be changed once the contract has been installed. The mode is set by 
 | Installer   | 0   |
 | Public      | 1   |
 | ACL         | 2   |
+
+## AllowMinting
+
+By switching allow_minting to false we pause minting. Reverts with MintingIsPaused error if allow_minting is false. This modality provides two options:
+
+| AllowMinting | bool |
+| ------------ | ---- |
+
+## ACLPackageMode
+
+The ACL package mode governs the ability for whitelisting a package instead of a versioned contract. By whitelisting a package, a new contract version will be automaticly whitelisted for minting after package upgrade. This modality provides two options:
+
+| ACLPackageMode | bool |
+| -------------- | ---- |
+
+This modality is an optional installation parameter and will default to the `false` if not provided. This
+mode can be changed on contract upgrade or can be updated via the set variables endpoint.
 
 ## NFTMetadataKind
 
