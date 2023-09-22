@@ -17,7 +17,7 @@ All notable changes to this project will be documented in this file. The format 
 - Update CES parser version (#246)
 - Update modalities.md (#245)
 - Command fix (#244)
-- JS Client: omit dev dependencies when running audit (#241)
+- JS Client: Omit dev dependencies when running audit (#241)
 - Remove potential revert in init and remove cep47 events dict creation on install (#240)
 - Reformatting documentation (#239)
 
