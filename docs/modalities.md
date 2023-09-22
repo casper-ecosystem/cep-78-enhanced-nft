@@ -120,7 +120,7 @@ mode cannot be changed once the contract has been installed. The mode is set by 
 
 ## AllowMinting
 
-By switching allow_minting to false we pause minting. Reverts with MintingIsPaused error if allow_minting is false. This modality provides two options:
+The `AllowMinting` modality dictates the ability for **any** entity to mint or not. If `allow_minting` is set to false, any attempt to mint will revert with a `MintingIsPaused` error. This modality provides two options:
 
 | AllowMinting | bool |
 | ------------ | ---- |
