@@ -127,7 +127,7 @@ The `AllowMinting` modality dictates the ability for **any** entity to mint or n
 
 ## ACLPackageMode
 
-The ACL package mode governs the ability for whitelisting a package instead of a versioned contract. By whitelisting a package, a new contract version will be automaticly whitelisted for minting after its package upgrade. This modality provides two options:
+The ACL package mode modality governs the ability for whitelisting a package instead of a versioned contract. By whitelisting a package, a new contract version will be automatically whitelisted for minting after its package upgrade. This modality provides two options:
 
 | ACLPackageMode | bool |
 | -------------- | ---- |
