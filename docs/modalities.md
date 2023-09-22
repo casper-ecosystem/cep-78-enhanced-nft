@@ -144,7 +144,6 @@ The package operator mode governs the ability for approving a package instead of
 | ------------------- | ---- |
 
 This modality is an optional installation parameter and will default to `false` if not provided. This mode can be changed on contract upgrade or can be updated via the set variables endpoint.
-mode can be changed on contract upgrade or can be updated via the set variables endpoint.
 
 > Before using this modilty, please understand the security implications of having automatic approvals and revocation right of versioned contracts.
 
