@@ -14,7 +14,7 @@ All notable changes to this project will be documented in this file. The format 
 ### Changed
 
 - Update to README (#248)
-- Update ces parser version (#246)
+- Update CES parser version (#246)
 - Update modalities.md (#245)
 - Command fix (#244)
 - JS Client: omit dev dependencies when running audit (#241)
