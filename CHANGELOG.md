@@ -13,6 +13,24 @@ All notable changes to this project will be documented in this file. The format 
 
 ### Changed
 
+- Update to README (#248)
+- Update ces parser version (#246)
+- Update modalities.md (#245)
+- Command fix (#244)
+- JS Client: omit dev dependencies when running audit (#241)
+- Remove potential revert in init and remove cep47 events dict creation on install (#240)
+- Reformatting Documentation (#239)
+
+### Added
+
+- ACL package mode. By whitelisting a package in `acl_whitelist`, any further version of a contract will be automaticaly whitelisted for minting.
+
+- Package operator mode. By approving a package in `operators`, any further version of a contract will be automaticaly operator for transfer/approve/revoke entrypoints.
+
+## Release 1.4.0
+
+### Changed
+
 - Contracts whitelist migrated to an ACL Whitelist. The ACL whitelist is a list of account and/or contract hashes that specifies which entity can call the `mint()` entrypoint to mint NFTs.
 
 - This change results in the `contract_whitelist` dictionary being deprecated in favor of the new `acl_whitelist` dictionary.
@@ -29,12 +47,11 @@ All notable changes to this project will be documented in this file. The format 
 
 - Modified the `json-schema` runtime argument to be an optional installation parameter.
 
-
 ## Release 1.3.0
 
 ### Changed
 
-* Modified the `json-schema` runtime argument to be an optional installation parameter.
+- Modified the `json-schema` runtime argument to be an optional installation parameter.
 
 ## Release 1.2.0
 

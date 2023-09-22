@@ -30,12 +30,15 @@ const ENTRY_POINT_TRANSFER: &str = "transfer";
 const ENTRY_POINT_BURN: &str = "burn";
 const ENTRY_POINT_METADATA: &str = "metadata";
 const ENTRY_POINT_REGISTER_OWNER: &str = "register_owner";
+const ENTRY_POINT_APPROVE: &str = "approve";
+const ENTRY_POINT_REVOKE: &str = "revoke";
 
 const ARG_NFT_CONTRACT_HASH: &str = "nft_contract_hash";
 const ARG_TOKEN_OWNER: &str = "token_owner";
 const ARG_TOKEN_META_DATA: &str = "token_meta_data";
 const ARG_TARGET_KEY: &str = "target_key";
 const ARG_SOURCE_KEY: &str = "source_key";
+const ARG_SPENDER: &str = "spender";
 const ARG_TOKEN_ID: &str = "token_id";
 const ARG_REVERSE_LOOKUP: &str = "reverse_lookup";
 
@@ -80,6 +83,44 @@ pub extern "C" fn mint() {
             },
         );
     }
+}
+
+#[no_mangle]
+pub extern "C" fn approve() {
+    let nft_contract_hash: ContractHash = runtime::get_named_arg::<Key>(ARG_NFT_CONTRACT_HASH)
+        .into_hash()
+        .map(ContractHash::new)
+        .unwrap();
+
+    let token_id = runtime::get_named_arg::<u64>(ARG_TOKEN_ID);
+    let spender_key = runtime::get_named_arg::<Key>(ARG_SPENDER);
+
+    runtime::call_contract::<()>(
+        nft_contract_hash,
+        ENTRY_POINT_APPROVE,
+        runtime_args! {
+            ARG_TOKEN_ID => token_id,
+            ARG_SPENDER => spender_key
+        },
+    )
+}
+
+#[no_mangle]
+pub extern "C" fn revoke() {
+    let nft_contract_hash: ContractHash = runtime::get_named_arg::<Key>(ARG_NFT_CONTRACT_HASH)
+        .into_hash()
+        .map(ContractHash::new)
+        .unwrap();
+
+    let token_id = runtime::get_named_arg::<u64>(ARG_TOKEN_ID);
+
+    runtime::call_contract::<()>(
+        nft_contract_hash,
+        ENTRY_POINT_REVOKE,
+        runtime_args! {
+            ARG_TOKEN_ID => token_id,
+        },
+    )
 }
 
 #[no_mangle]
@@ -204,6 +245,22 @@ fn get_entry_points() -> EntryPoints {
         EntryPointType::Session,
     );
 
+    let approve_entry_point = EntryPoint::new(
+        ENTRY_POINT_APPROVE,
+        vec![Parameter::new(ARG_SPENDER, CLType::Key)],
+        CLType::Unit,
+        EntryPointAccess::Public,
+        EntryPointType::Contract,
+    );
+
+    let revoke_entry_point = EntryPoint::new(
+        ENTRY_POINT_REVOKE,
+        vec![],
+        CLType::Unit,
+        EntryPointAccess::Public,
+        EntryPointType::Contract,
+    );
+
     let transfer_entry_point = EntryPoint::new(
         ENTRY_POINT_TRANSFER,
         vec![
@@ -234,6 +291,8 @@ fn get_entry_points() -> EntryPoints {
     let mut entry_points = EntryPoints::new();
     entry_points.add_entry_point(mint_entry_point);
     entry_points.add_entry_point(transfer_entry_point);
+    entry_points.add_entry_point(approve_entry_point);
+    entry_points.add_entry_point(revoke_entry_point);
     entry_points.add_entry_point(burn_entry_point);
     entry_points.add_entry_point(metadata_entry_point);
     entry_points

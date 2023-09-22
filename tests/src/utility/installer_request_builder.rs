@@ -6,7 +6,8 @@ use contract::constants::{
     ARG_EVENTS_MODE, ARG_HOLDER_MODE, ARG_IDENTIFIER_MODE, ARG_JSON_SCHEMA,
     ARG_METADATA_MUTABILITY, ARG_MINTING_MODE, ARG_NAMED_KEY_CONVENTION, ARG_NFT_KIND,
     ARG_NFT_METADATA_KIND, ARG_OPTIONAL_METADATA, ARG_OWNERSHIP_MODE, ARG_OWNER_LOOKUP_MODE,
-    ARG_TOTAL_TOKEN_SUPPLY, ARG_TRANSFER_FILTER_CONTRACT, ARG_WHITELIST_MODE,
+    ARG_PACKAGE_OPERATOR_MODE, ARG_TOTAL_TOKEN_SUPPLY, ARG_TRANSFER_FILTER_CONTRACT,
+    ARG_WHITELIST_MODE,
 };
 use once_cell::sync::Lazy;
 use serde::{Deserialize, Serialize};
@@ -137,6 +138,7 @@ pub(crate) struct InstallerRequestBuilder {
     contract_whitelist: CLValue, // Deprecated in 1.4
     acl_whitelist: CLValue,
     acl_package_mode: CLValue,
+    package_operator_mode: CLValue,
     json_schema: CLValue,
     nft_metadata_kind: CLValue,
     identifier_mode: CLValue,
@@ -175,6 +177,7 @@ impl InstallerRequestBuilder {
             contract_whitelist: CLValue::from_t(Vec::<ContractHash>::new()).unwrap(),
             acl_whitelist: CLValue::from_t(Vec::<Key>::new()).unwrap(),
             acl_package_mode: CLValue::from_t(false).unwrap(),
+            package_operator_mode: CLValue::from_t(false).unwrap(),
             json_schema: CLValue::from_t("test".to_string())
                 .expect("test_metadata was created from a concrete value"),
             nft_metadata_kind: CLValue::from_t(NFTMetadataKind::NFT721 as u8).unwrap(),
@@ -280,6 +283,12 @@ impl InstallerRequestBuilder {
         self
     }
 
+    pub(crate) fn with_package_operator_mode(mut self, package_operator_mode: bool) -> Self {
+        self.package_operator_mode =
+            CLValue::from_t(package_operator_mode).expect("package operator mode is legit CLValue");
+        self
+    }
+
     pub(crate) fn with_nft_metadata_kind(mut self, nft_metadata_kind: NFTMetadataKind) -> Self {
         self.nft_metadata_kind = CLValue::from_t(nft_metadata_kind as u8).unwrap();
         self
@@ -344,6 +353,7 @@ impl InstallerRequestBuilder {
         runtime_args.insert_cl_value(ARG_TOTAL_TOKEN_SUPPLY, self.total_token_supply);
         runtime_args.insert_cl_value(ARG_ALLOW_MINTING, self.allow_minting);
         runtime_args.insert_cl_value(ARG_ACL_PACKAGE_MODE, self.acl_package_mode);
+        runtime_args.insert_cl_value(ARG_PACKAGE_OPERATOR_MODE, self.package_operator_mode);
         runtime_args.insert_cl_value(ARG_MINTING_MODE, self.minting_mode.clone());
         runtime_args.insert_cl_value(ARG_OWNERSHIP_MODE, self.ownership_mode);
         runtime_args.insert_cl_value(ARG_NFT_KIND, self.nft_kind);

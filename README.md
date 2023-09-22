@@ -61,7 +61,7 @@ The following are the optional parameters that can be passed in at the time of i
 
 - `"whitelist_mode"`: The [`WhitelistMode`](/docs/modalities.md#whitelistmode) modality dictates whether the contract whitelist can be updated. This optional parameter will default to an unlocked whitelist that can be updated post installation. This parameter cannot be changed once the contract has been installed.
 - `"holder_mode"`: The [`NFTHolderMode`](/docs/modalities.md#nftholdermode) modality dictates which entities can hold NFTs. This is an optional parameter and will default to a mixed mode allowing either `Accounts` or `Contracts` to hold NFTs. This parameter cannot be changed once the contract has been installed.
-- `"contract_whitelist"`: The contract whitelist is a list of contract hashes that specifies which contracts can call the `mint()` entrypoint to mint NFTs. This is an optional parameter which will default to an empty whitelist. This value can be changed via the `set_variables` post installation. If the whitelist mode is set to locked, a non-empty whitelist must be passed; else, installation of the contract will fail.
+- `"acl_whitelist"`: The ACL whitelist is a list of accounts and/or contract/package hashes that specifies which accounts and/or contracts can call the `mint()` entrypoint to mint NFTs. This is an optional parameter which will default to an empty whitelist. This value can be changed via the `set_variables` post installation. If the whitelist mode is set to locked, a non-empty whitelist must be passed; else, installation of the contract will fail.
 - `"burn_mode"`: The [`BurnMode`](/docs/modalities.md#burnmode) modality dictates whether minted NFTs can be burnt. This is an optional parameter and will allow tokens to be burnt by default. This parameter cannot be changed once the contract has been installed.
 - `"owner_reverse_lookup_mode"`: The [`OwnerReverseLookupMode`](/docs/modalities.md#reportingmode) modality dictates whether the lookup for owners to token identifiers is available. This is an optional parameter and will not provide the lookup by default. This parameter cannot be changed once the contract has been installed.
 - `"events_mode"`: The [`EventsMode`](/docs/modalities.md#eventsmode) modality selects the event schema used to record any changes that occur to tokens issued by the contract instance.
@@ -103,8 +103,7 @@ folder within the project folder.
 
 [Learn to check token ownership](./tutorials/token-ownership-tutorial.md) starting with version [v1.1.1](https://github.com/casper-ecosystem/cep-78-enhanced-nft/releases/tag/v1.1.1). The `OwnerReverseLookupMode` modality must be set to `Complete` as described [here](/docs/reverse-lookup.md).
 
-
-### Upgrading to Version 1.1.1 
+### Upgrading to Version 1.1.1
 
 Upgrade to v1.1.1 using a [Standard NamedKey Convention](./tutorials/standard-migration-tutorial.md) or a [Custom NamedKey Convention](./tutorials/custom-migration-tutorial.md).
 
@@ -287,3 +286,7 @@ by using the provided `Makefile` and running the `make test` command.
 | 160  | MissingACLWhiteList                         |
 | 161  | InvalidACLWhitelist                         |
 | 162  | EmptyACLWhitelist                           |
+| 163  | InvalidACLPackageMode                       |
+| 164  | MissingACLPackageMode                       |
+| 165  | InvalidPackageOperatorMode                  |
+| 166  | MissingPackageOperatorMode                  |
