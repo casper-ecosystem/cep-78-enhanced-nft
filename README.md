@@ -49,7 +49,7 @@ The following are the required runtime arguments that must be passed to the inst
 - `"total_token_supply"`: The total number of NFTs that a specific instance of a contract will mint passed in as a `U64` value. This parameter is required.
 - `"ownership_mode"`: The [`OwnershipMode`](/docs/modalities.md#ownership) modality that dictates the ownership behavior of the NFT contract. This argument is passed in as a `u8` value and is required at the time of installation.
 - `"nft_kind"`: The [`NFTKind`](/docs/modalities.md#nftkind) modality that specifies the off-chain items represented by the on-chain NFT data. This argument is passed in as a `u8` value and is required at the time of installation.
-- `"json_schema"`: The JSON schema for the NFT tokens that will be minted by the NFT contract passed in as a `String`. This parameter is required if the metadata kind is set to `CustomValidated(4)` and cannot be changed post installation.
+- `"json_schema"`: The JSON schema for the NFT tokens that will be minted by the NFT contract passed in as a `String`. This parameter is required if the metadata kind is set to `CustomValidated(3)` and cannot be changed post installation.
 - `"nft_metadata_kind"`: The base metadata schema for the NFTs to be minted by the NFT contract. This argument is passed in as a `u8` value and is required at the time of installation.
 - `"identifier_mode"`: The [`NFTIdentifierMode`](/docs/modalities.md#nftidentifiermode) modality dictates the primary identifier for NFTs minted by the contract. This argument is passed in as a `u8` value and is required at the time of installation.
 - `"metadata_mutability"`: The [`MetadataMutability`](/docs/modalities.md#metadata-mutability) modality dictates whether the metadata of minted NFTs can be updated. This argument is passed in as a `u8` value and is required at the time of installation.
@@ -73,15 +73,18 @@ The following are the optional parameters that can be passed in at the time of i
 The following is an example of installing the NFT contract via a deploy using the Rust CLI Casper client. You can find more examples [here](/docs/using-casper-client.md).
 
 ```bash
-casper-client put-deploy -n http://localhost:11101/rpc --chain-name "casper-net-1" --payment-amount 500000000000 -k ~/casper/casper-node/utils/nctl/assets/net-1/nodes/node-1/keys/secret_key.pem --session-path ~/casper/enhanced-nft/contract/target/wasm32-unknown-unknown/release/contract.wasm \
+casper-client put-deploy -n http://65.108.0.148:7777/rpc --chain-name "casper-test" --payment-amount 500000000000 -k keys/secret_key.pem --session-path contract/target/wasm32-unknown-unknown/release/contract.wasm \
 --session-arg "collection_name:string='enhanced-nft-1'" \
 --session-arg "collection_symbol:string='ENFT-1'" \
---session-arg "total_token_supply:u256='10'" \
+--session-arg "total_token_supply:u64='10'" \
 --session-arg "ownership_mode:u8='0'" \
 --session-arg "nft_kind:u8='1'" \
 --session-arg "json_schema:string='nft-schema'" \
 --session-arg "allow_minting:bool='true'" \
---session-arg "owner_reverse_lookup_mode:u8='1'"
+--session-arg "owner_reverse_lookup_mode:u8='0'" \
+--session-arg "nft_metadata_kind:u8='2'" \
+--session-arg "identifier_mode:u8='0'" \
+--session-arg "metadata_mutability:u8='1'"
 ```
 
 ### Utility Session Code

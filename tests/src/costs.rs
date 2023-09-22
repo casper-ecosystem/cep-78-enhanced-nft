@@ -38,8 +38,7 @@ fn mint_cost_should_remain_stable() {
 
     builder.exec(install_request).expect_success().commit();
 
-    let nft_contract_hash = support::get_nft_contract_hash(&builder);
-    let nft_contract_key: Key = nft_contract_hash.into();
+    let nft_contract_key: Key = support::get_nft_contract_hash(&builder).into();
 
     let first_mint_request = ExecuteRequestBuilder::standard(
         *DEFAULT_ACCOUNT_ADDR,

@@ -2,7 +2,7 @@ use casper_engine_test_support::{
     ExecuteRequestBuilder, InMemoryWasmTestBuilder, DEFAULT_ACCOUNT_ADDR,
     PRODUCTION_RUN_GENESIS_REQUEST,
 };
-use casper_types::{account::AccountHash, runtime_args, ContractHash, Key, RuntimeArgs};
+use casper_types::{account::AccountHash, runtime_args, Key, RuntimeArgs};
 use contract::{
     constants::{
         ARG_APPROVE_ALL, ARG_COLLECTION_NAME, ARG_OPERATOR, ARG_TOKEN_HASH, ARG_TOKEN_ID,
@@ -46,13 +46,8 @@ fn should_burn_minted_token(reporting: OwnerReverseLookupMode) {
         .expect_success()
         .commit();
 
-    let installing_account = builder.get_expected_account(*DEFAULT_ACCOUNT_ADDR);
-    let nft_contract_key = installing_account
-        .named_keys()
-        .get(CONTRACT_NAME)
-        .expect("must have key in named keys");
-
     let nft_contract_hash = get_nft_contract_hash(&builder);
+    let nft_contract_key: Key = nft_contract_hash.into();
     let token_owner: Key = Key::Account(*DEFAULT_ACCOUNT_ADDR);
     let token_id = 0u64;
 
@@ -62,7 +57,7 @@ fn should_burn_minted_token(reporting: OwnerReverseLookupMode) {
             *DEFAULT_ACCOUNT_ADDR,
             MINT_SESSION_WASM,
             runtime_args! {
-                ARG_NFT_CONTRACT_HASH => Key::Hash(nft_contract_hash.value()),
+                ARG_NFT_CONTRACT_HASH => nft_contract_key,
                 ARG_TOKEN_OWNER => Key::Account(*DEFAULT_ACCOUNT_ADDR),
                 ARG_TOKEN_META_DATA => TEST_PRETTY_721_META_DATA.to_string(),
                 ARG_COLLECTION_NAME => NFT_TEST_COLLECTION.to_string()
@@ -74,7 +69,7 @@ fn should_burn_minted_token(reporting: OwnerReverseLookupMode) {
 
         let token_page = support::get_token_page_by_id(
             &builder,
-            nft_contract_key,
+            &nft_contract_key,
             &Key::Account(*DEFAULT_ACCOUNT_ADDR),
             token_id,
         );
@@ -99,7 +94,7 @@ fn should_burn_minted_token(reporting: OwnerReverseLookupMode) {
 
     let actual_balance_before_burn = support::get_dictionary_value_from_key::<u64>(
         &builder,
-        nft_contract_key,
+        &nft_contract_key,
         TOKEN_COUNT,
         &DEFAULT_ACCOUNT_ADDR.clone().to_string(),
     );
@@ -121,7 +116,7 @@ fn should_burn_minted_token(reporting: OwnerReverseLookupMode) {
     //This will error of token is not registered as burnt.
     support::get_dictionary_value_from_key::<()>(
         &builder,
-        nft_contract_key,
+        &nft_contract_key,
         BURNT_TOKENS,
         &token_id.to_string(),
     );
@@ -129,7 +124,7 @@ fn should_burn_minted_token(reporting: OwnerReverseLookupMode) {
     // This will error of token is not registered as
     let actual_balance = support::get_dictionary_value_from_key::<u64>(
         &builder,
-        nft_contract_key,
+        &nft_contract_key,
         TOKEN_COUNT,
         &DEFAULT_ACCOUNT_ADDR.clone().to_string(),
     );
@@ -139,7 +134,7 @@ fn should_burn_minted_token(reporting: OwnerReverseLookupMode) {
 
     // Expect Burn event.
     let expected_event = Burn::new(token_owner, TokenIdentifier::Index(0));
-    let actual_event: Burn = support::get_event(&builder, nft_contract_key, 1);
+    let actual_event: Burn = support::get_event(&builder, &nft_contract_key, 1);
     assert_eq!(actual_event, expected_event, "Expected Burn event.");
 }
 
@@ -171,18 +166,13 @@ fn should_not_burn_previously_burnt_token() {
         .expect_success()
         .commit();
 
-    let installing_account = builder.get_expected_account(*DEFAULT_ACCOUNT_ADDR);
-    let nft_contract_key = installing_account
-        .named_keys()
-        .get(CONTRACT_NAME)
-        .expect("must have key in named keys");
+    let nft_contract_key: Key = get_nft_contract_hash(&builder).into();
 
-    let nft_contract_hash = get_nft_contract_hash(&builder);
     let mint_session_call = ExecuteRequestBuilder::standard(
         *DEFAULT_ACCOUNT_ADDR,
         MINT_SESSION_WASM,
         runtime_args! {
-            ARG_NFT_CONTRACT_HASH => Key::Hash(nft_contract_hash.value()),
+            ARG_NFT_CONTRACT_HASH => nft_contract_key,
             ARG_TOKEN_OWNER => Key::Account(*DEFAULT_ACCOUNT_ADDR),
             ARG_TOKEN_META_DATA => TEST_PRETTY_721_META_DATA.to_string(),
             ARG_COLLECTION_NAME => NFT_TEST_COLLECTION.to_string()
@@ -194,7 +184,7 @@ fn should_not_burn_previously_burnt_token() {
 
     let token_page = support::get_token_page_by_id(
         &builder,
-        nft_contract_key,
+        &nft_contract_key,
         &Key::Account(*DEFAULT_ACCOUNT_ADDR),
         0u64,
     );
@@ -291,14 +281,8 @@ fn should_return_expected_error_burning_of_others_users_token() {
         .expect_success()
         .commit();
 
-    let installing_account = builder.get_expected_account(*DEFAULT_ACCOUNT_ADDR);
-    let nft_contract_key = installing_account
-        .named_keys()
-        .get(CONTRACT_NAME)
-        .expect("must have key in named keys");
-    let nft_contract_hash = nft_contract_key
-        .into_hash()
-        .expect("must convert to hash addr");
+    let nft_contract_hash = get_nft_contract_hash(&builder);
+    let nft_contract_key: Key = nft_contract_hash.into();
 
     let account_user_1 = support::create_funded_dummy_account(&mut builder, Some(ACCOUNT_USER_1));
 
@@ -306,7 +290,7 @@ fn should_return_expected_error_burning_of_others_users_token() {
         *DEFAULT_ACCOUNT_ADDR,
         MINT_SESSION_WASM,
         runtime_args! {
-            ARG_NFT_CONTRACT_HASH => Key::Hash(nft_contract_hash),
+            ARG_NFT_CONTRACT_HASH => nft_contract_key,
             ARG_TOKEN_OWNER => Key::Account(*DEFAULT_ACCOUNT_ADDR),
             ARG_TOKEN_META_DATA => TEST_PRETTY_721_META_DATA.to_string(),
             ARG_COLLECTION_NAME => NFT_TEST_COLLECTION.to_string()
@@ -318,7 +302,7 @@ fn should_return_expected_error_burning_of_others_users_token() {
 
     let token_page = support::get_token_page_by_id(
         &builder,
-        nft_contract_key,
+        &nft_contract_key,
         &Key::Account(*DEFAULT_ACCOUNT_ADDR),
         0u64,
     );
@@ -327,7 +311,7 @@ fn should_return_expected_error_burning_of_others_users_token() {
 
     let incorrect_burn_request = ExecuteRequestBuilder::contract_call_by_hash(
         account_user_1,
-        ContractHash::new(nft_contract_hash),
+        nft_contract_hash,
         ENTRY_POINT_BURN,
         runtime_args! {
             ARG_TOKEN_ID => 0u64,
@@ -360,15 +344,8 @@ fn should_return_expected_error_when_burning_not_owned_token() {
         .expect_success()
         .commit();
 
-    let installing_account = builder.get_expected_account(*DEFAULT_ACCOUNT_ADDR);
-    let nft_contract_key = installing_account
-        .named_keys()
-        .get(CONTRACT_NAME)
-        .expect("must have key in named keys");
-
-    let nft_contract_hash = nft_contract_key
-        .into_hash()
-        .expect("must convert to hash addr");
+    let nft_contract_hash = get_nft_contract_hash(&builder);
+    let nft_contract_key: Key = nft_contract_hash.into();
 
     let account_user_1 = support::create_funded_dummy_account(&mut builder, Some(ACCOUNT_USER_1));
 
@@ -376,7 +353,7 @@ fn should_return_expected_error_when_burning_not_owned_token() {
         *DEFAULT_ACCOUNT_ADDR,
         MINT_SESSION_WASM,
         runtime_args! {
-            ARG_NFT_CONTRACT_HASH => Key::Hash(nft_contract_hash),
+            ARG_NFT_CONTRACT_HASH => nft_contract_key,
             ARG_TOKEN_OWNER => Key::Account(*DEFAULT_ACCOUNT_ADDR),
             ARG_TOKEN_META_DATA => TEST_PRETTY_721_META_DATA.to_string(),
             ARG_COLLECTION_NAME => NFT_TEST_COLLECTION.to_string()
@@ -388,7 +365,7 @@ fn should_return_expected_error_when_burning_not_owned_token() {
 
     let token_page = support::get_token_page_by_id(
         &builder,
-        nft_contract_key,
+        &nft_contract_key,
         &Key::Account(*DEFAULT_ACCOUNT_ADDR),
         0u64,
     );
@@ -397,7 +374,7 @@ fn should_return_expected_error_when_burning_not_owned_token() {
 
     let incorrect_burn_request = ExecuteRequestBuilder::contract_call_by_hash(
         account_user_1,
-        ContractHash::new(nft_contract_hash),
+        nft_contract_hash,
         ENTRY_POINT_BURN,
         runtime_args! {
             ARG_TOKEN_ID => 0u64

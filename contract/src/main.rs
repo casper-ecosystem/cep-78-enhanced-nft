@@ -49,7 +49,7 @@ use constants::{
     ENTRY_POINT_IS_APPROVED_FOR_ALL, ENTRY_POINT_METADATA, ENTRY_POINT_MIGRATE, ENTRY_POINT_MINT,
     ENTRY_POINT_OWNER_OF, ENTRY_POINT_REGISTER_OWNER, ENTRY_POINT_REVOKE,
     ENTRY_POINT_SET_APPROVALL_FOR_ALL, ENTRY_POINT_SET_TOKEN_METADATA, ENTRY_POINT_SET_VARIABLES,
-    ENTRY_POINT_TRANSFER, ENTRY_POINT_UPDATED_RECEIPTS, EVENTS, EVENTS_MODE, HASH_BY_INDEX,
+    ENTRY_POINT_TRANSFER, ENTRY_POINT_UPDATED_RECEIPTS, EVENTS_MODE, HASH_BY_INDEX,
     HASH_KEY_NAME_1_0_0, HOLDER_MODE, IDENTIFIER_MODE, INDEX_BY_HASH, INSTALLER, JSON_SCHEMA,
     MAX_TOTAL_TOKEN_SUPPLY, METADATA_CEP78, METADATA_CUSTOM_VALIDATED, METADATA_MUTABILITY,
     METADATA_NFT721, METADATA_RAW, MINTING_MODE, NFT_KIND, NFT_METADATA_KIND, NFT_METADATA_KINDS,
@@ -324,7 +324,7 @@ pub extern "C" fn init() {
             ARG_TRANSFER_FILTER_CONTRACT,
             NFTCoreError::InvalidTransferFilterContract,
         )
-        .unwrap_or_revert();
+        .unwrap_or_default();
 
     let transfer_filter_contract_contract_hash: Option<ContractHash> =
         transfer_filter_contract_contract_key.map(|transfer_filter_contract_contract_key| {
@@ -440,7 +440,6 @@ pub extern "C" fn init() {
         .unwrap_or_revert_with(NFTCoreError::FailedToCreateDictionary);
     storage::new_dictionary(PAGE_TABLE)
         .unwrap_or_revert_with(NFTCoreError::FailedToCreateDictionary);
-    storage::new_dictionary(EVENTS).unwrap_or_revert_with(NFTCoreError::FailedToCreateDictionary);
     storage::new_dictionary(ACL_WHITELIST)
         .unwrap_or_revert_with(NFTCoreError::FailedToCreateDictionary);
 

@@ -17,7 +17,7 @@ use crate::utility::{
         ACCOUNT_USER_1, CONTRACT_NAME, NFT_CONTRACT_WASM, NFT_TEST_COLLECTION, NFT_TEST_SYMBOL,
     },
     installer_request_builder::{InstallerRequestBuilder, OwnerReverseLookupMode},
-    support::{self, assert_expected_error},
+    support::{self, assert_expected_error, get_nft_contract_hash},
 };
 
 #[test]
@@ -40,15 +40,8 @@ fn only_installer_should_be_able_to_toggle_allow_minting() {
 
     builder.exec(install_request).expect_success().commit();
 
-    let account = builder.get_expected_account(*DEFAULT_ACCOUNT_ADDR);
-    let nft_contract_key: Key = *account
-        .named_keys()
-        .get(CONTRACT_NAME)
-        .expect("must have key in named keys");
-
-    let nft_contract_hash = Key::into_hash(nft_contract_key)
-        .map(ContractHash::new)
-        .expect("failed to find nft contract");
+    let nft_contract_hash = get_nft_contract_hash(&builder);
+    let nft_contract_key: Key = nft_contract_hash.into();
 
     // Account other than installer account should not be able to change allow_minting
     // Red test

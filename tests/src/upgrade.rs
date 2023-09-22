@@ -109,8 +109,7 @@ fn should_safely_upgrade_in_ordinal_identifier_mode() {
 
     builder.exec(upgrade_request).expect_success().commit();
 
-    let nft_contract_hash = support::get_nft_contract_hash(&builder);
-    let nft_contract_key: Key = nft_contract_hash.into();
+    let nft_contract_key: Key = support::get_nft_contract_hash(&builder).into();
 
     let actual_page_record_width = builder
         .query(None, nft_contract_key, &[PAGE_LIMIT.to_string()])
@@ -772,8 +771,7 @@ fn should_safely_upgrade_from_old_version_to_new_version_with_reporting_mode(
 
     builder.exec(upgrade_request).expect_success().commit();
 
-    let nft_contract_hash = support::get_nft_contract_hash(&builder);
-    let nft_contract_key: Key = nft_contract_hash.into();
+    let nft_contract_key: Key = support::get_nft_contract_hash(&builder).into();
 
     let number_of_tokens_at_upgrade = support::get_stored_value_from_global_state::<u64>(
         &builder,
@@ -1161,8 +1159,7 @@ fn should_safely_upgrade_from_1_0_0_to_current_version() {
 
     builder.exec(upgrade_request).expect_success().commit();
 
-    let nft_contract_hash = support::get_nft_contract_hash(&builder);
-    let nft_contract_key: Key = nft_contract_hash.into();
+    let nft_contract_key: Key = support::get_nft_contract_hash(&builder).into();
 
     let number_of_tokens_at_upgrade = support::get_stored_value_from_global_state::<u64>(
         &builder,
