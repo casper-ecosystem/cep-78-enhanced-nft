@@ -123,22 +123,21 @@ mode cannot be changed once the contract has been installed. The mode is set by 
 
 ## AllowMinting
 
-By switching allow_minting to false we pause minting. Reverts with MintingIsPaused error if allow_minting is false. This modality provides two options:
+The `AllowMinting` modality dictates the ability for **any** entity to mint or not. If `allow_minting` is set to false, any attempt to mint will revert with a `MintingIsPaused` error. This modality provides two options:
 
 | AllowMinting | bool |
 | ------------ | ---- |
 
 ## ACLPackageMode
 
-The ACL package mode governs the ability for whitelisting a package instead of a versioned contract. By whitelisting a package, a new contract version will be automaticly whitelisted for minting after its package upgrade. This modality provides two options:
+The ACL package mode modality governs the ability for whitelisting a package instead of a versioned contract. By whitelisting a package, a new contract version will be automatically whitelisted for minting after its package upgrade. This modality provides two options:
 
 | ACLPackageMode | bool |
 | -------------- | ---- |
 
-This modality is an optional installation parameter and will default to the `false` if not provided. This
-mode can be changed on contract upgrade or can be updated via the set variables endpoint.
+This modality is an optional installation parameter and will default to `false` if not provided. This mode can be changed on contract upgrade or can be updated via the set variables endpoint.
 
-> Before using this modilty, please understand the security implications of having automatic whitelisting of versioned contracts.
+> Before using this modality, please understand the security implications of having automatic whitelisting of versioned contracts.
 
 ## PackageOperatorMode
 
@@ -147,10 +146,9 @@ The package operator mode governs the ability for approving a package instead of
 | PackageOperatorMode | bool |
 | ------------------- | ---- |
 
-This modality is an optional installation parameter and will default to the `false` if not provided. This
-mode can be changed on contract upgrade or can be updated via the set variables endpoint.
+This modality is an optional installation parameter and will default to `false` if not provided. This mode can be changed on contract upgrade or can be updated via the set variables endpoint.
 
-> Before using this modilty, please understand the security implications of having automatic approvals and revocation right of versioned contracts.
+> Before using this modality, please understand the security implications of having automatic approvals and revocation rights for versioned contracts.
 
 ## NFTMetadataKind
 

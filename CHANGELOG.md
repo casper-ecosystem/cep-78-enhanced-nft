@@ -14,18 +14,18 @@ All notable changes to this project will be documented in this file. The format 
 ### Changed
 
 - Update to README (#248)
-- Update ces parser version (#246)
+- Update CES parser version (#246)
 - Update modalities.md (#245)
 - Command fix (#244)
-- JS Client: omit dev dependencies when running audit (#241)
+- JS Client: Omit dev dependencies when running audit (#241)
 - Remove potential revert in init and remove cep47 events dict creation on install (#240)
-- Reformatting Documentation (#239)
+- Reformatting documentation (#239)
 
 ### Added
 
-- ACL package mode. By whitelisting a package in `acl_whitelist`, any further version of a contract will be automaticaly whitelisted for minting.
+- ACL package mode - Including a contract package in the `acl_whitelist` will result in automatic whitelisting for any future versions of that contract.
 
-- Package operator mode. By approving a package in `operators`, any further version of a contract will be automaticaly operator for transfer/approve/revoke entrypoints.
+- Package operator mode - Approving a package in `operators` allows any future version of that contract to act as an operator for transfer/approve/revoke entrypoints.
 
 ## Release 1.4.0
 
