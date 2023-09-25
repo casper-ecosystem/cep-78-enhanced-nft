@@ -6,7 +6,8 @@ use casper_types::{runtime_args, ContractHash, Key, RuntimeArgs};
 use contract::{
     constants::{
         ACL_PACKAGE_MODE, ALLOW_MINTING, ARG_ACL_PACKAGE_MODE, ARG_ALLOW_MINTING,
-        ARG_PACKAGE_OPERATOR_MODE, ENTRY_POINT_SET_VARIABLES, PACKAGE_OPERATOR_MODE,
+        ARG_OPERATOR_BURN_MODE, ARG_PACKAGE_OPERATOR_MODE, ENTRY_POINT_SET_VARIABLES,
+        OPERATOR_BURN_MODE, PACKAGE_OPERATOR_MODE,
     },
     error::NFTCoreError,
     events::events_ces::VariablesSet,
@@ -94,12 +95,12 @@ fn only_installer_should_be_able_to_toggle_allow_minting() {
 
     // Expect VariablesSet event.
     let expected_event = VariablesSet::new();
-    let actual_event: VariablesSet = support::get_event(&builder, &nft_contract_key, 0);
+    let actual_event: VariablesSet = support::get_event(&builder, &nft_contract_key, 0).unwrap();
     assert_eq!(actual_event, expected_event, "Expected VariablesSet event.");
 }
 
 #[test]
-fn only_installer_should_be_able_to_toggle_acl_package_mode() {
+fn installer_should_be_able_to_toggle_acl_package_mode() {
     let mut builder = InMemoryWasmTestBuilder::default();
     builder
         .run_genesis(&PRODUCTION_RUN_GENESIS_REQUEST)
@@ -156,12 +157,12 @@ fn only_installer_should_be_able_to_toggle_acl_package_mode() {
 
     // Expect VariablesSet event.
     let expected_event = VariablesSet::new();
-    let actual_event: VariablesSet = support::get_event(&builder, &nft_contract_key, 0);
+    let actual_event: VariablesSet = support::get_event(&builder, &nft_contract_key, 0).unwrap();
     assert_eq!(actual_event, expected_event, "Expected VariablesSet event.");
 }
 
 #[test]
-fn only_installer_should_be_able_to_toggle_package_operator_mode() {
+fn installer_should_be_able_to_toggle_package_operator_mode() {
     let mut builder = InMemoryWasmTestBuilder::default();
     builder
         .run_genesis(&PRODUCTION_RUN_GENESIS_REQUEST)
@@ -218,6 +219,68 @@ fn only_installer_should_be_able_to_toggle_package_operator_mode() {
 
     // Expect VariablesSet event.
     let expected_event = VariablesSet::new();
-    let actual_event: VariablesSet = support::get_event(&builder, &nft_contract_key, 0);
+    let actual_event: VariablesSet = support::get_event(&builder, &nft_contract_key, 0).unwrap();
+    assert_eq!(actual_event, expected_event, "Expected VariablesSet event.");
+}
+
+#[test]
+fn installer_should_be_able_to_toggle_operator_burn_mode() {
+    let mut builder = InMemoryWasmTestBuilder::default();
+    builder
+        .run_genesis(&PRODUCTION_RUN_GENESIS_REQUEST)
+        .commit();
+
+    let install_request = InstallerRequestBuilder::new(*DEFAULT_ACCOUNT_ADDR, NFT_CONTRACT_WASM)
+        .with_collection_name(NFT_TEST_COLLECTION.to_string())
+        .with_collection_symbol(NFT_TEST_SYMBOL.to_string())
+        .with_total_token_supply(1u64)
+        .with_reporting_mode(OwnerReverseLookupMode::NoLookUp)
+        .build();
+
+    builder.exec(install_request).expect_success().commit();
+
+    let account = builder.get_expected_account(*DEFAULT_ACCOUNT_ADDR);
+    let nft_contract_key: Key = *account
+        .named_keys()
+        .get(CONTRACT_NAME)
+        .expect("must have key in named keys");
+
+    let nft_contract_hash = Key::into_hash(nft_contract_key)
+        .map(ContractHash::new)
+        .expect("failed to find nft contract");
+
+    let is_package_operator_mode: bool = support::query_stored_value(
+        &builder,
+        nft_contract_key,
+        vec![ARG_OPERATOR_BURN_MODE.to_string()],
+    );
+
+    assert!(!is_package_operator_mode);
+
+    //Installer account should be able to change package operator mode
+    let installer_set_variables_request = ExecuteRequestBuilder::contract_call_by_hash(
+        *DEFAULT_ACCOUNT_ADDR,
+        nft_contract_hash,
+        ENTRY_POINT_SET_VARIABLES,
+        runtime_args! { ARG_OPERATOR_BURN_MODE => true },
+    )
+    .build();
+
+    builder
+        .exec(installer_set_variables_request)
+        .expect_success()
+        .commit();
+
+    let is_package_operator_mode: bool = support::query_stored_value(
+        &builder,
+        nft_contract_key,
+        vec![OPERATOR_BURN_MODE.to_string()],
+    );
+
+    assert!(is_package_operator_mode);
+
+    // Expect VariablesSet event.
+    let expected_event = VariablesSet::new();
+    let actual_event: VariablesSet = support::get_event(&builder, &nft_contract_key, 0).unwrap();
     assert_eq!(actual_event, expected_event, "Expected VariablesSet event.");
 }

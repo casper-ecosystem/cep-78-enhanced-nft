@@ -1,5 +1,6 @@
-use std::fmt::Debug;
-
+use super::{
+    constants::MINTING_CONTRACT_PACKAGE_NAME, installer_request_builder::InstallerRequestBuilder,
+};
 use crate::utility::constants::{
     ARG_KEY_NAME, ARG_NFT_CONTRACT_HASH, CONTRACT_NAME, MINTING_CONTRACT_NAME, PAGE_SIZE,
     TRANSFER_FILTER_CONTRACT_NAME,
@@ -7,14 +8,6 @@ use crate::utility::constants::{
 use blake2::{
     digest::{Update, VariableOutput},
     VarBlake2b,
-};
-use contract::constants::{HASH_KEY_NAME_1_0_0, INDEX_BY_HASH, PREFIX_PAGE_DICTIONARY};
-use rand::prelude::*;
-use serde::{Deserialize, Serialize};
-use sha256::digest;
-
-use super::{
-    constants::MINTING_CONTRACT_PACKAGE_NAME, installer_request_builder::InstallerRequestBuilder,
 };
 use casper_engine_test_support::{
     ExecuteRequestBuilder, InMemoryWasmTestBuilder, WasmTestBuilder, ARG_AMOUNT,
@@ -32,6 +25,11 @@ use casper_types::{
     ApiError, CLTyped, CLValueError, ContractHash, ContractPackageHash, Key, PublicKey,
     RuntimeArgs, SecretKey, URef, BLAKE2B_DIGEST_LENGTH,
 };
+use contract::constants::{HASH_KEY_NAME_1_0_0, INDEX_BY_HASH, PREFIX_PAGE_DICTIONARY};
+use rand::prelude::*;
+use serde::{Deserialize, Serialize};
+use sha256::digest;
+use std::fmt::Debug;
 
 pub(crate) fn get_nft_contract_hash(
     builder: &WasmTestBuilder<InMemoryGlobalState>,
@@ -330,16 +328,26 @@ pub fn get_event<T: FromBytes + CLTyped + Debug>(
     builder: &WasmTestBuilder<InMemoryGlobalState>,
     nft_contract_key: &Key,
     index: u32,
-) -> T {
+) -> Result<T, String> {
     let bytes: Bytes = get_dictionary_value_from_key(
         builder,
         nft_contract_key,
         casper_event_standard::EVENTS_DICT,
         &index.to_string(),
     );
-    let (event, bytes) = T::from_bytes(&bytes).unwrap();
-    assert!(bytes.is_empty());
-    event
+
+    let (event, _): (T, Bytes) = match T::from_bytes(&bytes) {
+        Ok((event, bytes_remaining)) if bytes_remaining.is_empty() => {
+            (event, bytes_remaining.into())
+        }
+        Err(err) => {
+            let error = err.to_string();
+            return Err(format!("Error Failed to decode event {}", error));
+        }
+        _ => unimplemented!(),
+    };
+
+    Ok(event)
 }
 
 pub(crate) fn get_nft_contract_hash_1_0_0(

@@ -18,6 +18,7 @@ The following section discusses the currently implemented modalities and illustr
 - [NFTIdentifierMode](#nftidentifiermode)
 - [Metadata Mutability](#metadata-mutability)
 - [BurnMode](#burnmode)
+- [OperatorBurnMode](#operatorburnmode)
 - [OwnerReverseLookupMode](#ownerreverselookupmode)
 - [NamedKeyConventionMode](#namedkeyconventionmode)
 - [EventsMode](#eventsmode)
@@ -276,6 +277,18 @@ provides two options:
 
 This modality is an optional installation parameter and will default to the `Burnable` mode if not provided. However, this
 mode cannot be changed once the contract has been installed. The mode is set by passing a `u8` value to the `burn_mode` runtime argument.
+
+## OperatorBurnMode
+
+The `OperatorBurnMode` modality dictates whether tokens minted by a given instance of an NFT contract can be burnt by an operator (thus accounts, contracts or contracts from a package approved for all by an owner). This modality
+provides two options:
+
+| OperatorBurnMode | bool |
+| ---------------- | ---- |
+
+This modality is an optional installation parameter and will default to `false` if not provided. This mode can be changed on contract upgrade or can be updated via the set variables endpoint.
+
+> Before using this modality, please understand the security implications of having burn rights as an operator.
 
 ## OwnerReverseLookupMode
 

@@ -435,7 +435,7 @@ fn should_cep47_dictionary_style_burn_event() {
     .build();
     builder.exec(burn_request).expect_success().commit();
 
-    //This will error of token is not registered as burnt.
+    // This will error if token is not registered as burnt.
     get_dictionary_value_from_key::<()>(
         &builder,
         &nft_contract_key,
@@ -443,7 +443,7 @@ fn should_cep47_dictionary_style_burn_event() {
         &token_id.to_string(),
     );
 
-    // This will error of token is not registered as
+    // This will error if token is not registered as burnt
     let actual_balance = get_dictionary_value_from_key::<u64>(
         &builder,
         &nft_contract_key,
@@ -982,7 +982,7 @@ fn should_not_record_events_in_no_events_mode() {
 
     builder.exec(mint_session_call).expect_success().commit();
 
-    // This will error of token is not registered as
+    // This will error if token is not registered as burnt
     let actual_balance = get_dictionary_value_from_key::<u64>(
         &builder,
         &nft_contract_key,

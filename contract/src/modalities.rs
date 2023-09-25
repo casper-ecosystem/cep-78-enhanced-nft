@@ -268,7 +268,7 @@ impl TryFrom<u8> for MetadataMutability {
     }
 }
 
-#[derive(PartialEq, Eq, Clone, Debug)]
+#[derive(PartialEq, Eq, Clone)]
 pub enum TokenIdentifier {
     Index(u64),
     Hash(String),

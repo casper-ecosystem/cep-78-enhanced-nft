@@ -169,6 +169,8 @@ pub enum NFTCoreError {
     MissingACLPackageMode = 164,
     InvalidPackageOperatorMode = 165,
     MissingPackageOperatorMode = 166,
+    InvalidOperatorBurnMode = 167,
+    MissingOperatorBurnMode = 168,
 }
 
 impl From<NFTCoreError> for ApiError {

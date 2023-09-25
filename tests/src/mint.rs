@@ -239,7 +239,7 @@ fn should_mint() {
         TokenIdentifier::Index(0),
         TEST_PRETTY_CEP78_METADATA.to_string(),
     );
-    let actual_event: Mint = support::get_event(&builder, &nft_contract_key, 0);
+    let actual_event: Mint = support::get_event(&builder, &nft_contract_key, 0).unwrap();
     assert_eq!(actual_event, expected_event, "Expected Mint event.");
 }
 
@@ -807,7 +807,7 @@ fn should_set_approval_for_all() {
 
     // Expect ApprovalForAll event.
     let expected_event = ApprovalForAll::new(owner_key, operator_key);
-    let actual_event: ApprovalForAll = support::get_event(&builder, &nft_contract_key, 1);
+    let actual_event: ApprovalForAll = support::get_event(&builder, &nft_contract_key, 1).unwrap();
     assert_eq!(
         actual_event, expected_event,
         "Expected ApprovalForAll event."
@@ -964,7 +964,7 @@ fn should_revoke_approval_for_all() {
 
     // Expect ApprovalForAll event.
     let expected_event = ApprovalForAll::new(owner_key, operator_key);
-    let actual_event: ApprovalForAll = support::get_event(&builder, &nft_contract_key, 1);
+    let actual_event: ApprovalForAll = support::get_event(&builder, &nft_contract_key, 1).unwrap();
     assert_eq!(
         actual_event, expected_event,
         "Expected ApprovalForAll event."
@@ -1002,7 +1002,7 @@ fn should_revoke_approval_for_all() {
 
     // Expect RevokedForAll event.
     let expected_event = RevokedForAll::new(owner_key, operator_key);
-    let actual_event: RevokedForAll = support::get_event(&builder, &nft_contract_key, 2);
+    let actual_event: RevokedForAll = support::get_event(&builder, &nft_contract_key, 2).unwrap();
     assert_eq!(
         actual_event, expected_event,
         "Expected RevokedForAll event."
@@ -1849,7 +1849,7 @@ fn should_approve_all_in_hash_identifier_mode() {
     let expected_event = ApprovalForAll::new(owner_key, operator_key);
     let expected_event_index = 2;
     let actual_event: ApprovalForAll =
-        support::get_event(&builder, &nft_contract_key, expected_event_index);
+        support::get_event(&builder, &nft_contract_key, expected_event_index).unwrap();
     assert_eq!(
         actual_event, expected_event,
         "Expected ApprovalForAll event."

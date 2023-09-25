@@ -293,3 +293,5 @@ by using the provided `Makefile` and running the `make test` command.
 | 164  | MissingACLPackageMode                       |
 | 165  | InvalidPackageOperatorMode                  |
 | 166  | MissingPackageOperatorMode                  |
+| 167  | InvalidOperatorBurnMode                     |
+| 168  | MissingOperatorBurnMode                     |
