@@ -96,6 +96,7 @@ pub const OPERATORS: &str = "operators";
 pub const OPERATOR_BURN_MODE: &str = "operator_burn_mode";
 pub const OWNED_TOKENS: &str = "owned_tokens";
 pub const OWNER: &str = "owner";
+pub const BURNER: &str = "burner";
 pub const OWNERSHIP_MODE: &str = "ownership_mode";
 pub const PACKAGE_OPERATOR_MODE: &str = "package_operator_mode";
 pub const PAGE_LIMIT: &str = "page_limit";

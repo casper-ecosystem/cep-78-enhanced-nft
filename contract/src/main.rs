@@ -979,10 +979,13 @@ pub extern "C" fn burn() {
 
     match events_mode {
         EventsMode::NoEvents => {}
-        EventsMode::CES => casper_event_standard::emit(Burn::new(token_owner, token_identifier)),
+        EventsMode::CES => {
+            casper_event_standard::emit(Burn::new(token_owner, token_identifier, caller))
+        }
         EventsMode::CEP47 => record_cep47_event_dictionary(CEP47Event::Burn {
             owner: token_owner,
             token_id: token_identifier,
+            burner: caller,
         }),
     }
 }

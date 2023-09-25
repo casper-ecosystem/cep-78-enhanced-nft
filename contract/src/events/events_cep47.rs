@@ -12,8 +12,8 @@ use casper_types::Key;
 
 use crate::{
     constants::{
-        EVENTS, EVENT_TYPE, OPERATOR, OWNER, PREFIX_CEP78, PREFIX_HASH_KEY_NAME, RECIPIENT, SENDER,
-        SPENDER, TOKEN_ID,
+        BURNER, EVENTS, EVENT_TYPE, OPERATOR, OWNER, PREFIX_CEP78, PREFIX_HASH_KEY_NAME, RECIPIENT,
+        SENDER, SPENDER, TOKEN_ID,
     },
     error::NFTCoreError,
     modalities::TokenIdentifier,
@@ -28,6 +28,7 @@ pub enum CEP47Event {
     Burn {
         owner: Key,
         token_id: TokenIdentifier,
+        burner: Key,
     },
     ApprovalGranted {
         owner: Key,
@@ -83,12 +84,17 @@ pub fn record_cep47_event_dictionary(event: CEP47Event) {
             event.insert(TOKEN_ID, token_id.to_string());
             event
         }
-        CEP47Event::Burn { owner, token_id } => {
+        CEP47Event::Burn {
+            owner,
+            token_id,
+            burner,
+        } => {
             let mut event = BTreeMap::new();
             event.insert(PREFIX_HASH_KEY_NAME, package);
             event.insert(EVENT_TYPE, "Burn".to_string());
             event.insert(OWNER, owner.to_string());
             event.insert(TOKEN_ID, token_id.to_string());
+            event.insert(BURNER, burner.to_string());
             event
         }
         CEP47Event::ApprovalGranted {

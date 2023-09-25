@@ -133,7 +133,7 @@ fn should_burn_minted_token(reporting: OwnerReverseLookupMode) {
     assert_eq!(actual_balance, expected_balance);
 
     // Expect Burn event.
-    let expected_event = Burn::new(token_owner, TokenIdentifier::Index(token_id));
+    let expected_event = Burn::new(token_owner, TokenIdentifier::Index(token_id), token_owner);
     let actual_event: Burn = support::get_event(&builder, &nft_contract_key, 1).unwrap();
     assert_eq!(actual_event, expected_event, "Expected Burn event.");
 }
@@ -579,7 +579,10 @@ fn should_let_account_operator_burn_tokens_with_operator_burn_mode() {
     let actual_event_index = 2;
     let actual_event: Burn =
         support::get_event(&builder, &nft_contract_key, actual_event_index).unwrap();
-    let expected_event = Burn::new(token_owner, TokenIdentifier::Index(token_id));
+
+    let burner = Key::from(operator); // Burner is operator account
+
+    let expected_event = Burn::new(token_owner, TokenIdentifier::Index(token_id), burner);
     assert_eq!(actual_event, expected_event, "Expected Burn event.");
 }
 
@@ -703,7 +706,10 @@ fn should_let_contract_operator_burn_tokens_with_operator_burn_mode() {
     let actual_event_index = 2;
     let actual_event: Burn =
         support::get_event(&builder, &nft_contract_key, actual_event_index).unwrap();
-    let expected_event = Burn::new(token_owner, TokenIdentifier::Index(token_id));
+
+    let burner = Key::from(minting_contract_hash); // Burner is contract not session caller ACCOUNT_USER_1
+
+    let expected_event = Burn::new(token_owner, TokenIdentifier::Index(token_id), burner);
     assert_eq!(actual_event, expected_event, "Expected Burn event.");
 }
 
@@ -829,7 +835,10 @@ fn should_let_package_operator_burn_tokens_with_contract_package_mode_and_operat
     let actual_event_index = 2;
     let actual_event: Burn =
         support::get_event(&builder, &nft_contract_key, actual_event_index).unwrap();
-    let expected_event = Burn::new(token_owner, TokenIdentifier::Index(token_id));
+
+    let burner = Key::from(minting_contract_hash); // Burner is contract not its package nor session caller ACCOUNT_USER_1
+
+    let expected_event = Burn::new(token_owner, TokenIdentifier::Index(token_id), burner);
     assert_eq!(actual_event, expected_event, "Expected Burn event.");
 }
 

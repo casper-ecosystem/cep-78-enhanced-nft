@@ -11,7 +11,7 @@ use contract::{
     constants::{
         ACCESS_KEY_NAME_1_0_0, APPROVED, ARG_APPROVE_ALL, ARG_COLLECTION_NAME, ARG_EVENTS_MODE,
         ARG_NAMED_KEY_CONVENTION, ARG_OPERATOR, ARG_SOURCE_KEY, ARG_SPENDER, ARG_TARGET_KEY,
-        ARG_TOKEN_HASH, ARG_TOKEN_ID, ARG_TOKEN_META_DATA, ARG_TOKEN_OWNER, BURNT_TOKENS,
+        ARG_TOKEN_HASH, ARG_TOKEN_ID, ARG_TOKEN_META_DATA, ARG_TOKEN_OWNER, BURNER, BURNT_TOKENS,
         ENTRY_POINT_APPROVE, ENTRY_POINT_BURN, ENTRY_POINT_REGISTER_OWNER,
         ENTRY_POINT_SET_APPROVALL_FOR_ALL, ENTRY_POINT_SET_TOKEN_METADATA, EVENTS, EVENT_TYPE,
         METADATA_CEP78, METADATA_CUSTOM_VALIDATED, METADATA_NFT721, METADATA_RAW, OPERATOR, OWNER,
@@ -482,6 +482,12 @@ fn should_cep47_dictionary_style_burn_event() {
             .to_string(),
     );
     expected_event.insert(TOKEN_ID.to_string(), "0".to_string());
+    // Burner is owner
+    expected_event.insert(
+        BURNER.to_string(),
+        "Key::Account(58b891759929bd4ed5a9cce20b9d6e3c96a66c21386bed96040e17dd07b79fa7)"
+            .to_string(),
+    );
     assert_eq!(event, expected_event);
 }
 

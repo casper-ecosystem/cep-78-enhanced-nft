@@ -26,13 +26,15 @@ impl Mint {
 pub struct Burn {
     owner: Key,
     token_id: String,
+    burner: Key,
 }
 
 impl Burn {
-    pub fn new(owner: Key, token_id: TokenIdentifier) -> Self {
+    pub fn new(owner: Key, token_id: TokenIdentifier, burner: Key) -> Self {
         Self {
             owner,
             token_id: token_id.to_string(),
+            burner,
         }
     }
 }
