@@ -73,7 +73,7 @@ fn only_installer_should_be_able_to_toggle_allow_minting() {
 
     assert!(!allow_minting);
 
-    //Installer account should be able to change allow_minting
+    // Installer account should be able to change allow_minting
     // Green test
     let installer_set_variables_request = ExecuteRequestBuilder::contract_call_by_hash(
         *DEFAULT_ACCOUNT_ADDR,
@@ -133,7 +133,7 @@ fn installer_should_be_able_to_toggle_acl_package_mode() {
 
     assert!(!is_acl_packge_mode);
 
-    //Installer account should be able to change ACL package mode
+    // Installer account should be able to change ACL package mode
     let installer_set_variables_request = ExecuteRequestBuilder::contract_call_by_hash(
         *DEFAULT_ACCOUNT_ADDR,
         nft_contract_hash,
@@ -195,7 +195,7 @@ fn installer_should_be_able_to_toggle_package_operator_mode() {
 
     assert!(!is_package_operator_mode);
 
-    //Installer account should be able to change package operator mode
+    // Installer account should be able to change package operator mode
     let installer_set_variables_request = ExecuteRequestBuilder::contract_call_by_hash(
         *DEFAULT_ACCOUNT_ADDR,
         nft_contract_hash,
@@ -257,7 +257,7 @@ fn installer_should_be_able_to_toggle_operator_burn_mode() {
 
     assert!(!is_package_operator_mode);
 
-    //Installer account should be able to change package operator mode
+    // Installer account should be able to change package operator mode
     let installer_set_variables_request = ExecuteRequestBuilder::contract_call_by_hash(
         *DEFAULT_ACCOUNT_ADDR,
         nft_contract_hash,
