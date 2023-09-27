@@ -892,7 +892,7 @@ fn should_disallow_contract_from_whitelisted_package_to_mint_without_acl_package
     assert_expected_error(
         error,
         81,
-        "Unlisted ContractHash from whitelisted ContractPackageHash can not mint witout ACL package mode",
+        "Unlisted ContractHash from whitelisted ContractPackageHash can not mint without ACL package mode",
     );
 }
 

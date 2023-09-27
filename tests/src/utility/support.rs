@@ -75,6 +75,20 @@ pub(crate) fn get_minting_contract_hash(
     ContractHash::new(minting_contract_hash)
 }
 
+pub(crate) fn get_minting_contract_package_hash(
+    builder: &WasmTestBuilder<InMemoryGlobalState>,
+) -> ContractPackageHash {
+    let minting_contract_package_hash = builder
+        .get_expected_account(*DEFAULT_ACCOUNT_ADDR)
+        .named_keys()
+        .get(MINTING_CONTRACT_PACKAGE_NAME)
+        .expect("must have minting contract package hash entry in named keys")
+        .into_hash()
+        .expect("must get hash_addr");
+
+    ContractPackageHash::new(minting_contract_package_hash)
+}
+
 pub(crate) fn get_transfer_filter_contract_hash(
     builder: &WasmTestBuilder<InMemoryGlobalState>,
 ) -> ContractHash {
@@ -87,20 +101,6 @@ pub(crate) fn get_transfer_filter_contract_hash(
         .expect("must get hash_addr");
 
     ContractHash::new(transfer_filter_contract_hash)
-}
-
-pub(crate) fn get_minting_contract_package_hash(
-    builder: &WasmTestBuilder<InMemoryGlobalState>,
-) -> ContractPackageHash {
-    let minting_contract_package_hash = builder
-        .get_expected_account(*DEFAULT_ACCOUNT_ADDR)
-        .named_keys()
-        .get(MINTING_CONTRACT_PACKAGE_NAME)
-        .expect("must have minting contract hash entry in named keys")
-        .into_hash()
-        .expect("must get hash_addr");
-
-    ContractPackageHash::new(minting_contract_package_hash)
 }
 
 pub(crate) fn get_dictionary_value_from_key<T: CLTyped + FromBytes>(
