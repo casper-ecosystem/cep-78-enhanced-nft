@@ -281,7 +281,6 @@ mode cannot be changed once the contract has been installed. The mode is set by 
 ## OperatorBurnMode
 
 The `OperatorBurnMode` modality dictates whether tokens minted by a given instance of an NFT contract can be burned by an operator (thus accounts, contracts or contracts from a package approved for all by an owner). This modality provides two options:
-provides two options:
 
 | OperatorBurnMode | bool |
 | ---------------- | ---- |
