@@ -1,12 +1,13 @@
 use std::collections::BTreeMap;
 
 use contract::constants::{
-    ARG_ACL_WHITELIST, ARG_ADDITIONAL_REQUIRED_METADATA, ARG_ALLOW_MINTING, ARG_BURN_MODE,
-    ARG_COLLECTION_NAME, ARG_COLLECTION_SYMBOL, ARG_CONTRACT_WHITELIST, ARG_EVENTS_MODE,
-    ARG_HOLDER_MODE, ARG_IDENTIFIER_MODE, ARG_JSON_SCHEMA, ARG_METADATA_MUTABILITY,
-    ARG_MINTING_MODE, ARG_NAMED_KEY_CONVENTION, ARG_NFT_KIND, ARG_NFT_METADATA_KIND,
-    ARG_OPTIONAL_METADATA, ARG_OWNERSHIP_MODE, ARG_OWNER_LOOKUP_MODE, ARG_TOTAL_TOKEN_SUPPLY,
-    ARG_TRANSFER_FILTER_CONTRACT, ARG_WHITELIST_MODE,
+    ARG_ACL_PACKAGE_MODE, ARG_ACL_WHITELIST, ARG_ADDITIONAL_REQUIRED_METADATA, ARG_ALLOW_MINTING,
+    ARG_BURN_MODE, ARG_COLLECTION_NAME, ARG_COLLECTION_SYMBOL, ARG_CONTRACT_WHITELIST,
+    ARG_EVENTS_MODE, ARG_HOLDER_MODE, ARG_IDENTIFIER_MODE, ARG_JSON_SCHEMA,
+    ARG_METADATA_MUTABILITY, ARG_MINTING_MODE, ARG_NAMED_KEY_CONVENTION, ARG_NFT_KIND,
+    ARG_NFT_METADATA_KIND, ARG_OPTIONAL_METADATA, ARG_OWNERSHIP_MODE, ARG_OWNER_LOOKUP_MODE,
+    ARG_PACKAGE_OPERATOR_MODE, ARG_TOTAL_TOKEN_SUPPLY, ARG_TRANSFER_FILTER_CONTRACT,
+    ARG_WHITELIST_MODE,
 };
 use once_cell::sync::Lazy;
 use serde::{Deserialize, Serialize};
@@ -136,6 +137,8 @@ pub(crate) struct InstallerRequestBuilder {
     whitelist_mode: CLValue,
     contract_whitelist: CLValue, // Deprecated in 1.4
     acl_whitelist: CLValue,
+    acl_package_mode: CLValue,
+    package_operator_mode: CLValue,
     json_schema: CLValue,
     nft_metadata_kind: CLValue,
     identifier_mode: CLValue,
@@ -173,6 +176,8 @@ impl InstallerRequestBuilder {
             whitelist_mode: CLValue::from_t(WhitelistMode::Unlocked as u8).unwrap(),
             contract_whitelist: CLValue::from_t(Vec::<ContractHash>::new()).unwrap(),
             acl_whitelist: CLValue::from_t(Vec::<Key>::new()).unwrap(),
+            acl_package_mode: CLValue::from_t(false).unwrap(),
+            package_operator_mode: CLValue::from_t(false).unwrap(),
             json_schema: CLValue::from_t("test".to_string())
                 .expect("test_metadata was created from a concrete value"),
             nft_metadata_kind: CLValue::from_t(NFTMetadataKind::NFT721 as u8).unwrap(),
@@ -234,7 +239,6 @@ impl InstallerRequestBuilder {
         self
     }
 
-    // Why Option here? The None case should be taken care of when running default
     pub(crate) fn with_allowing_minting(mut self, allow_minting: bool) -> Self {
         self.allow_minting =
             CLValue::from_t(allow_minting).expect("allow minting is legit CLValue");
@@ -270,6 +274,18 @@ impl InstallerRequestBuilder {
 
     pub(crate) fn with_acl_whitelist(mut self, acl_whitelist: Vec<Key>) -> Self {
         self.acl_whitelist = CLValue::from_t(acl_whitelist).unwrap();
+        self
+    }
+
+    pub(crate) fn with_acl_package_mode(mut self, acl_package_mode: bool) -> Self {
+        self.acl_package_mode =
+            CLValue::from_t(acl_package_mode).expect("acl package mode is legit CLValue");
+        self
+    }
+
+    pub(crate) fn with_package_operator_mode(mut self, package_operator_mode: bool) -> Self {
+        self.package_operator_mode =
+            CLValue::from_t(package_operator_mode).expect("package operator mode is legit CLValue");
         self
     }
 
@@ -336,6 +352,8 @@ impl InstallerRequestBuilder {
         runtime_args.insert_cl_value(ARG_COLLECTION_SYMBOL, self.collection_symbol);
         runtime_args.insert_cl_value(ARG_TOTAL_TOKEN_SUPPLY, self.total_token_supply);
         runtime_args.insert_cl_value(ARG_ALLOW_MINTING, self.allow_minting);
+        runtime_args.insert_cl_value(ARG_ACL_PACKAGE_MODE, self.acl_package_mode);
+        runtime_args.insert_cl_value(ARG_PACKAGE_OPERATOR_MODE, self.package_operator_mode);
         runtime_args.insert_cl_value(ARG_MINTING_MODE, self.minting_mode.clone());
         runtime_args.insert_cl_value(ARG_OWNERSHIP_MODE, self.ownership_mode);
         runtime_args.insert_cl_value(ARG_NFT_KIND, self.nft_kind);

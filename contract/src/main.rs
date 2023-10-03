@@ -34,31 +34,32 @@ use casper_types::{
     Tagged,
 };
 use constants::{
-    ACCESS_KEY_NAME_1_0_0, ACL_WHITELIST, ALLOW_MINTING, APPROVED, ARG_ACCESS_KEY_NAME_1_0_0,
-    ARG_ACL_WHITELIST, ARG_ADDITIONAL_REQUIRED_METADATA, ARG_ALLOW_MINTING, ARG_APPROVE_ALL,
-    ARG_BURN_MODE, ARG_COLLECTION_NAME, ARG_COLLECTION_SYMBOL, ARG_CONTRACT_WHITELIST,
-    ARG_EVENTS_MODE, ARG_HASH_KEY_NAME_1_0_0, ARG_HOLDER_MODE, ARG_IDENTIFIER_MODE,
-    ARG_JSON_SCHEMA, ARG_METADATA_MUTABILITY, ARG_MINTING_MODE, ARG_NAMED_KEY_CONVENTION,
-    ARG_NFT_KIND, ARG_NFT_METADATA_KIND, ARG_NFT_PACKAGE_KEY, ARG_OPERATOR, ARG_OPTIONAL_METADATA,
-    ARG_OWNERSHIP_MODE, ARG_OWNER_LOOKUP_MODE, ARG_RECEIPT_NAME, ARG_SOURCE_KEY, ARG_SPENDER,
-    ARG_TARGET_KEY, ARG_TOKEN_ID, ARG_TOKEN_META_DATA, ARG_TOKEN_OWNER, ARG_TOTAL_TOKEN_SUPPLY,
-    ARG_TRANSFER_FILTER_CONTRACT, ARG_WHITELIST_MODE, BURNT_TOKENS, BURN_MODE, COLLECTION_NAME,
-    COLLECTION_SYMBOL, ENTRY_POINT_APPROVE, ENTRY_POINT_BALANCE_OF, ENTRY_POINT_BURN,
-    ENTRY_POINT_GET_APPROVED, ENTRY_POINT_INIT, ENTRY_POINT_IS_APPROVED_FOR_ALL,
-    ENTRY_POINT_METADATA, ENTRY_POINT_MIGRATE, ENTRY_POINT_MINT, ENTRY_POINT_OWNER_OF,
-    ENTRY_POINT_REGISTER_OWNER, ENTRY_POINT_REVOKE, ENTRY_POINT_SET_APPROVALL_FOR_ALL,
-    ENTRY_POINT_SET_TOKEN_METADATA, ENTRY_POINT_SET_VARIABLES, ENTRY_POINT_TRANSFER,
-    ENTRY_POINT_UPDATED_RECEIPTS, EVENTS_MODE, HASH_BY_INDEX, HASH_KEY_NAME_1_0_0, HOLDER_MODE,
-    IDENTIFIER_MODE, INDEX_BY_HASH, INSTALLER, JSON_SCHEMA, MAX_TOTAL_TOKEN_SUPPLY, METADATA_CEP78,
-    METADATA_CUSTOM_VALIDATED, METADATA_MUTABILITY, METADATA_NFT721, METADATA_RAW, MINTING_MODE,
-    NFT_KIND, NFT_METADATA_KIND, NFT_METADATA_KINDS, NUMBER_OF_MINTED_TOKENS, OPERATOR, OPERATORS,
-    OWNED_TOKENS, OWNERSHIP_MODE, PAGE_LIMIT, PAGE_TABLE, PREFIX_ACCESS_KEY_NAME, PREFIX_CEP78,
+    ACCESS_KEY_NAME_1_0_0, ACL_PACKAGE_MODE, ACL_WHITELIST, ALLOW_MINTING, APPROVED,
+    ARG_ACCESS_KEY_NAME_1_0_0, ARG_ACL_PACKAGE_MODE, ARG_ACL_WHITELIST,
+    ARG_ADDITIONAL_REQUIRED_METADATA, ARG_ALLOW_MINTING, ARG_APPROVE_ALL, ARG_BURN_MODE,
+    ARG_COLLECTION_NAME, ARG_COLLECTION_SYMBOL, ARG_CONTRACT_WHITELIST, ARG_EVENTS_MODE,
+    ARG_HASH_KEY_NAME_1_0_0, ARG_HOLDER_MODE, ARG_IDENTIFIER_MODE, ARG_JSON_SCHEMA,
+    ARG_METADATA_MUTABILITY, ARG_MINTING_MODE, ARG_NAMED_KEY_CONVENTION, ARG_NFT_KIND,
+    ARG_NFT_METADATA_KIND, ARG_NFT_PACKAGE_KEY, ARG_OPERATOR, ARG_OPTIONAL_METADATA,
+    ARG_OWNERSHIP_MODE, ARG_OWNER_LOOKUP_MODE, ARG_PACKAGE_OPERATOR_MODE, ARG_RECEIPT_NAME,
+    ARG_SOURCE_KEY, ARG_SPENDER, ARG_TARGET_KEY, ARG_TOKEN_ID, ARG_TOKEN_META_DATA,
+    ARG_TOKEN_OWNER, ARG_TOTAL_TOKEN_SUPPLY, ARG_TRANSFER_FILTER_CONTRACT, ARG_WHITELIST_MODE,
+    BURNT_TOKENS, BURN_MODE, COLLECTION_NAME, COLLECTION_SYMBOL, ENTRY_POINT_APPROVE,
+    ENTRY_POINT_BALANCE_OF, ENTRY_POINT_BURN, ENTRY_POINT_GET_APPROVED, ENTRY_POINT_INIT,
+    ENTRY_POINT_IS_APPROVED_FOR_ALL, ENTRY_POINT_METADATA, ENTRY_POINT_MIGRATE, ENTRY_POINT_MINT,
+    ENTRY_POINT_OWNER_OF, ENTRY_POINT_REGISTER_OWNER, ENTRY_POINT_REVOKE,
+    ENTRY_POINT_SET_APPROVALL_FOR_ALL, ENTRY_POINT_SET_TOKEN_METADATA, ENTRY_POINT_SET_VARIABLES,
+    ENTRY_POINT_TRANSFER, ENTRY_POINT_UPDATED_RECEIPTS, EVENTS_MODE, HASH_BY_INDEX,
+    HASH_KEY_NAME_1_0_0, HOLDER_MODE, IDENTIFIER_MODE, INDEX_BY_HASH, INSTALLER, JSON_SCHEMA,
+    MAX_TOTAL_TOKEN_SUPPLY, METADATA_CEP78, METADATA_CUSTOM_VALIDATED, METADATA_MUTABILITY,
+    METADATA_NFT721, METADATA_RAW, MINTING_MODE, NFT_KIND, NFT_METADATA_KIND, NFT_METADATA_KINDS,
+    NUMBER_OF_MINTED_TOKENS, OPERATOR, OPERATORS, OWNED_TOKENS, OWNERSHIP_MODE,
+    PACKAGE_OPERATOR_MODE, PAGE_LIMIT, PAGE_TABLE, PREFIX_ACCESS_KEY_NAME, PREFIX_CEP78,
     PREFIX_CONTRACT_NAME, PREFIX_CONTRACT_VERSION, PREFIX_HASH_KEY_NAME, PREFIX_PAGE_DICTIONARY,
     RECEIPT_NAME, REPORTING_MODE, RLO_MFLAG, TOKEN_COUNT, TOKEN_ISSUERS, TOKEN_OWNERS,
     TOTAL_TOKEN_SUPPLY, TRANSFER_FILTER_CONTRACT, TRANSFER_FILTER_CONTRACT_METHOD,
     UNMATCHED_HASH_COUNT, WHITELIST_MODE,
 };
-
 use core::convert::{TryFrom, TryInto};
 use error::NFTCoreError;
 use events::{
@@ -74,6 +75,7 @@ use modalities::{
     NFTKind, NFTMetadataKind, NamedKeyConventionMode, OwnerReverseLookupMode, OwnershipMode,
     Requirement, TokenIdentifier, TransferFilterContractResult, WhitelistMode,
 };
+use utils::Caller;
 
 #[no_mangle]
 pub extern "C" fn init() {
@@ -193,6 +195,19 @@ pub extern "C" fn init() {
     {
         runtime::revert(NFTCoreError::EmptyACLWhitelist)
     }
+
+    let acl_package_mode: bool = utils::get_named_arg_with_user_errors(
+        ARG_ACL_PACKAGE_MODE,
+        NFTCoreError::MissingACLPackageMode,
+        NFTCoreError::InvalidACLPackageMode,
+    )
+    .unwrap_or_revert();
+
+    let package_operator_mode: bool = utils::get_optional_named_arg_with_user_errors::<bool>(
+        ARG_PACKAGE_OPERATOR_MODE,
+        NFTCoreError::InvalidPackageOperatorMode,
+    )
+    .unwrap_or_default();
 
     let receipt_name: String = utils::get_named_arg_with_user_errors(
         ARG_RECEIPT_NAME,
@@ -436,6 +451,12 @@ pub extern "C" fn init() {
         );
     }
 
+    runtime::put_key(ACL_PACKAGE_MODE, storage::new_uref(acl_package_mode).into());
+    runtime::put_key(
+        PACKAGE_OPERATOR_MODE,
+        storage::new_uref(package_operator_mode).into(),
+    );
+
     if vec![
         OwnerReverseLookupMode::Complete,
         OwnerReverseLookupMode::TransfersOnly,
@@ -476,14 +497,38 @@ pub extern "C" fn set_variables() {
 
     if let Some(allow_minting) = utils::get_optional_named_arg_with_user_errors::<bool>(
         ARG_ALLOW_MINTING,
-        NFTCoreError::MissingAllowMinting,
+        NFTCoreError::InvalidAllowMinting,
     ) {
         let allow_minting_uref = utils::get_uref(
             ALLOW_MINTING,
             NFTCoreError::MissingAllowMinting,
-            NFTCoreError::MissingAllowMinting,
+            NFTCoreError::InvalidAllowMinting,
         );
         storage::write(allow_minting_uref, allow_minting);
+    }
+
+    if let Some(acl_package_mode) = utils::get_optional_named_arg_with_user_errors::<bool>(
+        ARG_ACL_PACKAGE_MODE,
+        NFTCoreError::MissingACLPackageMode,
+    ) {
+        let acl_package_mode_uref = utils::get_uref(
+            ACL_PACKAGE_MODE,
+            NFTCoreError::MissingACLPackageMode,
+            NFTCoreError::InvalidACLPackageMode,
+        );
+        storage::write(acl_package_mode_uref, acl_package_mode);
+    }
+
+    if let Some(package_operator_mode) = utils::get_optional_named_arg_with_user_errors::<bool>(
+        ARG_PACKAGE_OPERATOR_MODE,
+        NFTCoreError::MissingACLPackageMode,
+    ) {
+        let package_operator_mode_uref = utils::get_uref(
+            PACKAGE_OPERATOR_MODE,
+            NFTCoreError::MissingPackageOperatorMode,
+            NFTCoreError::InvalidPackageOperatorMode,
+        );
+        storage::write(package_operator_mode_uref, package_operator_mode);
     }
 
     let mut new_acl_whitelist = utils::get_optional_named_arg_with_user_errors::<Vec<Key>>(
@@ -589,7 +634,13 @@ pub extern "C" fn mint() {
     .try_into()
     .unwrap_or_revert();
 
-    let caller = utils::get_verified_caller().unwrap_or_revert();
+    let (caller, contract_package): (Key, Option<Key>) =
+        match utils::get_verified_caller().unwrap_or_revert() {
+            Caller::Session(account_hash) => (account_hash.into(), None),
+            Caller::StoredCaller(contract_hash, contract_package_hash) => {
+                (contract_hash.into(), Some(contract_package_hash.into()))
+            }
+        };
 
     // Revert if minting is private and caller is not installer.
     if MintingMode::Installer == minting_mode {
@@ -611,11 +662,24 @@ pub extern "C" fn mint() {
 
     // Revert if minting is acl and caller is not whitelisted.
     if MintingMode::Acl == minting_mode {
-        let is_whitelisted = utils::get_dictionary_value_from_key::<bool>(
-            ACL_WHITELIST,
-            &utils::encode_dictionary_item_key(caller),
-        )
-        .unwrap_or_default();
+        let acl_package_mode: bool = utils::get_stored_value_with_user_errors::<bool>(
+            ACL_PACKAGE_MODE,
+            NFTCoreError::MissingACLPackageMode,
+            NFTCoreError::InvalidACLPackageMode,
+        );
+        let is_whitelisted = match (acl_package_mode, contract_package) {
+            (true, Some(contract_package)) => utils::get_dictionary_value_from_key::<bool>(
+                ACL_WHITELIST,
+                &utils::encode_dictionary_item_key(contract_package),
+            )
+            .unwrap_or_default(),
+            _ => utils::get_dictionary_value_from_key::<bool>(
+                ACL_WHITELIST,
+                &utils::encode_dictionary_item_key(caller),
+            )
+            .unwrap_or_default(),
+        };
+
         match caller.tag() {
             KeyTag::Hash => {
                 if !is_whitelisted {
@@ -793,7 +857,10 @@ pub extern "C" fn burn() {
 
     let token_identifier = utils::get_token_identifier_from_runtime_args(&identifier_mode);
 
-    let caller = utils::get_verified_caller().unwrap_or_revert();
+    let caller: Key = match utils::get_verified_caller().unwrap_or_revert() {
+        Caller::Session(account_hash) => account_hash.into(),
+        Caller::StoredCaller(contract_hash, _) => contract_hash.into(),
+    };
 
     // Revert if caller is not token_owner. This seems to be the only check we need to do.
     let token_owner = match utils::get_dictionary_value_from_key::<Key>(
@@ -873,7 +940,13 @@ pub extern "C" fn approve() {
         runtime::revert(NFTCoreError::InvalidOwnershipMode)
     }
 
-    let caller = utils::get_verified_caller().unwrap_or_revert();
+    let (caller, contract_package): (Key, Option<Key>) =
+        match utils::get_verified_caller().unwrap_or_revert() {
+            Caller::Session(account_hash) => (account_hash.into(), None),
+            Caller::StoredCaller(contract_hash, contract_package_hash) => {
+                (contract_hash.into(), Some(contract_package_hash.into()))
+            }
+        };
 
     let identifier_mode: NFTIdentifierMode = utils::get_stored_value_with_user_errors::<u8>(
         IDENTIFIER_MODE,
@@ -919,8 +992,29 @@ pub extern "C" fn approve() {
         )
         .unwrap_or_default();
 
-    if !is_owner && !is_operator {
-        runtime::revert(NFTCoreError::InvalidAccountHash);
+    let is_package_operator = if !is_owner && !is_operator {
+        match (
+            utils::get_stored_value_with_user_errors::<bool>(
+                PACKAGE_OPERATOR_MODE,
+                NFTCoreError::MissingPackageOperatorMode,
+                NFTCoreError::InvalidPackageOperatorMode,
+            ),
+            contract_package,
+        ) {
+            (true, Some(contract_package)) => {
+                let owner_operator_item_key =
+                    utils::encode_key_and_value(&owner, &contract_package);
+                utils::get_dictionary_value_from_key::<bool>(OPERATORS, &owner_operator_item_key)
+                    .unwrap_or_default()
+            }
+            _ => false,
+        }
+    } else {
+        false
+    };
+
+    if !is_owner && !is_operator && !is_package_operator {
+        runtime::revert(NFTCoreError::InvalidTokenOwner);
     }
 
     // We assume a burnt token cannot be approved
@@ -982,7 +1076,13 @@ pub extern "C" fn revoke() {
         runtime::revert(NFTCoreError::InvalidOwnershipMode)
     }
 
-    let caller = utils::get_verified_caller().unwrap_or_revert();
+    let (caller, contract_package): (Key, Option<Key>) =
+        match utils::get_verified_caller().unwrap_or_revert() {
+            Caller::Session(account_hash) => (account_hash.into(), None),
+            Caller::StoredCaller(contract_hash, contract_package_hash) => {
+                (contract_hash.into(), Some(contract_package_hash.into()))
+            }
+        };
 
     let identifier_mode: NFTIdentifierMode = utils::get_stored_value_with_user_errors::<u8>(
         IDENTIFIER_MODE,
@@ -1028,8 +1128,29 @@ pub extern "C" fn revoke() {
         )
         .unwrap_or_default();
 
-    if !is_owner && !is_operator {
-        runtime::revert(NFTCoreError::InvalidAccountHash);
+    let is_package_operator = if !is_owner && !is_operator {
+        match (
+            utils::get_stored_value_with_user_errors::<bool>(
+                PACKAGE_OPERATOR_MODE,
+                NFTCoreError::MissingPackageOperatorMode,
+                NFTCoreError::InvalidPackageOperatorMode,
+            ),
+            contract_package,
+        ) {
+            (true, Some(contract_package)) => {
+                let owner_operator_item_key =
+                    utils::encode_key_and_value(&owner, &contract_package);
+                utils::get_dictionary_value_from_key::<bool>(OPERATORS, &owner_operator_item_key)
+                    .unwrap_or_default()
+            }
+            _ => false,
+        }
+    } else {
+        false
+    };
+
+    if !is_owner && !is_operator && !is_package_operator {
+        runtime::revert(NFTCoreError::InvalidTokenOwner);
     }
 
     // We assume a burnt token cannot be revoked
@@ -1080,7 +1201,10 @@ pub extern "C" fn set_approval_for_all() {
     )
     .unwrap_or_revert();
 
-    let caller = utils::get_verified_caller().unwrap_or_revert();
+    let caller: Key = match utils::get_verified_caller().unwrap_or_revert() {
+        Caller::Session(account_hash) => account_hash.into(),
+        Caller::StoredCaller(contract_hash, _) => contract_hash.into(),
+    };
 
     let operator = utils::get_named_arg_with_user_errors::<Key>(
         ARG_OPERATOR,
@@ -1207,26 +1331,58 @@ pub extern "C" fn transfer() {
         runtime::revert(NFTCoreError::InvalidAccount);
     }
 
-    let caller = utils::get_verified_caller().unwrap_or_revert();
+    let (caller, contract_package): (Key, Option<Key>) =
+        match utils::get_verified_caller().unwrap_or_revert() {
+            Caller::Session(account_hash) => (account_hash.into(), None),
+            Caller::StoredCaller(contract_hash, contract_package_hash) => {
+                (contract_hash.into(), Some(contract_package_hash.into()))
+            }
+        };
 
     // Check if caller is owner
     let is_owner = owner == caller;
 
     // Check if caller is approved to execute transfer
-    let is_approved = match utils::get_dictionary_value_from_key::<Option<Key>>(
-        APPROVED,
-        &token_identifier.get_dictionary_item_key(),
-    ) {
-        Some(Some(maybe_approved)) => caller == maybe_approved,
-        Some(None) | None => false,
-    };
+    let is_approved = !is_owner
+        && match utils::get_dictionary_value_from_key::<Option<Key>>(
+            APPROVED,
+            &token_identifier.get_dictionary_item_key(),
+        ) {
+            Some(Some(maybe_approved)) => caller == maybe_approved,
+            Some(None) | None => false,
+        };
 
     // Check if caller is operator to execute transfer
-    let owner_operator_item_key = utils::encode_key_and_value(&source_owner_key, &caller);
+    let is_operator = if !is_owner && !is_approved {
+        let owner_operator_item_key = utils::encode_key_and_value(&source_owner_key, &caller);
+        utils::get_dictionary_value_from_key::<bool>(OPERATORS, &owner_operator_item_key)
+            .unwrap_or_default()
+    } else {
+        false
+    };
 
-    let is_operator = !is_approved
-        && utils::get_dictionary_value_from_key::<bool>(OPERATORS, &owner_operator_item_key)
-            .unwrap_or_default();
+    // With operator package mode check if caller's package is operator to let contract execute
+    // transfer
+    let is_package_operator = if !is_owner && !is_approved && !is_operator {
+        match (
+            utils::get_stored_value_with_user_errors::<bool>(
+                PACKAGE_OPERATOR_MODE,
+                NFTCoreError::MissingPackageOperatorMode,
+                NFTCoreError::InvalidPackageOperatorMode,
+            ),
+            contract_package,
+        ) {
+            (true, Some(contract_package)) => {
+                let owner_operator_item_key =
+                    utils::encode_key_and_value(&source_owner_key, &contract_package);
+                utils::get_dictionary_value_from_key::<bool>(OPERATORS, &owner_operator_item_key)
+                    .unwrap_or_default()
+            }
+            _ => false,
+        }
+    } else {
+        false
+    };
 
     if let Some(filter_contract) = utils::get_transfer_filter_contract() {
         let mut args = RuntimeArgs::new();
@@ -1250,7 +1406,7 @@ pub extern "C" fn transfer() {
     }
 
     // Revert if caller is not owner nor approved nor an operator.
-    if !is_owner && !is_approved && !is_operator {
+    if !is_owner && !is_approved && !is_operator && !is_package_operator {
         runtime::revert(NFTCoreError::InvalidTokenOwner);
     }
 
@@ -1575,7 +1731,10 @@ pub extern "C" fn set_token_metadata() {
     );
 
     if let Some(token_owner_key) = token_owner {
-        let caller = utils::get_verified_caller().unwrap_or_revert();
+        let caller: Key = match utils::get_verified_caller().unwrap_or_revert() {
+            Caller::Session(account_hash) => account_hash.into(),
+            Caller::StoredCaller(contract_hash, _) => contract_hash.into(),
+        };
         if caller != token_owner_key {
             runtime::revert(NFTCoreError::InvalidTokenOwner)
         }
@@ -1795,6 +1954,31 @@ pub extern "C" fn migrate() {
 
     runtime::put_key(EVENTS_MODE, storage::new_uref(events_mode as u8).into());
 
+    let acl_package_mode: bool = utils::get_optional_named_arg_with_user_errors::<bool>(
+        ARG_ACL_PACKAGE_MODE,
+        NFTCoreError::InvalidACLPackageMode,
+    )
+    .unwrap_or_default();
+
+    // Don't overwrite stored value on migration if acl package mode is missing param or false
+    if acl_package_mode {
+        runtime::put_key(ACL_PACKAGE_MODE, storage::new_uref(acl_package_mode).into());
+    }
+
+    let package_operator_mode: bool = utils::get_optional_named_arg_with_user_errors::<bool>(
+        ARG_PACKAGE_OPERATOR_MODE,
+        NFTCoreError::InvalidPackageOperatorMode,
+    )
+    .unwrap_or_default();
+
+    // Don't overwrite stored value on migration if package operator mode is missing param or false
+    if package_operator_mode {
+        runtime::put_key(
+            PACKAGE_OPERATOR_MODE,
+            storage::new_uref(package_operator_mode).into(),
+        );
+    }
+
     // Duplicate old dict OPERATOR named key to new dict APPROVED named key
     if runtime::get_key(APPROVED).is_none() && runtime::get_key(OPERATOR).is_some() {
         runtime::put_key(
@@ -1818,7 +2002,10 @@ pub extern "C" fn migrate() {
 #[no_mangle]
 pub extern "C" fn updated_receipts() {
     if let OwnerReverseLookupMode::Complete = utils::get_reporting_mode() {
-        let caller = utils::get_verified_caller().unwrap_or_revert();
+        let caller: Key = match utils::get_verified_caller().unwrap_or_revert() {
+            Caller::Session(account_hash) => account_hash.into(),
+            Caller::StoredCaller(contract_hash, _) => contract_hash.into(),
+        };
 
         let identifier_mode: NFTIdentifierMode = utils::get_stored_value_with_user_errors::<u8>(
             IDENTIFIER_MODE,
@@ -1869,7 +2056,10 @@ pub extern "C" fn register_owner() {
     .contains(&utils::get_reporting_mode())
     {
         let owner_key = match utils::get_ownership_mode().unwrap_or_revert() {
-            OwnershipMode::Minter => utils::get_verified_caller().unwrap_or_revert(),
+            OwnershipMode::Minter => match utils::get_verified_caller().unwrap_or_revert() {
+                Caller::Session(account_hash) => account_hash.into(),
+                Caller::StoredCaller(contract_hash, _) => contract_hash.into(),
+            },
             OwnershipMode::Assigned | OwnershipMode::Transferable => {
                 utils::get_named_arg_with_user_errors::<Key>(
                     ARG_TOKEN_OWNER,
@@ -1938,6 +2128,8 @@ fn generate_entry_points() -> EntryPoints {
             Parameter::new(ARG_HOLDER_MODE, CLType::U8),
             Parameter::new(ARG_WHITELIST_MODE, CLType::U8),
             Parameter::new(ARG_ACL_WHITELIST, CLType::List(Box::new(CLType::Key))),
+            Parameter::new(ARG_ACL_PACKAGE_MODE, CLType::Bool),
+            Parameter::new(ARG_PACKAGE_OPERATOR_MODE, CLType::Bool),
             Parameter::new(ARG_JSON_SCHEMA, CLType::String),
             Parameter::new(ARG_RECEIPT_NAME, CLType::String),
             Parameter::new(ARG_IDENTIFIER_MODE, CLType::U8),
@@ -1975,6 +2167,8 @@ fn generate_entry_points() -> EntryPoints {
                 CLType::List(Box::new(CLType::ByteArray(32u32))),
             ),
             Parameter::new(ARG_ACL_WHITELIST, CLType::List(Box::new(CLType::Key))),
+            Parameter::new(ARG_ACL_PACKAGE_MODE, CLType::Bool),
+            Parameter::new(ARG_PACKAGE_OPERATOR_MODE, CLType::Bool),
         ],
         CLType::Unit,
         EntryPointAccess::Public,
@@ -2314,6 +2508,18 @@ fn install_contract() {
         acl_white_list.push(Key::from(*contract_hash));
     }
 
+    let acl_package_mode: bool = utils::get_optional_named_arg_with_user_errors(
+        ARG_ACL_PACKAGE_MODE,
+        NFTCoreError::InvalidACLPackageMode,
+    )
+    .unwrap_or_default();
+
+    let package_operator_mode: bool = utils::get_optional_named_arg_with_user_errors::<bool>(
+        ARG_PACKAGE_OPERATOR_MODE,
+        NFTCoreError::InvalidPackageOperatorMode,
+    )
+    .unwrap_or_default();
+
     // Represents the schema for the metadata for a given NFT contract instance.
     // Refer to the `NFTMetadataKind` enum in src/utils for details.
     // This value cannot be changed after installation.
@@ -2467,6 +2673,8 @@ fn install_contract() {
         ARG_OWNER_LOOKUP_MODE => reporting_mode,
         ARG_NFT_PACKAGE_KEY => nft_contract_package_hash.to_formatted_string(),
         ARG_EVENTS_MODE => events_mode,
+        ARG_ACL_PACKAGE_MODE => acl_package_mode,
+        ARG_PACKAGE_OPERATOR_MODE => package_operator_mode,
         ARG_TRANSFER_FILTER_CONTRACT =>
         transfer_filter_contract_contract_key,
     };
@@ -2523,9 +2731,23 @@ fn migrate_contract(access_key_name: String, package_key_name: String) {
     )
     .unwrap_or(0u8);
 
+    let acl_package_mode: bool = utils::get_optional_named_arg_with_user_errors(
+        ARG_ACL_PACKAGE_MODE,
+        NFTCoreError::InvalidACLPackageMode,
+    )
+    .unwrap_or_default();
+
+    let package_operator_mode: bool = utils::get_optional_named_arg_with_user_errors::<bool>(
+        ARG_PACKAGE_OPERATOR_MODE,
+        NFTCoreError::InvalidPackageOperatorMode,
+    )
+    .unwrap_or_default();
+
     let mut runtime_args = runtime_args! {
         ARG_NFT_PACKAGE_KEY => nft_contract_package_hash,
         ARG_EVENTS_MODE => events_mode,
+        ARG_ACL_PACKAGE_MODE => acl_package_mode,
+        ARG_PACKAGE_OPERATOR_MODE => package_operator_mode,
     };
 
     if let Some(new_token_supply) = utils::get_optional_named_arg_with_user_errors::<u64>(

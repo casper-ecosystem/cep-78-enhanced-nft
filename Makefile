@@ -34,6 +34,7 @@ setup-test: build-contract
 	mkdir -p tests/wasm/1_1_0; curl -L https://github.com/casper-ecosystem/cep-78-enhanced-nft/releases/download/v1.1.0/cep-78-wasm.tar.gz | tar zxv -C tests/wasm/1_1_0/
 	mkdir -p tests/wasm/1_2_0; curl -L https://github.com/casper-ecosystem/cep-78-enhanced-nft/releases/download/v1.2.0/cep-78-wasm.tar.gz | tar zxv -C tests/wasm/1_2_0/
 	mkdir -p tests/wasm/1_3_0; curl -L https://github.com/casper-ecosystem/cep-78-enhanced-nft/releases/download/v1.3.0/cep-78-wasm.tar.gz | tar zxv -C tests/wasm/1_3_0/
+	mkdir -p tests/wasm/1_4_0; curl -L https://github.com/casper-ecosystem/cep-78-enhanced-nft/releases/download/v1.4.0/cep-78-wasm.tar.gz | tar zxv -C tests/wasm/1_4_0/
 
 	cp contract/target/wasm32-unknown-unknown/release/contract.wasm tests/wasm
 	cp client/mint_session/target/wasm32-unknown-unknown/release/mint_call.wasm tests/wasm

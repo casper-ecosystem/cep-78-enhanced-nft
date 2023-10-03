@@ -165,6 +165,10 @@ pub enum NFTCoreError {
     MissingACLWhiteList = 160,
     InvalidACLWhitelist = 161,
     EmptyACLWhitelist = 162,
+    InvalidACLPackageMode = 163,
+    MissingACLPackageMode = 164,
+    InvalidPackageOperatorMode = 165,
+    MissingPackageOperatorMode = 166,
 }
 
 impl From<NFTCoreError> for ApiError {

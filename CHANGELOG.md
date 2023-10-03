@@ -9,6 +9,24 @@ All notable changes to this project will be documented in this file. The format 
 [comment]: <> (Fixed: any bug fixes)
 [comment]: <> (Security: in case of vulnerabilities)
 
+## Release 1.5.0
+
+### Changed
+
+- Update to README (#248)
+- Update CES parser version (#246)
+- Update modalities.md (#245)
+- Command fix (#244)
+- JS Client: Omit dev dependencies when running audit (#241)
+- Remove potential revert in init and remove cep47 events dict creation on install (#240)
+- Reformatting documentation (#239)
+
+### Added
+
+- ACL package mode - Including a contract package in the `acl_whitelist` will result in automatic whitelisting for any future versions of that contract.
+
+- Package operator mode - Approving a package in `operators` allows any future version of that contract to act as an operator for transfer/approve/revoke entrypoints.
+
 ## Release 1.4.0
 
 ### Changed
@@ -29,12 +47,11 @@ All notable changes to this project will be documented in this file. The format 
 
 - Modified the `json-schema` runtime argument to be an optional installation parameter.
 
-
 ## Release 1.3.0
 
 ### Changed
 
-* Modified the `json-schema` runtime argument to be an optional installation parameter.
+- Modified the `json-schema` runtime argument to be an optional installation parameter.
 
 ## Release 1.2.0
 
