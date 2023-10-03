@@ -27,7 +27,7 @@ All notable changes to this project will be documented in this file. The format 
 
 - Package operator mode - Approving a package in `operators` allows any future version of that contract to act as an operator for transfer/approve/revoke entrypoints. (#249)
 
-- Operator burn mode. This modes adds the possibility for operators to burn NFTs. (#259)
+- Operator burn mode. This modes adds the possibility for operators to burn NFTs. (#250)
 
 ## Release 1.4.0
 
