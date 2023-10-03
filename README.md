@@ -12,7 +12,7 @@
 - A NFT contract instance must validate provided metadata against the specified metadata schema for that contract.
 - Standardized session code to interact with an NFT contract instance must be usable as is, so that a given DApp developer doesn't have to write any Wasm producing logic for normal usage of NFT contract instances produced by this contract.
 
-## New in Version 1.5
+## New in Version 1.4
 
 Please refer to the [release notes](https://github.com/casper-ecosystem/cep-78-enhanced-nft/releases)
 
