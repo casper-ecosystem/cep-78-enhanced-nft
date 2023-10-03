@@ -1,18 +1,18 @@
 [package]
 name = "contract"
-version = "1.4.0"
+version = "1.5.0"
 edition = "2018"
 
 [dependencies]
-casper-contract = { version = "2.0.0", default-features = false, features = [
+casper-contract = { version = "3.0.0", default-features = false, features = [
   "test-support",
 ], optional = true }
-casper-types = "2.0.0"
+casper-types = "3.0.0"
 serde = { version = "1.0.80", default-features = false }
 serde_json = { version = "1.0.59", default-features = false }
 serde-json-wasm = { version = "0.5.1", default-features = false }
 base16 = { version = "0.2.1", default-features = false }
-casper-event-standard = { version = "0.3.0", default-features = false }
+casper-event-standard = { version = "0.4.0", default-features = false }
 hex = { version = "0.4.3", default-features = false }
 
 [[bin]]
