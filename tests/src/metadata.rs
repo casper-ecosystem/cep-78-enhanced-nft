@@ -367,7 +367,7 @@ fn should_allow_update_for_valid_metadata_based_on_kind(
         NFTIdentifierMode::Hash => TokenIdentifier::Hash(token_hash),
     };
     let expected_event = MetadataUpdated::new(token_id, updated_metadata.to_string());
-    let actual_event: MetadataUpdated = support::get_event(&builder, &nft_contract_key, 1);
+    let actual_event: MetadataUpdated = support::get_event(&builder, &nft_contract_key, 1).unwrap();
     assert_eq!(
         actual_event, expected_event,
         "Expected MetadataUpdated event."

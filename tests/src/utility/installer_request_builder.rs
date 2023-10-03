@@ -1,22 +1,20 @@
-use std::collections::BTreeMap;
-
-use contract::constants::{
-    ARG_ACL_PACKAGE_MODE, ARG_ACL_WHITELIST, ARG_ADDITIONAL_REQUIRED_METADATA, ARG_ALLOW_MINTING,
-    ARG_BURN_MODE, ARG_COLLECTION_NAME, ARG_COLLECTION_SYMBOL, ARG_CONTRACT_WHITELIST,
-    ARG_EVENTS_MODE, ARG_HOLDER_MODE, ARG_IDENTIFIER_MODE, ARG_JSON_SCHEMA,
-    ARG_METADATA_MUTABILITY, ARG_MINTING_MODE, ARG_NAMED_KEY_CONVENTION, ARG_NFT_KIND,
-    ARG_NFT_METADATA_KIND, ARG_OPTIONAL_METADATA, ARG_OWNERSHIP_MODE, ARG_OWNER_LOOKUP_MODE,
-    ARG_PACKAGE_OPERATOR_MODE, ARG_TOTAL_TOKEN_SUPPLY, ARG_TRANSFER_FILTER_CONTRACT,
-    ARG_WHITELIST_MODE,
-};
-use once_cell::sync::Lazy;
-use serde::{Deserialize, Serialize};
-
 use casper_engine_test_support::ExecuteRequestBuilder;
 use casper_execution_engine::core::engine_state::ExecuteRequest;
 use casper_types::{
     account::AccountHash, bytesrepr::Bytes, CLValue, ContractHash, Key, RuntimeArgs,
 };
+use contract::constants::{
+    ARG_ACL_PACKAGE_MODE, ARG_ACL_WHITELIST, ARG_ADDITIONAL_REQUIRED_METADATA, ARG_ALLOW_MINTING,
+    ARG_BURN_MODE, ARG_COLLECTION_NAME, ARG_COLLECTION_SYMBOL, ARG_CONTRACT_WHITELIST,
+    ARG_EVENTS_MODE, ARG_HOLDER_MODE, ARG_IDENTIFIER_MODE, ARG_JSON_SCHEMA,
+    ARG_METADATA_MUTABILITY, ARG_MINTING_MODE, ARG_NAMED_KEY_CONVENTION, ARG_NFT_KIND,
+    ARG_NFT_METADATA_KIND, ARG_OPERATOR_BURN_MODE, ARG_OPTIONAL_METADATA, ARG_OWNERSHIP_MODE,
+    ARG_OWNER_LOOKUP_MODE, ARG_PACKAGE_OPERATOR_MODE, ARG_TOTAL_TOKEN_SUPPLY,
+    ARG_TRANSFER_FILTER_CONTRACT, ARG_WHITELIST_MODE,
+};
+use once_cell::sync::Lazy;
+use serde::{Deserialize, Serialize};
+use std::collections::BTreeMap;
 
 // Modalities reexports.
 pub use contract::modalities::{
@@ -144,6 +142,7 @@ pub(crate) struct InstallerRequestBuilder {
     identifier_mode: CLValue,
     metadata_mutability: CLValue,
     burn_mode: CLValue,
+    operator_burn_mode: CLValue,
     reporting_mode: CLValue,
     named_key_convention: CLValue,
     additional_required_metadata: CLValue,
@@ -184,6 +183,7 @@ impl InstallerRequestBuilder {
             identifier_mode: CLValue::from_t(NFTIdentifierMode::Ordinal as u8).unwrap(),
             metadata_mutability: CLValue::from_t(MetadataMutability::Mutable as u8).unwrap(),
             burn_mode: CLValue::from_t(BurnMode::Burnable as u8).unwrap(),
+            operator_burn_mode: CLValue::from_t(false).unwrap(),
             reporting_mode: CLValue::from_t(OwnerReverseLookupMode::Complete as u8).unwrap(),
             named_key_convention: CLValue::from_t(
                 NamedKeyConventionMode::DerivedFromCollectionName as u8,
@@ -331,6 +331,11 @@ impl InstallerRequestBuilder {
         self
     }
 
+    pub(crate) fn with_operator_burn_mode(mut self, operator_burn_mode: bool) -> Self {
+        self.operator_burn_mode = CLValue::from_t(operator_burn_mode as u8).unwrap();
+        self
+    }
+
     pub(crate) fn with_reporting_mode(mut self, reporting_mode: OwnerReverseLookupMode) -> Self {
         self.reporting_mode = CLValue::from_t(reporting_mode as u8).unwrap();
         self
@@ -365,6 +370,7 @@ impl InstallerRequestBuilder {
         runtime_args.insert_cl_value(ARG_IDENTIFIER_MODE, self.identifier_mode);
         runtime_args.insert_cl_value(ARG_METADATA_MUTABILITY, self.metadata_mutability);
         runtime_args.insert_cl_value(ARG_BURN_MODE, self.burn_mode);
+        runtime_args.insert_cl_value(ARG_OPERATOR_BURN_MODE, self.operator_burn_mode);
         runtime_args.insert_cl_value(ARG_OWNER_LOOKUP_MODE, self.reporting_mode);
         runtime_args.insert_cl_value(ARG_NAMED_KEY_CONVENTION, self.named_key_convention);
         runtime_args.insert_cl_value(ARG_EVENTS_MODE, self.events_mode);

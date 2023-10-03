@@ -240,9 +240,9 @@ fn should_transfer_token_from_sender_to_receiver() {
         token_owner_key,
         None,
         token_receiver_key,
-        TokenIdentifier::Index(0),
+        TokenIdentifier::Index(token_id),
     );
-    let actual_event: Transfer = support::get_event(&builder, &nft_contract_key, 1);
+    let actual_event: Transfer = support::get_event(&builder, &nft_contract_key, 1).unwrap();
     assert_eq!(actual_event, expected_event, "Expected Transfer event.");
 }
 
@@ -328,7 +328,7 @@ fn approve_token_for_transfer_should_add_entry_to_approved_dictionary(
     let expected_event = Approval::new(owner_key, spender_key, TokenIdentifier::Index(token_id));
     let expected_event_index = if operator.is_some() { 2 } else { 1 };
     let actual_event: Approval =
-        support::get_event(&builder, &nft_contract_key, expected_event_index);
+        support::get_event(&builder, &nft_contract_key, expected_event_index).unwrap();
     assert_eq!(actual_event, expected_event, "Expected Approval event.");
 }
 
@@ -452,7 +452,7 @@ fn revoke_token_for_transfer_should_remove_entry_to_approved_dictionary(
     let expected_event = ApprovalRevoked::new(owner_key, TokenIdentifier::Index(token_id));
     let expected_event_index = if operator.is_some() { 3 } else { 2 };
     let actual_event: ApprovalRevoked =
-        support::get_event(&builder, &nft_contract_key, expected_event_index);
+        support::get_event(&builder, &nft_contract_key, expected_event_index).unwrap();
     assert_eq!(
         actual_event, expected_event,
         "Expected ApprovalRevoked event."
