@@ -8,7 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ## [1.5.0] - 2023-10-05
-
+- `ces-js-parser` is not as a fixed version
 ### Fixed
 
 - Changed `@make-software/ces-js-parser` version to support future versions. [#246](https://github.com/casper-ecosystem/cep-78-enhanced-nft/pull/246)
