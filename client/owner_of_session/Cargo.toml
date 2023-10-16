@@ -1,11 +1,11 @@
 [package]
 name = "owner_of_session"
-version = "1.4.0"
+version = "1.5.0"
 edition = "2018"
 
 [dependencies]
-casper-contract = "2.0.0"
-casper-types = "2.0.0"
+casper-contract = "3.0.0"
+casper-types = "3.0.0"
 
 [[bin]]
 name = "owner_of_call"
