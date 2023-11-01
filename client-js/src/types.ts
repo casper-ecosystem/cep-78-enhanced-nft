@@ -61,6 +61,7 @@ export enum MetadataMutability {
 export enum MintingMode {
   Installer,
   Public,
+  Acl
 }
 
 export enum BurnMode {
