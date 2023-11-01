@@ -16,10 +16,7 @@ const ENTRY_POINT_REGISTER_OWNER: &str = "register_owner";
 const ARG_NFT_CONTRACT_HASH: &str = "nft_contract_hash";
 const ARG_TOKEN_OWNER: &str = "token_owner";
 const ARG_TOKEN_META_DATA: &str = "token_meta_data";
-const ARG_COLLECTION_NAME: &str = "collection_name";
-const PREFIX_CEP78: &str = "cep78";
 const ARG_TOKEN_HASH: &str = "token_hash";
-const ARG_REVERSE_LOOKUP: &str = "reverse_lookup";
 
 #[no_mangle]
 pub extern "C" fn call() {
@@ -30,7 +27,6 @@ pub extern "C" fn call() {
 
     let token_owner = runtime::get_named_arg::<Key>(ARG_TOKEN_OWNER);
     let token_metadata: String = runtime::get_named_arg(ARG_TOKEN_META_DATA);
-    let collection_name: String = runtime::get_named_arg(ARG_COLLECTION_NAME);
     let mut token_hash: String = String::new();
     if let Some(arg_size) = get_named_arg_size(ARG_TOKEN_HASH) {
         if arg_size > 0 {

@@ -183,27 +183,25 @@ pub extern "C" fn metadata() {
         .map(ContractHash::new)
         .unwrap();
 
-    let metadata: String;
-
-    if runtime::get_named_arg::<bool>(ARG_IS_HASH_IDENTIFIER_MODE) {
+    let metadata: String = if runtime::get_named_arg::<bool>(ARG_IS_HASH_IDENTIFIER_MODE) {
         let token_hash = runtime::get_named_arg::<String>(ARG_TOKEN_HASH);
-        metadata = runtime::call_contract::<String>(
+        runtime::call_contract::<String>(
             nft_contract_hash,
             ENTRY_POINT_METADATA,
             runtime_args! {
                 ARG_TOKEN_HASH => token_hash
             },
-        );
+        )
     } else {
         let token_id = runtime::get_named_arg::<u64>(ARG_TOKEN_ID);
-        metadata = runtime::call_contract::<String>(
+        runtime::call_contract::<String>(
             nft_contract_hash,
             ENTRY_POINT_METADATA,
             runtime_args! {
                 ARG_TOKEN_ID => token_id
             },
-        );
-    }
+        )
+    };
     runtime::put_key("metadata", storage::new_uref(metadata).into());
 }
 
