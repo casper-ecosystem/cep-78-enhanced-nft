@@ -336,7 +336,7 @@ fn should_record_cep47_dictionary_style_metadata_update_event_for_nft721_using_t
             &builder,
             &nft_contract_key,
             dictionary_name,
-            &base16::encode_lower(&support::create_blake2b_hash(original_metadata)),
+            &base16::encode_lower(&support::create_blake2b_hash(updated_metadata)),
         ),
     };
 

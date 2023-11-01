@@ -42,7 +42,7 @@ use constants::{
     ARG_METADATA_MUTABILITY, ARG_MINTING_MODE, ARG_NAMED_KEY_CONVENTION, ARG_NFT_KIND,
     ARG_NFT_METADATA_KIND, ARG_NFT_PACKAGE_KEY, ARG_OPERATOR, ARG_OPERATOR_BURN_MODE,
     ARG_OPTIONAL_METADATA, ARG_OWNERSHIP_MODE, ARG_OWNER_LOOKUP_MODE, ARG_PACKAGE_OPERATOR_MODE,
-    ARG_RECEIPT_NAME, ARG_SOURCE_KEY, ARG_SPENDER, ARG_TARGET_KEY, ARG_TOKEN_ID,
+    ARG_RECEIPT_NAME, ARG_SOURCE_KEY, ARG_SPENDER, ARG_TARGET_KEY, ARG_TOKEN_HASH, ARG_TOKEN_ID,
     ARG_TOKEN_META_DATA, ARG_TOKEN_OWNER, ARG_TOTAL_TOKEN_SUPPLY, ARG_TRANSFER_FILTER_CONTRACT,
     ARG_WHITELIST_MODE, BURNT_TOKENS, BURN_MODE, COLLECTION_NAME, COLLECTION_SYMBOL,
     ENTRY_POINT_APPROVE, ENTRY_POINT_BALANCE_OF, ENTRY_POINT_BURN, ENTRY_POINT_GET_APPROVED,
@@ -740,11 +740,18 @@ pub extern "C" fn mint() {
     .unwrap_or_revert();
 
     // This is the token ID.
+    let optional_token_hash: String = utils::get_optional_named_arg_with_user_errors::<String>(
+        ARG_TOKEN_HASH,
+        NFTCoreError::InvalidIdentifier,
+    )
+    .unwrap_or_default();
     let token_identifier: TokenIdentifier = match identifier_mode {
         NFTIdentifierMode::Ordinal => TokenIdentifier::Index(minted_tokens_count),
-        NFTIdentifierMode::Hash => TokenIdentifier::Hash(base16::encode_lower(&runtime::blake2b(
-            token_metadata.clone(),
-        ))),
+        NFTIdentifierMode::Hash => TokenIdentifier::Hash(if optional_token_hash.is_empty() {
+            base16::encode_lower(&runtime::blake2b(token_metadata.clone()))
+        } else {
+            optional_token_hash
+        }),
     };
 
     for (metadata_kind, required) in metadata_kinds {

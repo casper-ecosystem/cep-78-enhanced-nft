@@ -30,6 +30,7 @@ pub const MINTING_CONTRACT_VERSION: &str = "minting_contract_version";
 pub const TRANSFER_FILTER_CONTRACT_NAME: &str = "transfer_filter_contract_hash";
 pub const NFT_TEST_COLLECTION: &str = "nft-test";
 pub const NFT_TEST_SYMBOL: &str = "TEST";
+pub const TOKEN_HASH: &str = "token_hash";
 
 pub const ACCOUNT_USER_1: [u8; 32] = [1u8; 32];
 pub const ACCOUNT_USER_2: [u8; 32] = [2u8; 32];

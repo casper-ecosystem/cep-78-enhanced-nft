@@ -171,6 +171,7 @@ pub enum NFTCoreError {
     MissingPackageOperatorMode = 166,
     InvalidOperatorBurnMode = 167,
     MissingOperatorBurnMode = 168,
+    InvalidIdentifier = 169,
 }
 
 impl From<NFTCoreError> for ApiError {
