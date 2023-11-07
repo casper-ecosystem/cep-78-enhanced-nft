@@ -13,6 +13,12 @@ All notable changes to this project will be documented in this file. The format 
 
 ### Changed
 
+### Added
+
+## Release 1.5.0
+
+### Changed
+
 - Update to README (#248)
 - Update CES parser version (#246)
 - Update modalities.md (#245)
