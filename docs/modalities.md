@@ -231,9 +231,9 @@ If the metadata kind is not set to custom validated, then the value passed to th
 The identifier mode governs the primary identifier for NFTs minted for a given instance on an installed contract. This modality provides two options:
 
 1. `Ordinal`: NFTs minted in this modality are identified by a `u64` value. This value is determined by the number of NFTs minted by the contract at the time the NFT is minted.
-2. `Hash`: NFTs minted in this modality are identified by a base16 encoded representation of the blake2b hash of the metadata provided at the time of mint.
+2. `Hash`: NFTs minted in this modality are identified by an optional custom string identifier or by default a base16 encoded representation of the blake2b hash of the metadata provided at the time of mint.
 
-Since the primary identifier in the `Hash` mode is derived by hashing over the metadata, making it a content-addressed identifier, the metadata for the minted NFT cannot be updated after the mint.
+Since the default primary identifier in the `Hash` mode is custom or derived by hashing over the metadata, making it a content-addressed identifier, the metadata for the minted NFT cannot be updated after the mint.
 
 Attempting to install the contract with the `MetadataMutability` modality set to `Mutable` in the `Hash` identifier mode will raise an error.
 

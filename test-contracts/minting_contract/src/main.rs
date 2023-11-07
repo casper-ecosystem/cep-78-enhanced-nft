@@ -12,11 +12,13 @@ use alloc::{
 };
 use casper_contract::{
     contract_api::{runtime, storage},
+    ext_ffi,
     unwrap_or_revert::UnwrapOrRevert,
 };
 use casper_types::{
-    contracts::NamedKeys, runtime_args, CLType, ContractHash, ContractPackageHash, ContractVersion,
-    EntryPoint, EntryPointAccess, EntryPointType, EntryPoints, Key, Parameter, RuntimeArgs, URef,
+    api_error, contracts::NamedKeys, runtime_args, ApiError, CLType, ContractHash,
+    ContractPackageHash, ContractVersion, EntryPoint, EntryPointAccess, EntryPointType,
+    EntryPoints, Key, Parameter, RuntimeArgs, URef,
 };
 
 const CONTRACT_NAME: &str = "minting_contract_hash";
@@ -40,7 +42,9 @@ const ARG_TARGET_KEY: &str = "target_key";
 const ARG_SOURCE_KEY: &str = "source_key";
 const ARG_SPENDER: &str = "spender";
 const ARG_TOKEN_ID: &str = "token_id";
+const ARG_TOKEN_HASH: &str = "token_hash";
 const ARG_REVERSE_LOOKUP: &str = "reverse_lookup";
+const ARG_IS_HASH_IDENTIFIER_MODE: &str = "is_hash_identifier_mode";
 
 #[no_mangle]
 pub extern "C" fn mint() {
@@ -52,7 +56,12 @@ pub extern "C" fn mint() {
     let token_owner = runtime::get_named_arg::<Key>(ARG_TOKEN_OWNER);
     let token_metadata: String = runtime::get_named_arg(ARG_TOKEN_META_DATA);
     let reverse_lookup_enabled: bool = runtime::get_named_arg(ARG_REVERSE_LOOKUP);
-
+    let mut token_hash: String = String::new();
+    if let Some(arg_size) = get_named_arg_size(ARG_TOKEN_HASH) {
+        if arg_size > 0 {
+            token_hash = runtime::get_named_arg::<String>(ARG_TOKEN_HASH);
+        }
+    }
     if reverse_lookup_enabled {
         runtime::call_contract::<(String, URef)>(
             nft_contract_hash,
@@ -67,6 +76,7 @@ pub extern "C" fn mint() {
                 nft_contract_hash,
                 ENTRY_POINT_MINT,
                 runtime_args! {
+                    ARG_TOKEN_HASH => token_hash,
                     ARG_TOKEN_OWNER => token_owner,
                     ARG_TOKEN_META_DATA => token_metadata,
                 },
@@ -78,6 +88,7 @@ pub extern "C" fn mint() {
             nft_contract_hash,
             ENTRY_POINT_MINT,
             runtime_args! {
+                ARG_TOKEN_HASH => token_hash,
                 ARG_TOKEN_OWNER => token_owner,
                 ARG_TOKEN_META_DATA => token_metadata,
             },
@@ -172,16 +183,25 @@ pub extern "C" fn metadata() {
         .map(ContractHash::new)
         .unwrap();
 
-    let token_id = runtime::get_named_arg::<u64>(ARG_TOKEN_ID);
-
-    let metadata = runtime::call_contract::<String>(
-        nft_contract_hash,
-        ENTRY_POINT_METADATA,
-        runtime_args! {
-            ARG_TOKEN_ID => token_id
-        },
-    );
-
+    let metadata: String = if runtime::get_named_arg::<bool>(ARG_IS_HASH_IDENTIFIER_MODE) {
+        let token_hash = runtime::get_named_arg::<String>(ARG_TOKEN_HASH);
+        runtime::call_contract::<String>(
+            nft_contract_hash,
+            ENTRY_POINT_METADATA,
+            runtime_args! {
+                ARG_TOKEN_HASH => token_hash
+            },
+        )
+    } else {
+        let token_id = runtime::get_named_arg::<u64>(ARG_TOKEN_ID);
+        runtime::call_contract::<String>(
+            nft_contract_hash,
+            ENTRY_POINT_METADATA,
+            runtime_args! {
+                ARG_TOKEN_ID => token_id
+            },
+        )
+    };
     runtime::put_key("metadata", storage::new_uref(metadata).into());
 }
 
@@ -309,4 +329,20 @@ pub extern "C" fn call() {
 
     runtime::put_key(CONTRACT_NAME, contract_hash.into());
     runtime::put_key(CONTRACT_VERSION, storage::new_uref(contract_version).into());
+}
+
+fn get_named_arg_size(name: &str) -> Option<usize> {
+    let mut arg_size: usize = 0;
+    let ret = unsafe {
+        ext_ffi::casper_get_named_arg_size(
+            name.as_bytes().as_ptr(),
+            name.len(),
+            &mut arg_size as *mut usize,
+        )
+    };
+    match api_error::result_from(ret) {
+        Ok(_) => Some(arg_size),
+        Err(ApiError::MissingArgument) => None,
+        Err(e) => runtime::revert(e),
+    }
 }

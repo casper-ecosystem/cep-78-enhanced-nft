@@ -295,3 +295,4 @@ by using the provided `Makefile` and running the `make test` command.
 | 166  | MissingPackageOperatorMode                  |
 | 167  | InvalidOperatorBurnMode                     |
 | 168  | MissingOperatorBurnMode                     |
+| 169  | InvalidIdentifier                           |
