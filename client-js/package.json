@@ -1,6 +1,6 @@
 {
   "name": "casper-cep78-js-client",
-  "version": "1.4.0",
+  "version": "1.5.0",
   "description": "CEP78 Enhanced NFT JS Client",
   "main": "dist/src/index.js",
   "types": "dist/src/index.d.ts",
