@@ -452,7 +452,7 @@ pub fn insert_hash_id_lookups(
     .unwrap_or_revert()
     .is_some()
     {
-        runtime::revert(NFTCoreError::InvalidNFTMetadataKind)
+        runtime::revert(NFTCoreError::DuplicateIdentifier)
     }
     if storage::dictionary_get::<String>(
         hash_by_index_uref,
@@ -461,7 +461,7 @@ pub fn insert_hash_id_lookups(
     .unwrap_or_revert()
     .is_some()
     {
-        runtime::revert(NFTCoreError::MissingNftKind)
+        runtime::revert(NFTCoreError::DuplicateIdentifier)
     }
     storage::dictionary_put(
         hash_by_index_uref,

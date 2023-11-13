@@ -296,3 +296,4 @@ by using the provided `Makefile` and running the `make test` command.
 | 167  | InvalidOperatorBurnMode                     |
 | 168  | MissingOperatorBurnMode                     |
 | 169  | InvalidIdentifier                           |
+| 170  | DuplicateIdentifier                         |
