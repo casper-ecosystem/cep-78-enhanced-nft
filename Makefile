@@ -28,13 +28,16 @@ build-contract:
 	wasm-strip test-contracts/minting_contract/target/wasm32-unknown-unknown/release/minting_contract.wasm
 	wasm-strip test-contracts/transfer_filter_contract/target/wasm32-unknown-unknown/release/transfer_filter_contract.wasm
 
+VERSIONS := 1_0_0 1_1_0 1_2_0 1_3_0 1_4_0 1_5_0
+
 setup-test: build-contract
 	mkdir -p tests/wasm
-	mkdir -p tests/wasm/1_0_0; curl -L https://github.com/casper-ecosystem/cep-78-enhanced-nft/releases/download/v1.0.0/cep-78-wasm.tar.gz | tar zxv -C tests/wasm/1_0_0/
-	mkdir -p tests/wasm/1_1_0; curl -L https://github.com/casper-ecosystem/cep-78-enhanced-nft/releases/download/v1.1.0/cep-78-wasm.tar.gz | tar zxv -C tests/wasm/1_1_0/
-	mkdir -p tests/wasm/1_2_0; curl -L https://github.com/casper-ecosystem/cep-78-enhanced-nft/releases/download/v1.2.0/cep-78-wasm.tar.gz | tar zxv -C tests/wasm/1_2_0/
-	mkdir -p tests/wasm/1_3_0; curl -L https://github.com/casper-ecosystem/cep-78-enhanced-nft/releases/download/v1.3.0/cep-78-wasm.tar.gz | tar zxv -C tests/wasm/1_3_0/
-	mkdir -p tests/wasm/1_4_0; curl -L https://github.com/casper-ecosystem/cep-78-enhanced-nft/releases/download/v1.4.0/cep-78-wasm.tar.gz | tar zxv -C tests/wasm/1_4_0/
+	$(foreach version,$(VERSIONS), \
+		if [ ! -d "tests/wasm/$(version)" ]; then \
+			mkdir -p tests/wasm/$(version); \
+			curl -L https://github.com/casper-ecosystem/cep-78-enhanced-nft/releases/download/v$(subst _,.,$(version))/cep-78-wasm.tar.gz | tar zxv -C tests/wasm/$(version)/; \
+		fi; \
+	)
 
 	cp contract/target/wasm32-unknown-unknown/release/contract.wasm tests/wasm
 	cp client/mint_session/target/wasm32-unknown-unknown/release/mint_call.wasm tests/wasm
