@@ -1,8 +1,8 @@
 use casper_engine_test_support::{
-    ExecuteRequestBuilder, InMemoryWasmTestBuilder, DEFAULT_ACCOUNT_ADDR,
+    ExecuteRequestBuilder, LmdbWasmTestBuilder, DEFAULT_ACCOUNT_ADDR,
     PRODUCTION_RUN_GENESIS_REQUEST,
 };
-use casper_types::{runtime_args, ContractHash, Key, RuntimeArgs};
+use casper_types::{runtime_args, Key};
 use contract::{
     constants::{
         ACL_PACKAGE_MODE, ALLOW_MINTING, ARG_ACL_PACKAGE_MODE, ARG_ALLOW_MINTING,
@@ -23,7 +23,7 @@ use crate::utility::{
 
 #[test]
 fn only_installer_should_be_able_to_toggle_allow_minting() {
-    let mut builder = InMemoryWasmTestBuilder::default();
+    let mut builder = LmdbWasmTestBuilder::default();
     builder
         .run_genesis(&PRODUCTION_RUN_GENESIS_REQUEST)
         .commit();
@@ -42,7 +42,7 @@ fn only_installer_should_be_able_to_toggle_allow_minting() {
     builder.exec(install_request).expect_success().commit();
 
     let nft_contract_hash = get_nft_contract_hash(&builder);
-    let nft_contract_key: Key = nft_contract_hash.into();
+    let nft_contract_key: Key = Key::contract_entity_key(nft_contract_hash);
 
     // Account other than installer account should not be able to change allow_minting
     // Red test
@@ -101,7 +101,7 @@ fn only_installer_should_be_able_to_toggle_allow_minting() {
 
 #[test]
 fn installer_should_be_able_to_toggle_acl_package_mode() {
-    let mut builder = InMemoryWasmTestBuilder::default();
+    let mut builder = LmdbWasmTestBuilder::default();
     builder
         .run_genesis(&PRODUCTION_RUN_GENESIS_REQUEST)
         .commit();
@@ -115,15 +115,14 @@ fn installer_should_be_able_to_toggle_acl_package_mode() {
 
     builder.exec(install_request).expect_success().commit();
 
-    let account = builder.get_expected_account(*DEFAULT_ACCOUNT_ADDR);
+    let account = builder.get_expected_addressable_entity_by_account_hash(*DEFAULT_ACCOUNT_ADDR);
     let nft_contract_key: Key = *account
         .named_keys()
         .get(CONTRACT_NAME)
         .expect("must have key in named keys");
 
-    let nft_contract_hash = Key::into_hash(nft_contract_key)
-        .map(ContractHash::new)
-        .expect("failed to find nft contract");
+    let nft_contract_hash =
+        Key::into_entity_hash(nft_contract_key).expect("failed to find nft contract");
 
     let is_acl_packge_mode: bool = support::query_stored_value(
         &builder,
@@ -163,7 +162,7 @@ fn installer_should_be_able_to_toggle_acl_package_mode() {
 
 #[test]
 fn installer_should_be_able_to_toggle_package_operator_mode() {
-    let mut builder = InMemoryWasmTestBuilder::default();
+    let mut builder = LmdbWasmTestBuilder::default();
     builder
         .run_genesis(&PRODUCTION_RUN_GENESIS_REQUEST)
         .commit();
@@ -177,15 +176,14 @@ fn installer_should_be_able_to_toggle_package_operator_mode() {
 
     builder.exec(install_request).expect_success().commit();
 
-    let account = builder.get_expected_account(*DEFAULT_ACCOUNT_ADDR);
+    let account = builder.get_expected_addressable_entity_by_account_hash(*DEFAULT_ACCOUNT_ADDR);
     let nft_contract_key: Key = *account
         .named_keys()
         .get(CONTRACT_NAME)
         .expect("must have key in named keys");
 
-    let nft_contract_hash = Key::into_hash(nft_contract_key)
-        .map(ContractHash::new)
-        .expect("failed to find nft contract");
+    let nft_contract_hash =
+        Key::into_entity_hash(nft_contract_key).expect("failed to find nft contract");
 
     let is_package_operator_mode: bool = support::query_stored_value(
         &builder,
@@ -225,7 +223,7 @@ fn installer_should_be_able_to_toggle_package_operator_mode() {
 
 #[test]
 fn installer_should_be_able_to_toggle_operator_burn_mode() {
-    let mut builder = InMemoryWasmTestBuilder::default();
+    let mut builder = LmdbWasmTestBuilder::default();
     builder
         .run_genesis(&PRODUCTION_RUN_GENESIS_REQUEST)
         .commit();
@@ -239,15 +237,14 @@ fn installer_should_be_able_to_toggle_operator_burn_mode() {
 
     builder.exec(install_request).expect_success().commit();
 
-    let account = builder.get_expected_account(*DEFAULT_ACCOUNT_ADDR);
+    let account = builder.get_expected_addressable_entity_by_account_hash(*DEFAULT_ACCOUNT_ADDR);
     let nft_contract_key: Key = *account
         .named_keys()
         .get(CONTRACT_NAME)
         .expect("must have key in named keys");
 
-    let nft_contract_hash = Key::into_hash(nft_contract_key)
-        .map(ContractHash::new)
-        .expect("failed to find nft contract");
+    let nft_contract_hash =
+        Key::into_entity_hash(nft_contract_key).expect("failed to find nft contract");
 
     let is_package_operator_mode: bool = support::query_stored_value(
         &builder,

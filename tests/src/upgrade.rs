@@ -1,9 +1,9 @@
 use casper_engine_test_support::{
-    ExecuteRequestBuilder, InMemoryWasmTestBuilder, DEFAULT_ACCOUNT_ADDR,
+    ExecuteRequestBuilder, LmdbWasmTestBuilder, DEFAULT_ACCOUNT_ADDR,
     PRODUCTION_RUN_GENESIS_REQUEST,
 };
 
-use casper_types::{account::AccountHash, runtime_args, CLValue, ContractHash, Key, RuntimeArgs};
+use casper_types::{account::AccountHash, runtime_args, CLValue, Key};
 use contract::{
     constants::{
         ACCESS_KEY_NAME_1_0_0, ACL_PACKAGE_MODE, ARG_ACCESS_KEY_NAME_1_0_0, ARG_ACL_PACKAGE_MODE,
@@ -37,9 +37,10 @@ const OWNED_TOKENS: &str = "owned_tokens";
 const MANGLED_ACCESS_KEY_NAME: &str = "mangled_access_key";
 const MANGLED_HASH_KEY_NAME: &str = "mangled_hash_key";
 
+#[ignore = "old wasms use `casper_add_contract_version` which was replaced with `casper_add_package_version`"]
 #[test]
 fn should_safely_upgrade_in_ordinal_identifier_mode() {
-    let mut builder = InMemoryWasmTestBuilder::default();
+    let mut builder = LmdbWasmTestBuilder::default();
     builder
         .run_genesis(&PRODUCTION_RUN_GENESIS_REQUEST)
         .commit();
@@ -56,7 +57,7 @@ fn should_safely_upgrade_in_ordinal_identifier_mode() {
     builder.exec(install_request).expect_success().commit();
 
     let nft_contract_hash_1_0_0 = support::get_nft_contract_hash_1_0_0(&builder);
-    let nft_contract_key_1_0_0: Key = nft_contract_hash_1_0_0.into();
+    let nft_contract_key_1_0_0: Key = Key::contract_entity_key(nft_contract_hash_1_0_0);
 
     let number_of_tokens_pre_migration = 3usize;
 
@@ -86,7 +87,7 @@ fn should_safely_upgrade_in_ordinal_identifier_mode() {
     let maybe_access_named_key = builder
         .query(None, Key::Account(*DEFAULT_ACCOUNT_ADDR), &[])
         .unwrap()
-        .as_account()
+        .as_addressable_entity()
         .unwrap()
         .named_keys()
         .get(ACCESS_KEY_NAME_1_0_0)
@@ -110,7 +111,7 @@ fn should_safely_upgrade_in_ordinal_identifier_mode() {
 
     builder.exec(upgrade_request).expect_success().commit();
 
-    let nft_contract_key: Key = support::get_nft_contract_hash(&builder).into();
+    let nft_contract_key: Key = Key::contract_entity_key(support::get_nft_contract_hash(&builder));
 
     let actual_page_record_width = builder
         .query(None, nft_contract_key, &[PAGE_LIMIT.to_string()])
@@ -160,9 +161,10 @@ fn should_safely_upgrade_in_ordinal_identifier_mode() {
     builder.exec(mint_request).expect_success().commit();
 }
 
+#[ignore = "old wasms use `casper_add_contract_version` which was replaced with `casper_add_package_version`"]
 #[test]
 fn should_safely_upgrade_in_hash_identifier_mode() {
-    let mut builder = InMemoryWasmTestBuilder::default();
+    let mut builder = LmdbWasmTestBuilder::default();
     builder
         .run_genesis(&PRODUCTION_RUN_GENESIS_REQUEST)
         .commit();
@@ -180,7 +182,7 @@ fn should_safely_upgrade_in_hash_identifier_mode() {
     builder.exec(install_request).expect_success().commit();
 
     let nft_contract_hash_1_0_0 = support::get_nft_contract_hash_1_0_0(&builder);
-    let nft_contract_key_1_0_0: Key = nft_contract_hash_1_0_0.into();
+    let nft_contract_key_1_0_0: Key = Key::contract_entity_key(nft_contract_hash_1_0_0);
 
     let mut expected_metadata: Vec<String> = vec![];
 
@@ -226,7 +228,7 @@ fn should_safely_upgrade_in_hash_identifier_mode() {
     let maybe_access_named_key = builder
         .query(None, Key::Account(*DEFAULT_ACCOUNT_ADDR), &[])
         .unwrap()
-        .as_account()
+        .as_addressable_entity()
         .unwrap()
         .named_keys()
         .get(ACCESS_KEY_NAME_1_0_0)
@@ -249,7 +251,7 @@ fn should_safely_upgrade_in_hash_identifier_mode() {
     builder.exec(upgrade_request).expect_success().commit();
 
     let nft_contract_hash = support::get_nft_contract_hash(&builder);
-    let nft_contract_key: Key = nft_contract_hash.into();
+    let nft_contract_key: Key = Key::contract_entity_key(nft_contract_hash);
 
     let number_of_tokens_at_upgrade = support::get_stored_value_from_global_state::<u64>(
         &builder,
@@ -352,9 +354,10 @@ fn should_safely_upgrade_in_hash_identifier_mode() {
     assert!(actual_page[2])
 }
 
+#[ignore = "old wasms use `casper_add_contract_version` which was replaced with `casper_add_package_version`"]
 #[test]
 fn should_update_receipts_post_upgrade_paged() {
-    let mut builder = InMemoryWasmTestBuilder::default();
+    let mut builder = LmdbWasmTestBuilder::default();
     builder
         .run_genesis(&PRODUCTION_RUN_GENESIS_REQUEST)
         .commit();
@@ -371,7 +374,7 @@ fn should_update_receipts_post_upgrade_paged() {
     builder.exec(install_request).expect_success().commit();
 
     let nft_contract_hash_1_0_0 = support::get_nft_contract_hash_1_0_0(&builder);
-    let nft_contract_key_1_0_0: Key = nft_contract_hash_1_0_0.into();
+    let nft_contract_key_1_0_0: Key = Key::contract_entity_key(nft_contract_hash_1_0_0);
 
     let number_of_tokens_pre_migration = 20usize;
 
@@ -417,7 +420,7 @@ fn should_update_receipts_post_upgrade_paged() {
 
     builder.exec(migrate_request).expect_success().commit();
 
-    let nft_contract_key: Key = support::get_nft_contract_hash(&builder).into();
+    let nft_contract_key: Key = Key::contract_entity_key(support::get_nft_contract_hash(&builder));
 
     let nft_receipt: String = support::get_stored_value_from_global_state(
         &builder,
@@ -429,7 +432,7 @@ fn should_update_receipts_post_upgrade_paged() {
     let default_account = builder
         .query(None, Key::Account(*DEFAULT_ACCOUNT_ADDR), &[])
         .unwrap()
-        .as_account()
+        .as_addressable_entity()
         .unwrap()
         .clone();
 
@@ -447,9 +450,10 @@ fn should_update_receipts_post_upgrade_paged() {
     }
 }
 
+#[ignore = "old wasms use `casper_add_contract_version` which was replaced with `casper_add_package_version`"]
 #[test]
 fn should_not_be_able_to_reinvoke_migrate_entrypoint() {
-    let mut builder = InMemoryWasmTestBuilder::default();
+    let mut builder = LmdbWasmTestBuilder::default();
     builder
         .run_genesis(&PRODUCTION_RUN_GENESIS_REQUEST)
         .commit();
@@ -515,9 +519,10 @@ fn should_not_be_able_to_reinvoke_migrate_entrypoint() {
     support::assert_expected_error(error, 126u16, "must have previously migrated error");
 }
 
+#[ignore = "old wasms use `casper_add_contract_version` which was replaced with `casper_add_package_version`"]
 #[test]
 fn should_not_migrate_contracts_with_zero_token_issuance() {
-    let mut builder = InMemoryWasmTestBuilder::default();
+    let mut builder = LmdbWasmTestBuilder::default();
     builder
         .run_genesis(&PRODUCTION_RUN_GENESIS_REQUEST)
         .commit();
@@ -550,9 +555,10 @@ fn should_not_migrate_contracts_with_zero_token_issuance() {
     support::assert_expected_error(error, 122u16, "cannot upgrade when issuance is 0");
 }
 
+#[ignore = "old wasms use `casper_add_contract_version` which was replaced with `casper_add_package_version`"]
 #[test]
 fn should_upgrade_with_custom_named_keys() {
-    let mut builder = InMemoryWasmTestBuilder::default();
+    let mut builder = LmdbWasmTestBuilder::default();
     builder
         .run_genesis(&PRODUCTION_RUN_GENESIS_REQUEST)
         .commit();
@@ -569,7 +575,7 @@ fn should_upgrade_with_custom_named_keys() {
     builder.exec(install_request).expect_success().commit();
 
     let nft_contract_hash_1_0_0 = support::get_nft_contract_hash_1_0_0(&builder);
-    let nft_contract_key_1_0_0: Key = nft_contract_hash_1_0_0.into();
+    let nft_contract_key_1_0_0: Key = Key::contract_entity_key(nft_contract_hash_1_0_0);
 
     let number_of_tokens_pre_migration = 3usize;
 
@@ -600,7 +606,7 @@ fn should_upgrade_with_custom_named_keys() {
     let maybe_access_named_key = builder
         .query(None, Key::Account(*DEFAULT_ACCOUNT_ADDR), &[])
         .unwrap()
-        .as_account()
+        .as_addressable_entity()
         .unwrap()
         .named_keys()
         .get(ACCESS_KEY_NAME_1_0_0)
@@ -658,9 +664,10 @@ fn should_upgrade_with_custom_named_keys() {
         .commit();
 }
 
+#[ignore = "old wasms use `casper_add_contract_version` which was replaced with `casper_add_package_version`"]
 #[test]
 fn should_not_upgrade_with_larger_total_token_supply() {
-    let mut builder = InMemoryWasmTestBuilder::default();
+    let mut builder = LmdbWasmTestBuilder::default();
     builder
         .run_genesis(&PRODUCTION_RUN_GENESIS_REQUEST)
         .commit();
@@ -705,7 +712,7 @@ fn should_safely_upgrade_from_old_version_to_new_version_with_reporting_mode(
     reporting_mode: OwnerReverseLookupMode,
     expected_total_token_supply_post_upgrade: u64,
 ) {
-    let mut builder = InMemoryWasmTestBuilder::default();
+    let mut builder = LmdbWasmTestBuilder::default();
     builder
         .run_genesis(&PRODUCTION_RUN_GENESIS_REQUEST)
         .commit();
@@ -724,8 +731,8 @@ fn should_safely_upgrade_from_old_version_to_new_version_with_reporting_mode(
 
     builder.exec(install_request).expect_success().commit();
 
-    let nft_contract_hash: ContractHash = support::get_nft_contract_hash(&builder);
-    let nft_contract_key: Key = nft_contract_hash.into();
+    let nft_contract_hash = support::get_nft_contract_hash(&builder);
+    let nft_contract_key: Key = Key::contract_entity_key(nft_contract_hash);
 
     let number_of_tokens_pre_migration = 3usize;
 
@@ -772,7 +779,7 @@ fn should_safely_upgrade_from_old_version_to_new_version_with_reporting_mode(
 
     builder.exec(upgrade_request).expect_success().commit();
 
-    let nft_contract_key: Key = support::get_nft_contract_hash(&builder).into();
+    let nft_contract_key: Key = Key::contract_entity_key(support::get_nft_contract_hash(&builder));
 
     let number_of_tokens_at_upgrade = support::get_stored_value_from_global_state::<u64>(
         &builder,
@@ -799,7 +806,7 @@ fn should_safely_upgrade_from_old_version_to_new_version_with_reporting_mode(
     let seed_uref = *builder
         .query(None, nft_contract_key, &[])
         .expect("must have nft contract")
-        .as_contract()
+        .as_addressable_entity()
         .expect("must convert contract")
         .named_keys()
         .get(casper_event_standard::EVENTS_DICT)
@@ -812,9 +819,10 @@ fn should_safely_upgrade_from_old_version_to_new_version_with_reporting_mode(
         .expect_err("should not have dictionary value for a third migration event");
 }
 
+#[ignore = "old wasms use `casper_add_contract_version` which was replaced with `casper_add_package_version`"]
 #[test]
 fn should_safely_upgrade_with_acl_package_mode() {
-    let mut builder = InMemoryWasmTestBuilder::default();
+    let mut builder = LmdbWasmTestBuilder::default();
     builder
         .run_genesis(&PRODUCTION_RUN_GENESIS_REQUEST)
         .commit();
@@ -831,15 +839,15 @@ fn should_safely_upgrade_with_acl_package_mode() {
     builder.exec(install_request).expect_success().commit();
 
     let nft_contract_hash_1_0_0 = support::get_nft_contract_hash_1_0_0(&builder);
-    let nft_contract_key_1_0_0: Key = nft_contract_hash_1_0_0.into();
+    let nft_contract_key_1_0_0: Key = Key::contract_entity_key(nft_contract_hash_1_0_0);
 
     let is_acl_packge_mode = builder
         .query(None, nft_contract_key_1_0_0, &[])
         .expect("must have nft contract")
-        .as_contract()
+        .as_addressable_entity()
         .expect("must convert contract")
         .named_keys()
-        .contains_key(ACL_PACKAGE_MODE);
+        .contains(ACL_PACKAGE_MODE);
 
     assert!(!is_acl_packge_mode);
 
@@ -859,7 +867,7 @@ fn should_safely_upgrade_with_acl_package_mode() {
     builder.exec(upgrade_request).expect_success().commit();
 
     let nft_contract_hash = support::get_nft_contract_hash(&builder);
-    let nft_contract_key: Key = nft_contract_hash.into();
+    let nft_contract_key: Key = Key::contract_entity_key(nft_contract_hash);
 
     let is_acl_packge_mode: bool = support::query_stored_value(
         &builder,
@@ -875,9 +883,10 @@ fn should_safely_upgrade_with_acl_package_mode() {
     assert_eq!(actual_event, expected_event, "Expected Migration event.");
 }
 
+#[ignore = "old wasms use `casper_add_contract_version` which was replaced with `casper_add_package_version`"]
 #[test]
 fn should_safely_upgrade_with_package_operator_mode() {
-    let mut builder = InMemoryWasmTestBuilder::default();
+    let mut builder = LmdbWasmTestBuilder::default();
     builder
         .run_genesis(&PRODUCTION_RUN_GENESIS_REQUEST)
         .commit();
@@ -894,15 +903,15 @@ fn should_safely_upgrade_with_package_operator_mode() {
     builder.exec(install_request).expect_success().commit();
 
     let nft_contract_hash_1_0_0 = support::get_nft_contract_hash_1_0_0(&builder);
-    let nft_contract_key_1_0_0: Key = nft_contract_hash_1_0_0.into();
+    let nft_contract_key_1_0_0: Key = Key::contract_entity_key(nft_contract_hash_1_0_0);
 
     let is_package_operator_mode = builder
         .query(None, nft_contract_key_1_0_0, &[])
         .expect("must have nft contract")
-        .as_contract()
+        .as_addressable_entity()
         .expect("must convert contract")
         .named_keys()
-        .contains_key(PACKAGE_OPERATOR_MODE);
+        .contains(PACKAGE_OPERATOR_MODE);
 
     assert!(!is_package_operator_mode);
 
@@ -922,7 +931,7 @@ fn should_safely_upgrade_with_package_operator_mode() {
     builder.exec(upgrade_request).expect_success().commit();
 
     let nft_contract_hash = support::get_nft_contract_hash(&builder);
-    let nft_contract_key: Key = nft_contract_hash.into();
+    let nft_contract_key: Key = Key::contract_entity_key(nft_contract_hash);
 
     let is_package_operator_mode: bool = support::query_stored_value(
         &builder,
@@ -938,9 +947,10 @@ fn should_safely_upgrade_with_package_operator_mode() {
     assert_eq!(actual_event, expected_event, "Expected Migration event.");
 }
 
+#[ignore = "old wasms use `casper_add_contract_version` which was replaced with `casper_add_package_version`"]
 #[test]
 fn should_safely_upgrade_with_operator_burn_mode() {
-    let mut builder = InMemoryWasmTestBuilder::default();
+    let mut builder = LmdbWasmTestBuilder::default();
     builder
         .run_genesis(&PRODUCTION_RUN_GENESIS_REQUEST)
         .commit();
@@ -957,15 +967,15 @@ fn should_safely_upgrade_with_operator_burn_mode() {
     builder.exec(install_request).expect_success().commit();
 
     let nft_contract_hash_1_0_0 = support::get_nft_contract_hash_1_0_0(&builder);
-    let nft_contract_key_1_0_0: Key = nft_contract_hash_1_0_0.into();
+    let nft_contract_key_1_0_0: Key = Key::contract_entity_key(nft_contract_hash_1_0_0);
 
     let is_operator_burn_mode = builder
         .query(None, nft_contract_key_1_0_0, &[])
         .expect("must have nft contract")
-        .as_contract()
+        .as_addressable_entity()
         .expect("must convert contract")
         .named_keys()
-        .contains_key(OPERATOR_BURN_MODE);
+        .contains(OPERATOR_BURN_MODE);
 
     assert!(!is_operator_burn_mode);
 
@@ -985,7 +995,7 @@ fn should_safely_upgrade_with_operator_burn_mode() {
     builder.exec(upgrade_request).expect_success().commit();
 
     let nft_contract_hash = support::get_nft_contract_hash(&builder);
-    let nft_contract_key: Key = nft_contract_hash.into();
+    let nft_contract_key: Key = Key::contract_entity_key(nft_contract_hash);
 
     let is_operator_burn_mode: bool = support::query_stored_value(
         &builder,
@@ -1001,6 +1011,7 @@ fn should_safely_upgrade_with_operator_burn_mode() {
     assert_eq!(actual_event, expected_event, "Expected Migration event.");
 }
 
+#[ignore = "old wasms use `casper_add_contract_version` which was replaced with `casper_add_package_version`"]
 #[test]
 fn should_safely_upgrade_from_1_2_0_to_1_3_0() {
     //* starting total_token_supply 100u64
@@ -1020,6 +1031,7 @@ fn should_safely_upgrade_from_1_2_0_to_1_3_0() {
     );
 }
 
+#[ignore = "old wasms use `casper_add_contract_version` which was replaced with `casper_add_package_version`"]
 #[test]
 fn should_safely_upgrade_from_1_3_0_to_1_4_0() {
     //* starting total_token_supply 100u64
@@ -1039,6 +1051,7 @@ fn should_safely_upgrade_from_1_3_0_to_1_4_0() {
     );
 }
 
+#[ignore = "old wasms use `casper_add_contract_version` which was replaced with `casper_add_package_version`"]
 #[test]
 fn should_safely_upgrade_from_1_4_0_to_current_version() {
     //* starting total_token_supply 100u64
@@ -1058,9 +1071,10 @@ fn should_safely_upgrade_from_1_4_0_to_current_version() {
     );
 }
 
+#[ignore = "old wasms use `casper_add_contract_version` which was replaced with `casper_add_package_version`"]
 #[test]
 fn should_safely_upgrade_from_1_0_0_to_1_2_0_to_current_version() {
-    let mut builder = InMemoryWasmTestBuilder::default();
+    let mut builder = LmdbWasmTestBuilder::default();
     builder
         .run_genesis(&PRODUCTION_RUN_GENESIS_REQUEST)
         .commit();
@@ -1078,7 +1092,7 @@ fn should_safely_upgrade_from_1_0_0_to_1_2_0_to_current_version() {
     builder.exec(install_request).expect_success().commit();
 
     let nft_contract_hash_1_0_0 = support::get_nft_contract_hash_1_0_0(&builder);
-    let nft_contract_key_1_0_0: Key = nft_contract_hash_1_0_0.into();
+    let nft_contract_key_1_0_0: Key = Key::contract_entity_key(nft_contract_hash_1_0_0);
 
     let upgrade_request = ExecuteRequestBuilder::standard(
         *DEFAULT_ACCOUNT_ADDR,
@@ -1104,8 +1118,8 @@ fn should_safely_upgrade_from_1_0_0_to_1_2_0_to_current_version() {
 
     assert_eq!(total_token_supply_post_upgrade, 50u64);
 
-    let nft_contract_hash_1_2_0: ContractHash = support::get_nft_contract_hash(&builder);
-    let nft_contract_key_1_2_0: Key = nft_contract_hash_1_2_0.into();
+    let nft_contract_hash_1_2_0 = support::get_nft_contract_hash(&builder);
+    let nft_contract_key_1_2_0: Key = Key::contract_entity_key(nft_contract_hash_1_2_0);
 
     let number_of_tokens_pre_migration = 3usize;
 
@@ -1143,7 +1157,7 @@ fn should_safely_upgrade_from_1_0_0_to_1_2_0_to_current_version() {
     builder.exec(upgrade_request).expect_success().commit();
 
     let nft_contract_hash = support::get_nft_contract_hash(&builder);
-    let nft_contract_key: Key = nft_contract_hash.into();
+    let nft_contract_key: Key = Key::contract_entity_key(nft_contract_hash);
 
     let number_of_tokens_at_upgrade = support::get_stored_value_from_global_state::<u64>(
         &builder,
@@ -1169,9 +1183,10 @@ fn should_safely_upgrade_from_1_0_0_to_1_2_0_to_current_version() {
     assert_eq!(actual_event, expected_event, "Expected Migration event.");
 }
 
+#[ignore = "old wasms use `casper_add_contract_version` which was replaced with `casper_add_package_version`"]
 #[test]
 fn should_safely_upgrade_from_1_0_0_to_1_3_0_to_current_version() {
-    let mut builder = InMemoryWasmTestBuilder::default();
+    let mut builder = LmdbWasmTestBuilder::default();
     builder
         .run_genesis(&PRODUCTION_RUN_GENESIS_REQUEST)
         .commit();
@@ -1189,7 +1204,7 @@ fn should_safely_upgrade_from_1_0_0_to_1_3_0_to_current_version() {
     builder.exec(install_request).expect_success().commit();
 
     let nft_contract_hash_1_0_0 = support::get_nft_contract_hash_1_0_0(&builder);
-    let nft_contract_key_1_0_0: Key = nft_contract_hash_1_0_0.into();
+    let nft_contract_key_1_0_0: Key = Key::contract_entity_key(nft_contract_hash_1_0_0);
 
     let upgrade_request = ExecuteRequestBuilder::standard(
         *DEFAULT_ACCOUNT_ADDR,
@@ -1215,8 +1230,8 @@ fn should_safely_upgrade_from_1_0_0_to_1_3_0_to_current_version() {
 
     assert_eq!(total_token_supply_post_upgrade, 50u64);
 
-    let nft_contract_hash_1_3_0: ContractHash = support::get_nft_contract_hash(&builder);
-    let nft_contract_key_1_3_0: Key = nft_contract_hash_1_3_0.into();
+    let nft_contract_hash_1_3_0 = support::get_nft_contract_hash(&builder);
+    let nft_contract_key_1_3_0: Key = Key::contract_entity_key(nft_contract_hash_1_3_0);
 
     let number_of_tokens_pre_migration = 3usize;
 
@@ -1254,7 +1269,7 @@ fn should_safely_upgrade_from_1_0_0_to_1_3_0_to_current_version() {
     builder.exec(upgrade_request).expect_success().commit();
 
     let nft_contract_hash = support::get_nft_contract_hash(&builder);
-    let nft_contract_key: Key = nft_contract_hash.into();
+    let nft_contract_key: Key = Key::contract_entity_key(nft_contract_hash);
 
     let number_of_tokens_at_upgrade = support::get_stored_value_from_global_state::<u64>(
         &builder,
@@ -1280,9 +1295,10 @@ fn should_safely_upgrade_from_1_0_0_to_1_3_0_to_current_version() {
     assert_eq!(actual_event, expected_event, "Expected Migration event.");
 }
 
+#[ignore = "old wasms use `casper_add_contract_version` which was replaced with `casper_add_package_version`"]
 #[test]
 fn should_safely_upgrade_from_1_0_0_to_current_version() {
-    let mut builder = InMemoryWasmTestBuilder::default();
+    let mut builder = LmdbWasmTestBuilder::default();
     builder
         .run_genesis(&PRODUCTION_RUN_GENESIS_REQUEST)
         .commit();
@@ -1334,7 +1350,7 @@ fn should_safely_upgrade_from_1_0_0_to_current_version() {
 
     builder.exec(upgrade_request).expect_success().commit();
 
-    let nft_contract_key: Key = support::get_nft_contract_hash(&builder).into();
+    let nft_contract_key: Key = Key::contract_entity_key(support::get_nft_contract_hash(&builder));
 
     let number_of_tokens_at_upgrade = support::get_stored_value_from_global_state::<u64>(
         &builder,

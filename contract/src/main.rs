@@ -29,9 +29,9 @@ use casper_contract::{
     unwrap_or_revert::UnwrapOrRevert,
 };
 use casper_types::{
-    contracts::NamedKeys, runtime_args, CLType, CLValue, ContractHash, ContractPackageHash,
-    EntryPoint, EntryPointAccess, EntryPointType, EntryPoints, Key, KeyTag, Parameter, RuntimeArgs,
-    Tagged,
+    addressable_entity::NamedKeys, package::PackageKindTag, runtime_args, AddressableEntityHash,
+    CLType, CLValue, EntryPoint, EntryPointAccess, EntryPointType, EntryPoints, Key, KeyTag,
+    PackageHash, Parameter, RuntimeArgs, Tagged,
 };
 use constants::{
     ACCESS_KEY_NAME_1_0_0, ACL_PACKAGE_MODE, ACL_WHITELIST, ALLOW_MINTING, APPROVED,
@@ -332,13 +332,11 @@ pub extern "C" fn init() {
         )
         .unwrap_or_default();
 
-    let transfer_filter_contract_contract_hash: Option<ContractHash> =
+    let transfer_filter_contract_contract_hash: Option<AddressableEntityHash> =
         transfer_filter_contract_contract_key.map(|transfer_filter_contract_contract_key| {
-            ContractHash::from(
-                transfer_filter_contract_contract_key
-                    .into_hash()
-                    .unwrap_or_revert(),
-            )
+            transfer_filter_contract_contract_key
+                .into_entity_hash()
+                .unwrap_or_revert()
         });
 
     if ownership_mode != OwnershipMode::Transferable
@@ -561,14 +559,14 @@ pub extern "C" fn set_variables() {
 
     // Deprecated in 1.4 in favor of above ARG_ACL_WHITELIST
     let new_contract_whitelist =
-        utils::get_optional_named_arg_with_user_errors::<Vec<ContractHash>>(
+        utils::get_optional_named_arg_with_user_errors::<Vec<AddressableEntityHash>>(
             ARG_CONTRACT_WHITELIST,
             NFTCoreError::InvalidContractWhitelist,
         )
         .unwrap_or_default();
 
     for contract_hash in new_contract_whitelist.iter() {
-        new_acl_whitelist.push(Key::from(*contract_hash));
+        new_acl_whitelist.push(Key::contract_entity_key(*contract_hash));
     }
 
     if !new_acl_whitelist.is_empty() {
@@ -659,9 +657,10 @@ pub extern "C" fn mint() {
     let (caller, contract_package): (Key, Option<Key>) =
         match utils::get_verified_caller().unwrap_or_revert() {
             Caller::Session(account_hash) => (account_hash.into(), None),
-            Caller::StoredCaller(contract_hash, contract_package_hash) => {
-                (contract_hash.into(), Some(contract_package_hash.into()))
-            }
+            Caller::StoredCaller(contract_hash, contract_package_hash) => (
+                Key::contract_entity_key(contract_hash),
+                Some(contract_package_hash.into()),
+            ),
         };
 
     // Revert if minting is private and caller is not installer.
@@ -702,13 +701,26 @@ pub extern "C" fn mint() {
             .unwrap_or_default(),
         };
 
-        match caller.tag() {
-            KeyTag::Hash => {
+        match caller {
+            Key::AddressableEntity(package_kind, _) => match package_kind {
+                PackageKindTag::Account => {
+                    if !is_whitelisted {
+                        runtime::revert(NFTCoreError::InvalidMinter);
+                    }
+                }
+                PackageKindTag::SmartContract => {
+                    if !is_whitelisted {
+                        runtime::revert(NFTCoreError::UnlistedContractHash)
+                    }
+                }
+                _ => runtime::revert(NFTCoreError::InvalidKey),
+            },
+            Key::Hash(_) => {
                 if !is_whitelisted {
                     runtime::revert(NFTCoreError::UnlistedContractHash)
                 }
             }
-            KeyTag::Account => {
+            Key::Account(_) => {
                 if !is_whitelisted {
                     runtime::revert(NFTCoreError::InvalidMinter);
                 }
@@ -882,9 +894,10 @@ pub extern "C" fn burn() {
     let (caller, contract_package): (Key, Option<Key>) =
         match utils::get_verified_caller().unwrap_or_revert() {
             Caller::Session(account_hash) => (account_hash.into(), None),
-            Caller::StoredCaller(contract_hash, contract_package_hash) => {
-                (contract_hash.into(), Some(contract_package_hash.into()))
-            }
+            Caller::StoredCaller(contract_hash, contract_package_hash) => (
+                Key::contract_entity_key(contract_hash),
+                Some(contract_package_hash.into()),
+            ),
         };
 
     let token_owner = match utils::get_dictionary_value_from_key::<Key>(
@@ -1004,9 +1017,10 @@ pub extern "C" fn approve() {
     let (caller, contract_package): (Key, Option<Key>) =
         match utils::get_verified_caller().unwrap_or_revert() {
             Caller::Session(account_hash) => (account_hash.into(), None),
-            Caller::StoredCaller(contract_hash, contract_package_hash) => {
-                (contract_hash.into(), Some(contract_package_hash.into()))
-            }
+            Caller::StoredCaller(contract_hash, contract_package_hash) => (
+                Key::contract_entity_key(contract_hash),
+                Some(contract_package_hash.into()),
+            ),
         };
 
     let identifier_mode: NFTIdentifierMode = utils::get_stored_value_with_user_errors::<u8>(
@@ -1140,9 +1154,10 @@ pub extern "C" fn revoke() {
     let (caller, contract_package): (Key, Option<Key>) =
         match utils::get_verified_caller().unwrap_or_revert() {
             Caller::Session(account_hash) => (account_hash.into(), None),
-            Caller::StoredCaller(contract_hash, contract_package_hash) => {
-                (contract_hash.into(), Some(contract_package_hash.into()))
-            }
+            Caller::StoredCaller(contract_hash, contract_package_hash) => (
+                Key::contract_entity_key(contract_hash),
+                Some(contract_package_hash.into()),
+            ),
         };
 
     let identifier_mode: NFTIdentifierMode = utils::get_stored_value_with_user_errors::<u8>(
@@ -1264,7 +1279,7 @@ pub extern "C" fn set_approval_for_all() {
 
     let caller: Key = match utils::get_verified_caller().unwrap_or_revert() {
         Caller::Session(account_hash) => account_hash.into(),
-        Caller::StoredCaller(contract_hash, _) => contract_hash.into(),
+        Caller::StoredCaller(contract_hash, _) => Key::contract_entity_key(contract_hash),
     };
 
     let operator = utils::get_named_arg_with_user_errors::<Key>(
@@ -1395,9 +1410,10 @@ pub extern "C" fn transfer() {
     let (caller, contract_package): (Key, Option<Key>) =
         match utils::get_verified_caller().unwrap_or_revert() {
             Caller::Session(account_hash) => (account_hash.into(), None),
-            Caller::StoredCaller(contract_hash, contract_package_hash) => {
-                (contract_hash.into(), Some(contract_package_hash.into()))
-            }
+            Caller::StoredCaller(contract_hash, contract_package_hash) => (
+                Key::contract_entity_key(contract_hash),
+                Some(contract_package_hash.into()),
+            ),
         };
 
     // Check if caller is owner
@@ -1794,7 +1810,7 @@ pub extern "C" fn set_token_metadata() {
     if let Some(token_owner_key) = token_owner {
         let caller: Key = match utils::get_verified_caller().unwrap_or_revert() {
             Caller::Session(account_hash) => account_hash.into(),
-            Caller::StoredCaller(contract_hash, _) => contract_hash.into(),
+            Caller::StoredCaller(contract_hash, _) => Key::contract_entity_key(contract_hash),
         };
         if caller != token_owner_key {
             runtime::revert(NFTCoreError::InvalidTokenOwner)
@@ -1926,7 +1942,7 @@ fn do_migration() {
     );
 
     let new_contract_package_hash_representation =
-        runtime::get_named_arg::<ContractPackageHash>(ARG_NFT_PACKAGE_KEY);
+        runtime::get_named_arg::<PackageHash>(ARG_NFT_PACKAGE_KEY);
 
     let receipt_uref = utils::get_uref(
         RECEIPT_NAME,
@@ -2082,7 +2098,7 @@ pub extern "C" fn updated_receipts() {
     if let OwnerReverseLookupMode::Complete = utils::get_reporting_mode() {
         let caller: Key = match utils::get_verified_caller().unwrap_or_revert() {
             Caller::Session(account_hash) => account_hash.into(),
-            Caller::StoredCaller(contract_hash, _) => contract_hash.into(),
+            Caller::StoredCaller(contract_hash, _) => Key::contract_entity_key(contract_hash),
         };
 
         let identifier_mode: NFTIdentifierMode = utils::get_stored_value_with_user_errors::<u8>(
@@ -2136,7 +2152,7 @@ pub extern "C" fn register_owner() {
         let owner_key = match utils::get_ownership_mode().unwrap_or_revert() {
             OwnershipMode::Minter => match utils::get_verified_caller().unwrap_or_revert() {
                 Caller::Session(account_hash) => account_hash.into(),
-                Caller::StoredCaller(contract_hash, _) => contract_hash.into(),
+                Caller::StoredCaller(contract_hash, _) => Key::contract_entity_key(contract_hash),
             },
             OwnershipMode::Assigned | OwnershipMode::Transferable => {
                 utils::get_named_arg_with_user_errors::<Key>(
@@ -2224,7 +2240,7 @@ fn generate_entry_points() -> EntryPoints {
         ],
         CLType::Unit,
         EntryPointAccess::Public,
-        EntryPointType::Contract,
+        EntryPointType::AddressableEntity,
     );
 
     // This entrypoint exposes all variables that can be changed by managing account post
@@ -2252,7 +2268,7 @@ fn generate_entry_points() -> EntryPoints {
         ],
         CLType::Unit,
         EntryPointAccess::Public,
-        EntryPointType::Contract,
+        EntryPointType::AddressableEntity,
     );
 
     // This entrypoint mints a new token with provided metadata.
@@ -2281,7 +2297,7 @@ fn generate_entry_points() -> EntryPoints {
             Box::new(CLType::String),
         ]),
         EntryPointAccess::Public,
-        EntryPointType::Contract,
+        EntryPointType::AddressableEntity,
     );
 
     // This entrypoint burns the token with provided token_id argument, after which it is no
@@ -2295,7 +2311,7 @@ fn generate_entry_points() -> EntryPoints {
         vec![],
         CLType::Unit,
         EntryPointAccess::Public,
-        EntryPointType::Contract,
+        EntryPointType::AddressableEntity,
     );
 
     // This entrypoint transfers ownership of token from one account to another.
@@ -2310,7 +2326,7 @@ fn generate_entry_points() -> EntryPoints {
         ],
         CLType::Tuple2([Box::new(CLType::String), Box::new(CLType::Key)]),
         EntryPointAccess::Public,
-        EntryPointType::Contract,
+        EntryPointType::AddressableEntity,
     );
 
     // This entrypoint approves another token holder (an approved account) to transfer tokens. It
@@ -2321,7 +2337,7 @@ fn generate_entry_points() -> EntryPoints {
         vec![Parameter::new(ARG_SPENDER, CLType::Key)],
         CLType::Unit,
         EntryPointAccess::Public,
-        EntryPointType::Contract,
+        EntryPointType::AddressableEntity,
     );
 
     // This entrypoint revokes an approved account to transfer tokens. It reverts
@@ -2332,7 +2348,7 @@ fn generate_entry_points() -> EntryPoints {
         vec![],
         CLType::Unit,
         EntryPointAccess::Public,
-        EntryPointType::Contract,
+        EntryPointType::AddressableEntity,
     );
 
     // This entrypoint approves all tokens owned by the caller and future to another token holder
@@ -2346,7 +2362,7 @@ fn generate_entry_points() -> EntryPoints {
         ],
         CLType::Unit,
         EntryPointAccess::Public,
-        EntryPointType::Contract,
+        EntryPointType::AddressableEntity,
     );
 
     // This entrypoint returns if an account is operator for a token owner
@@ -2358,7 +2374,7 @@ fn generate_entry_points() -> EntryPoints {
         ],
         CLType::Bool,
         EntryPointAccess::Public,
-        EntryPointType::Contract,
+        EntryPointType::AddressableEntity,
     );
 
     // This entrypoint returns the token owner given a token_id. It reverts if token_id
@@ -2368,7 +2384,7 @@ fn generate_entry_points() -> EntryPoints {
         vec![], // <- either HASH or INDEX
         CLType::Key,
         EntryPointAccess::Public,
-        EntryPointType::Contract,
+        EntryPointType::AddressableEntity,
     );
 
     // This entrypoint returns the approved account (if any) associated with the provided token_id
@@ -2378,7 +2394,7 @@ fn generate_entry_points() -> EntryPoints {
         vec![], // <- either HASH or INDEX
         CLType::Option(Box::new(CLType::Key)),
         EntryPointAccess::Public,
-        EntryPointType::Contract,
+        EntryPointType::AddressableEntity,
     );
 
     // This entrypoint returns number of owned tokens associated with the provided token holder
@@ -2387,7 +2403,7 @@ fn generate_entry_points() -> EntryPoints {
         vec![Parameter::new(ARG_TOKEN_OWNER, CLType::Key)],
         CLType::U64,
         EntryPointAccess::Public,
-        EntryPointType::Contract,
+        EntryPointType::AddressableEntity,
     );
 
     // This entrypoint returns the metadata associated with the provided token_id
@@ -2396,7 +2412,7 @@ fn generate_entry_points() -> EntryPoints {
         vec![], // <- either HASH or INDEX
         CLType::String,
         EntryPointAccess::Public,
-        EntryPointType::Contract,
+        EntryPointType::AddressableEntity,
     );
 
     // This entrypoint updates the metadata if valid.
@@ -2405,7 +2421,7 @@ fn generate_entry_points() -> EntryPoints {
         vec![Parameter::new(ARG_TOKEN_META_DATA, CLType::String)],
         CLType::Unit,
         EntryPointAccess::Public,
-        EntryPointType::Contract,
+        EntryPointType::AddressableEntity,
     );
 
     // This entrypoint will upgrade the contract from the 1_0 version to the
@@ -2418,7 +2434,7 @@ fn generate_entry_points() -> EntryPoints {
         vec![Parameter::new(ARG_NFT_PACKAGE_KEY, CLType::Any)],
         CLType::Unit,
         EntryPointAccess::Public,
-        EntryPointType::Contract,
+        EntryPointType::AddressableEntity,
     );
 
     // This entrypoint will allow NFT owners to update their receipts from
@@ -2433,7 +2449,7 @@ fn generate_entry_points() -> EntryPoints {
             Box::new(CLType::Key),
         ]))),
         EntryPointAccess::Public,
-        EntryPointType::Contract,
+        EntryPointType::AddressableEntity,
     );
 
     // This entrypoint allows users to register with a give CEP-78 instance,
@@ -2447,7 +2463,7 @@ fn generate_entry_points() -> EntryPoints {
         vec![],
         CLType::Tuple2([Box::new(CLType::String), Box::new(CLType::URef)]),
         EntryPointAccess::Public,
-        EntryPointType::Contract,
+        EntryPointType::AddressableEntity,
     );
 
     entry_points.add_entry_point(init_contract);
@@ -2572,11 +2588,12 @@ fn install_contract() {
     // NFTs in the contract holder mode with restricted minting.
     // This value can only be modified if the whitelist lock is
     // set to be unlocked.
-    let contract_white_list: Vec<ContractHash> = utils::get_optional_named_arg_with_user_errors(
-        ARG_CONTRACT_WHITELIST,
-        NFTCoreError::InvalidContractWhitelist,
-    )
-    .unwrap_or_default();
+    let contract_white_list: Vec<AddressableEntityHash> =
+        utils::get_optional_named_arg_with_user_errors(
+            ARG_CONTRACT_WHITELIST,
+            NFTCoreError::InvalidContractWhitelist,
+        )
+        .unwrap_or_default();
 
     let mut acl_white_list: Vec<Key> = utils::get_optional_named_arg_with_user_errors(
         ARG_ACL_WHITELIST,
@@ -2585,7 +2602,7 @@ fn install_contract() {
     .unwrap_or_default();
 
     for contract_hash in contract_white_list.iter() {
-        acl_white_list.push(Key::from(*contract_hash));
+        acl_white_list.push(Key::contract_entity_key(*contract_hash));
     }
 
     let acl_package_mode: bool = utils::get_optional_named_arg_with_user_errors(
@@ -2713,17 +2730,16 @@ fn install_contract() {
     // Store contract_hash and contract_version under the keys CONTRACT_NAME and CONTRACT_VERSION
     runtime::put_key(
         &format!("{PREFIX_CONTRACT_NAME}_{collection_name}"),
-        contract_hash.into(),
+        Key::contract_entity_key(contract_hash),
     );
     runtime::put_key(
         &format!("{PREFIX_CONTRACT_VERSION}_{collection_name}"),
         storage::new_uref(contract_version).into(),
     );
 
-    let nft_contract_package_hash: ContractPackageHash = runtime::get_key(&hash_key_name)
+    let nft_contract_package_hash: PackageHash = runtime::get_key(&hash_key_name)
         .unwrap_or_revert()
-        .into_hash()
-        .map(ContractPackageHash::new)
+        .into_package_hash()
         .unwrap();
 
     let events_mode: u8 = utils::get_optional_named_arg_with_user_errors(
@@ -2774,8 +2790,7 @@ fn install_contract() {
 fn migrate_contract(access_key_name: String, package_key_name: String) {
     let nft_contract_package_hash = runtime::get_key(&package_key_name)
         .unwrap_or_revert()
-        .into_hash()
-        .map(ContractPackageHash::new)
+        .into_package_hash()
         .unwrap_or_revert_with(NFTCoreError::MissingPackageHashForUpgrade);
 
     let collection_name: String = utils::get_named_arg_with_user_errors(
@@ -2806,7 +2821,7 @@ fn migrate_contract(access_key_name: String, package_key_name: String) {
     // Store contract_hash and contract_version under the keys CONTRACT_NAME and CONTRACT_VERSION
     runtime::put_key(
         &format!("{PREFIX_CONTRACT_NAME}_{collection_name}"),
-        contract_hash.into(),
+        Key::contract_entity_key(contract_hash),
     );
     runtime::put_key(
         &format!("{PREFIX_CONTRACT_VERSION}_{collection_name}"),

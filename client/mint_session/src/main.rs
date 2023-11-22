@@ -9,7 +9,7 @@ extern crate alloc;
 use alloc::{format, string::String};
 
 use casper_contract::contract_api::runtime;
-use casper_types::{runtime_args, ContractHash, Key, RuntimeArgs, URef};
+use casper_types::{runtime_args, AddressableEntityHash, Key, URef};
 
 const ENTRY_POINT_MINT: &str = "mint";
 const ENTRY_POINT_REGISTER_OWNER: &str = "register_owner";
@@ -22,10 +22,10 @@ pub const PREFIX_CEP78: &str = "cep78";
 
 #[no_mangle]
 pub extern "C" fn call() {
-    let nft_contract_hash: ContractHash = runtime::get_named_arg::<Key>(ARG_NFT_CONTRACT_HASH)
-        .into_hash()
-        .map(ContractHash::new)
-        .unwrap();
+    let nft_contract_hash: AddressableEntityHash =
+        runtime::get_named_arg::<Key>(ARG_NFT_CONTRACT_HASH)
+            .into_entity_hash()
+            .unwrap();
 
     let token_owner = runtime::get_named_arg::<Key>(ARG_TOKEN_OWNER);
     let token_metadata: String = runtime::get_named_arg(ARG_TOKEN_META_DATA);

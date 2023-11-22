@@ -1,11 +1,11 @@
 use casper_engine_test_support::{
-    ExecuteRequestBuilder, InMemoryWasmTestBuilder, WasmTestBuilder, DEFAULT_ACCOUNT_ADDR,
+    ExecuteRequestBuilder, LmdbWasmTestBuilder, WasmTestBuilder, DEFAULT_ACCOUNT_ADDR,
     DEFAULT_ACCOUNT_PUBLIC_KEY, MINIMUM_ACCOUNT_CREATION_BALANCE, PRODUCTION_RUN_GENESIS_REQUEST,
 };
-use casper_execution_engine::storage::global_state::in_memory::InMemoryGlobalState;
-use casper_types::{
-    account::AccountHash, runtime_args, Key, PublicKey, RuntimeArgs, SecretKey, U512,
+use casper_storage::{
+    data_access_layer::DataAccessLayer, global_state::state::lmdb::LmdbGlobalState,
 };
+use casper_types::{account::AccountHash, runtime_args, Key, PublicKey, SecretKey, U512};
 use contract::{
     constants::{
         ACL_WHITELIST, APPROVED, ARG_APPROVE_ALL, ARG_COLLECTION_NAME, ARG_OPERATOR,
@@ -39,7 +39,7 @@ use crate::utility::{
 
 #[test]
 fn should_dissallow_transfer_with_minter_or_assigned_ownership_mode() {
-    let mut builder = InMemoryWasmTestBuilder::default();
+    let mut builder = LmdbWasmTestBuilder::default();
     builder
         .run_genesis(&PRODUCTION_RUN_GENESIS_REQUEST)
         .commit();
@@ -57,7 +57,7 @@ fn should_dissallow_transfer_with_minter_or_assigned_ownership_mode() {
 
     let token_owner = *DEFAULT_ACCOUNT_ADDR;
     let nft_contract_hash = get_nft_contract_hash(&builder);
-    let nft_contract_key: Key = get_nft_contract_hash(&builder).into();
+    let nft_contract_key: Key = Key::contract_entity_key(nft_contract_hash);
 
     let mint_session_call = ExecuteRequestBuilder::standard(
         *DEFAULT_ACCOUNT_ADDR,
@@ -123,7 +123,7 @@ fn should_dissallow_transfer_with_minter_or_assigned_ownership_mode() {
 
 #[test]
 fn should_transfer_token_from_sender_to_receiver() {
-    let mut builder = InMemoryWasmTestBuilder::default();
+    let mut builder = LmdbWasmTestBuilder::default();
     builder
         .run_genesis(&PRODUCTION_RUN_GENESIS_REQUEST)
         .commit();
@@ -141,7 +141,7 @@ fn should_transfer_token_from_sender_to_receiver() {
     let token_owner_key = Key::Account(*DEFAULT_ACCOUNT_ADDR);
 
     let nft_contract_hash = get_nft_contract_hash(&builder);
-    let nft_contract_key: Key = nft_contract_hash.into();
+    let nft_contract_key: Key = Key::contract_entity_key(nft_contract_hash);
 
     let mint_session_call = ExecuteRequestBuilder::standard(
         *DEFAULT_ACCOUNT_ADDR,
@@ -158,7 +158,7 @@ fn should_transfer_token_from_sender_to_receiver() {
     builder.exec(mint_session_call).expect_success().commit();
 
     let nft_contract_hash = get_nft_contract_hash(&builder);
-    let nft_contract_key: Key = nft_contract_hash.into();
+    let nft_contract_key: Key = Key::contract_entity_key(nft_contract_hash);
 
     let actual_owner_balance: u64 = support::get_dictionary_value_from_key(
         &builder,
@@ -247,7 +247,7 @@ fn should_transfer_token_from_sender_to_receiver() {
 }
 
 fn approve_token_for_transfer_should_add_entry_to_approved_dictionary(
-    mut builder: WasmTestBuilder<InMemoryGlobalState>,
+    mut builder: WasmTestBuilder<DataAccessLayer<LmdbGlobalState>>,
     operator: Option<AccountHash>,
 ) {
     let install_request = InstallerRequestBuilder::new(*DEFAULT_ACCOUNT_ADDR, NFT_CONTRACT_WASM)
@@ -260,7 +260,7 @@ fn approve_token_for_transfer_should_add_entry_to_approved_dictionary(
     builder.exec(install_request).expect_success().commit();
 
     let nft_contract_hash = get_nft_contract_hash(&builder);
-    let nft_contract_key: Key = nft_contract_hash.into();
+    let nft_contract_key: Key = Key::contract_entity_key(nft_contract_hash);
     let owner_key = Key::Account(*DEFAULT_ACCOUNT_ADDR);
 
     let mint_session_call = ExecuteRequestBuilder::standard(
@@ -313,7 +313,7 @@ fn approve_token_for_transfer_should_add_entry_to_approved_dictionary(
     builder.exec(approve_request).expect_success().commit();
 
     let nft_contract_hash = get_nft_contract_hash(&builder);
-    let nft_contract_key: Key = nft_contract_hash.into();
+    let nft_contract_key: Key = Key::contract_entity_key(nft_contract_hash);
 
     let actual_approved_key: Option<Key> = support::get_dictionary_value_from_key(
         &builder,
@@ -334,7 +334,7 @@ fn approve_token_for_transfer_should_add_entry_to_approved_dictionary(
 
 #[test]
 fn approve_token_for_transfer_from_an_account_should_add_entry_to_approved_dictionary() {
-    let mut builder = InMemoryWasmTestBuilder::default();
+    let mut builder = LmdbWasmTestBuilder::default();
     builder
         .run_genesis(&PRODUCTION_RUN_GENESIS_REQUEST)
         .commit();
@@ -343,7 +343,7 @@ fn approve_token_for_transfer_from_an_account_should_add_entry_to_approved_dicti
 
 #[test]
 fn approve_token_for_transfer_from_an_operator_should_add_entry_to_approved_dictionary() {
-    let mut builder = InMemoryWasmTestBuilder::default();
+    let mut builder = LmdbWasmTestBuilder::default();
     builder
         .run_genesis(&PRODUCTION_RUN_GENESIS_REQUEST)
         .commit();
@@ -352,7 +352,7 @@ fn approve_token_for_transfer_from_an_operator_should_add_entry_to_approved_dict
 }
 
 fn revoke_token_for_transfer_should_remove_entry_to_approved_dictionary(
-    mut builder: WasmTestBuilder<InMemoryGlobalState>,
+    mut builder: WasmTestBuilder<DataAccessLayer<LmdbGlobalState>>,
     operator: Option<AccountHash>,
 ) {
     let install_request = InstallerRequestBuilder::new(*DEFAULT_ACCOUNT_ADDR, NFT_CONTRACT_WASM)
@@ -365,7 +365,7 @@ fn revoke_token_for_transfer_should_remove_entry_to_approved_dictionary(
     builder.exec(install_request).expect_success().commit();
 
     let nft_contract_hash = get_nft_contract_hash(&builder);
-    let nft_contract_key: Key = nft_contract_hash.into();
+    let nft_contract_key: Key = Key::contract_entity_key(nft_contract_hash);
     let owner_key = Key::Account(*DEFAULT_ACCOUNT_ADDR);
 
     let mint_session_call = ExecuteRequestBuilder::standard(
@@ -417,7 +417,7 @@ fn revoke_token_for_transfer_should_remove_entry_to_approved_dictionary(
     .build();
     builder.exec(approve_request).expect_success().commit();
 
-    let nft_contract_key: Key = nft_contract_hash.into();
+    let nft_contract_key: Key = Key::contract_entity_key(nft_contract_hash);
 
     let actual_approved_key: Option<Key> = support::get_dictionary_value_from_key(
         &builder,
@@ -461,7 +461,7 @@ fn revoke_token_for_transfer_should_remove_entry_to_approved_dictionary(
 
 #[test]
 fn revoke_token_for_transfer_from_account_should_remove_entry_to_approved_dictionary() {
-    let mut builder = InMemoryWasmTestBuilder::default();
+    let mut builder = LmdbWasmTestBuilder::default();
     builder
         .run_genesis(&PRODUCTION_RUN_GENESIS_REQUEST)
         .commit();
@@ -470,7 +470,7 @@ fn revoke_token_for_transfer_from_account_should_remove_entry_to_approved_dictio
 
 #[test]
 fn revoke_token_for_transfer_from_operator_should_remove_entry_to_approved_dictionary() {
-    let mut builder = InMemoryWasmTestBuilder::default();
+    let mut builder = LmdbWasmTestBuilder::default();
     builder
         .run_genesis(&PRODUCTION_RUN_GENESIS_REQUEST)
         .commit();
@@ -480,7 +480,7 @@ fn revoke_token_for_transfer_from_operator_should_remove_entry_to_approved_dicti
 
 #[test]
 fn should_dissallow_approving_when_ownership_mode_is_minter_or_assigned() {
-    let mut builder = InMemoryWasmTestBuilder::default();
+    let mut builder = LmdbWasmTestBuilder::default();
     builder
         .run_genesis(&PRODUCTION_RUN_GENESIS_REQUEST)
         .commit();
@@ -495,7 +495,7 @@ fn should_dissallow_approving_when_ownership_mode_is_minter_or_assigned() {
     builder.exec(install_request).expect_success().commit();
 
     let nft_contract_hash = get_nft_contract_hash(&builder);
-    let nft_contract_key: Key = nft_contract_hash.into();
+    let nft_contract_key: Key = Key::contract_entity_key(nft_contract_hash);
 
     let mint_session_call = ExecuteRequestBuilder::standard(
         *DEFAULT_ACCOUNT_ADDR,
@@ -536,7 +536,7 @@ fn should_dissallow_approving_when_ownership_mode_is_minter_or_assigned() {
 }
 
 fn should_be_able_to_transfer_token(
-    mut builder: WasmTestBuilder<InMemoryGlobalState>,
+    mut builder: WasmTestBuilder<DataAccessLayer<LmdbGlobalState>>,
     operator: Option<AccountHash>,
 ) {
     let install_request = InstallerRequestBuilder::new(*DEFAULT_ACCOUNT_ADDR, NFT_CONTRACT_WASM)
@@ -550,7 +550,7 @@ fn should_be_able_to_transfer_token(
 
     // mint token for DEFAULT_ACCOUNT_ADDR
     let nft_contract_hash = get_nft_contract_hash(&builder);
-    let nft_contract_key: Key = nft_contract_hash.into();
+    let nft_contract_key: Key = Key::contract_entity_key(nft_contract_hash);
     let mint_session_call = ExecuteRequestBuilder::standard(
         *DEFAULT_ACCOUNT_ADDR,
         MINT_SESSION_WASM,
@@ -603,7 +603,7 @@ fn should_be_able_to_transfer_token(
     builder.exec(approve_request).expect_success().commit();
 
     let nft_contract_hash = get_nft_contract_hash(&builder);
-    let nft_contract_key: Key = nft_contract_hash.into();
+    let nft_contract_key: Key = Key::contract_entity_key(nft_contract_hash);
 
     let actual_approved_account: Option<Key> =
         get_dictionary_value_from_key(&builder, &nft_contract_key, APPROVED, &token_id.to_string());
@@ -657,7 +657,7 @@ fn should_be_able_to_transfer_token(
 
 #[test]
 fn should_be_able_to_transfer_token_using_approved_account() {
-    let mut builder = InMemoryWasmTestBuilder::default();
+    let mut builder = LmdbWasmTestBuilder::default();
     builder
         .run_genesis(&PRODUCTION_RUN_GENESIS_REQUEST)
         .commit();
@@ -666,7 +666,7 @@ fn should_be_able_to_transfer_token_using_approved_account() {
 
 #[test]
 fn should_be_able_to_transfer_token_using_operator() {
-    let mut builder = InMemoryWasmTestBuilder::default();
+    let mut builder = LmdbWasmTestBuilder::default();
     builder
         .run_genesis(&PRODUCTION_RUN_GENESIS_REQUEST)
         .commit();
@@ -676,7 +676,7 @@ fn should_be_able_to_transfer_token_using_operator() {
 
 #[test]
 fn should_dissallow_same_approved_account_to_transfer_token_twice() {
-    let mut builder = InMemoryWasmTestBuilder::default();
+    let mut builder = LmdbWasmTestBuilder::default();
     builder
         .run_genesis(&PRODUCTION_RUN_GENESIS_REQUEST)
         .commit();
@@ -691,7 +691,7 @@ fn should_dissallow_same_approved_account_to_transfer_token_twice() {
     builder.exec(install_request).expect_success().commit();
 
     let nft_contract_hash = get_nft_contract_hash(&builder);
-    let nft_contract_key: Key = nft_contract_hash.into();
+    let nft_contract_key: Key = Key::contract_entity_key(nft_contract_hash);
 
     // mint token for DEFAULT_ACCOUNT_ADDR
     let mint_session_call = ExecuteRequestBuilder::standard(
@@ -727,7 +727,7 @@ fn should_dissallow_same_approved_account_to_transfer_token_twice() {
     builder.exec(approve_request).expect_success().commit();
 
     let nft_contract_hash = get_nft_contract_hash(&builder);
-    let nft_contract_key: Key = nft_contract_hash.into();
+    let nft_contract_key: Key = Key::contract_entity_key(nft_contract_hash);
 
     let actual_approved_account: Option<Key> =
         get_dictionary_value_from_key(&builder, &nft_contract_key, APPROVED, &token_id.to_string());
@@ -807,7 +807,7 @@ fn should_dissallow_same_approved_account_to_transfer_token_twice() {
 }
 
 fn should_disallow_to_transfer_token_using_revoked_hash(
-    mut builder: WasmTestBuilder<InMemoryGlobalState>,
+    mut builder: WasmTestBuilder<DataAccessLayer<LmdbGlobalState>>,
     operator: Option<AccountHash>,
 ) {
     let install_request = InstallerRequestBuilder::new(*DEFAULT_ACCOUNT_ADDR, NFT_CONTRACT_WASM)
@@ -821,7 +821,7 @@ fn should_disallow_to_transfer_token_using_revoked_hash(
 
     // mint token for DEFAULT_ACCOUNT_ADDR
     let nft_contract_hash = get_nft_contract_hash(&builder);
-    let nft_contract_key: Key = nft_contract_hash.into();
+    let nft_contract_key: Key = Key::contract_entity_key(nft_contract_hash);
     let mint_session_call = ExecuteRequestBuilder::standard(
         *DEFAULT_ACCOUNT_ADDR,
         MINT_SESSION_WASM,
@@ -874,7 +874,7 @@ fn should_disallow_to_transfer_token_using_revoked_hash(
     builder.exec(approve_request).expect_success().commit();
 
     let nft_contract_hash = get_nft_contract_hash(&builder);
-    let nft_contract_key: Key = nft_contract_hash.into();
+    let nft_contract_key: Key = Key::contract_entity_key(nft_contract_hash);
 
     let actual_approved_account: Option<Key> =
         get_dictionary_value_from_key(&builder, &nft_contract_key, APPROVED, &token_id.to_string());
@@ -949,7 +949,7 @@ fn should_disallow_to_transfer_token_using_revoked_hash(
 
 #[test]
 fn should_disallow_to_transfer_token_using_revoked_account() {
-    let mut builder = InMemoryWasmTestBuilder::default();
+    let mut builder = LmdbWasmTestBuilder::default();
     builder
         .run_genesis(&PRODUCTION_RUN_GENESIS_REQUEST)
         .commit();
@@ -958,7 +958,7 @@ fn should_disallow_to_transfer_token_using_revoked_account() {
 
 #[test]
 fn should_disallow_to_transfer_token_using_revoked_operator() {
-    let mut builder = InMemoryWasmTestBuilder::default();
+    let mut builder = LmdbWasmTestBuilder::default();
     builder
         .run_genesis(&PRODUCTION_RUN_GENESIS_REQUEST)
         .commit();
@@ -970,7 +970,7 @@ fn should_disallow_to_transfer_token_using_revoked_operator() {
 // deprecated argument (now "spender")
 #[test]
 fn should_be_able_to_approve_with_deprecated_operator_argument() {
-    let mut builder = InMemoryWasmTestBuilder::default();
+    let mut builder = LmdbWasmTestBuilder::default();
     builder
         .run_genesis(&PRODUCTION_RUN_GENESIS_REQUEST)
         .commit();
@@ -986,7 +986,7 @@ fn should_be_able_to_approve_with_deprecated_operator_argument() {
 
     // mint token for DEFAULT_ACCOUNT_ADDR
     let nft_contract_hash = get_nft_contract_hash(&builder);
-    let nft_contract_key: Key = nft_contract_hash.into();
+    let nft_contract_key: Key = Key::contract_entity_key(nft_contract_hash);
     let mint_session_call = ExecuteRequestBuilder::standard(
         *DEFAULT_ACCOUNT_ADDR,
         MINT_SESSION_WASM,
@@ -1019,7 +1019,7 @@ fn should_be_able_to_approve_with_deprecated_operator_argument() {
     .build();
     builder.exec(approve_request).expect_success().commit();
 
-    let nft_contract_key: Key = get_nft_contract_hash(&builder).into();
+    let nft_contract_key: Key = Key::contract_entity_key(get_nft_contract_hash(&builder));
     let actual_approved_account: Option<Key> =
         get_dictionary_value_from_key(&builder, &nft_contract_key, APPROVED, &token_id.to_string());
 
@@ -1032,7 +1032,7 @@ fn should_be_able_to_approve_with_deprecated_operator_argument() {
 
 #[test]
 fn should_transfer_between_contract_to_account() {
-    let mut builder = InMemoryWasmTestBuilder::default();
+    let mut builder = LmdbWasmTestBuilder::default();
     builder
         .run_genesis(&PRODUCTION_RUN_GENESIS_REQUEST)
         .commit();
@@ -1050,9 +1050,9 @@ fn should_transfer_between_contract_to_account() {
         .commit();
 
     let minting_contract_hash = get_minting_contract_hash(&builder);
-    let minting_contract_key: Key = minting_contract_hash.into();
+    let minting_contract_key: Key = Key::contract_entity_key(minting_contract_hash);
 
-    let contract_whitelist = vec![Key::from(minting_contract_hash)];
+    let contract_whitelist = vec![minting_contract_key];
 
     let install_request = InstallerRequestBuilder::new(*DEFAULT_ACCOUNT_ADDR, NFT_CONTRACT_WASM)
         .with_total_token_supply(100u64)
@@ -1066,7 +1066,7 @@ fn should_transfer_between_contract_to_account() {
     builder.exec(install_request).expect_success().commit();
 
     let nft_contract_hash = get_nft_contract_hash(&builder);
-    let nft_contract_key: Key = nft_contract_hash.into();
+    let nft_contract_key: Key = Key::contract_entity_key(nft_contract_hash);
 
     let is_whitelisted_account = support::get_dictionary_value_from_key::<bool>(
         &builder,
@@ -1151,7 +1151,7 @@ fn should_prevent_transfer_when_caller_is_not_owner() {
     const ARG_ID: &str = "id";
     const ID_NONE: Option<u64> = None;
 
-    let mut builder = InMemoryWasmTestBuilder::default();
+    let mut builder = LmdbWasmTestBuilder::default();
     builder
         .run_genesis(&PRODUCTION_RUN_GENESIS_REQUEST)
         .commit();
@@ -1187,7 +1187,7 @@ fn should_prevent_transfer_when_caller_is_not_owner() {
 
     let nft_contract_hash = get_nft_contract_hash(&builder);
 
-    let nft_contract_key: Key = nft_contract_hash.into();
+    let nft_contract_key: Key = Key::contract_entity_key(nft_contract_hash);
 
     let mint_session_call = ExecuteRequestBuilder::standard(
         *DEFAULT_ACCOUNT_ADDR,
@@ -1242,7 +1242,7 @@ fn should_prevent_transfer_when_caller_is_not_owner() {
 
 #[test]
 fn should_transfer_token_in_hash_identifier_mode() {
-    let mut builder = InMemoryWasmTestBuilder::default();
+    let mut builder = LmdbWasmTestBuilder::default();
     builder
         .run_genesis(&PRODUCTION_RUN_GENESIS_REQUEST)
         .commit();
@@ -1257,7 +1257,7 @@ fn should_transfer_token_in_hash_identifier_mode() {
     builder.exec(install_request).expect_success().commit();
 
     let nft_contract_hash = get_nft_contract_hash(&builder);
-    let nft_contract_key: Key = nft_contract_hash.into();
+    let nft_contract_key: Key = Key::contract_entity_key(nft_contract_hash);
 
     let mint_session_call = ExecuteRequestBuilder::standard(
         *DEFAULT_ACCOUNT_ADDR,
@@ -1306,7 +1306,7 @@ fn should_transfer_token_in_hash_identifier_mode() {
 
 #[test]
 fn should_not_allow_non_approved_contract_to_transfer() {
-    let mut builder = InMemoryWasmTestBuilder::default();
+    let mut builder = LmdbWasmTestBuilder::default();
     builder
         .run_genesis(&PRODUCTION_RUN_GENESIS_REQUEST)
         .commit();
@@ -1324,7 +1324,7 @@ fn should_not_allow_non_approved_contract_to_transfer() {
         .commit();
 
     let minting_contract_hash = get_minting_contract_hash(&builder);
-    let minting_contract_key: Key = minting_contract_hash.into();
+    let minting_contract_key: Key = Key::contract_entity_key(minting_contract_hash);
 
     let install_request = InstallerRequestBuilder::new(*DEFAULT_ACCOUNT_ADDR, NFT_CONTRACT_WASM)
         .with_total_token_supply(100u64)
@@ -1335,7 +1335,7 @@ fn should_not_allow_non_approved_contract_to_transfer() {
     builder.exec(install_request).expect_success().commit();
 
     let nft_contract_hash = get_nft_contract_hash(&builder);
-    let nft_contract_key: Key = nft_contract_hash.into();
+    let nft_contract_key: Key = Key::contract_entity_key(nft_contract_hash);
 
     let mint_session_call = ExecuteRequestBuilder::standard(
         *DEFAULT_ACCOUNT_ADDR,
@@ -1420,7 +1420,7 @@ fn should_not_allow_non_approved_contract_to_transfer() {
 
 #[test]
 fn transfer_should_correctly_track_page_table_entries() {
-    let mut builder = InMemoryWasmTestBuilder::default();
+    let mut builder = LmdbWasmTestBuilder::default();
     builder
         .run_genesis(&PRODUCTION_RUN_GENESIS_REQUEST)
         .commit();
@@ -1436,7 +1436,7 @@ fn transfer_should_correctly_track_page_table_entries() {
     builder.exec(install_request).expect_success().commit();
 
     let nft_contract_hash = get_nft_contract_hash(&builder);
-    let nft_contract_key: Key = nft_contract_hash.into();
+    let nft_contract_key: Key = Key::contract_entity_key(nft_contract_hash);
 
     let number_of_tokens_pre_migration = 20usize;
     for _ in 0..number_of_tokens_pre_migration {
@@ -1494,7 +1494,7 @@ fn transfer_should_correctly_track_page_table_entries() {
 
 #[test]
 fn should_prevent_transfer_to_unregistered_owner() {
-    let mut builder = InMemoryWasmTestBuilder::default();
+    let mut builder = LmdbWasmTestBuilder::default();
     builder
         .run_genesis(&PRODUCTION_RUN_GENESIS_REQUEST)
         .commit();
@@ -1511,7 +1511,7 @@ fn should_prevent_transfer_to_unregistered_owner() {
     builder.exec(install_request).expect_success().commit();
 
     let nft_contract_hash = get_nft_contract_hash(&builder);
-    let nft_contract_key: Key = nft_contract_hash.into();
+    let nft_contract_key: Key = Key::contract_entity_key(nft_contract_hash);
 
     let mint_session_call = ExecuteRequestBuilder::standard(
         *DEFAULT_ACCOUNT_ADDR,
@@ -1553,7 +1553,7 @@ fn should_prevent_transfer_to_unregistered_owner() {
 
 #[test]
 fn should_transfer_token_from_sender_to_receiver_with_transfer_only_reporting() {
-    let mut builder = InMemoryWasmTestBuilder::default();
+    let mut builder = LmdbWasmTestBuilder::default();
     builder
         .run_genesis(&PRODUCTION_RUN_GENESIS_REQUEST)
         .commit();
@@ -1571,7 +1571,7 @@ fn should_transfer_token_from_sender_to_receiver_with_transfer_only_reporting() 
     let token_owner = *DEFAULT_ACCOUNT_ADDR;
 
     let nft_contract_hash = get_nft_contract_hash(&builder);
-    let nft_contract_key: Key = nft_contract_hash.into();
+    let nft_contract_key: Key = Key::contract_entity_key(nft_contract_hash);
 
     let register_request = ExecuteRequestBuilder::contract_call_by_hash(
         *DEFAULT_ACCOUNT_ADDR,
@@ -1678,7 +1678,7 @@ fn should_transfer_token_from_sender_to_receiver_with_transfer_only_reporting() 
 
 #[test]
 fn disallow_owner_to_approve_itself() {
-    let mut builder = InMemoryWasmTestBuilder::default();
+    let mut builder = LmdbWasmTestBuilder::default();
     builder
         .run_genesis(&PRODUCTION_RUN_GENESIS_REQUEST)
         .commit();
@@ -1693,7 +1693,7 @@ fn disallow_owner_to_approve_itself() {
     builder.exec(install_request).expect_success().commit();
 
     let nft_contract_hash = get_nft_contract_hash(&builder);
-    let nft_contract_key: Key = nft_contract_hash.into();
+    let nft_contract_key: Key = Key::contract_entity_key(nft_contract_hash);
     let owner_key = Key::Account(*DEFAULT_ACCOUNT_ADDR);
 
     let mint_session_call = ExecuteRequestBuilder::standard(
@@ -1734,7 +1734,7 @@ fn disallow_owner_to_approve_itself() {
 
 #[test]
 fn disallow_operator_to_approve_itself() {
-    let mut builder = InMemoryWasmTestBuilder::default();
+    let mut builder = LmdbWasmTestBuilder::default();
     builder
         .run_genesis(&PRODUCTION_RUN_GENESIS_REQUEST)
         .commit();
@@ -1749,7 +1749,7 @@ fn disallow_operator_to_approve_itself() {
     builder.exec(install_request).expect_success().commit();
 
     let nft_contract_hash = get_nft_contract_hash(&builder);
-    let nft_contract_key: Key = nft_contract_hash.into();
+    let nft_contract_key: Key = Key::contract_entity_key(nft_contract_hash);
     let owner_key = Key::Account(*DEFAULT_ACCOUNT_ADDR);
 
     let mint_session_call = ExecuteRequestBuilder::standard(
@@ -1804,7 +1804,7 @@ fn disallow_operator_to_approve_itself() {
 
 #[test]
 fn disallow_owner_to_approve_for_all_itself() {
-    let mut builder = InMemoryWasmTestBuilder::default();
+    let mut builder = LmdbWasmTestBuilder::default();
     builder
         .run_genesis(&PRODUCTION_RUN_GENESIS_REQUEST)
         .commit();
@@ -1819,7 +1819,7 @@ fn disallow_owner_to_approve_for_all_itself() {
     builder.exec(install_request).expect_success().commit();
 
     let nft_contract_hash = get_nft_contract_hash(&builder);
-    let nft_contract_key: Key = nft_contract_hash.into();
+    let nft_contract_key: Key = Key::contract_entity_key(nft_contract_hash);
     let owner_key = Key::Account(*DEFAULT_ACCOUNT_ADDR);
 
     let mint_session_call = ExecuteRequestBuilder::standard(
@@ -1858,7 +1858,7 @@ fn disallow_owner_to_approve_for_all_itself() {
 
 #[test]
 fn check_transfers_with_transfer_filter_contract_modes() {
-    let mut builder = InMemoryWasmTestBuilder::default();
+    let mut builder = LmdbWasmTestBuilder::default();
     builder
         .run_genesis(&PRODUCTION_RUN_GENESIS_REQUEST)
         .commit();
@@ -1900,7 +1900,7 @@ fn check_transfers_with_transfer_filter_contract_modes() {
         .with_collection_symbol(NFT_TEST_SYMBOL.to_string())
         .with_total_token_supply(token_supply)
         .with_ownership_mode(OwnershipMode::Transferable)
-        .with_transfer_filter_contract(Key::from(transfer_filter_contract_hash))
+        .with_transfer_filter_contract(Key::contract_entity_key(transfer_filter_contract_hash))
         .build();
 
     builder.exec(install_request).expect_success().commit();
@@ -1908,7 +1908,7 @@ fn check_transfers_with_transfer_filter_contract_modes() {
     let token_owner_key = Key::Account(*DEFAULT_ACCOUNT_ADDR);
 
     let nft_contract_hash = get_nft_contract_hash(&builder);
-    let nft_contract_key: Key = nft_contract_hash.into();
+    let nft_contract_key: Key = Key::contract_entity_key(nft_contract_hash);
 
     for _i in 0..token_supply {
         let mint_session_call = ExecuteRequestBuilder::standard(
@@ -2035,7 +2035,7 @@ fn check_transfers_with_transfer_filter_contract_modes() {
 
 #[test]
 fn should_disallow_transfer_from_contract_with_package_operator_mode_without_operator() {
-    let mut builder = InMemoryWasmTestBuilder::default();
+    let mut builder = LmdbWasmTestBuilder::default();
     builder
         .run_genesis(&PRODUCTION_RUN_GENESIS_REQUEST)
         .commit();
@@ -2064,7 +2064,7 @@ fn should_disallow_transfer_from_contract_with_package_operator_mode_without_ope
     builder.exec(install_request).expect_success().commit();
 
     let nft_contract_hash = get_nft_contract_hash(&builder);
-    let nft_contract_key: Key = nft_contract_hash.into();
+    let nft_contract_key: Key = Key::contract_entity_key(nft_contract_hash);
 
     let mint_session_call = ExecuteRequestBuilder::standard(
         *DEFAULT_ACCOUNT_ADDR,
@@ -2125,7 +2125,7 @@ fn should_disallow_transfer_from_contract_with_package_operator_mode_without_ope
 
 #[test]
 fn should_disallow_transfer_from_contract_without_package_operator_mode_with_package_as_operator() {
-    let mut builder = InMemoryWasmTestBuilder::default();
+    let mut builder = LmdbWasmTestBuilder::default();
     builder
         .run_genesis(&PRODUCTION_RUN_GENESIS_REQUEST)
         .commit();
@@ -2151,7 +2151,7 @@ fn should_disallow_transfer_from_contract_without_package_operator_mode_with_pac
     builder.exec(install_request).expect_success().commit();
 
     let nft_contract_hash = get_nft_contract_hash(&builder);
-    let nft_contract_key: Key = nft_contract_hash.into();
+    let nft_contract_key: Key = Key::contract_entity_key(nft_contract_hash);
 
     let mint_session_call = ExecuteRequestBuilder::standard(
         *DEFAULT_ACCOUNT_ADDR,
@@ -2229,7 +2229,7 @@ fn should_disallow_transfer_from_contract_without_package_operator_mode_with_pac
 
 #[test]
 fn should_allow_transfer_from_contract_with_package_operator_mode_with_operator() {
-    let mut builder = InMemoryWasmTestBuilder::default();
+    let mut builder = LmdbWasmTestBuilder::default();
     builder
         .run_genesis(&PRODUCTION_RUN_GENESIS_REQUEST)
         .commit();
@@ -2258,7 +2258,7 @@ fn should_allow_transfer_from_contract_with_package_operator_mode_with_operator(
     builder.exec(install_request).expect_success().commit();
 
     let nft_contract_hash = get_nft_contract_hash(&builder);
-    let nft_contract_key: Key = nft_contract_hash.into();
+    let nft_contract_key: Key = Key::contract_entity_key(nft_contract_hash);
 
     let mint_session_call = ExecuteRequestBuilder::standard(
         *DEFAULT_ACCOUNT_ADDR,
@@ -2345,7 +2345,7 @@ fn should_allow_transfer_from_contract_with_package_operator_mode_with_operator(
 
 #[test]
 fn should_disallow_package_operator_to_approve_without_package_operator_mode() {
-    let mut builder = InMemoryWasmTestBuilder::default();
+    let mut builder = LmdbWasmTestBuilder::default();
     builder
         .run_genesis(&PRODUCTION_RUN_GENESIS_REQUEST)
         .commit();
@@ -2371,7 +2371,7 @@ fn should_disallow_package_operator_to_approve_without_package_operator_mode() {
     builder.exec(install_request).expect_success().commit();
 
     let nft_contract_hash = get_nft_contract_hash(&builder);
-    let nft_contract_key: Key = nft_contract_hash.into();
+    let nft_contract_key: Key = Key::contract_entity_key(nft_contract_hash);
 
     let mint_session_call = ExecuteRequestBuilder::standard(
         *DEFAULT_ACCOUNT_ADDR,
@@ -2459,7 +2459,7 @@ fn should_disallow_package_operator_to_approve_without_package_operator_mode() {
 
 #[test]
 fn should_allow_package_operator_to_approve_with_package_operator_mode() {
-    let mut builder = InMemoryWasmTestBuilder::default();
+    let mut builder = LmdbWasmTestBuilder::default();
     builder
         .run_genesis(&PRODUCTION_RUN_GENESIS_REQUEST)
         .commit();
@@ -2488,7 +2488,7 @@ fn should_allow_package_operator_to_approve_with_package_operator_mode() {
     builder.exec(install_request).expect_success().commit();
 
     let nft_contract_hash = get_nft_contract_hash(&builder);
-    let nft_contract_key: Key = nft_contract_hash.into();
+    let nft_contract_key: Key = Key::contract_entity_key(nft_contract_hash);
 
     let mint_session_call = ExecuteRequestBuilder::standard(
         *DEFAULT_ACCOUNT_ADDR,
@@ -2597,7 +2597,7 @@ fn should_allow_package_operator_to_approve_with_package_operator_mode() {
 
 #[test]
 fn should_allow_account_to_approve_spender_with_package_operator() {
-    let mut builder = InMemoryWasmTestBuilder::default();
+    let mut builder = LmdbWasmTestBuilder::default();
     builder
         .run_genesis(&PRODUCTION_RUN_GENESIS_REQUEST)
         .commit();
@@ -2626,7 +2626,7 @@ fn should_allow_account_to_approve_spender_with_package_operator() {
     builder.exec(install_request).expect_success().commit();
 
     let nft_contract_hash = get_nft_contract_hash(&builder);
-    let nft_contract_key: Key = nft_contract_hash.into();
+    let nft_contract_key: Key = Key::contract_entity_key(nft_contract_hash);
 
     let mint_session_call = ExecuteRequestBuilder::standard(
         *DEFAULT_ACCOUNT_ADDR,
@@ -2732,7 +2732,7 @@ fn should_allow_account_to_approve_spender_with_package_operator() {
 
 #[test]
 fn should_allow_package_operator_to_revoke_with_package_operator_mode() {
-    let mut builder = InMemoryWasmTestBuilder::default();
+    let mut builder = LmdbWasmTestBuilder::default();
     builder
         .run_genesis(&PRODUCTION_RUN_GENESIS_REQUEST)
         .commit();
@@ -2761,7 +2761,7 @@ fn should_allow_package_operator_to_revoke_with_package_operator_mode() {
     builder.exec(install_request).expect_success().commit();
 
     let nft_contract_hash = get_nft_contract_hash(&builder);
-    let nft_contract_key: Key = nft_contract_hash.into();
+    let nft_contract_key: Key = Key::contract_entity_key(nft_contract_hash);
 
     let mint_session_call = ExecuteRequestBuilder::standard(
         *DEFAULT_ACCOUNT_ADDR,

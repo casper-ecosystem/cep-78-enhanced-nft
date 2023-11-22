@@ -1,11 +1,11 @@
 use std::collections::BTreeMap;
 
 use casper_engine_test_support::{
-    ExecuteRequestBuilder, InMemoryWasmTestBuilder, DEFAULT_ACCOUNT_ADDR,
+    ExecuteRequestBuilder, LmdbWasmTestBuilder, DEFAULT_ACCOUNT_ADDR,
     PRODUCTION_RUN_GENESIS_REQUEST,
 };
 use casper_event_standard::EVENTS_DICT;
-use casper_types::{account::AccountHash, runtime_args, Key, RuntimeArgs};
+use casper_types::{account::AccountHash, runtime_args, Key};
 
 use contract::{
     constants::{
@@ -44,7 +44,7 @@ use crate::utility::{
 // cep47 event style
 #[test]
 fn should_record_cep47_dictionary_style_mint_event() {
-    let mut builder = InMemoryWasmTestBuilder::default();
+    let mut builder = LmdbWasmTestBuilder::default();
     builder
         .run_genesis(&PRODUCTION_RUN_GENESIS_REQUEST)
         .commit();
@@ -60,7 +60,7 @@ fn should_record_cep47_dictionary_style_mint_event() {
         .expect_success()
         .commit();
 
-    let nft_contract_key: Key = get_nft_contract_hash(&builder).into();
+    let nft_contract_key: Key = Key::contract_entity_key(get_nft_contract_hash(&builder));
 
     let mint_session_call = ExecuteRequestBuilder::standard(
         *DEFAULT_ACCOUNT_ADDR,
@@ -109,7 +109,7 @@ fn should_record_cep47_dictionary_style_mint_event() {
 
 #[test]
 fn should_record_cep47_dictionary_style_transfer_token_event_in_hash_identifier_mode() {
-    let mut builder = InMemoryWasmTestBuilder::default();
+    let mut builder = LmdbWasmTestBuilder::default();
     builder
         .run_genesis(&PRODUCTION_RUN_GENESIS_REQUEST)
         .commit();
@@ -125,7 +125,7 @@ fn should_record_cep47_dictionary_style_transfer_token_event_in_hash_identifier_
     builder.exec(install_request).expect_success().commit();
 
     let nft_contract_hash = get_nft_contract_hash(&builder);
-    let nft_contract_key: Key = nft_contract_hash.into();
+    let nft_contract_key: Key = Key::contract_entity_key(nft_contract_hash);
 
     let mint_session_call = ExecuteRequestBuilder::standard(
         *DEFAULT_ACCOUNT_ADDR,
@@ -216,7 +216,7 @@ fn should_record_cep47_dictionary_style_metadata_update_event_for_nft721_using_t
     let nft_metadata_kind = NFTMetadataKind::NFT721;
     let identifier_mode = NFTIdentifierMode::Ordinal;
 
-    let mut builder = InMemoryWasmTestBuilder::default();
+    let mut builder = LmdbWasmTestBuilder::default();
     builder
         .run_genesis(&PRODUCTION_RUN_GENESIS_REQUEST)
         .commit();
@@ -236,7 +236,7 @@ fn should_record_cep47_dictionary_style_metadata_update_event_for_nft721_using_t
 
     builder.exec(install_request).expect_success().commit();
 
-    let nft_contract_key: Key = get_nft_contract_hash(&builder).into();
+    let nft_contract_key: Key = Key::contract_entity_key(get_nft_contract_hash(&builder));
 
     let custom_metadata = serde_json::to_string_pretty(&*TEST_CUSTOM_METADATA)
         .expect("must convert to json metadata");
@@ -371,7 +371,7 @@ fn should_record_cep47_dictionary_style_metadata_update_event_for_nft721_using_t
 #[test]
 fn should_cep47_dictionary_style_burn_event() {
     let token_id = 0u64;
-    let mut builder = InMemoryWasmTestBuilder::default();
+    let mut builder = LmdbWasmTestBuilder::default();
     builder
         .run_genesis(&PRODUCTION_RUN_GENESIS_REQUEST)
         .commit();
@@ -389,7 +389,7 @@ fn should_cep47_dictionary_style_burn_event() {
         .expect_success()
         .commit();
 
-    let nft_contract_key: Key = get_nft_contract_hash(&builder).into();
+    let nft_contract_key: Key = Key::contract_entity_key(get_nft_contract_hash(&builder));
 
     let mint_session_call = ExecuteRequestBuilder::standard(
         *DEFAULT_ACCOUNT_ADDR,
@@ -493,7 +493,7 @@ fn should_cep47_dictionary_style_burn_event() {
 
 #[test]
 fn should_cep47_dictionary_style_approve_event_in_hash_identifier_mode() {
-    let mut builder = InMemoryWasmTestBuilder::default();
+    let mut builder = LmdbWasmTestBuilder::default();
     builder
         .run_genesis(&PRODUCTION_RUN_GENESIS_REQUEST)
         .commit();
@@ -509,7 +509,7 @@ fn should_cep47_dictionary_style_approve_event_in_hash_identifier_mode() {
     builder.exec(install_request).expect_success().commit();
 
     let nft_contract_hash = get_nft_contract_hash(&builder);
-    let nft_contract_key: Key = nft_contract_hash.into();
+    let nft_contract_key: Key = Key::contract_entity_key(nft_contract_hash);
 
     let mint_session_call = ExecuteRequestBuilder::standard(
         *DEFAULT_ACCOUNT_ADDR,
@@ -592,7 +592,7 @@ fn should_cep47_dictionary_style_approve_event_in_hash_identifier_mode() {
 
 #[test]
 fn should_cep47_dictionary_style_approvall_for_all_event() {
-    let mut builder = InMemoryWasmTestBuilder::default();
+    let mut builder = LmdbWasmTestBuilder::default();
     builder
         .run_genesis(&PRODUCTION_RUN_GENESIS_REQUEST)
         .commit();
@@ -609,7 +609,7 @@ fn should_cep47_dictionary_style_approvall_for_all_event() {
         .commit();
 
     let nft_contract_hash = get_nft_contract_hash(&builder);
-    let nft_contract_key: Key = nft_contract_hash.into();
+    let nft_contract_key: Key = Key::contract_entity_key(nft_contract_hash);
 
     let mint_session_call = ExecuteRequestBuilder::standard(
         *DEFAULT_ACCOUNT_ADDR,
@@ -694,7 +694,7 @@ fn should_cep47_dictionary_style_approvall_for_all_event() {
 
 #[test]
 fn should_cep47_dictionary_style_revoked_for_all_event() {
-    let mut builder = InMemoryWasmTestBuilder::default();
+    let mut builder = LmdbWasmTestBuilder::default();
     builder
         .run_genesis(&PRODUCTION_RUN_GENESIS_REQUEST)
         .commit();
@@ -711,7 +711,7 @@ fn should_cep47_dictionary_style_revoked_for_all_event() {
         .commit();
 
     let nft_contract_hash = get_nft_contract_hash(&builder);
-    let nft_contract_key: Key = nft_contract_hash.into();
+    let nft_contract_key: Key = Key::contract_entity_key(nft_contract_hash);
 
     let mint_session_call = ExecuteRequestBuilder::standard(
         *DEFAULT_ACCOUNT_ADDR,
@@ -810,11 +810,12 @@ fn should_cep47_dictionary_style_revoked_for_all_event() {
     assert_eq!(event, expected_event);
 }
 
+#[ignore = "old wasms use `casper_add_contract_version` which was replaced with `casper_add_package_version`"]
 #[test]
 fn should_record_migration_event_in_cep47() {
     const OWNED_TOKENS: &str = "owned_tokens";
 
-    let mut builder = InMemoryWasmTestBuilder::default();
+    let mut builder = LmdbWasmTestBuilder::default();
     builder
         .run_genesis(&PRODUCTION_RUN_GENESIS_REQUEST)
         .commit();
@@ -831,7 +832,7 @@ fn should_record_migration_event_in_cep47() {
     builder.exec(install_request).expect_success().commit();
 
     let nft_contract_hash_1_0_0 = support::get_nft_contract_hash_1_0_0(&builder);
-    let nft_contract_key_1_0_0: Key = nft_contract_hash_1_0_0.into();
+    let nft_contract_key_1_0_0: Key = Key::contract_entity_key(nft_contract_hash_1_0_0);
 
     let number_of_tokens_pre_migration = 3usize;
 
@@ -862,7 +863,7 @@ fn should_record_migration_event_in_cep47() {
     let maybe_access_named_key = builder
         .query(None, Key::Account(*DEFAULT_ACCOUNT_ADDR), &[])
         .unwrap()
-        .as_account()
+        .as_addressable_entity()
         .unwrap()
         .named_keys()
         .get(ACCESS_KEY_NAME_1_0_0)
@@ -886,7 +887,7 @@ fn should_record_migration_event_in_cep47() {
 
     builder.exec(upgrade_request).expect_success().commit();
 
-    let nft_contract_key: Key = support::get_nft_contract_hash(&builder).into();
+    let nft_contract_key: Key = Key::contract_entity_key(support::get_nft_contract_hash(&builder));
 
     let latest_cep47_event_id =
         get_dictionary_value_from_key::<u64>(&builder, &nft_contract_key, EVENTS, "len") - 1u64;
@@ -917,7 +918,7 @@ fn should_record_migration_event_in_cep47() {
 
 #[test]
 fn should_not_have_events_dicts_in_no_events_mode() {
-    let mut builder = InMemoryWasmTestBuilder::default();
+    let mut builder = LmdbWasmTestBuilder::default();
     builder
         .run_genesis(&PRODUCTION_RUN_GENESIS_REQUEST)
         .commit();
@@ -939,7 +940,7 @@ fn should_not_have_events_dicts_in_no_events_mode() {
 
     // Check dict from EventsMode::CEP47
     let contract = builder
-        .get_contract(contract_hash)
+        .get_addressable_entity(contract_hash)
         .expect("should have contract");
     let named_keys = contract.named_keys();
     let events = named_keys.get(EVENTS);
@@ -953,7 +954,7 @@ fn should_not_have_events_dicts_in_no_events_mode() {
 #[test]
 #[should_panic]
 fn should_not_record_events_in_no_events_mode() {
-    let mut builder = InMemoryWasmTestBuilder::default();
+    let mut builder = LmdbWasmTestBuilder::default();
     builder
         .run_genesis(&PRODUCTION_RUN_GENESIS_REQUEST)
         .commit();
@@ -972,7 +973,7 @@ fn should_not_record_events_in_no_events_mode() {
         .commit();
 
     let contract_hash = get_nft_contract_hash(&builder);
-    let nft_contract_key: Key = contract_hash.into();
+    let nft_contract_key: Key = Key::contract_entity_key(contract_hash);
 
     let mint_session_call = ExecuteRequestBuilder::standard(
         *DEFAULT_ACCOUNT_ADDR,

@@ -13,11 +13,13 @@ use contract::{
 use serde::{Deserialize, Serialize};
 
 use casper_engine_test_support::{
-    ExecuteRequestBuilder, InMemoryWasmTestBuilder, WasmTestBuilder, DEFAULT_ACCOUNT_ADDR,
+    ExecuteRequestBuilder, LmdbWasmTestBuilder, WasmTestBuilder, DEFAULT_ACCOUNT_ADDR,
     PRODUCTION_RUN_GENESIS_REQUEST,
 };
-use casper_execution_engine::storage::global_state::in_memory::InMemoryGlobalState;
-use casper_types::{account::AccountHash, runtime_args, CLValue, Key, RuntimeArgs};
+use casper_storage::{
+    data_access_layer::DataAccessLayer, global_state::state::lmdb::LmdbGlobalState,
+};
+use casper_types::{account::AccountHash, runtime_args, CLValue, Key};
 
 use crate::utility::{
     constants::{
@@ -49,8 +51,8 @@ struct Metadata {
 fn setup_nft_contract(
     total_token_supply: Option<u64>,
     allowing_minting: bool,
-) -> WasmTestBuilder<InMemoryGlobalState> {
-    let mut builder = InMemoryWasmTestBuilder::default();
+) -> WasmTestBuilder<DataAccessLayer<LmdbGlobalState>> {
+    let mut builder = LmdbWasmTestBuilder::default();
     builder
         .run_genesis(&PRODUCTION_RUN_GENESIS_REQUEST)
         .commit();
@@ -99,7 +101,7 @@ fn should_disallow_minting_when_allow_minting_is_set_to_false() {
 
 #[test]
 fn entry_points_with_ret_should_return_correct_value() {
-    let mut builder = InMemoryWasmTestBuilder::default();
+    let mut builder = LmdbWasmTestBuilder::default();
     builder
         .run_genesis(&PRODUCTION_RUN_GENESIS_REQUEST)
         .commit();
@@ -111,7 +113,7 @@ fn entry_points_with_ret_should_return_correct_value() {
 
     builder.exec(install_request).expect_success().commit();
 
-    let nft_contract_key: Key = get_nft_contract_hash(&builder).into();
+    let nft_contract_key: Key = Key::contract_entity_key(get_nft_contract_hash(&builder));
 
     let mint_session_call = ExecuteRequestBuilder::standard(
         *DEFAULT_ACCOUNT_ADDR,
@@ -201,7 +203,7 @@ fn entry_points_with_ret_should_return_correct_value() {
 
 #[test]
 fn should_mint() {
-    let mut builder = InMemoryWasmTestBuilder::default();
+    let mut builder = LmdbWasmTestBuilder::default();
     builder
         .run_genesis(&PRODUCTION_RUN_GENESIS_REQUEST)
         .commit();
@@ -216,7 +218,7 @@ fn should_mint() {
         .expect_success()
         .commit();
 
-    let nft_contract_key: Key = get_nft_contract_hash(&builder).into();
+    let nft_contract_key: Key = Key::contract_entity_key(get_nft_contract_hash(&builder));
     let token_owner: Key = Key::Account(*DEFAULT_ACCOUNT_ADDR);
 
     let mint_session_call = ExecuteRequestBuilder::standard(
@@ -245,7 +247,7 @@ fn should_mint() {
 
 #[test]
 fn mint_should_return_dictionary_key_to_callers_owned_tokens() {
-    let mut builder = InMemoryWasmTestBuilder::default();
+    let mut builder = LmdbWasmTestBuilder::default();
     builder
         .run_genesis(&PRODUCTION_RUN_GENESIS_REQUEST)
         .commit();
@@ -259,7 +261,7 @@ fn mint_should_return_dictionary_key_to_callers_owned_tokens() {
 
     builder.exec(install_request).expect_success().commit();
 
-    let nft_contract_key: Key = get_nft_contract_hash(&builder).into();
+    let nft_contract_key: Key = Key::contract_entity_key(get_nft_contract_hash(&builder));
     let mint_session_call = ExecuteRequestBuilder::standard(
         *DEFAULT_ACCOUNT_ADDR,
         MINT_SESSION_WASM,
@@ -274,7 +276,7 @@ fn mint_should_return_dictionary_key_to_callers_owned_tokens() {
 
     builder.exec(mint_session_call).expect_success().commit();
 
-    let account = builder.get_expected_account(*DEFAULT_ACCOUNT_ADDR);
+    let account = builder.get_expected_addressable_entity_by_account_hash(*DEFAULT_ACCOUNT_ADDR);
 
     let nft_receipt: String =
         support::query_stored_value(&builder, nft_contract_key, vec![RECEIPT_NAME.to_string()]);
@@ -303,7 +305,7 @@ fn mint_should_return_dictionary_key_to_callers_owned_tokens() {
 
 #[test]
 fn mint_should_increment_number_of_minted_tokens_by_one_and_add_public_key_to_token_owners() {
-    let mut builder = InMemoryWasmTestBuilder::default();
+    let mut builder = LmdbWasmTestBuilder::default();
     builder
         .run_genesis(&PRODUCTION_RUN_GENESIS_REQUEST)
         .commit();
@@ -317,8 +319,7 @@ fn mint_should_increment_number_of_minted_tokens_by_one_and_add_public_key_to_to
         .expect_success()
         .commit();
 
-    let nft_contract_hash = get_nft_contract_hash(&builder);
-    let nft_contract_key: Key = nft_contract_hash.into();
+    let nft_contract_key: Key = Key::contract_entity_key(get_nft_contract_hash(&builder));
 
     let mint_session_call = ExecuteRequestBuilder::standard(
         *DEFAULT_ACCOUNT_ADDR,
@@ -396,7 +397,7 @@ fn mint_should_increment_number_of_minted_tokens_by_one_and_add_public_key_to_to
 
 #[test]
 fn should_set_meta_data() {
-    let mut builder = InMemoryWasmTestBuilder::default();
+    let mut builder = LmdbWasmTestBuilder::default();
     builder
         .run_genesis(&PRODUCTION_RUN_GENESIS_REQUEST)
         .commit();
@@ -410,7 +411,7 @@ fn should_set_meta_data() {
         .expect_success()
         .commit();
 
-    let nft_contract_key: Key = get_nft_contract_hash(&builder).into();
+    let nft_contract_key: Key = Key::contract_entity_key(get_nft_contract_hash(&builder));
 
     let mint_session_call = ExecuteRequestBuilder::standard(
         *DEFAULT_ACCOUNT_ADDR,
@@ -426,7 +427,7 @@ fn should_set_meta_data() {
     .build();
     builder.exec(mint_session_call).expect_success().commit();
 
-    let nft_contract_key: Key = get_nft_contract_hash(&builder).into();
+    let nft_contract_key: Key = Key::contract_entity_key(get_nft_contract_hash(&builder));
 
     let token_id = 0u64;
 
@@ -442,7 +443,7 @@ fn should_set_meta_data() {
 
 #[test]
 fn should_set_issuer() {
-    let mut builder = InMemoryWasmTestBuilder::default();
+    let mut builder = LmdbWasmTestBuilder::default();
     builder
         .run_genesis(&PRODUCTION_RUN_GENESIS_REQUEST)
         .commit();
@@ -456,7 +457,7 @@ fn should_set_issuer() {
         .expect_success()
         .commit();
 
-    let nft_contract_key: Key = get_nft_contract_hash(&builder).into();
+    let nft_contract_key: Key = Key::contract_entity_key(get_nft_contract_hash(&builder));
 
     let mint_session_call = ExecuteRequestBuilder::standard(
         *DEFAULT_ACCOUNT_ADDR,
@@ -473,7 +474,7 @@ fn should_set_issuer() {
     builder.exec(mint_session_call).expect_success().commit();
 
     //Let's start querying
-    let nft_contract_key: Key = get_nft_contract_hash(&builder).into();
+    let nft_contract_key: Key = Key::contract_entity_key(get_nft_contract_hash(&builder));
     let token_id = 0u64;
 
     let actual_token_issuer = support::get_dictionary_value_from_key::<Key>(
@@ -490,7 +491,7 @@ fn should_set_issuer() {
 
 #[test]
 fn should_set_issuer_with_different_owner() {
-    let mut builder = InMemoryWasmTestBuilder::default();
+    let mut builder = LmdbWasmTestBuilder::default();
     builder
         .run_genesis(&PRODUCTION_RUN_GENESIS_REQUEST)
         .commit();
@@ -504,7 +505,7 @@ fn should_set_issuer_with_different_owner() {
         .expect_success()
         .commit();
 
-    let nft_contract_key: Key = get_nft_contract_hash(&builder).into();
+    let nft_contract_key: Key = Key::contract_entity_key(get_nft_contract_hash(&builder));
 
     let account_user_1 = support::create_funded_dummy_account(&mut builder, Some(ACCOUNT_USER_1));
 
@@ -522,7 +523,7 @@ fn should_set_issuer_with_different_owner() {
     builder.exec(mint_session_call).expect_success().commit();
 
     //Let's start querying
-    let nft_contract_key: Key = get_nft_contract_hash(&builder).into();
+    let nft_contract_key: Key = Key::contract_entity_key(get_nft_contract_hash(&builder));
 
     let token_id = 0u64;
 
@@ -540,7 +541,7 @@ fn should_set_issuer_with_different_owner() {
 
 #[test]
 fn should_track_token_balance_by_owner() {
-    let mut builder = InMemoryWasmTestBuilder::default();
+    let mut builder = LmdbWasmTestBuilder::default();
     builder
         .run_genesis(&PRODUCTION_RUN_GENESIS_REQUEST)
         .commit();
@@ -554,7 +555,7 @@ fn should_track_token_balance_by_owner() {
         .expect_success()
         .commit();
 
-    let nft_contract_key: Key = get_nft_contract_hash(&builder).into();
+    let nft_contract_key: Key = Key::contract_entity_key(get_nft_contract_hash(&builder));
 
     let mint_session_call = ExecuteRequestBuilder::standard(
         *DEFAULT_ACCOUNT_ADDR,
@@ -582,7 +583,7 @@ fn should_track_token_balance_by_owner() {
 
 #[test]
 fn should_allow_public_minting_with_flag_set_to_true() {
-    let mut builder = InMemoryWasmTestBuilder::default();
+    let mut builder = LmdbWasmTestBuilder::default();
     builder
         .run_genesis(&PRODUCTION_RUN_GENESIS_REQUEST)
         .commit();
@@ -593,7 +594,7 @@ fn should_allow_public_minting_with_flag_set_to_true() {
         .build();
     builder.exec(install_request).expect_success().commit();
 
-    let nft_contract_key: Key = get_nft_contract_hash(&builder).into();
+    let nft_contract_key: Key = Key::contract_entity_key(get_nft_contract_hash(&builder));
 
     let account_user_1 = support::create_funded_dummy_account(&mut builder, Some(ACCOUNT_USER_1));
 
@@ -639,7 +640,7 @@ fn should_allow_public_minting_with_flag_set_to_true() {
 
 #[test]
 fn should_disallow_public_minting_with_flag_set_to_false() {
-    let mut builder = InMemoryWasmTestBuilder::default();
+    let mut builder = LmdbWasmTestBuilder::default();
     builder
         .run_genesis(&PRODUCTION_RUN_GENESIS_REQUEST)
         .commit();
@@ -651,8 +652,7 @@ fn should_disallow_public_minting_with_flag_set_to_false() {
         .build();
     builder.exec(install_request).expect_success().commit();
 
-    let nft_contract_hash = get_nft_contract_hash(&builder);
-    let nft_contract_key: Key = nft_contract_hash.into();
+    let nft_contract_key: Key = Key::contract_entity_key(get_nft_contract_hash(&builder));
 
     let account_user_1 = support::create_funded_dummy_account(&mut builder, Some(ACCOUNT_USER_1));
 
@@ -685,7 +685,7 @@ fn should_disallow_public_minting_with_flag_set_to_false() {
 
 #[test]
 fn should_allow_minting_for_different_public_key_with_minting_mode_set_to_public() {
-    let mut builder = InMemoryWasmTestBuilder::default();
+    let mut builder = LmdbWasmTestBuilder::default();
     builder
         .run_genesis(&PRODUCTION_RUN_GENESIS_REQUEST)
         .commit();
@@ -696,7 +696,7 @@ fn should_allow_minting_for_different_public_key_with_minting_mode_set_to_public
         .build();
     builder.exec(install_request).expect_success().commit();
 
-    let nft_contract_key: Key = get_nft_contract_hash(&builder).into();
+    let nft_contract_key: Key = Key::contract_entity_key(get_nft_contract_hash(&builder));
 
     let account_user_1 = support::create_funded_dummy_account(&mut builder, Some(ACCOUNT_USER_1));
     let account_user_2 = support::create_funded_dummy_account(&mut builder, Some(ACCOUNT_USER_2));
@@ -744,7 +744,7 @@ fn should_allow_minting_for_different_public_key_with_minting_mode_set_to_public
 
 #[test]
 fn should_set_approval_for_all() {
-    let mut builder = InMemoryWasmTestBuilder::default();
+    let mut builder = LmdbWasmTestBuilder::default();
     builder
         .run_genesis(&PRODUCTION_RUN_GENESIS_REQUEST)
         .commit();
@@ -756,7 +756,7 @@ fn should_set_approval_for_all() {
     builder.exec(install_request).expect_success().commit();
 
     let nft_contract_hash = get_nft_contract_hash(&builder);
-    let nft_contract_key: Key = nft_contract_hash.into();
+    let nft_contract_key: Key = Key::contract_entity_key(nft_contract_hash);
     let owner_key = Key::Account(*DEFAULT_ACCOUNT_ADDR);
 
     let mint_session_call = ExecuteRequestBuilder::standard(
@@ -902,7 +902,7 @@ fn should_set_approval_for_all() {
 
 #[test]
 fn should_revoke_approval_for_all() {
-    let mut builder = InMemoryWasmTestBuilder::default();
+    let mut builder = LmdbWasmTestBuilder::default();
     builder
         .run_genesis(&PRODUCTION_RUN_GENESIS_REQUEST)
         .commit();
@@ -913,7 +913,7 @@ fn should_revoke_approval_for_all() {
         .build();
     builder.exec(install_request).expect_success().commit();
 
-    let nft_contract_key: Key = get_nft_contract_hash(&builder).into();
+    let nft_contract_key: Key = Key::contract_entity_key(get_nft_contract_hash(&builder));
     let owner_key = Key::Account(*DEFAULT_ACCOUNT_ADDR);
 
     let mint_session_call = ExecuteRequestBuilder::standard(
@@ -1011,7 +1011,7 @@ fn should_revoke_approval_for_all() {
 
 #[test]
 fn should_not_mint_with_invalid_nft721_metadata() {
-    let mut builder = InMemoryWasmTestBuilder::default();
+    let mut builder = LmdbWasmTestBuilder::default();
     builder
         .run_genesis(&PRODUCTION_RUN_GENESIS_REQUEST)
         .commit();
@@ -1025,7 +1025,7 @@ fn should_not_mint_with_invalid_nft721_metadata() {
         .expect_success()
         .commit();
 
-    let nft_contract_key: Key = get_nft_contract_hash(&builder).into();
+    let nft_contract_key: Key = Key::contract_entity_key(get_nft_contract_hash(&builder));
 
     let mint_session_call = ExecuteRequestBuilder::standard(
         *DEFAULT_ACCOUNT_ADDR,
@@ -1052,7 +1052,7 @@ fn should_not_mint_with_invalid_nft721_metadata() {
 
 #[test]
 fn should_mint_with_compactified_metadata() {
-    let mut builder = InMemoryWasmTestBuilder::default();
+    let mut builder = LmdbWasmTestBuilder::default();
     builder
         .run_genesis(&PRODUCTION_RUN_GENESIS_REQUEST)
         .commit();
@@ -1068,7 +1068,7 @@ fn should_mint_with_compactified_metadata() {
         .expect_success()
         .commit();
 
-    let nft_contract_key: Key = get_nft_contract_hash(&builder).into();
+    let nft_contract_key: Key = Key::contract_entity_key(get_nft_contract_hash(&builder));
 
     let mint_session_call = ExecuteRequestBuilder::standard(
         *DEFAULT_ACCOUNT_ADDR,
@@ -1099,7 +1099,7 @@ fn should_mint_with_compactified_metadata() {
 
 #[test]
 fn should_mint_with_valid_cep99_metadata() {
-    let mut builder = InMemoryWasmTestBuilder::default();
+    let mut builder = LmdbWasmTestBuilder::default();
     builder
         .run_genesis(&PRODUCTION_RUN_GENESIS_REQUEST)
         .commit();
@@ -1112,7 +1112,7 @@ fn should_mint_with_valid_cep99_metadata() {
 
     builder.exec(install_request).expect_success().commit();
 
-    let nft_contract_key: Key = get_nft_contract_hash(&builder).into();
+    let nft_contract_key: Key = Key::contract_entity_key(get_nft_contract_hash(&builder));
 
     let mint_session_call = ExecuteRequestBuilder::standard(
         *DEFAULT_ACCOUNT_ADDR,
@@ -1142,7 +1142,7 @@ fn should_mint_with_valid_cep99_metadata() {
 
 #[test]
 fn should_mint_with_custom_metadata_validation() {
-    let mut builder = InMemoryWasmTestBuilder::default();
+    let mut builder = LmdbWasmTestBuilder::default();
     builder
         .run_genesis(&PRODUCTION_RUN_GENESIS_REQUEST)
         .commit();
@@ -1159,7 +1159,7 @@ fn should_mint_with_custom_metadata_validation() {
 
     builder.exec(install_request).expect_success().commit();
 
-    let nft_contract_key: Key = get_nft_contract_hash(&builder).into();
+    let nft_contract_key: Key = Key::contract_entity_key(get_nft_contract_hash(&builder));
 
     let mint_session_call = ExecuteRequestBuilder::standard(
         *DEFAULT_ACCOUNT_ADDR,
@@ -1192,7 +1192,7 @@ fn should_mint_with_custom_metadata_validation() {
 
 #[test]
 fn should_mint_with_raw_metadata() {
-    let mut builder = InMemoryWasmTestBuilder::default();
+    let mut builder = LmdbWasmTestBuilder::default();
     builder
         .run_genesis(&PRODUCTION_RUN_GENESIS_REQUEST)
         .commit();
@@ -1205,7 +1205,7 @@ fn should_mint_with_raw_metadata() {
 
     builder.exec(install_request).expect_success().commit();
 
-    let nft_contract_key: Key = get_nft_contract_hash(&builder).into();
+    let nft_contract_key: Key = Key::contract_entity_key(get_nft_contract_hash(&builder));
 
     let mint_session_call = ExecuteRequestBuilder::standard(
         *DEFAULT_ACCOUNT_ADDR,
@@ -1236,7 +1236,7 @@ fn should_mint_with_raw_metadata() {
 
 #[test]
 fn should_mint_with_hash_identifier_mode() {
-    let mut builder = InMemoryWasmTestBuilder::default();
+    let mut builder = LmdbWasmTestBuilder::default();
     builder
         .run_genesis(&PRODUCTION_RUN_GENESIS_REQUEST)
         .commit();
@@ -1250,7 +1250,7 @@ fn should_mint_with_hash_identifier_mode() {
 
     builder.exec(install_request).expect_success().commit();
 
-    let nft_contract_key: Key = get_nft_contract_hash(&builder).into();
+    let nft_contract_key: Key = Key::contract_entity_key(get_nft_contract_hash(&builder));
 
     let mint_session_call = ExecuteRequestBuilder::standard(
         *DEFAULT_ACCOUNT_ADDR,
@@ -1281,7 +1281,7 @@ fn should_mint_with_hash_identifier_mode() {
 
 #[test]
 fn should_fail_to_mint_when_immediate_caller_is_account_in_contract_mode() {
-    let mut builder = InMemoryWasmTestBuilder::default();
+    let mut builder = LmdbWasmTestBuilder::default();
     builder
         .run_genesis(&PRODUCTION_RUN_GENESIS_REQUEST)
         .commit();
@@ -1295,7 +1295,7 @@ fn should_fail_to_mint_when_immediate_caller_is_account_in_contract_mode() {
 
     builder.exec(install_request).expect_success().commit();
 
-    let nft_contract_key: Key = get_nft_contract_hash(&builder).into();
+    let nft_contract_key: Key = Key::contract_entity_key(get_nft_contract_hash(&builder));
 
     let mint_session_call = ExecuteRequestBuilder::standard(
         *DEFAULT_ACCOUNT_ADDR,
@@ -1318,7 +1318,7 @@ fn should_fail_to_mint_when_immediate_caller_is_account_in_contract_mode() {
 
 #[test]
 fn should_approve_in_hash_identifier_mode() {
-    let mut builder = InMemoryWasmTestBuilder::default();
+    let mut builder = LmdbWasmTestBuilder::default();
     builder
         .run_genesis(&PRODUCTION_RUN_GENESIS_REQUEST)
         .commit();
@@ -1333,7 +1333,7 @@ fn should_approve_in_hash_identifier_mode() {
     builder.exec(install_request).expect_success().commit();
 
     let nft_contract_hash = get_nft_contract_hash(&builder);
-    let nft_contract_key: Key = nft_contract_hash.into();
+    let nft_contract_key: Key = Key::contract_entity_key(nft_contract_hash);
 
     let mint_session_call = ExecuteRequestBuilder::standard(
         *DEFAULT_ACCOUNT_ADDR,
@@ -1379,7 +1379,7 @@ fn should_approve_in_hash_identifier_mode() {
 
 #[test]
 fn should_mint_without_returning_receipts_and_flat_gas_cost() {
-    let mut builder = InMemoryWasmTestBuilder::default();
+    let mut builder = LmdbWasmTestBuilder::default();
     builder
         .run_genesis(&PRODUCTION_RUN_GENESIS_REQUEST)
         .commit();
@@ -1396,7 +1396,7 @@ fn should_mint_without_returning_receipts_and_flat_gas_cost() {
     builder.exec(install_request).expect_success().commit();
 
     let nft_contract_hash = get_nft_contract_hash(&builder);
-    let nft_contract_key: Key = nft_contract_hash.into();
+    let nft_contract_key: Key = Key::contract_entity_key(nft_contract_hash);
 
     let mint_session_call = ExecuteRequestBuilder::contract_call_by_hash(
         *DEFAULT_ACCOUNT_ADDR,
@@ -1439,7 +1439,7 @@ fn should_mint_without_returning_receipts_and_flat_gas_cost() {
 // even if the "register_owner" is called twice.
 #[test]
 fn should_maintain_page_table_despite_invoking_register_owner() {
-    let mut builder = InMemoryWasmTestBuilder::default();
+    let mut builder = LmdbWasmTestBuilder::default();
     builder
         .run_genesis(&PRODUCTION_RUN_GENESIS_REQUEST)
         .commit();
@@ -1455,7 +1455,7 @@ fn should_maintain_page_table_despite_invoking_register_owner() {
     builder.exec(install_request).expect_success().commit();
 
     let nft_contract_hash = get_nft_contract_hash(&builder);
-    let nft_contract_key: Key = nft_contract_hash.into();
+    let nft_contract_key: Key = Key::contract_entity_key(nft_contract_hash);
 
     let mint_session_call = ExecuteRequestBuilder::standard(
         *DEFAULT_ACCOUNT_ADDR,
@@ -1506,7 +1506,7 @@ fn should_maintain_page_table_despite_invoking_register_owner() {
 
 #[test]
 fn should_prevent_mint_to_unregistered_owner() {
-    let mut builder = InMemoryWasmTestBuilder::default();
+    let mut builder = LmdbWasmTestBuilder::default();
     builder
         .run_genesis(&PRODUCTION_RUN_GENESIS_REQUEST)
         .commit();
@@ -1523,7 +1523,7 @@ fn should_prevent_mint_to_unregistered_owner() {
     builder.exec(install_request).expect_success().commit();
 
     let nft_contract_hash = get_nft_contract_hash(&builder);
-    let nft_contract_key: Key = nft_contract_hash.into();
+    let nft_contract_key: Key = Key::contract_entity_key(nft_contract_hash);
 
     let mint_session_call = ExecuteRequestBuilder::contract_call_by_hash(
         *DEFAULT_ACCOUNT_ADDR,
@@ -1546,7 +1546,7 @@ fn should_prevent_mint_to_unregistered_owner() {
 
 #[test]
 fn should_mint_with_two_required_metadata_kind() {
-    let mut builder = InMemoryWasmTestBuilder::default();
+    let mut builder = LmdbWasmTestBuilder::default();
     builder
         .run_genesis(&PRODUCTION_RUN_GENESIS_REQUEST)
         .commit();
@@ -1565,7 +1565,7 @@ fn should_mint_with_two_required_metadata_kind() {
         .expect_success()
         .commit();
 
-    let nft_contract_key: Key = get_nft_contract_hash(&builder).into();
+    let nft_contract_key: Key = Key::contract_entity_key(get_nft_contract_hash(&builder));
 
     let mint_session_call = ExecuteRequestBuilder::standard(
         *DEFAULT_ACCOUNT_ADDR,
@@ -1601,7 +1601,7 @@ fn should_mint_with_two_required_metadata_kind() {
 
 #[test]
 fn should_mint_with_one_required_one_optional_metadata_kind_without_optional() {
-    let mut builder = InMemoryWasmTestBuilder::default();
+    let mut builder = LmdbWasmTestBuilder::default();
     builder
         .run_genesis(&PRODUCTION_RUN_GENESIS_REQUEST)
         .commit();
@@ -1620,7 +1620,7 @@ fn should_mint_with_one_required_one_optional_metadata_kind_without_optional() {
         .expect_success()
         .commit();
 
-    let nft_contract_key: Key = get_nft_contract_hash(&builder).into();
+    let nft_contract_key: Key = Key::contract_entity_key(get_nft_contract_hash(&builder));
 
     let mint_session_call = ExecuteRequestBuilder::standard(
         *DEFAULT_ACCOUNT_ADDR,
@@ -1678,7 +1678,7 @@ fn should_mint_with_one_required_one_optional_metadata_kind_without_optional() {
 
 #[test]
 fn should_not_mint_with_missing_required_metadata() {
-    let mut builder = InMemoryWasmTestBuilder::default();
+    let mut builder = LmdbWasmTestBuilder::default();
     builder
         .run_genesis(&PRODUCTION_RUN_GENESIS_REQUEST)
         .commit();
@@ -1697,7 +1697,7 @@ fn should_not_mint_with_missing_required_metadata() {
         .expect_success()
         .commit();
 
-    let nft_contract_key: Key = get_nft_contract_hash(&builder).into();
+    let nft_contract_key: Key = Key::contract_entity_key(get_nft_contract_hash(&builder));
 
     let mint_session_call = ExecuteRequestBuilder::standard(
         *DEFAULT_ACCOUNT_ADDR,
@@ -1722,7 +1722,7 @@ fn should_not_mint_with_missing_required_metadata() {
 
 #[test]
 fn should_mint_with_transfer_only_reporting() {
-    let mut builder = InMemoryWasmTestBuilder::default();
+    let mut builder = LmdbWasmTestBuilder::default();
     builder
         .run_genesis(&PRODUCTION_RUN_GENESIS_REQUEST)
         .commit();
@@ -1738,8 +1738,8 @@ fn should_mint_with_transfer_only_reporting() {
         .expect_success()
         .commit();
 
-    let nft_contract_key: Key = get_nft_contract_hash(&builder).into();
     let nft_contract_hash = get_nft_contract_hash(&builder);
+    let nft_contract_key: Key = Key::contract_entity_key(nft_contract_hash);
 
     let mint_runtime_args = runtime_args! {
         ARG_TOKEN_OWNER => Key::Account(*DEFAULT_ACCOUNT_ADDR),
@@ -1769,7 +1769,7 @@ fn should_mint_with_transfer_only_reporting() {
 
 #[test]
 fn should_approve_all_in_hash_identifier_mode() {
-    let mut builder = InMemoryWasmTestBuilder::default();
+    let mut builder = LmdbWasmTestBuilder::default();
     builder
         .run_genesis(&PRODUCTION_RUN_GENESIS_REQUEST)
         .commit();
@@ -1786,7 +1786,7 @@ fn should_approve_all_in_hash_identifier_mode() {
     builder.exec(install_request).expect_success().commit();
 
     let nft_contract_hash = get_nft_contract_hash(&builder);
-    let nft_contract_key: Key = nft_contract_hash.into();
+    let nft_contract_key: Key = Key::contract_entity_key(nft_contract_hash);
     let owner_key = Key::Account(*DEFAULT_ACCOUNT_ADDR);
     let operator_key = Key::Account(AccountHash::new([7u8; 32]));
 
@@ -1858,7 +1858,7 @@ fn should_approve_all_in_hash_identifier_mode() {
 
 #[test]
 fn should_approve_all_with_flat_gas_cost() {
-    let mut builder = InMemoryWasmTestBuilder::default();
+    let mut builder = LmdbWasmTestBuilder::default();
     builder
         .run_genesis(&PRODUCTION_RUN_GENESIS_REQUEST)
         .commit();
@@ -1869,7 +1869,7 @@ fn should_approve_all_with_flat_gas_cost() {
         .build();
     builder.exec(install_request).expect_success().commit();
 
-    let nft_contract_key: Key = get_nft_contract_hash(&builder).into();
+    let nft_contract_key: Key = Key::contract_entity_key(get_nft_contract_hash(&builder));
     let owner_key = Key::Account(*DEFAULT_ACCOUNT_ADDR);
 
     let mint_session_call = ExecuteRequestBuilder::standard(

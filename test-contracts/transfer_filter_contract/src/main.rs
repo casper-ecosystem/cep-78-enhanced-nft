@@ -13,8 +13,8 @@ use casper_contract::contract_api::{
     storage,
 };
 use casper_types::{
-    contracts::NamedKeys, CLType, CLValue, ContractHash, ContractVersion, EntryPoint,
-    EntryPointAccess, EntryPointType, EntryPoints, Key, Parameter,
+    addressable_entity::NamedKeys, AddressableEntityHash, CLType, CLValue, EntityVersion,
+    EntryPoint, EntryPointAccess, EntryPointType, EntryPoints, Key, Parameter,
 };
 
 const CONTRACT_NAME: &str = "transfer_filter_contract_hash";
@@ -23,7 +23,7 @@ const HASH_KEY_NAME: &str = "transfer_filter_contract_package_hash";
 const ACCESS_KEY_NAME: &str = "transfer_filter_contract_access_uref";
 const ARG_FILTER_CONTRACT_RETURN_VALUE: &str = "return_value";
 
-fn install_filter_contract() -> (ContractHash, ContractVersion) {
+fn install_filter_contract() -> (AddressableEntityHash, EntityVersion) {
     let can_transfer_entry_point = EntryPoint::new(
         "can_transfer",
         vec![
@@ -32,7 +32,7 @@ fn install_filter_contract() -> (ContractHash, ContractVersion) {
         ],
         CLType::U8,
         EntryPointAccess::Public,
-        EntryPointType::Contract,
+        EntryPointType::AddressableEntity,
     );
 
     let set_return_value = EntryPoint::new(
@@ -40,7 +40,7 @@ fn install_filter_contract() -> (ContractHash, ContractVersion) {
         vec![Parameter::new(ARG_FILTER_CONTRACT_RETURN_VALUE, CLType::U8)],
         CLType::Unit,
         EntryPointAccess::Public,
-        EntryPointType::Contract,
+        EntryPointType::AddressableEntity,
     );
 
     let mut entry_points = EntryPoints::new();
@@ -90,6 +90,6 @@ pub extern "C" fn can_transfer() {
 pub extern "C" fn call() {
     let (contract_hash, contract_version) = install_filter_contract();
 
-    runtime::put_key(CONTRACT_NAME, contract_hash.into());
+    runtime::put_key(CONTRACT_NAME, Key::contract_entity_key(contract_hash));
     runtime::put_key(CONTRACT_VERSION, storage::new_uref(contract_version).into());
 }

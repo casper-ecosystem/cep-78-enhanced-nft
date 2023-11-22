@@ -14,10 +14,10 @@ use crate::utility::{
     },
 };
 use casper_engine_test_support::{
-    ExecuteRequestBuilder, InMemoryWasmTestBuilder, DEFAULT_ACCOUNT_ADDR,
+    ExecuteRequestBuilder, LmdbWasmTestBuilder, DEFAULT_ACCOUNT_ADDR,
     PRODUCTION_RUN_GENESIS_REQUEST,
 };
-use casper_types::{runtime_args, Key, RuntimeArgs};
+use casper_types::{runtime_args, Key};
 use contract::{
     constants::{
         ARG_APPROVE_ALL, ARG_COLLECTION_NAME, ARG_OPERATOR, ARG_TOKEN_HASH, ARG_TOKEN_ID,
@@ -29,7 +29,7 @@ use contract::{
 };
 
 fn should_burn_minted_token(reporting: OwnerReverseLookupMode) {
-    let mut builder = InMemoryWasmTestBuilder::default();
+    let mut builder = LmdbWasmTestBuilder::default();
     builder
         .run_genesis(&PRODUCTION_RUN_GENESIS_REQUEST)
         .commit();
@@ -47,7 +47,7 @@ fn should_burn_minted_token(reporting: OwnerReverseLookupMode) {
         .commit();
 
     let nft_contract_hash = get_nft_contract_hash(&builder);
-    let nft_contract_key: Key = nft_contract_hash.into();
+    let nft_contract_key: Key = Key::contract_entity_key(nft_contract_hash);
     let token_owner: Key = Key::Account(*DEFAULT_ACCOUNT_ADDR);
     let token_id = 0u64;
 
@@ -150,7 +150,7 @@ fn should_burn_minted_token_with_transfer_only_reporting() {
 
 #[test]
 fn should_not_burn_previously_burnt_token() {
-    let mut builder = InMemoryWasmTestBuilder::default();
+    let mut builder = LmdbWasmTestBuilder::default();
     builder
         .run_genesis(&PRODUCTION_RUN_GENESIS_REQUEST)
         .commit();
@@ -166,7 +166,7 @@ fn should_not_burn_previously_burnt_token() {
         .expect_success()
         .commit();
 
-    let nft_contract_key: Key = get_nft_contract_hash(&builder).into();
+    let nft_contract_key: Key = Key::contract_entity_key(get_nft_contract_hash(&builder));
 
     let mint_session_call = ExecuteRequestBuilder::standard(
         *DEFAULT_ACCOUNT_ADDR,
@@ -225,7 +225,7 @@ fn should_not_burn_previously_burnt_token() {
 
 #[test]
 fn should_return_expected_error_when_burning_non_existing_token() {
-    let mut builder = InMemoryWasmTestBuilder::default();
+    let mut builder = LmdbWasmTestBuilder::default();
     builder
         .run_genesis(&PRODUCTION_RUN_GENESIS_REQUEST)
         .commit();
@@ -265,7 +265,7 @@ fn should_return_expected_error_when_burning_non_existing_token() {
 
 #[test]
 fn should_return_expected_error_burning_of_others_users_token() {
-    let mut builder = InMemoryWasmTestBuilder::default();
+    let mut builder = LmdbWasmTestBuilder::default();
     builder
         .run_genesis(&PRODUCTION_RUN_GENESIS_REQUEST)
         .commit();
@@ -282,7 +282,7 @@ fn should_return_expected_error_burning_of_others_users_token() {
         .commit();
 
     let nft_contract_hash = get_nft_contract_hash(&builder);
-    let nft_contract_key: Key = nft_contract_hash.into();
+    let nft_contract_key: Key = Key::contract_entity_key(nft_contract_hash);
 
     let account_user_1 = support::create_funded_dummy_account(&mut builder, Some(ACCOUNT_USER_1));
 
@@ -328,7 +328,7 @@ fn should_return_expected_error_burning_of_others_users_token() {
 
 #[test]
 fn should_allow_contract_to_burn_token() {
-    let mut builder = InMemoryWasmTestBuilder::default();
+    let mut builder = LmdbWasmTestBuilder::default();
     builder
         .run_genesis(&PRODUCTION_RUN_GENESIS_REQUEST)
         .commit();
@@ -347,7 +347,7 @@ fn should_allow_contract_to_burn_token() {
 
     let minting_contract_hash = get_minting_contract_hash(&builder);
 
-    let contract_whitelist = vec![Key::from(minting_contract_hash)];
+    let contract_whitelist = vec![Key::contract_entity_key(minting_contract_hash)];
 
     let install_request = InstallerRequestBuilder::new(*DEFAULT_ACCOUNT_ADDR, NFT_CONTRACT_WASM)
         .with_total_token_supply(100u64)
@@ -361,7 +361,7 @@ fn should_allow_contract_to_burn_token() {
 
     builder.exec(install_request).expect_success().commit();
 
-    let nft_contract_key: Key = get_nft_contract_hash(&builder).into();
+    let nft_contract_key: Key = Key::contract_entity_key(get_nft_contract_hash(&builder));
 
     let mint_runtime_args = runtime_args! {
         ARG_NFT_CONTRACT_HASH => nft_contract_key,
@@ -420,7 +420,7 @@ fn should_allow_contract_to_burn_token() {
 
 #[test]
 fn should_not_burn_in_non_burn_mode() {
-    let mut builder = InMemoryWasmTestBuilder::default();
+    let mut builder = LmdbWasmTestBuilder::default();
     builder
         .run_genesis(&PRODUCTION_RUN_GENESIS_REQUEST)
         .commit();
@@ -434,7 +434,7 @@ fn should_not_burn_in_non_burn_mode() {
 
     builder.exec(install_request).expect_success().commit();
 
-    let nft_contract_key: Key = get_nft_contract_hash(&builder).into();
+    let nft_contract_key: Key = Key::contract_entity_key(get_nft_contract_hash(&builder));
     let burn_mode: u8 = builder
         .query(None, nft_contract_key, &[BURN_MODE.to_string()])
         .unwrap()
@@ -478,7 +478,7 @@ fn should_not_burn_in_non_burn_mode() {
 
 #[test]
 fn should_let_account_operator_burn_tokens_with_operator_burn_mode() {
-    let mut builder = InMemoryWasmTestBuilder::default();
+    let mut builder = LmdbWasmTestBuilder::default();
     builder
         .run_genesis(&PRODUCTION_RUN_GENESIS_REQUEST)
         .commit();
@@ -493,7 +493,7 @@ fn should_let_account_operator_burn_tokens_with_operator_burn_mode() {
     builder.exec(install_request).expect_success().commit();
 
     let nft_contract_hash = get_nft_contract_hash(&builder);
-    let nft_contract_key: Key = nft_contract_hash.into();
+    let nft_contract_key: Key = Key::contract_entity_key(nft_contract_hash);
     let token_owner: Key = Key::Account(*DEFAULT_ACCOUNT_ADDR);
 
     let mint_session_call = ExecuteRequestBuilder::standard(
@@ -588,7 +588,7 @@ fn should_let_account_operator_burn_tokens_with_operator_burn_mode() {
 
 #[test]
 fn should_let_contract_operator_burn_tokens_with_operator_burn_mode() {
-    let mut builder = InMemoryWasmTestBuilder::default();
+    let mut builder = LmdbWasmTestBuilder::default();
     builder
         .run_genesis(&PRODUCTION_RUN_GENESIS_REQUEST)
         .commit();
@@ -603,7 +603,7 @@ fn should_let_contract_operator_burn_tokens_with_operator_burn_mode() {
     builder.exec(install_request).expect_success().commit();
 
     let nft_contract_hash = get_nft_contract_hash(&builder);
-    let nft_contract_key: Key = nft_contract_hash.into();
+    let nft_contract_key: Key = Key::contract_entity_key(nft_contract_hash);
     let token_owner: Key = Key::Account(*DEFAULT_ACCOUNT_ADDR);
 
     let mint_session_call = ExecuteRequestBuilder::standard(
@@ -664,7 +664,7 @@ fn should_let_contract_operator_burn_tokens_with_operator_burn_mode() {
         ENTRY_POINT_SET_APPROVALL_FOR_ALL,
         runtime_args! {
             ARG_APPROVE_ALL => true,
-            ARG_OPERATOR => Key::from(operator)
+            ARG_OPERATOR => Key::contract_entity_key(operator)
         },
     )
     .build();
@@ -707,7 +707,7 @@ fn should_let_contract_operator_burn_tokens_with_operator_burn_mode() {
     let actual_event: Burn =
         support::get_event(&builder, &nft_contract_key, actual_event_index).unwrap();
 
-    let burner = Key::from(minting_contract_hash); // Burner is contract not session caller ACCOUNT_USER_1
+    let burner = Key::contract_entity_key(minting_contract_hash); // Burner is contract not session caller ACCOUNT_USER_1
 
     let expected_event = Burn::new(token_owner, TokenIdentifier::Index(token_id), burner);
     assert_eq!(actual_event, expected_event, "Expected Burn event.");
@@ -715,7 +715,7 @@ fn should_let_contract_operator_burn_tokens_with_operator_burn_mode() {
 
 #[test]
 fn should_let_package_operator_burn_tokens_with_contract_package_mode_and_operator_burn_mode() {
-    let mut builder = InMemoryWasmTestBuilder::default();
+    let mut builder = LmdbWasmTestBuilder::default();
     builder
         .run_genesis(&PRODUCTION_RUN_GENESIS_REQUEST)
         .commit();
@@ -731,7 +731,7 @@ fn should_let_package_operator_burn_tokens_with_contract_package_mode_and_operat
     builder.exec(install_request).expect_success().commit();
 
     let nft_contract_hash = get_nft_contract_hash(&builder);
-    let nft_contract_key: Key = nft_contract_hash.into();
+    let nft_contract_key: Key = Key::contract_entity_key(nft_contract_hash);
     let token_owner: Key = Key::Account(*DEFAULT_ACCOUNT_ADDR);
 
     let mint_session_call = ExecuteRequestBuilder::standard(
@@ -836,7 +836,7 @@ fn should_let_package_operator_burn_tokens_with_contract_package_mode_and_operat
     let actual_event: Burn =
         support::get_event(&builder, &nft_contract_key, actual_event_index).unwrap();
 
-    let burner = Key::from(minting_contract_hash); // Burner is contract not its package nor session caller ACCOUNT_USER_1
+    let burner = Key::contract_entity_key(minting_contract_hash); // Burner is contract not its package nor session caller ACCOUNT_USER_1
 
     let expected_event = Burn::new(token_owner, TokenIdentifier::Index(token_id), burner);
     assert_eq!(actual_event, expected_event, "Expected Burn event.");
@@ -844,7 +844,7 @@ fn should_let_package_operator_burn_tokens_with_contract_package_mode_and_operat
 
 #[test]
 fn should_burn_token_in_hash_identifier_mode() {
-    let mut builder = InMemoryWasmTestBuilder::default();
+    let mut builder = LmdbWasmTestBuilder::default();
     builder
         .run_genesis(&PRODUCTION_RUN_GENESIS_REQUEST)
         .commit();
@@ -860,7 +860,7 @@ fn should_burn_token_in_hash_identifier_mode() {
     builder.exec(install_request).expect_success().commit();
 
     let nft_contract_hash = get_nft_contract_hash(&builder);
-    let nft_contract_key: Key = nft_contract_hash.into();
+    let nft_contract_key: Key = Key::contract_entity_key(nft_contract_hash);
 
     let mint_session_call = ExecuteRequestBuilder::standard(
         *DEFAULT_ACCOUNT_ADDR,

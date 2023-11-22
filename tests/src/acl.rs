@@ -16,10 +16,10 @@ use crate::utility::{
     },
 };
 use casper_engine_test_support::{
-    ExecuteRequestBuilder, InMemoryWasmTestBuilder, DEFAULT_ACCOUNT_ADDR,
+    ExecuteRequestBuilder, LmdbWasmTestBuilder, DEFAULT_ACCOUNT_ADDR,
     PRODUCTION_RUN_GENESIS_REQUEST,
 };
-use casper_types::{runtime_args, ContractHash, Key, RuntimeArgs};
+use casper_types::{runtime_args, AddressableEntityHash, Key};
 use contract::{
     constants::{
         ACL_WHITELIST, ARG_ACL_WHITELIST, ARG_COLLECTION_NAME, ARG_CONTRACT_WHITELIST,
@@ -33,7 +33,7 @@ use contract::{
 
 #[test]
 fn should_install_with_acl_whitelist() {
-    let mut builder = InMemoryWasmTestBuilder::default();
+    let mut builder = LmdbWasmTestBuilder::default();
     builder
         .run_genesis(&PRODUCTION_RUN_GENESIS_REQUEST)
         .commit();
@@ -52,7 +52,7 @@ fn should_install_with_acl_whitelist() {
 
     let minting_contract_hash = get_minting_contract_hash(&builder);
 
-    let contract_whitelist = vec![Key::from(minting_contract_hash)];
+    let contract_whitelist = vec![Key::contract_entity_key(minting_contract_hash)];
 
     let install_request = InstallerRequestBuilder::new(*DEFAULT_ACCOUNT_ADDR, NFT_CONTRACT_WASM)
         .with_total_token_supply(100u64)
@@ -66,7 +66,7 @@ fn should_install_with_acl_whitelist() {
 
     builder.exec(install_request).expect_success().commit();
 
-    let nft_contract_key: Key = get_nft_contract_hash(&builder).into();
+    let nft_contract_key: Key = Key::contract_entity_key(get_nft_contract_hash(&builder));
 
     let is_whitelisted_contract = support::get_dictionary_value_from_key::<bool>(
         &builder,
@@ -80,7 +80,7 @@ fn should_install_with_acl_whitelist() {
 
 #[test]
 fn should_install_with_deprecated_contract_whitelist() {
-    let mut builder = InMemoryWasmTestBuilder::default();
+    let mut builder = LmdbWasmTestBuilder::default();
     builder
         .run_genesis(&PRODUCTION_RUN_GENESIS_REQUEST)
         .commit();
@@ -113,7 +113,7 @@ fn should_install_with_deprecated_contract_whitelist() {
 
     builder.exec(install_request).expect_success().commit();
 
-    let nft_contract_key: Key = get_nft_contract_hash(&builder).into();
+    let nft_contract_key: Key = Key::contract_entity_key(get_nft_contract_hash(&builder));
 
     let is_whitelisted_contract = support::get_dictionary_value_from_key::<bool>(
         &builder,
@@ -127,12 +127,12 @@ fn should_install_with_deprecated_contract_whitelist() {
 
 #[test]
 fn should_not_install_with_minting_mode_not_acl_if_acl_whitelist_provided() {
-    let mut builder = InMemoryWasmTestBuilder::default();
+    let mut builder = LmdbWasmTestBuilder::default();
     builder
         .run_genesis(&PRODUCTION_RUN_GENESIS_REQUEST)
         .commit();
 
-    let contract_whitelist = vec![ContractHash::default()];
+    let contract_whitelist = vec![AddressableEntityHash::default()];
 
     let install_request = InstallerRequestBuilder::new(*DEFAULT_ACCOUNT_ADDR, NFT_CONTRACT_WASM)
         .with_total_token_supply(100u64)
@@ -157,7 +157,7 @@ fn should_not_install_with_minting_mode_not_acl_if_acl_whitelist_provided() {
 fn should_disallow_installation_of_contract_with_empty_locked_whitelist_in_public_mode_with_holder_mode(
     nft_holder_mode: NFTHolderMode,
 ) {
-    let mut builder = InMemoryWasmTestBuilder::default();
+    let mut builder = LmdbWasmTestBuilder::default();
     builder
         .run_genesis(&PRODUCTION_RUN_GENESIS_REQUEST)
         .commit();
@@ -187,7 +187,7 @@ fn should_allow_installation_of_contract_with_empty_locked_whitelist_in_public_m
 
 #[test]
 fn should_disallow_installation_with_contract_holder_mode_and_installer_mode() {
-    let mut builder = InMemoryWasmTestBuilder::default();
+    let mut builder = LmdbWasmTestBuilder::default();
     builder
         .run_genesis(&PRODUCTION_RUN_GENESIS_REQUEST)
         .commit();
@@ -218,7 +218,7 @@ fn should_disallow_installation_with_contract_holder_mode_and_installer_mode() {
 
 #[test]
 fn should_allow_whitelisted_account_to_mint() {
-    let mut builder = InMemoryWasmTestBuilder::default();
+    let mut builder = LmdbWasmTestBuilder::default();
     builder
         .run_genesis(&PRODUCTION_RUN_GENESIS_REQUEST)
         .commit();
@@ -239,7 +239,7 @@ fn should_allow_whitelisted_account_to_mint() {
     builder.exec(install_request).expect_success().commit();
 
     let nft_contract_hash = get_nft_contract_hash(&builder);
-    let nft_contract_key: Key = nft_contract_hash.into();
+    let nft_contract_key: Key = Key::contract_entity_key(nft_contract_hash);
 
     let is_whitelisted_account = get_dictionary_value_from_key::<bool>(
         &builder,
@@ -283,7 +283,7 @@ fn should_allow_whitelisted_account_to_mint() {
 
 #[test]
 fn should_disallow_unlisted_account_from_minting() {
-    let mut builder = InMemoryWasmTestBuilder::default();
+    let mut builder = LmdbWasmTestBuilder::default();
     builder
         .run_genesis(&PRODUCTION_RUN_GENESIS_REQUEST)
         .commit();
@@ -303,7 +303,7 @@ fn should_disallow_unlisted_account_from_minting() {
     builder.exec(install_request).expect_success().commit();
 
     let nft_contract_hash = get_nft_contract_hash(&builder);
-    let nft_contract_key: Key = nft_contract_hash.into();
+    let nft_contract_key: Key = Key::contract_entity_key(nft_contract_hash);
 
     let is_whitelisted_account = get_dictionary_value_from_key::<bool>(
         &builder,
@@ -343,7 +343,7 @@ fn should_disallow_unlisted_account_from_minting() {
 
 #[test]
 fn should_allow_whitelisted_contract_to_mint() {
-    let mut builder = InMemoryWasmTestBuilder::default();
+    let mut builder = LmdbWasmTestBuilder::default();
     builder
         .run_genesis(&PRODUCTION_RUN_GENESIS_REQUEST)
         .commit();
@@ -362,7 +362,7 @@ fn should_allow_whitelisted_contract_to_mint() {
 
     let minting_contract_hash = get_minting_contract_hash(&builder);
 
-    let contract_whitelist = vec![Key::from(minting_contract_hash)];
+    let contract_whitelist = vec![Key::contract_entity_key(minting_contract_hash)];
 
     let install_request = InstallerRequestBuilder::new(*DEFAULT_ACCOUNT_ADDR, NFT_CONTRACT_WASM)
         .with_total_token_supply(100u64)
@@ -376,7 +376,7 @@ fn should_allow_whitelisted_contract_to_mint() {
 
     builder.exec(install_request).expect_success().commit();
 
-    let nft_contract_key: Key = get_nft_contract_hash(&builder).into();
+    let nft_contract_key: Key = Key::contract_entity_key(get_nft_contract_hash(&builder));
 
     let is_whitelisted_contract = get_dictionary_value_from_key::<bool>(
         &builder,
@@ -389,7 +389,7 @@ fn should_allow_whitelisted_contract_to_mint() {
 
     let mint_runtime_args = runtime_args! {
         ARG_NFT_CONTRACT_HASH => nft_contract_key,
-        ARG_TOKEN_OWNER => Key::from(minting_contract_hash),
+        ARG_TOKEN_OWNER => Key::contract_entity_key(minting_contract_hash),
         ARG_TOKEN_META_DATA => TEST_PRETTY_721_META_DATA.to_string(),
         ARG_REVERSE_LOOKUP => false
     };
@@ -416,14 +416,14 @@ fn should_allow_whitelisted_contract_to_mint() {
         &token_id.to_string(),
     );
 
-    let minting_contract_key: Key = minting_contract_hash.into();
+    let minting_contract_key: Key = Key::contract_entity_key(minting_contract_hash);
 
     assert_eq!(actual_token_owner, minting_contract_key)
 }
 
 #[test]
 fn should_disallow_unlisted_contract_from_minting() {
-    let mut builder = InMemoryWasmTestBuilder::default();
+    let mut builder = LmdbWasmTestBuilder::default();
     builder
         .run_genesis(&PRODUCTION_RUN_GENESIS_REQUEST)
         .commit();
@@ -459,11 +459,11 @@ fn should_disallow_unlisted_contract_from_minting() {
 
     builder.exec(install_request).expect_success().commit();
 
-    let nft_contract_key: Key = get_nft_contract_hash(&builder).into();
+    let nft_contract_key: Key = Key::contract_entity_key(get_nft_contract_hash(&builder));
 
     let mint_runtime_args = runtime_args! {
         ARG_NFT_CONTRACT_HASH => nft_contract_key,
-        ARG_TOKEN_OWNER => Key::from(minting_contract_hash),
+        ARG_TOKEN_OWNER => Key::contract_entity_key(minting_contract_hash),
         ARG_TOKEN_META_DATA => TEST_PRETTY_721_META_DATA.to_string(),
         ARG_REVERSE_LOOKUP => false
     };
@@ -488,7 +488,7 @@ fn should_disallow_unlisted_contract_from_minting() {
 
 #[test]
 fn should_allow_mixed_account_contract_to_mint() {
-    let mut builder = InMemoryWasmTestBuilder::default();
+    let mut builder = LmdbWasmTestBuilder::default();
     builder
         .run_genesis(&PRODUCTION_RUN_GENESIS_REQUEST)
         .commit();
@@ -507,7 +507,10 @@ fn should_allow_mixed_account_contract_to_mint() {
 
     let minting_contract_hash = get_minting_contract_hash(&builder);
     let account_user_1 = support::create_funded_dummy_account(&mut builder, Some(ACCOUNT_USER_1));
-    let mixed_whitelist = vec![Key::from(minting_contract_hash), Key::from(account_user_1)];
+    let mixed_whitelist = vec![
+        Key::contract_entity_key(minting_contract_hash),
+        Key::from(account_user_1),
+    ];
 
     let install_request = InstallerRequestBuilder::new(*DEFAULT_ACCOUNT_ADDR, NFT_CONTRACT_WASM)
         .with_total_token_supply(100u64)
@@ -522,7 +525,7 @@ fn should_allow_mixed_account_contract_to_mint() {
     builder.exec(install_request).expect_success().commit();
 
     let nft_contract_hash = get_nft_contract_hash(&builder);
-    let nft_contract_key: Key = get_nft_contract_hash(&builder).into();
+    let nft_contract_key: Key = Key::contract_entity_key(get_nft_contract_hash(&builder));
 
     // Contract
     let is_whitelisted_contract = get_dictionary_value_from_key::<bool>(
@@ -536,7 +539,7 @@ fn should_allow_mixed_account_contract_to_mint() {
 
     let mint_runtime_args = runtime_args! {
         ARG_NFT_CONTRACT_HASH => nft_contract_key,
-        ARG_TOKEN_OWNER => Key::from(minting_contract_hash),
+        ARG_TOKEN_OWNER => Key::contract_entity_key(minting_contract_hash),
         ARG_TOKEN_META_DATA => TEST_PRETTY_721_META_DATA.to_string(),
         ARG_REVERSE_LOOKUP => false
     };
@@ -563,7 +566,7 @@ fn should_allow_mixed_account_contract_to_mint() {
         &token_id.to_string(),
     );
 
-    let minting_contract_key: Key = minting_contract_hash.into();
+    let minting_contract_key: Key = Key::contract_entity_key(minting_contract_hash);
 
     assert_eq!(actual_token_owner, minting_contract_key);
 
@@ -610,7 +613,7 @@ fn should_allow_mixed_account_contract_to_mint() {
 
 #[test]
 fn should_disallow_unlisted_contract_from_minting_with_mixed_account_contract() {
-    let mut builder = InMemoryWasmTestBuilder::default();
+    let mut builder = LmdbWasmTestBuilder::default();
     builder
         .run_genesis(&PRODUCTION_RUN_GENESIS_REQUEST)
         .commit();
@@ -630,7 +633,7 @@ fn should_disallow_unlisted_contract_from_minting_with_mixed_account_contract() 
     let minting_contract_hash = get_minting_contract_hash(&builder);
     let account_user_1 = support::create_funded_dummy_account(&mut builder, Some(ACCOUNT_USER_1));
     let mixed_whitelist = vec![
-        Key::from(ContractHash::from([1u8; 32])),
+        Key::contract_entity_key(AddressableEntityHash::from([1u8; 32])),
         Key::from(account_user_1),
     ];
 
@@ -646,11 +649,11 @@ fn should_disallow_unlisted_contract_from_minting_with_mixed_account_contract() 
 
     builder.exec(install_request).expect_success().commit();
 
-    let nft_contract_key: Key = get_nft_contract_hash(&builder).into();
+    let nft_contract_key: Key = Key::contract_entity_key(get_nft_contract_hash(&builder));
 
     let mint_runtime_args = runtime_args! {
         ARG_NFT_CONTRACT_HASH => nft_contract_key,
-        ARG_TOKEN_OWNER => Key::from(minting_contract_hash),
+        ARG_TOKEN_OWNER => Key::contract_entity_key(minting_contract_hash),
         ARG_TOKEN_META_DATA => TEST_PRETTY_721_META_DATA.to_string(),
         ARG_REVERSE_LOOKUP => false
     };
@@ -675,7 +678,7 @@ fn should_disallow_unlisted_contract_from_minting_with_mixed_account_contract() 
 
 #[test]
 fn should_disallow_unlisted_account_from_minting_with_mixed_account_contract() {
-    let mut builder = InMemoryWasmTestBuilder::default();
+    let mut builder = LmdbWasmTestBuilder::default();
     builder
         .run_genesis(&PRODUCTION_RUN_GENESIS_REQUEST)
         .commit();
@@ -694,7 +697,7 @@ fn should_disallow_unlisted_account_from_minting_with_mixed_account_contract() {
 
     let minting_contract_hash = get_minting_contract_hash(&builder);
     let mixed_whitelist = vec![
-        Key::from(minting_contract_hash),
+        Key::contract_entity_key(minting_contract_hash),
         Key::from(*DEFAULT_ACCOUNT_ADDR),
     ];
 
@@ -711,7 +714,7 @@ fn should_disallow_unlisted_account_from_minting_with_mixed_account_contract() {
     builder.exec(install_request).expect_success().commit();
 
     let nft_contract_hash = get_nft_contract_hash(&builder);
-    let nft_contract_key: Key = nft_contract_hash.into();
+    let nft_contract_key: Key = Key::contract_entity_key(nft_contract_hash);
 
     let is_whitelisted_account = get_dictionary_value_from_key::<bool>(
         &builder,
@@ -751,7 +754,7 @@ fn should_disallow_unlisted_account_from_minting_with_mixed_account_contract() {
 
 #[test]
 fn should_disallow_listed_account_from_minting_with_nftholder_contract() {
-    let mut builder = InMemoryWasmTestBuilder::default();
+    let mut builder = LmdbWasmTestBuilder::default();
     builder
         .run_genesis(&PRODUCTION_RUN_GENESIS_REQUEST)
         .commit();
@@ -770,7 +773,7 @@ fn should_disallow_listed_account_from_minting_with_nftholder_contract() {
 
     let minting_contract_hash = get_minting_contract_hash(&builder);
     let mixed_whitelist = vec![
-        Key::from(minting_contract_hash),
+        Key::contract_entity_key(minting_contract_hash),
         Key::from(*DEFAULT_ACCOUNT_ADDR),
     ];
 
@@ -787,7 +790,7 @@ fn should_disallow_listed_account_from_minting_with_nftholder_contract() {
     builder.exec(install_request).expect_success().commit();
 
     let nft_contract_hash = get_nft_contract_hash(&builder);
-    let nft_contract_key: Key = nft_contract_hash.into();
+    let nft_contract_key: Key = Key::contract_entity_key(nft_contract_hash);
 
     let is_whitelisted_account = get_dictionary_value_from_key::<bool>(
         &builder,
@@ -823,7 +826,7 @@ fn should_disallow_listed_account_from_minting_with_nftholder_contract() {
 
 #[test]
 fn should_disallow_contract_from_whitelisted_package_to_mint_without_acl_package_mode() {
-    let mut builder = InMemoryWasmTestBuilder::default();
+    let mut builder = LmdbWasmTestBuilder::default();
     builder
         .run_genesis(&PRODUCTION_RUN_GENESIS_REQUEST)
         .commit();
@@ -857,7 +860,7 @@ fn should_disallow_contract_from_whitelisted_package_to_mint_without_acl_package
 
     builder.exec(install_request).expect_success().commit();
 
-    let nft_contract_key: Key = get_nft_contract_hash(&builder).into();
+    let nft_contract_key: Key = Key::contract_entity_key(get_nft_contract_hash(&builder));
 
     let is_whitelisted_contract_package = get_dictionary_value_from_key::<bool>(
         &builder,
@@ -873,7 +876,7 @@ fn should_disallow_contract_from_whitelisted_package_to_mint_without_acl_package
 
     let mint_runtime_args = runtime_args! {
         ARG_NFT_CONTRACT_HASH => nft_contract_key,
-        ARG_TOKEN_OWNER => Key::from(minting_contract_hash),
+        ARG_TOKEN_OWNER => Key::contract_entity_key(minting_contract_hash),
         ARG_TOKEN_META_DATA => TEST_PRETTY_721_META_DATA.to_string(),
         ARG_REVERSE_LOOKUP => false
     };
@@ -898,7 +901,7 @@ fn should_disallow_contract_from_whitelisted_package_to_mint_without_acl_package
 
 #[test]
 fn should_allow_contract_from_whitelisted_package_to_mint_with_acl_package_mode() {
-    let mut builder = InMemoryWasmTestBuilder::default();
+    let mut builder = LmdbWasmTestBuilder::default();
     builder
         .run_genesis(&PRODUCTION_RUN_GENESIS_REQUEST)
         .commit();
@@ -934,7 +937,7 @@ fn should_allow_contract_from_whitelisted_package_to_mint_with_acl_package_mode(
 
     builder.exec(install_request).expect_success().commit();
 
-    let nft_contract_key: Key = get_nft_contract_hash(&builder).into();
+    let nft_contract_key: Key = Key::contract_entity_key(get_nft_contract_hash(&builder));
 
     let is_whitelisted_contract_package = get_dictionary_value_from_key::<bool>(
         &builder,
@@ -950,7 +953,7 @@ fn should_allow_contract_from_whitelisted_package_to_mint_with_acl_package_mode(
 
     let mint_runtime_args = runtime_args! {
         ARG_NFT_CONTRACT_HASH => nft_contract_key,
-        ARG_TOKEN_OWNER => Key::from(minting_contract_hash),
+        ARG_TOKEN_OWNER => Key::contract_entity_key(minting_contract_hash),
         ARG_TOKEN_META_DATA => TEST_PRETTY_721_META_DATA.to_string(),
         ARG_REVERSE_LOOKUP => false
     };
@@ -977,7 +980,7 @@ fn should_allow_contract_from_whitelisted_package_to_mint_with_acl_package_mode(
         &token_id.to_string(),
     );
 
-    let minting_contract_key: Key = minting_contract_hash.into();
+    let minting_contract_key: Key = Key::contract_entity_key(minting_contract_hash);
 
     assert_eq!(actual_token_owner, minting_contract_key)
 }
@@ -985,7 +988,7 @@ fn should_allow_contract_from_whitelisted_package_to_mint_with_acl_package_mode(
 #[test]
 fn should_allow_contract_from_whitelisted_package_to_mint_with_acl_package_mode_after_contract_upgrade(
 ) {
-    let mut builder = InMemoryWasmTestBuilder::default();
+    let mut builder = LmdbWasmTestBuilder::default();
     builder
         .run_genesis(&PRODUCTION_RUN_GENESIS_REQUEST)
         .commit();
@@ -1021,7 +1024,7 @@ fn should_allow_contract_from_whitelisted_package_to_mint_with_acl_package_mode_
 
     builder.exec(install_request).expect_success().commit();
 
-    let nft_contract_key: Key = get_nft_contract_hash(&builder).into();
+    let nft_contract_key: Key = Key::contract_entity_key(get_nft_contract_hash(&builder));
 
     let is_whitelisted_contract_package = get_dictionary_value_from_key::<bool>(
         &builder,
@@ -1065,7 +1068,7 @@ fn should_allow_contract_from_whitelisted_package_to_mint_with_acl_package_mode_
 
     let mint_runtime_args = runtime_args! {
         ARG_NFT_CONTRACT_HASH => nft_contract_key,
-        ARG_TOKEN_OWNER => Key::from(minting_contract_hash),
+        ARG_TOKEN_OWNER => Key::contract_entity_key(minting_contract_hash),
         ARG_TOKEN_META_DATA => TEST_PRETTY_721_META_DATA.to_string(),
         ARG_REVERSE_LOOKUP => false
     };
@@ -1092,7 +1095,7 @@ fn should_allow_contract_from_whitelisted_package_to_mint_with_acl_package_mode_
         &token_id.to_string(),
     );
 
-    let minting_contract_key: Key = minting_upgraded_contract_hash.into();
+    let minting_contract_key: Key = Key::contract_entity_key(minting_upgraded_contract_hash);
 
     assert_eq!(actual_token_owner, minting_contract_key)
 }
@@ -1101,7 +1104,7 @@ fn should_allow_contract_from_whitelisted_package_to_mint_with_acl_package_mode_
 
 #[test]
 fn should_be_able_to_update_whitelist_for_minting_with_deprecated_arg_contract_whitelist() {
-    let mut builder = InMemoryWasmTestBuilder::default();
+    let mut builder = LmdbWasmTestBuilder::default();
     builder
         .run_genesis(&PRODUCTION_RUN_GENESIS_REQUEST)
         .commit();
@@ -1135,12 +1138,12 @@ fn should_be_able_to_update_whitelist_for_minting_with_deprecated_arg_contract_w
     builder.exec(install_request).expect_success().commit();
 
     let nft_contract_hash = get_nft_contract_hash(&builder);
-    let nft_contract_key: Key = nft_contract_hash.into();
+    let nft_contract_key: Key = Key::contract_entity_key(nft_contract_hash);
 
     let seed_uref = *builder
         .query(None, nft_contract_key, &[])
         .expect("must have nft contract")
-        .as_contract()
+        .as_addressable_entity()
         .expect("must convert contract")
         .named_keys()
         .get(ACL_WHITELIST)
@@ -1220,7 +1223,7 @@ fn should_be_able_to_update_whitelist_for_minting_with_deprecated_arg_contract_w
 
 #[test]
 fn should_be_able_to_update_whitelist_for_minting() {
-    let mut builder = InMemoryWasmTestBuilder::default();
+    let mut builder = LmdbWasmTestBuilder::default();
     builder
         .run_genesis(&PRODUCTION_RUN_GENESIS_REQUEST)
         .commit();
@@ -1254,12 +1257,12 @@ fn should_be_able_to_update_whitelist_for_minting() {
     builder.exec(install_request).expect_success().commit();
 
     let nft_contract_hash = get_nft_contract_hash(&builder);
-    let nft_contract_key: Key = nft_contract_hash.into();
+    let nft_contract_key: Key = Key::contract_entity_key(nft_contract_hash);
 
     let seed_uref = *builder
         .query(None, nft_contract_key, &[])
         .expect("must have nft contract")
-        .as_contract()
+        .as_addressable_entity()
         .expect("must convert contract")
         .named_keys()
         .get(ACL_WHITELIST)
@@ -1304,7 +1307,7 @@ fn should_be_able_to_update_whitelist_for_minting() {
         nft_contract_hash,
         ENTRY_POINT_SET_VARIABLES,
         runtime_args! {
-            ARG_ACL_WHITELIST => vec![Key::from(minting_contract_hash)]
+            ARG_ACL_WHITELIST => vec![Key::contract_entity_key(minting_contract_hash)]
         },
     )
     .build();
@@ -1339,9 +1342,10 @@ fn should_be_able_to_update_whitelist_for_minting() {
 
 // Upgrade
 
+#[ignore = "old wasms use `casper_add_contract_version` which was replaced with `casper_add_package_version`"]
 #[test]
 fn should_upgrade_from_named_keys_to_dict_and_acl_minting_mode() {
-    let mut builder = InMemoryWasmTestBuilder::default();
+    let mut builder = LmdbWasmTestBuilder::default();
     builder
         .run_genesis(&PRODUCTION_RUN_GENESIS_REQUEST)
         .commit();
@@ -1377,7 +1381,7 @@ fn should_upgrade_from_named_keys_to_dict_and_acl_minting_mode() {
     builder.exec(install_request).expect_success().commit();
 
     let nft_contract_hash_1_0_0 = support::get_nft_contract_hash_1_0_0(&builder);
-    let nft_contract_key_1_0_0: Key = nft_contract_hash_1_0_0.into();
+    let nft_contract_key_1_0_0: Key = Key::contract_entity_key(nft_contract_hash_1_0_0);
 
     let minting_mode = support::query_stored_value::<u8>(
         &builder,
@@ -1404,7 +1408,7 @@ fn should_upgrade_from_named_keys_to_dict_and_acl_minting_mode() {
 
     builder.exec(upgrade_request).expect_success().commit();
 
-    let nft_contract_key: Key = support::get_nft_contract_hash(&builder).into();
+    let nft_contract_key: Key = Key::contract_entity_key(support::get_nft_contract_hash(&builder));
 
     let is_updated_acl_whitelist = get_dictionary_value_from_key::<bool>(
         &builder,

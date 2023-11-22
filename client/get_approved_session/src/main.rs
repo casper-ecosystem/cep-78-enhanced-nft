@@ -8,7 +8,7 @@ extern crate alloc;
 use alloc::string::String;
 
 use casper_contract::contract_api::{runtime, storage};
-use casper_types::{runtime_args, ContractHash, Key, RuntimeArgs};
+use casper_types::{runtime_args, AddressableEntityHash, Key};
 
 const ENTRY_POINT_GET_APPROVED: &str = "get_approved";
 const ARG_NFT_CONTRACT_HASH: &str = "nft_contract_hash";
@@ -19,10 +19,10 @@ const ARG_IS_HASH_IDENTIFIER_MODE: &str = "is_hash_identifier_mode";
 
 #[no_mangle]
 pub extern "C" fn call() {
-    let nft_contract_hash: ContractHash = runtime::get_named_arg::<Key>(ARG_NFT_CONTRACT_HASH)
-        .into_hash()
-        .map(ContractHash::new)
-        .unwrap();
+    let nft_contract_hash: AddressableEntityHash =
+        runtime::get_named_arg::<Key>(ARG_NFT_CONTRACT_HASH)
+            .into_entity_hash()
+            .unwrap();
     let key_name: String = runtime::get_named_arg(ARG_KEY_NAME);
 
     let maybe_approved_account = if runtime::get_named_arg::<bool>(ARG_IS_HASH_IDENTIFIER_MODE) {

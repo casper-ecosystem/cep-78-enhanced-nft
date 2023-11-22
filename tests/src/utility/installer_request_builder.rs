@@ -1,7 +1,7 @@
 use casper_engine_test_support::ExecuteRequestBuilder;
-use casper_execution_engine::core::engine_state::ExecuteRequest;
+use casper_execution_engine::engine_state::ExecuteRequest;
 use casper_types::{
-    account::AccountHash, bytesrepr::Bytes, CLValue, ContractHash, Key, RuntimeArgs,
+    account::AccountHash, bytesrepr::Bytes, AddressableEntityHash, CLValue, Key, RuntimeArgs,
 };
 use contract::constants::{
     ARG_ACL_PACKAGE_MODE, ARG_ACL_WHITELIST, ARG_ADDITIONAL_REQUIRED_METADATA, ARG_ALLOW_MINTING,
@@ -173,7 +173,7 @@ impl InstallerRequestBuilder {
             nft_kind: CLValue::from_t(NFTKind::Physical as u8).unwrap(),
             holder_mode: CLValue::from_t(NFTHolderMode::Mixed as u8).unwrap(),
             whitelist_mode: CLValue::from_t(WhitelistMode::Unlocked as u8).unwrap(),
-            contract_whitelist: CLValue::from_t(Vec::<ContractHash>::new()).unwrap(),
+            contract_whitelist: CLValue::from_t(Vec::<AddressableEntityHash>::new()).unwrap(),
             acl_whitelist: CLValue::from_t(Vec::<Key>::new()).unwrap(),
             acl_package_mode: CLValue::from_t(false).unwrap(),
             package_operator_mode: CLValue::from_t(false).unwrap(),
@@ -267,7 +267,10 @@ impl InstallerRequestBuilder {
     }
 
     // Deprecated in 1.4
-    pub(crate) fn with_contract_whitelist(mut self, contract_whitelist: Vec<ContractHash>) -> Self {
+    pub(crate) fn with_contract_whitelist(
+        mut self,
+        contract_whitelist: Vec<AddressableEntityHash>,
+    ) -> Self {
         self.contract_whitelist = CLValue::from_t(contract_whitelist).unwrap();
         self
     }

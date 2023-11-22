@@ -10,19 +10,19 @@ use blake2::{
     VarBlake2b,
 };
 use casper_engine_test_support::{
-    ExecuteRequestBuilder, InMemoryWasmTestBuilder, WasmTestBuilder, ARG_AMOUNT,
-    DEFAULT_ACCOUNT_ADDR, PRODUCTION_RUN_GENESIS_REQUEST,
+    ExecuteRequestBuilder, LmdbWasmTestBuilder, WasmTestBuilder, ARG_AMOUNT, DEFAULT_ACCOUNT_ADDR,
+    PRODUCTION_RUN_GENESIS_REQUEST,
 };
-use casper_execution_engine::{
-    core::{engine_state::Error as EngineStateError, execution},
-    storage::global_state::in_memory::InMemoryGlobalState,
+use casper_execution_engine::{engine_state::Error as EngineStateError, execution};
+use casper_storage::{
+    data_access_layer::DataAccessLayer, global_state::state::lmdb::LmdbGlobalState,
 };
 use casper_types::{
     account::AccountHash,
     bytesrepr::{Bytes, FromBytes},
     runtime_args,
     system::{handle_payment::ARG_TARGET, mint::ARG_ID},
-    ApiError, CLTyped, CLValueError, ContractHash, ContractPackageHash, Key, PublicKey,
+    AddressableEntityHash, ApiError, CLTyped, CLValueError, Key, PackageHash, PublicKey,
     RuntimeArgs, SecretKey, URef, BLAKE2B_DIGEST_LENGTH,
 };
 use contract::constants::{HASH_KEY_NAME_1_0_0, INDEX_BY_HASH, PREFIX_PAGE_DICTIONARY};
@@ -32,77 +32,67 @@ use sha256::digest;
 use std::fmt::Debug;
 
 pub(crate) fn get_nft_contract_hash(
-    builder: &WasmTestBuilder<InMemoryGlobalState>,
-) -> ContractHash {
-    let nft_hash_addr = builder
-        .get_expected_account(*DEFAULT_ACCOUNT_ADDR)
+    builder: &WasmTestBuilder<DataAccessLayer<LmdbGlobalState>>,
+) -> AddressableEntityHash {
+    builder
+        .get_expected_addressable_entity_by_account_hash(*DEFAULT_ACCOUNT_ADDR)
         .named_keys()
         .get(CONTRACT_NAME)
         .expect("must have this entry in named keys")
-        .into_hash()
-        .expect("must get hash_addr");
-
-    ContractHash::new(nft_hash_addr)
+        .into_entity_hash()
+        .expect("must get hash_addr")
 }
 
 pub(crate) fn get_nft_contract_package_hash(
-    builder: &WasmTestBuilder<InMemoryGlobalState>,
-) -> ContractPackageHash {
-    let nft_hash_addr = builder
-        .get_expected_account(*DEFAULT_ACCOUNT_ADDR)
+    builder: &WasmTestBuilder<DataAccessLayer<LmdbGlobalState>>,
+) -> PackageHash {
+    builder
+        .get_expected_addressable_entity_by_account_hash(*DEFAULT_ACCOUNT_ADDR)
         .named_keys()
         .get(HASH_KEY_NAME_1_0_0)
         .expect("must have this entry in named keys")
-        .into_hash()
-        .expect("must get hash_addr");
-
-    ContractPackageHash::new(nft_hash_addr)
+        .into_package_hash()
+        .expect("must get hash_addr")
 }
 
 pub(crate) fn get_minting_contract_hash(
-    builder: &WasmTestBuilder<InMemoryGlobalState>,
-) -> ContractHash {
-    let minting_contract_hash = builder
-        .get_expected_account(*DEFAULT_ACCOUNT_ADDR)
+    builder: &WasmTestBuilder<DataAccessLayer<LmdbGlobalState>>,
+) -> AddressableEntityHash {
+    builder
+        .get_expected_addressable_entity_by_account_hash(*DEFAULT_ACCOUNT_ADDR)
         .named_keys()
         .get(MINTING_CONTRACT_NAME)
         .expect("must have minting contract hash entry in named keys")
-        .into_hash()
-        .expect("must get hash_addr");
-
-    ContractHash::new(minting_contract_hash)
+        .into_entity_hash()
+        .expect("must get hash_addr")
 }
 
 pub(crate) fn get_minting_contract_package_hash(
-    builder: &WasmTestBuilder<InMemoryGlobalState>,
-) -> ContractPackageHash {
-    let minting_contract_package_hash = builder
-        .get_expected_account(*DEFAULT_ACCOUNT_ADDR)
+    builder: &WasmTestBuilder<DataAccessLayer<LmdbGlobalState>>,
+) -> PackageHash {
+    builder
+        .get_expected_addressable_entity_by_account_hash(*DEFAULT_ACCOUNT_ADDR)
         .named_keys()
         .get(MINTING_CONTRACT_PACKAGE_NAME)
         .expect("must have minting contract package hash entry in named keys")
-        .into_hash()
-        .expect("must get hash_addr");
-
-    ContractPackageHash::new(minting_contract_package_hash)
+        .into_package_hash()
+        .expect("must get hash_addr")
 }
 
 pub(crate) fn get_transfer_filter_contract_hash(
-    builder: &WasmTestBuilder<InMemoryGlobalState>,
-) -> ContractHash {
-    let transfer_filter_contract_hash = builder
-        .get_expected_account(*DEFAULT_ACCOUNT_ADDR)
+    builder: &WasmTestBuilder<DataAccessLayer<LmdbGlobalState>>,
+) -> AddressableEntityHash {
+    builder
+        .get_expected_addressable_entity_by_account_hash(*DEFAULT_ACCOUNT_ADDR)
         .named_keys()
         .get(TRANSFER_FILTER_CONTRACT_NAME)
         .expect("must have transfer filter hash entry in named keys")
-        .into_hash()
-        .expect("must get hash_addr");
-
-    ContractHash::new(transfer_filter_contract_hash)
+        .into_entity_hash()
+        .expect("must get hash_addr")
 }
 
 pub(crate) fn get_dictionary_value_from_key<T: CLTyped + FromBytes>(
-    builder: &WasmTestBuilder<InMemoryGlobalState>,
+    builder: &WasmTestBuilder<DataAccessLayer<LmdbGlobalState>>,
     nft_contract_key: &Key,
     dictionary_name: &str,
     dictionary_key: &str,
@@ -110,7 +100,7 @@ pub(crate) fn get_dictionary_value_from_key<T: CLTyped + FromBytes>(
     let seed_uref = *builder
         .query(None, *nft_contract_key, &[])
         .expect("must have nft contract")
-        .as_contract()
+        .as_addressable_entity()
         .expect("must convert contract")
         .named_keys()
         .get(dictionary_name)
@@ -137,7 +127,7 @@ fn create_dummy_key_pair(account_string: [u8; 32]) -> (SecretKey, PublicKey) {
 
 // Creates a dummy account and transfer funds to it
 pub(crate) fn create_funded_dummy_account(
-    builder: &mut WasmTestBuilder<InMemoryGlobalState>,
+    builder: &mut WasmTestBuilder<DataAccessLayer<LmdbGlobalState>>,
     account_string: Option<[u8; 32]>,
 ) -> AccountHash {
     let (_, account_public_key) =
@@ -166,7 +156,7 @@ pub(crate) fn assert_expected_invalid_installer_request(
     expected_error_code: u16,
     reason: &str,
 ) {
-    let mut builder = InMemoryWasmTestBuilder::default();
+    let mut builder = LmdbWasmTestBuilder::default();
 
     builder
         .run_genesis(&PRODUCTION_RUN_GENESIS_REQUEST)
@@ -192,9 +182,12 @@ pub(crate) fn assert_expected_error(actual_error: EngineStateError, error_code: 
     )
 }
 
-pub(crate) fn _get_uref(builder: &WasmTestBuilder<InMemoryGlobalState>, key: &str) -> URef {
+pub(crate) fn _get_uref(
+    builder: &WasmTestBuilder<DataAccessLayer<LmdbGlobalState>>,
+    key: &str,
+) -> URef {
     builder
-        .get_expected_account(*DEFAULT_ACCOUNT_ADDR)
+        .get_expected_addressable_entity_by_account_hash(*DEFAULT_ACCOUNT_ADDR)
         .named_keys()
         .get(key)
         .expect("must have this entry as a result of calling mint")
@@ -203,7 +196,7 @@ pub(crate) fn _get_uref(builder: &WasmTestBuilder<InMemoryGlobalState>, key: &st
 }
 
 pub(crate) fn query_stored_value<T: CLTyped + FromBytes>(
-    builder: &InMemoryWasmTestBuilder,
+    builder: &LmdbWasmTestBuilder,
     base_key: Key,
     path: Vec<String>,
 ) -> T {
@@ -218,7 +211,7 @@ pub(crate) fn query_stored_value<T: CLTyped + FromBytes>(
 }
 
 pub(crate) fn call_session_code_with_ret<T: CLTyped + FromBytes>(
-    builder: &mut InMemoryWasmTestBuilder,
+    builder: &mut LmdbWasmTestBuilder,
     account_hash: AccountHash,
     nft_contract_key: Key,
     mut runtime_args: RuntimeArgs,
@@ -274,13 +267,15 @@ impl CEP78Metadata {
 fn make_page_dictionary_item_key(token_owner_key: &Key) -> String {
     match token_owner_key {
         Key::Account(token_owner_account_hash) => token_owner_account_hash.to_string(),
-        Key::Hash(token_owner_hash_addr) => ContractHash::new(*token_owner_hash_addr).to_string(),
+        Key::AddressableEntity(_, token_owner_hash_addr) => {
+            AddressableEntityHash::new(*token_owner_hash_addr).to_string()
+        }
         _ => panic!("invalid key type"),
     }
 }
 
 pub(crate) fn get_token_page_by_id(
-    builder: &WasmTestBuilder<InMemoryGlobalState>,
+    builder: &WasmTestBuilder<DataAccessLayer<LmdbGlobalState>>,
     nft_contract_key: &Key,
     token_owner_key: &Key,
     token_id: u64,
@@ -296,7 +291,7 @@ pub(crate) fn get_token_page_by_id(
 }
 
 pub(crate) fn get_token_page_by_hash(
-    builder: &WasmTestBuilder<InMemoryGlobalState>,
+    builder: &WasmTestBuilder<DataAccessLayer<LmdbGlobalState>>,
     nft_contract_key: &Key,
     token_owner_key: &Key,
     token_hash: String,
@@ -307,7 +302,7 @@ pub(crate) fn get_token_page_by_hash(
 }
 
 pub(crate) fn get_stored_value_from_global_state<T: CLTyped + FromBytes>(
-    builder: &InMemoryWasmTestBuilder,
+    builder: &LmdbWasmTestBuilder,
     query_key: Key,
     path: Vec<String>,
 ) -> Result<T, CLValueError> {
@@ -325,7 +320,7 @@ pub(crate) fn get_receipt_name(nft_receipt: String, page_table_entry: u64) -> St
 }
 
 pub fn get_event<T: FromBytes + CLTyped + Debug>(
-    builder: &WasmTestBuilder<InMemoryGlobalState>,
+    builder: &WasmTestBuilder<DataAccessLayer<LmdbGlobalState>>,
     nft_contract_key: &Key,
     index: u32,
 ) -> Result<T, String> {
@@ -351,15 +346,13 @@ pub fn get_event<T: FromBytes + CLTyped + Debug>(
 }
 
 pub(crate) fn get_nft_contract_hash_1_0_0(
-    builder: &WasmTestBuilder<InMemoryGlobalState>,
-) -> ContractHash {
-    let nft_hash_addr = builder
-        .get_expected_account(*DEFAULT_ACCOUNT_ADDR)
+    builder: &WasmTestBuilder<DataAccessLayer<LmdbGlobalState>>,
+) -> AddressableEntityHash {
+    builder
+        .get_expected_addressable_entity_by_account_hash(*DEFAULT_ACCOUNT_ADDR)
         .named_keys()
         .get("nft_contract")
         .expect("must have this entry in named keys")
-        .into_hash()
-        .expect("must get hash_addr");
-
-    ContractHash::new(nft_hash_addr)
+        .into_entity_hash()
+        .expect("must get hash_addr")
 }

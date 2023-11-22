@@ -18,7 +18,7 @@ use casper_types::{
     api_error,
     bytesrepr::{self, FromBytes, ToBytes},
     system::CallStackElement,
-    ApiError, CLTyped, ContractHash, ContractPackageHash, Key, URef,
+    AddressableEntityHash, ApiError, CLTyped, Key, PackageHash, URef,
 };
 
 use crate::{
@@ -83,7 +83,10 @@ pub fn get_holder_mode() -> Result<NFTHolderMode, NFTCoreError> {
 pub fn encode_dictionary_item_key(key: Key) -> String {
     match key {
         Key::Account(account_hash) => account_hash.to_string(),
-        Key::Hash(hash_addr) => ContractHash::new(hash_addr).to_string(),
+        Key::Hash(hash_addr) | Key::AddressableEntity(_, hash_addr) => {
+            AddressableEntityHash::new(hash_addr).to_string()
+        }
+        Key::Package(package_hash) => PackageHash::new(package_hash).to_string(),
         _ => runtime::revert(NFTCoreError::InvalidKey),
     }
 }
@@ -290,7 +293,7 @@ pub fn to_ptr<T: ToBytes>(t: T) -> (*const u8, usize, Vec<u8>) {
 
 pub enum Caller {
     Session(AccountHash),
-    StoredCaller(ContractHash, ContractPackageHash),
+    StoredCaller(AddressableEntityHash, PackageHash),
 }
 
 pub fn get_verified_caller() -> Result<Caller, NFTCoreError> {
@@ -309,19 +312,15 @@ pub fn get_verified_caller() -> Result<Caller, NFTCoreError> {
             }
             Ok(Caller::Session(calling_account_hash))
         }
-        CallStackElement::StoredSession {
-            contract_hash,
-            contract_package_hash,
+        CallStackElement::AddressableEntity {
+            entity_hash,
+            package_hash,
             ..
-        }
-        | CallStackElement::StoredContract {
-            contract_hash,
-            contract_package_hash,
         } => {
             if let NFTHolderMode::Accounts = holder_mode {
                 return Err(NFTCoreError::InvalidHolderMode);
             }
-            Ok(Caller::StoredCaller(contract_hash, contract_package_hash))
+            Ok(Caller::StoredCaller(entity_hash, package_hash))
         }
     }
 }
@@ -391,11 +390,11 @@ pub fn is_token_burned(token_identifier: &TokenIdentifier) -> bool {
         .is_some()
 }
 
-pub fn get_transfer_filter_contract() -> Option<ContractHash> {
+pub fn get_transfer_filter_contract() -> Option<AddressableEntityHash> {
     if !named_uref_exists(TRANSFER_FILTER_CONTRACT) {
         None
     } else {
-        Some(get_stored_value_with_user_errors::<ContractHash>(
+        Some(get_stored_value_with_user_errors::<AddressableEntityHash>(
             TRANSFER_FILTER_CONTRACT,
             NFTCoreError::MissingTransferFilterContract,
             NFTCoreError::InvalidTransferFilterContract,
@@ -851,11 +850,12 @@ pub fn migrate_contract_whitelist_to_acl_whitelist() {
     if runtime::get_key(ACL_WHITELIST).is_none() {
         storage::new_dictionary(ACL_WHITELIST)
             .unwrap_or_revert_with(NFTCoreError::FailedToCreateDictionary);
-        let contract_whitelist = utils::get_stored_value_with_user_errors::<Vec<ContractHash>>(
-            CONTRACT_WHITELIST,
-            NFTCoreError::MissingWhitelistMode,
-            NFTCoreError::InvalidWhitelistMode,
-        );
+        let contract_whitelist =
+            utils::get_stored_value_with_user_errors::<Vec<AddressableEntityHash>>(
+                CONTRACT_WHITELIST,
+                NFTCoreError::MissingWhitelistMode,
+                NFTCoreError::InvalidWhitelistMode,
+            );
 
         // If mining mode is Installer and contract whitelist is not empty then migrate to minting
         // mode ACL and fill ACL_WHITELIST dictionnary

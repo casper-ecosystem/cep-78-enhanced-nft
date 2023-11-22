@@ -9,17 +9,16 @@ extern crate alloc;
 use alloc::{string::String, vec::Vec};
 
 use casper_contract::{contract_api::runtime, unwrap_or_revert::UnwrapOrRevert};
-use casper_types::{self, runtime_args, ContractPackageHash, Key, RuntimeArgs};
+use casper_types::{self, runtime_args, Key, PackageHash};
 
 const ENTRY_POINT_UPDATE_RECEIPTS: &str = "updated_receipts";
 pub(crate) const ARG_NFT_CONTRACT_PACKAGE_HASH: &str = "nft_contract_package_hash";
 
 #[no_mangle]
 pub extern "C" fn call() {
-    let nft_package_hash: ContractPackageHash =
+    let nft_package_hash: PackageHash =
         runtime::get_named_arg::<Key>(ARG_NFT_CONTRACT_PACKAGE_HASH)
-            .into_hash()
-            .map(ContractPackageHash::new)
+            .into_package_hash()
             .unwrap_or_revert();
 
     // This value represents a list of receipt names and addresses corresponding

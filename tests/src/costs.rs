@@ -1,8 +1,8 @@
 use casper_engine_test_support::{
-    ExecuteRequestBuilder, InMemoryWasmTestBuilder, DEFAULT_ACCOUNT_ADDR,
+    ExecuteRequestBuilder, LmdbWasmTestBuilder, DEFAULT_ACCOUNT_ADDR,
     PRODUCTION_RUN_GENESIS_REQUEST,
 };
-use casper_types::{account::AccountHash, runtime_args, Key, RuntimeArgs};
+use casper_types::{account::AccountHash, runtime_args, Key};
 use contract::constants::{
     ARG_COLLECTION_NAME, ARG_SOURCE_KEY, ARG_TARGET_KEY, ARG_TOKEN_ID, ARG_TOKEN_META_DATA,
     ARG_TOKEN_OWNER, ENTRY_POINT_REGISTER_OWNER,
@@ -22,7 +22,7 @@ use crate::utility::{
 
 #[test]
 fn mint_cost_should_remain_stable() {
-    let mut builder = InMemoryWasmTestBuilder::default();
+    let mut builder = LmdbWasmTestBuilder::default();
     builder
         .run_genesis(&PRODUCTION_RUN_GENESIS_REQUEST)
         .commit();
@@ -38,7 +38,7 @@ fn mint_cost_should_remain_stable() {
 
     builder.exec(install_request).expect_success().commit();
 
-    let nft_contract_key: Key = support::get_nft_contract_hash(&builder).into();
+    let nft_contract_key: Key = Key::contract_entity_key(support::get_nft_contract_hash(&builder));
 
     let first_mint_request = ExecuteRequestBuilder::standard(
         *DEFAULT_ACCOUNT_ADDR,
@@ -94,7 +94,7 @@ fn mint_cost_should_remain_stable() {
 
 #[test]
 fn transfer_costs_should_remain_stable() {
-    let mut builder = InMemoryWasmTestBuilder::default();
+    let mut builder = LmdbWasmTestBuilder::default();
     builder
         .run_genesis(&PRODUCTION_RUN_GENESIS_REQUEST)
         .commit();
@@ -111,7 +111,7 @@ fn transfer_costs_should_remain_stable() {
     builder.exec(install_request).expect_success().commit();
 
     let nft_contract_hash = support::get_nft_contract_hash(&builder);
-    let nft_contract_key: Key = nft_contract_hash.into();
+    let nft_contract_key: Key = Key::contract_entity_key(nft_contract_hash);
 
     for _ in 0..3 {
         let mint_request = ExecuteRequestBuilder::standard(
@@ -206,7 +206,7 @@ fn transfer_costs_should_remain_stable() {
 }
 
 fn should_cost_less_when_installing_without_reverse_lookup(reporting: OwnerReverseLookupMode) {
-    let mut builder = InMemoryWasmTestBuilder::default();
+    let mut builder = LmdbWasmTestBuilder::default();
     builder
         .run_genesis(&PRODUCTION_RUN_GENESIS_REQUEST)
         .commit();
@@ -225,7 +225,8 @@ fn should_cost_less_when_installing_without_reverse_lookup(reporting: OwnerRever
 
     let reverse_lookup_gas_cost = builder.last_exec_gas_cost();
 
-    let reverse_lookup_hash: Key = support::get_nft_contract_hash(&builder).into();
+    let reverse_lookup_hash: Key =
+        Key::contract_entity_key(support::get_nft_contract_hash(&builder));
 
     let page_dictionary_lookup = builder.query(None, reverse_lookup_hash, &["page_0".to_string()]);
 
@@ -245,7 +246,7 @@ fn should_cost_less_when_installing_without_reverse_lookup(reporting: OwnerRever
 
     let no_lookup_gas_cost = builder.last_exec_gas_cost();
 
-    let no_lookup_hash: Key = support::get_nft_contract_hash(&builder).into();
+    let no_lookup_hash: Key = Key::contract_entity_key(support::get_nft_contract_hash(&builder));
 
     let page_dictionary_lookup = builder.query(None, no_lookup_hash, &["page_0".to_string()]);
 

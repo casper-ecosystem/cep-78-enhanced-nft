@@ -1,9 +1,9 @@
 use casper_engine_test_support::{
-    ExecuteRequestBuilder, InMemoryWasmTestBuilder, DEFAULT_ACCOUNT_ADDR,
+    ExecuteRequestBuilder, LmdbWasmTestBuilder, DEFAULT_ACCOUNT_ADDR,
     PRODUCTION_RUN_GENESIS_REQUEST,
 };
 use casper_event_standard::Schemas;
-use casper_types::{runtime_args, CLValue, ContractHash, Key, RuntimeArgs};
+use casper_types::{runtime_args, AddressableEntityHash, CLValue, Key};
 use contract::{
     constants::{
         ACL_WHITELIST, ARG_ALLOW_MINTING, ARG_COLLECTION_NAME, ARG_COLLECTION_SYMBOL,
@@ -27,7 +27,7 @@ use crate::utility::{
 
 #[test]
 fn should_install_contract() {
-    let mut builder = InMemoryWasmTestBuilder::default();
+    let mut builder = LmdbWasmTestBuilder::default();
     builder
         .run_genesis(&PRODUCTION_RUN_GENESIS_REQUEST)
         .commit();
@@ -41,7 +41,8 @@ fn should_install_contract() {
 
     builder.exec(install_request).expect_success().commit();
 
-    let nft_contract_key: Key = get_nft_contract_hash(&builder).into();
+    let nft_contract_hash = get_nft_contract_hash(&builder);
+    let nft_contract_key: Key = Key::contract_entity_key(nft_contract_hash);
 
     let query_result: String = support::query_stored_value(
         &builder,
@@ -129,7 +130,7 @@ fn should_install_contract() {
 
 #[test]
 fn should_only_allow_init_during_installation_session() {
-    let mut builder = InMemoryWasmTestBuilder::default();
+    let mut builder = LmdbWasmTestBuilder::default();
     builder
         .run_genesis(&PRODUCTION_RUN_GENESIS_REQUEST)
         .commit();
@@ -169,7 +170,7 @@ fn should_only_allow_init_during_installation_session() {
 
 #[test]
 fn should_install_with_allow_minting_set_to_false() {
-    let mut builder = InMemoryWasmTestBuilder::default();
+    let mut builder = LmdbWasmTestBuilder::default();
     builder
         .run_genesis(&PRODUCTION_RUN_GENESIS_REQUEST)
         .commit();
@@ -228,12 +229,12 @@ fn should_reject_non_numerical_total_token_supply_value() {
 
 #[test]
 fn should_install_with_contract_holder_mode() {
-    let mut builder = InMemoryWasmTestBuilder::default();
+    let mut builder = LmdbWasmTestBuilder::default();
     builder
         .run_genesis(&PRODUCTION_RUN_GENESIS_REQUEST)
         .commit();
 
-    let contract_whitelist = vec![Key::from(ContractHash::default())];
+    let contract_whitelist = vec![Key::contract_entity_key(AddressableEntityHash::default())];
 
     let install_request = InstallerRequestBuilder::new(*DEFAULT_ACCOUNT_ADDR, NFT_CONTRACT_WASM)
         .with_holder_mode(NFTHolderMode::Contracts)
@@ -247,7 +248,8 @@ fn should_install_with_contract_holder_mode() {
         .expect_success()
         .commit();
 
-    let nft_contract_key: Key = get_nft_contract_hash(&builder).into();
+    let nft_contract_hash = get_nft_contract_hash(&builder);
+    let nft_contract_key: Key = Key::contract_entity_key(nft_contract_hash);
 
     let actual_holder_mode: u8 = support::query_stored_value(
         &builder,
@@ -277,7 +279,7 @@ fn should_install_with_contract_holder_mode() {
         &builder,
         &nft_contract_key,
         ACL_WHITELIST,
-        &ContractHash::default().to_string(),
+        &AddressableEntityHash::default().to_string(),
     );
 
     assert!(is_whitelisted_account, "acl whitelist is incorrectly set");
@@ -286,7 +288,7 @@ fn should_install_with_contract_holder_mode() {
 fn should_disallow_installation_of_contract_with_empty_locked_whitelist_with_holder_mode(
     nft_holder_mode: NFTHolderMode,
 ) {
-    let mut builder = InMemoryWasmTestBuilder::default();
+    let mut builder = LmdbWasmTestBuilder::default();
     builder
         .run_genesis(&PRODUCTION_RUN_GENESIS_REQUEST)
         .commit();
@@ -320,7 +322,7 @@ fn should_disallow_installation_of_contract_with_empty_locked_whitelist() {
 
 #[test]
 fn should_disallow_installation_with_zero_issuance() {
-    let mut builder = InMemoryWasmTestBuilder::default();
+    let mut builder = LmdbWasmTestBuilder::default();
     builder
         .run_genesis(&PRODUCTION_RUN_GENESIS_REQUEST)
         .commit();
@@ -343,7 +345,7 @@ fn should_disallow_installation_with_zero_issuance() {
 
 #[test]
 fn should_disallow_installation_with_supply_exceeding_hard_cap() {
-    let mut builder = InMemoryWasmTestBuilder::default();
+    let mut builder = LmdbWasmTestBuilder::default();
     builder
         .run_genesis(&PRODUCTION_RUN_GENESIS_REQUEST)
         .commit();
@@ -370,7 +372,7 @@ fn should_disallow_installation_with_supply_exceeding_hard_cap() {
 
 #[test]
 fn should_prevent_installation_with_ownership_and_minting_modality_conflict() {
-    let mut builder = InMemoryWasmTestBuilder::default();
+    let mut builder = LmdbWasmTestBuilder::default();
     builder
         .run_genesis(&PRODUCTION_RUN_GENESIS_REQUEST)
         .commit();
@@ -397,7 +399,7 @@ fn should_prevent_installation_with_ownership_and_minting_modality_conflict() {
 
 #[test]
 fn should_prevent_installation_with_ownership_minter_and_owner_reverse_lookup_mode_transfer_only() {
-    let mut builder = InMemoryWasmTestBuilder::default();
+    let mut builder = LmdbWasmTestBuilder::default();
     builder
         .run_genesis(&PRODUCTION_RUN_GENESIS_REQUEST)
         .commit();
@@ -425,7 +427,7 @@ fn should_prevent_installation_with_ownership_minter_and_owner_reverse_lookup_mo
 #[test]
 fn should_prevent_installation_with_ownership_assigned_and_owner_reverse_lookup_mode_transfer_only()
 {
-    let mut builder = InMemoryWasmTestBuilder::default();
+    let mut builder = LmdbWasmTestBuilder::default();
     builder
         .run_genesis(&PRODUCTION_RUN_GENESIS_REQUEST)
         .commit();
@@ -453,7 +455,7 @@ fn should_prevent_installation_with_ownership_assigned_and_owner_reverse_lookup_
 #[test]
 fn should_allow_installation_with_ownership_transferable_and_owner_reverse_lookup_mode_transfer_only(
 ) {
-    let mut builder = InMemoryWasmTestBuilder::default();
+    let mut builder = LmdbWasmTestBuilder::default();
     builder
         .run_genesis(&PRODUCTION_RUN_GENESIS_REQUEST)
         .commit();

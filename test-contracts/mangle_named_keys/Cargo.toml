@@ -6,8 +6,8 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-casper-contract = "2.0.0"
-casper-types = "2.0.0"
+casper-contract = "*"
+casper-types = "*"
 
 [[bin]]
 name = "mangle_named_keys"
@@ -19,3 +19,7 @@ test = false
 [profile.release]
 codegen-units = 1
 lto = true
+
+[patch.crates-io]
+casper-types = { git = "https://github.com/casper-network/casper-node.git", branch = "feat-2.0" }
+casper-contract = { git = "https://github.com/casper-network/casper-node.git", branch = "feat-2.0" }
