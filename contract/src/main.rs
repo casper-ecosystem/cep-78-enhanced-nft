@@ -68,6 +68,7 @@ use events::{
         Approval, ApprovalForAll, ApprovalRevoked, Burn, MetadataUpdated, Migration, Mint,
         RevokedForAll, Transfer, VariablesSet,
     },
+    native::CEP78Message,
 };
 use metadata::CustomMetadataSchema;
 use modalities::{
@@ -409,9 +410,15 @@ pub extern "C" fn init() {
     .try_into()
     .unwrap_or_revert();
 
-    // Initialize events structures for CES.
-    if let EventsMode::CES = events_mode {
-        utils::init_events();
+    // Initialize events.
+    match events_mode {
+        EventsMode::CES => {
+            utils::init_ces_events();
+        }
+        EventsMode::Native => {
+            utils::init_native_events();
+        }
+        _ => {}
     }
     runtime::put_key(EVENTS_MODE, storage::new_uref(events_mode as u8).into());
 
@@ -609,6 +616,7 @@ pub extern "C" fn set_variables() {
         EventsMode::NoEvents => {}
         EventsMode::CEP47 => record_cep47_event_dictionary(CEP47Event::VariablesSet),
         EventsMode::CES => casper_event_standard::emit(VariablesSet::new()),
+        EventsMode::Native => utils::emit_native_event(CEP78Message::VariablesSet),
     }
 }
 
@@ -848,6 +856,10 @@ pub extern "C" fn mint() {
             recipient: token_owner_key,
             token_id: token_identifier.clone(),
         }),
+        EventsMode::Native => utils::emit_native_event(CEP78Message::Mint {
+            recipient: token_owner_key,
+            token_id: token_identifier.clone(),
+        }),
     }
 
     if let OwnerReverseLookupMode::Complete = utils::get_reporting_mode() {
@@ -1000,6 +1012,11 @@ pub extern "C" fn burn() {
             token_id: token_identifier,
             burner: caller,
         }),
+        EventsMode::Native => utils::emit_native_event(CEP78Message::Burn {
+            owner: token_owner,
+            token_id: token_identifier,
+            burner: caller,
+        }),
     }
 }
 
@@ -1137,6 +1154,11 @@ pub extern "C" fn approve() {
             spender,
             token_id,
         }),
+        EventsMode::Native => utils::emit_native_event(CEP78Message::ApprovalGranted {
+            owner,
+            spender,
+            token_id,
+        }),
     };
 }
 
@@ -1254,6 +1276,9 @@ pub extern "C" fn revoke() {
         EventsMode::CEP47 => {
             record_cep47_event_dictionary(CEP47Event::ApprovalRevoked { owner, token_id })
         }
+        EventsMode::Native => {
+            utils::emit_native_event(CEP78Message::ApprovalRevoked { owner, token_id })
+        }
     };
 }
 
@@ -1323,6 +1348,19 @@ pub extern "C" fn set_approval_for_all() {
                 });
             } else {
                 record_cep47_event_dictionary(CEP47Event::RevokedForAll {
+                    owner: caller,
+                    operator,
+                });
+            }
+        }
+        EventsMode::Native => {
+            if approve_all {
+                utils::emit_native_event(CEP78Message::ApprovalForAll {
+                    owner: caller,
+                    operator,
+                });
+            } else {
+                utils::emit_native_event(CEP78Message::RevokedForAll {
                     owner: caller,
                     operator,
                 });
@@ -1591,6 +1629,11 @@ pub extern "C" fn transfer() {
                 token_identifier.clone(),
             ));
         }
+        EventsMode::Native => utils::emit_native_event(CEP78Message::Transfer {
+            sender: caller,
+            recipient: target_owner_key,
+            token_id: token_identifier.clone(),
+        }),
     }
 
     let reporting_mode = utils::get_reporting_mode();
@@ -1874,6 +1917,9 @@ pub extern "C" fn set_token_metadata() {
         EventsMode::CEP47 => record_cep47_event_dictionary(CEP47Event::MetadataUpdate {
             token_id: token_identifier,
         }),
+        EventsMode::Native => utils::emit_native_event(CEP78Message::MetadataUpdate {
+            token_id: token_identifier,
+        }),
     }
 }
 
@@ -2022,11 +2068,12 @@ pub extern "C" fn migrate() {
         EventsMode::NoEvents => {}
         EventsMode::CES => {
             // Initialize events structures.
-            utils::init_events();
+            utils::init_ces_events();
             // Emit Migration event.
             casper_event_standard::emit(Migration::new());
         }
         EventsMode::CEP47 => record_cep47_event_dictionary(CEP47Event::Migrate),
+        EventsMode::Native => utils::emit_native_event(CEP78Message::Migrate),
     }
 
     runtime::put_key(EVENTS_MODE, storage::new_uref(events_mode as u8).into());

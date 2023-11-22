@@ -17,6 +17,7 @@ use casper_types::{
     account::AccountHash,
     api_error,
     bytesrepr::{self, FromBytes, ToBytes},
+    contract_messages::MessageTopicOperation,
     system::CallStackElement,
     AddressableEntityHash, ApiError, CLTyped, Key, PackageHash, URef,
 };
@@ -30,9 +31,12 @@ use crate::{
         TRANSFER_FILTER_CONTRACT, UNMATCHED_HASH_COUNT,
     },
     error::NFTCoreError,
-    events::events_ces::{
-        Approval, ApprovalForAll, ApprovalRevoked, Burn, MetadataUpdated, Migration, Mint,
-        Transfer, VariablesSet,
+    events::{
+        events_ces::{
+            Approval, ApprovalForAll, ApprovalRevoked, Burn, MetadataUpdated, Migration, Mint,
+            Transfer, VariablesSet,
+        },
+        native::{CEP78Message, EVENTS_TOPIC},
     },
     modalities::{
         BurnMode, MetadataRequirement, MintingMode, NFTHolderMode, NFTIdentifierMode,
@@ -805,7 +809,7 @@ pub fn create_metadata_requirements(
 }
 
 // Initializes events-releated named keys and records all event schemas.
-pub fn init_events() {
+pub fn init_ces_events() {
     let schemas = Schemas::new()
         .with::<Mint>()
         .with::<Burn>()
@@ -817,6 +821,14 @@ pub fn init_events() {
         .with::<VariablesSet>()
         .with::<Migration>();
     casper_event_standard::init(schemas);
+}
+
+pub fn emit_native_event(message: CEP78Message) {
+    runtime::emit_message(EVENTS_TOPIC, &message.try_into().unwrap()).unwrap_or_revert();
+}
+
+pub fn init_native_events() {
+    runtime::manage_message_topic(EVENTS_TOPIC, MessageTopicOperation::Add).unwrap_or_revert();
 }
 
 pub fn requires_rlo_migration() -> bool {

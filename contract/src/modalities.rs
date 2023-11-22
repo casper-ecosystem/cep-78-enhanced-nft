@@ -5,6 +5,8 @@ use alloc::{
     vec::Vec,
 };
 
+use serde::Serialize;
+
 use casper_types::{
     bytesrepr::{self, FromBytes, ToBytes, U64_SERIALIZED_LENGTH, U8_SERIALIZED_LENGTH},
     CLType, CLTyped,
@@ -268,7 +270,7 @@ impl TryFrom<u8> for MetadataMutability {
     }
 }
 
-#[derive(PartialEq, Eq, Clone)]
+#[derive(PartialEq, Eq, Clone, Serialize)]
 pub enum TokenIdentifier {
     Index(u64),
     Hash(String),
@@ -429,6 +431,7 @@ pub enum EventsMode {
     NoEvents = 0,
     CEP47 = 1,
     CES = 2,
+    Native = 3,
 }
 
 impl TryFrom<u8> for EventsMode {
@@ -439,6 +442,7 @@ impl TryFrom<u8> for EventsMode {
             0 => Ok(EventsMode::NoEvents),
             1 => Ok(EventsMode::CEP47),
             2 => Ok(EventsMode::CES),
+            3 => Ok(EventsMode::Native),
             _ => Err(NFTCoreError::InvalidEventsMode),
         }
     }

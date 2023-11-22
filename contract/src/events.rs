@@ -4,3 +4,5 @@ pub mod events_ces;
 // as a library and a binary.
 #[cfg(feature = "contract-support")]
 pub mod events_cep47;
+
+pub mod native;

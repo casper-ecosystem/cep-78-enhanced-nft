@@ -1,11 +1,12 @@
-use std::collections::BTreeMap;
+use std::{collections::BTreeMap, convert::TryInto};
 
 use casper_engine_test_support::{
     ExecuteRequestBuilder, LmdbWasmTestBuilder, DEFAULT_ACCOUNT_ADDR,
     PRODUCTION_RUN_GENESIS_REQUEST,
 };
 use casper_event_standard::EVENTS_DICT;
-use casper_types::{account::AccountHash, runtime_args, Key};
+use casper_execution_engine::engine_state::ExecutionResult;
+use casper_types::{account::AccountHash, bytesrepr::ToBytes, crypto, runtime_args, Key};
 
 use contract::{
     constants::{
@@ -17,7 +18,8 @@ use contract::{
         METADATA_CEP78, METADATA_CUSTOM_VALIDATED, METADATA_NFT721, METADATA_RAW, OPERATOR, OWNER,
         PREFIX_CEP78, PREFIX_HASH_KEY_NAME, RECIPIENT, TOKEN_COUNT, TOKEN_ID,
     },
-    modalities::{EventsMode, NamedKeyConventionMode},
+    events::native::CEP78Message,
+    modalities::{EventsMode, NamedKeyConventionMode, TokenIdentifier},
 };
 
 use crate::utility::{
@@ -1007,5 +1009,120 @@ fn should_not_record_events_in_no_events_mode() {
         &nft_contract_key,
         EVENTS,
         "1",
+    );
+}
+
+// native events
+#[test]
+fn should_record_native_mint_event() {
+    let mut builder = LmdbWasmTestBuilder::default();
+    builder
+        .run_genesis(&PRODUCTION_RUN_GENESIS_REQUEST)
+        .commit();
+
+    let install_request_builder =
+        InstallerRequestBuilder::new(*DEFAULT_ACCOUNT_ADDR, NFT_CONTRACT_WASM)
+            .with_nft_metadata_kind(NFTMetadataKind::CEP78)
+            .with_ownership_mode(OwnershipMode::Transferable)
+            .with_total_token_supply(2u64)
+            .with_events_mode(EventsMode::Native);
+    builder
+        .exec(install_request_builder.build())
+        .expect_success()
+        .commit();
+
+    let nft_contract_key: Key = Key::contract_entity_key(get_nft_contract_hash(&builder));
+
+    // Check that the `events` topic was created.
+    let topics = builder
+        .query(None, nft_contract_key, &[])
+        .unwrap()
+        .as_addressable_entity()
+        .unwrap()
+        .message_topics()
+        .clone();
+
+    assert!(
+        topics.get(EVENTS).is_some(),
+        "Install should have also created the `events` topic"
+    );
+
+    let events_topic_hash = *topics.get(EVENTS).unwrap();
+
+    let mint_session_call = ExecuteRequestBuilder::standard(
+        *DEFAULT_ACCOUNT_ADDR,
+        MINT_SESSION_WASM,
+        runtime_args! {
+            ARG_NFT_CONTRACT_HASH => nft_contract_key,
+            ARG_TOKEN_OWNER => Key::Account(*DEFAULT_ACCOUNT_ADDR),
+            ARG_TOKEN_META_DATA => TEST_PRETTY_CEP78_METADATA,
+            ARG_COLLECTION_NAME => NFT_TEST_COLLECTION.to_string()
+        },
+    )
+    .build();
+
+    let expected_message = CEP78Message::Mint {
+        recipient: Key::Account(*DEFAULT_ACCOUNT_ADDR),
+        token_id: TokenIdentifier::Index(0),
+    };
+
+    builder.exec(mint_session_call).expect_success().commit();
+
+    if let ExecutionResult::Success { messages, .. } =
+        &**builder.get_last_exec_result().unwrap().last().unwrap()
+    {
+        assert_eq!(messages.len(), 1);
+        assert_eq!(
+            *messages.get(0).unwrap().entity_addr(),
+            nft_contract_key.into_entity_hash().unwrap()
+        );
+        assert_eq!(
+            *messages.get(0).unwrap().topic_name_hash(),
+            events_topic_hash
+        );
+        assert_eq!(*messages.get(0).unwrap().topic_name(), EVENTS);
+        assert_eq!(messages.get(0).unwrap().index(), 0);
+        assert_eq!(
+            messages.get(0).unwrap().payload(),
+            &expected_message.try_into().unwrap()
+        );
+
+        let expected_checksum =
+            crypto::blake2b(messages.get(0).unwrap().payload().to_bytes().unwrap());
+
+        assert_eq!(
+            builder
+                .query(
+                    None,
+                    Key::message(
+                        nft_contract_key.into_entity_hash().unwrap(),
+                        events_topic_hash,
+                        0,
+                    ),
+                    &[],
+                )
+                .expect("Should have summary record for the events topic")
+                .as_message_checksum()
+                .unwrap()
+                .value(),
+            expected_checksum
+        );
+    };
+
+    assert_eq!(
+        builder
+            .query(
+                None,
+                Key::message_topic(
+                    nft_contract_key.into_entity_hash().unwrap(),
+                    events_topic_hash,
+                ),
+                &[],
+            )
+            .expect("Should have summary record for the events topic")
+            .as_message_topic_summary()
+            .unwrap()
+            .message_count(),
+        1
     );
 }
