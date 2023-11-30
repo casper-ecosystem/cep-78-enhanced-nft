@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.5.1] - 2023-11-20
+
+### Fixed
+
+- Add ACL in types of js_client (#256)
+
 ## [1.5.0] - 2023-10-05
 
 ### Fixed
