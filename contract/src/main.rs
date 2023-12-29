@@ -2002,7 +2002,6 @@ pub extern "C" fn migrate() {
     runtime::put_key(RLO_MFLAG, storage::new_uref(false).into());
 
     let optional_events_mode: Option<u8> = runtime::get_named_arg::<Option<u8>>(ARG_EVENTS_MODE);
-
     let current_events_mode: EventsMode = runtime::get_key(EVENTS_MODE)
         .and_then(|_| {
             utils::get_stored_value_with_user_errors::<u8>(
@@ -2029,7 +2028,6 @@ pub extern "C" fn migrate() {
             (_, EventsMode::CEP47) => record_cep47_event_dictionary(CEP47Event::Migrate),
             (_, _) => {}
         }
-
         runtime::put_key(EVENTS_MODE, storage::new_uref(optional_events_mode).into());
     } else {
         match current_events_mode {
