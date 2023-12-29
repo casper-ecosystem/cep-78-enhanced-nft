@@ -2009,15 +2009,27 @@ pub extern "C" fn migrate() {
     .try_into()
     .unwrap_or_revert();
 
-    match events_mode {
-        EventsMode::NoEvents => {}
-        EventsMode::CES => {
+    let current_events_mode = runtime::get_key(EVENTS_MODE)
+        .and_then(|_| {
+            utils::get_stored_value_with_user_errors::<u8>(
+                EVENTS_MODE,
+                NFTCoreError::MissingEventsMode,
+                NFTCoreError::InvalidEventsMode,
+            )
+            .try_into()
+            .ok()
+        })
+        .unwrap_or(EventsMode::NoEvents);
+
+    match (current_events_mode, events_mode) {
+        (EventsMode::CES, EventsMode::CES) => casper_event_standard::emit(Migration::new()),
+        (_, EventsMode::CES) => {
             // Initialize events structures.
             utils::init_events();
-            // Emit Migration event.
             casper_event_standard::emit(Migration::new());
         }
-        EventsMode::CEP47 => record_cep47_event_dictionary(CEP47Event::Migrate),
+        (_, EventsMode::CEP47) => record_cep47_event_dictionary(CEP47Event::Migrate),
+        (_, _) => {}
     }
 
     runtime::put_key(EVENTS_MODE, storage::new_uref(events_mode as u8).into());
