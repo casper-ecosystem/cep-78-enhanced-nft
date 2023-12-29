@@ -2003,7 +2003,7 @@ pub extern "C" fn migrate() {
 
     let optional_events_mode: Option<u8> = runtime::get_named_arg::<Option<u8>>(ARG_EVENTS_MODE);
 
-    let current_events_mode = runtime::get_key(EVENTS_MODE)
+    let current_events_mode: EventsMode = runtime::get_key(EVENTS_MODE)
         .and_then(|_| {
             utils::get_stored_value_with_user_errors::<u8>(
                 EVENTS_MODE,
@@ -2016,10 +2016,10 @@ pub extern "C" fn migrate() {
         .unwrap_or(EventsMode::NoEvents);
 
     if let Some(optional_events_mode) = optional_events_mode {
-        let requested_mode: EventsMode = optional_events_mode
+        let requested_events_mode: EventsMode = optional_events_mode
             .try_into()
             .unwrap_or_revert_with(NFTCoreError::InvalidEventsMode);
-        match (current_events_mode, requested_mode) {
+        match (current_events_mode, requested_events_mode) {
             (EventsMode::CES, EventsMode::CES) => casper_event_standard::emit(Migration::new()),
             (_, EventsMode::CES) => {
                 // Initialize events structures.
@@ -2029,16 +2029,21 @@ pub extern "C" fn migrate() {
             (_, EventsMode::CEP47) => record_cep47_event_dictionary(CEP47Event::Migrate),
             (_, _) => {}
         }
+
         runtime::put_key(EVENTS_MODE, storage::new_uref(optional_events_mode).into());
     } else {
         match current_events_mode {
             EventsMode::CEP47 => record_cep47_event_dictionary(CEP47Event::Migrate),
             EventsMode::CES => casper_event_standard::emit(Migration::new()),
-            _ => runtime::put_key(
-                EVENTS_MODE,
+            _ => {
                 // Store "no events" mode in case it was never stored like version < 1.2
-                storage::new_uref(EventsMode::NoEvents as u8).into(),
-            ),
+                if !runtime::has_key(EVENTS_MODE) {
+                    runtime::put_key(
+                        EVENTS_MODE,
+                        storage::new_uref(EventsMode::NoEvents as u8).into(),
+                    )
+                }
+            }
         }
     }
 
