@@ -1175,6 +1175,7 @@ fn should_safely_upgrade_from_1_0_0_to_1_2_0_to_current_version() {
             ARG_ACCESS_KEY_NAME_1_0_0 => format!("{PREFIX_ACCESS_KEY_NAME}_{NFT_TEST_COLLECTION}"),
             ARG_HASH_KEY_NAME_1_0_0 => format!("{PREFIX_HASH_KEY_NAME}_{NFT_TEST_COLLECTION}"),
             ARG_TOTAL_TOKEN_SUPPLY => 10u64,
+            ARG_EVENTS_MODE => EventsMode::CES as u8
         },
     )
     .build();
@@ -1286,6 +1287,7 @@ fn should_safely_upgrade_from_1_0_0_to_1_3_0_to_current_version() {
             ARG_ACCESS_KEY_NAME_1_0_0 => format!("{PREFIX_ACCESS_KEY_NAME}_{NFT_TEST_COLLECTION}"),
             ARG_HASH_KEY_NAME_1_0_0 => format!("{PREFIX_HASH_KEY_NAME}_{NFT_TEST_COLLECTION}"),
             ARG_TOTAL_TOKEN_SUPPLY => 10u64,
+            ARG_EVENTS_MODE => EventsMode::CES as u8
         },
     )
     .build();
@@ -1397,6 +1399,7 @@ fn should_safely_upgrade_from_1_0_0_to_1_4_0_to_current_version() {
             ARG_ACCESS_KEY_NAME_1_0_0 => format!("{PREFIX_ACCESS_KEY_NAME}_{NFT_TEST_COLLECTION}"),
             ARG_HASH_KEY_NAME_1_0_0 => format!("{PREFIX_HASH_KEY_NAME}_{NFT_TEST_COLLECTION}"),
             ARG_TOTAL_TOKEN_SUPPLY => 10u64,
+            ARG_EVENTS_MODE => EventsMode::CES as u8
         },
     )
     .build();
@@ -1508,6 +1511,7 @@ fn should_safely_upgrade_from_1_0_0_to_1_5_0_to_current_version() {
             ARG_ACCESS_KEY_NAME_1_0_0 => format!("{PREFIX_ACCESS_KEY_NAME}_{NFT_TEST_COLLECTION}"),
             ARG_HASH_KEY_NAME_1_0_0 => format!("{PREFIX_HASH_KEY_NAME}_{NFT_TEST_COLLECTION}"),
             ARG_TOTAL_TOKEN_SUPPLY => 10u64,
+            ARG_EVENTS_MODE => EventsMode::CES as u8
         },
     )
     .build();
