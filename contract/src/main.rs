@@ -2001,26 +2001,49 @@ pub extern "C" fn migrate() {
 
     runtime::put_key(RLO_MFLAG, storage::new_uref(false).into());
 
-    let events_mode: EventsMode = utils::get_optional_named_arg_with_user_errors::<u8>(
-        ARG_EVENTS_MODE,
-        NFTCoreError::InvalidEventsMode,
-    )
-    .unwrap_or(EventsMode::NoEvents as u8)
-    .try_into()
-    .unwrap_or_revert();
+    let optional_events_mode: Option<u8> = runtime::get_named_arg::<Option<u8>>(ARG_EVENTS_MODE);
+    let current_events_mode: EventsMode = runtime::get_key(EVENTS_MODE)
+        .and_then(|_| {
+            utils::get_stored_value_with_user_errors::<u8>(
+                EVENTS_MODE,
+                NFTCoreError::MissingEventsMode,
+                NFTCoreError::InvalidEventsMode,
+            )
+            .try_into()
+            .ok()
+        })
+        .unwrap_or(EventsMode::NoEvents);
 
-    match events_mode {
-        EventsMode::NoEvents => {}
-        EventsMode::CES => {
-            // Initialize events structures.
-            utils::init_events();
-            // Emit Migration event.
-            casper_event_standard::emit(Migration::new());
+    if let Some(optional_events_mode) = optional_events_mode {
+        let requested_events_mode: EventsMode = optional_events_mode
+            .try_into()
+            .unwrap_or_revert_with(NFTCoreError::InvalidEventsMode);
+        match (current_events_mode, requested_events_mode) {
+            (EventsMode::CES, EventsMode::CES) => casper_event_standard::emit(Migration::new()),
+            (_, EventsMode::CES) => {
+                // Initialize events structures.
+                utils::init_events();
+                casper_event_standard::emit(Migration::new());
+            }
+            (_, EventsMode::CEP47) => record_cep47_event_dictionary(CEP47Event::Migrate),
+            (_, _) => {}
         }
-        EventsMode::CEP47 => record_cep47_event_dictionary(CEP47Event::Migrate),
+        runtime::put_key(EVENTS_MODE, storage::new_uref(optional_events_mode).into());
+    } else {
+        match current_events_mode {
+            EventsMode::CEP47 => record_cep47_event_dictionary(CEP47Event::Migrate),
+            EventsMode::CES => casper_event_standard::emit(Migration::new()),
+            _ => {
+                // Store "no events" mode in case it was never stored like version < 1.2
+                if !runtime::has_key(EVENTS_MODE) {
+                    runtime::put_key(
+                        EVENTS_MODE,
+                        storage::new_uref(EventsMode::NoEvents as u8).into(),
+                    )
+                }
+            }
+        }
     }
-
-    runtime::put_key(EVENTS_MODE, storage::new_uref(events_mode as u8).into());
 
     let acl_package_mode: bool = utils::get_optional_named_arg_with_user_errors::<bool>(
         ARG_ACL_PACKAGE_MODE,
@@ -2823,8 +2846,7 @@ fn migrate_contract(access_key_name: String, package_key_name: String) {
     let events_mode = utils::get_optional_named_arg_with_user_errors::<u8>(
         ARG_EVENTS_MODE,
         NFTCoreError::InvalidEventsMode,
-    )
-    .unwrap_or(0u8);
+    );
 
     let acl_package_mode: bool = utils::get_optional_named_arg_with_user_errors(
         ARG_ACL_PACKAGE_MODE,
