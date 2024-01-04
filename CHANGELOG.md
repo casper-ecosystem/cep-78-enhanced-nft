@@ -21,6 +21,7 @@ All notable changes to this project will be documented in this file. The format 
 
 - Add ACL in types of js_client (#256)
 - Fix Wrong error on insertion of duplicated token identifier (#258)
+- Fix Failure on migration when EventsMode::CES to EventsMode::CES (#263)
 
 ### Added
 
