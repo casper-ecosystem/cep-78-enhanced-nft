@@ -1,6 +1,6 @@
 [package]
 name = "is_approved_for_all_session"
-version = "1.5.0"
+version = "1.5.1"
 edition = "2018"
 
 [dependencies]
