@@ -423,7 +423,7 @@ impl TryFrom<u8> for NamedKeyConventionMode {
 }
 
 #[repr(u8)]
-#[derive(PartialEq, Eq)]
+#[derive(PartialEq, Eq, Clone, Copy)]
 #[allow(clippy::upper_case_acronyms)]
 pub enum EventsMode {
     NoEvents = 0,

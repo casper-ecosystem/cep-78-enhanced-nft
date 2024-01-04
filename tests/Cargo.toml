@@ -3,12 +3,10 @@ name = "tests"
 version = "1.5.1"
 edition = "2018"
 [dependencies]
-casper-engine-test-support = { version = "5.0.0", default-features = false, features = [
-  "test-support",
-] }
+casper-engine-test-support = { version = "5.0.0", default-features = false }
 contract = { path = "../contract", default-features = false }
 casper-execution-engine = { version = "5.0.0", default-features = false }
-casper-types = "3.0.0"
+casper-types = { version = "3.0.0", default-features = false }
 serde = { version = "1.0.80", default-features = false }
 serde_json = { version = "1.0.59", default-features = false }
 once_cell = "1"
