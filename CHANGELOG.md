@@ -59,7 +59,7 @@ All notable changes to this project will be documented in this file. The format 
 
 - Transfer Filter Hook. The transfer filter modality, if enabled, specifies a contract package hash pointing to a contract that will be called when the `transfer` method is invoked on the contract.
 
-- Added the `ACL` option to the `minting_mode` modality. This option allows only whitelisted accounts or contracts to mint tokens. More information can be found [here](./README.md/#minting).
+- Added the `ACL` option to the `minting_mode` modality. This option allows only whitelisted accounts or contracts to mint tokens. More information can be found [here](./docs/modalities.md#minting).
 
 ## Release 1.3.0
 
@@ -77,9 +77,9 @@ All notable changes to this project will be documented in this file. The format 
 
 ### Added
 
-- Added a new modality named `EventsMode` that dictates how the installed instance of CEP-78 will handle the recording of events. Refer to the [README](./README.md#eventsmode) for further details
+- Added a new modality named `EventsMode` that dictates how the installed instance of CEP-78 will handle the recording of events. Refer to the [README](./docs/modalities.md#eventsmode) for further details
 
-- Added the ability for the contract to specify one or more metadata schemas, with the option to further specify optional metadata schemas. Additional required metadatas are specified by `additional_required_metadata`, while additional optional metadata schemas can be specified using `optional_metadata`. Refer to the [`Installing the Contract`](./README.md#installing-the-contract) section of the README for more information on using these arguments.
+- Added the ability for the contract to specify one or more metadata schemas, with the option to further specify optional metadata schemas. Additional required metadatas are specified by `additional_required_metadata`, while additional optional metadata schemas can be specified using `optional_metadata`. Refer to the [`Installing the Contract`](./docs/using-casper-client.md#installing-the-contract) section of the README for more information on using these arguments.
 
 - When upgrading from a contract instance, you may now change the `total_token_supply` to a number higher than the current number of minted tokens, but lower than your previous total. The number cannot be zero. More information is available in the upgrade tutorials.
 
@@ -91,7 +91,7 @@ All notable changes to this project will be documented in this file. The format 
 
 ### Changed
 
-- `OwnerReverseLookupMode` now contains an additional option, `TransfersOnly`, which begins tracking ownership upon transfer. More information can be found [here](./README.md#ownerreverselookupmode).
+- `OwnerReverseLookupMode` now contains an additional option, `TransfersOnly`, which begins tracking ownership upon transfer. More information can be found [here](./docs/modalities.md#ownerreverselookupmode).
 
 - Optimized the `set_approval_for_all` entrypoint implementation to reduce gas costs.
 
@@ -113,7 +113,7 @@ All notable changes to this project will be documented in this file. The format 
 
   - To allow isolation of the additional costs, or tracking individual owners, the reverse lookup mode supports a register entrypoint which is used to register owners prior to minting or receiving a transferred token. In either `Assigned` or `Transferable` mode, this register entrypoint can be called by any party on behalf of another party.
 
-  - As a result of this change, the previously used `owned_tokens` dictionary is now deprecated. Moving forward, token ownership will be tracked using the `OwnerReverseLookupMode` modality and [CEP-78 Page System](./README.md#the-cep-78-page-system).
+  - As a result of this change, the previously used `owned_tokens` dictionary is now deprecated. Moving forward, token ownership will be tracked using the `OwnerReverseLookupMode` modality and [CEP-78 Page System](./docs/reverse-lookup.md#the-cep-78-page-system).
 
 ### Changed
 
