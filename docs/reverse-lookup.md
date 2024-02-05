@@ -1,6 +1,6 @@
 # Owner Reverse Lookup Functionality
 
-In version 1.0 of the CEP-78 Enhanced NFT Standard contract, tracking minted tokens consisted of a single, unbounded list that would grow in size with each additional token. As a result, gas costs would increase over time as the list must be overwritten with each new minting. The related tutorial can be found [here](../tutorials/token-ownership-tutorial.md).
+In version 1.0 of the CEP-78 Enhanced NFT Standard contract, tracking minted tokens consisted of a single, unbounded list that would grow in size with each additional token. As a result, gas costs would increase over time as the list must be overwritten with each new minting. The related tutorial can be found [here](../docs/tutorials/token-ownership-tutorial.md).
 
 In an effort to stabilize the gas costs of larger NFT collections, version 1.1 of CEP-78 includes the use of a pre-allocated page system to track ownership of NFTs within the contract.
 
