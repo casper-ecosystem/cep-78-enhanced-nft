@@ -2,9 +2,7 @@
 
 This tutorial introduces an implementation of the CEP-78 standard for the Casper blockchain, known as the Casper Enhanced NFT standard. The code for this tutorial is available in [GitHub](https://github.com/casper-ecosystem/cep-78-enhanced-nft/).
 
-The following functions implement the rules defined for Casper NFTs: `totalSupply`, `transfer`, `transferFrom`, `approve`, `balanceOf`, and `allowance`. A portion of this tutorial reviews the [contract](../../contract/src/main.rs).
-
-The [Writing Rust Contracts on Casper](https://docs.casper.network/developers/writing-onchain-code/simple-contract/) document outlines many aspects of this tutorial and should be read first.
+The following functions implement the rules defined for Casper NFTs, and a portion of this tutorial reviews the [contract](../../../contract/src/main.rs).
 
 ## Table of Contents
 
@@ -21,7 +19,6 @@ The [Writing Rust Contracts on Casper](https://docs.casper.network/developers/wr
     - [Verifying the Installation](#verifying-the-installation)
     - [Querying Contract Entry Points](#querying-contract-entry-points)
 
-
 ## Environment Setup
 
 ### Prerequisites
@@ -32,6 +29,8 @@ Before using this guide, ensure you meet the following requirements:
 - Get a valid [node address](https://docs.casper.network/developers/prerequisites/#acquire-node-address-from-network-peers), or use the following Testnet node: [https://rpc.testnet.casperlabs.io/](https://rpc.testnet.casperlabs.io/)
 - Know how to install a [smart contract](https://docs.casper.network/developers/cli/sending-deploys/) on a Casper network
 - Hold enough CSPR tokens to pay for transactions
+
+The [Writing Rust Contracts on Casper](https://docs.casper.network/developers/writing-onchain-code/simple-contract/) document outlines many aspects of this tutorial and should be read as a prerequisite.
 
 ### Building the Contract and Tests
 
@@ -64,7 +63,7 @@ make test
 
 ## Reviewing the Contract Implementation
 
-In this repository, you will find a library and an [example NFT implementation](../../contract/src/main.rs) for Casper networks. This section explains the example contract in more detail.
+In this repository, you will find a library and an [example NFT implementation](../../../contract/src/main.rs) for Casper networks. This section explains the example contract in more detail.
 
 There are four steps to follow when you intend to create your own implementation of the NFT contract, as follows:
 
@@ -119,11 +118,11 @@ mod utils;
 
 ### Initialization Flow
 
-Initializing the contract happens through the `call() -> install_contract() -> init()` functions inside the [main.rs](../../contract/src/main.rs) contract file. The `init()` function reads the runtime arguments and defines parameters such as `collection_name`, `collection_symbol`, and `total_token_supply`, among the other required and optional arguments described in the [README](../../README.md#required-runtime-arguments).
+Initializing the contract happens through the `call() -> install_contract() -> init()` functions inside the [main.rs](../../../contract/src/main.rs) contract file. The `init()` function reads the runtime arguments and defines parameters such as `collection_name`, `collection_symbol`, and `total_token_supply`, among the other required and optional arguments described in the [README](../../../README.md#required-runtime-arguments).
 
 ### Contract Entrypoints
 
-This section briefly explains the essential entrypoints used in the Casper NFT contract. To see their full implementation, refer to the [main.rs](../../contract/src/main.rs) contract file. For further questions, contact the Casper support team via the [Discord channel](https://discord.com/invite/casperblockchain). The following entrypoints are listed as they are found in the code.
+This section briefly explains the essential entrypoints used in the Casper NFT contract. To see their full implementation, refer to the [main.rs](../../../contract/src/main.rs) contract file. For further questions, contact the Casper support team via the [Discord channel](https://discord.com/invite/casperblockchain). The following entrypoints are listed as they are found in the code.
 
 - [**approve**](https://github.com/casper-ecosystem/cep-78-enhanced-nft/blob/440bff44277ab5fd295f37229fe92278339d3753/contract/src/main.rs#L1002) - Allows a spender to transfer up to an amount of the owners’s tokens
 - [**balance_of**](https://github.com/casper-ecosystem/cep-78-enhanced-nft/blob/440bff44277ab5fd295f37229fe92278339d3753/contract/src/main.rs#L1616) - Returns the token balance of the owner

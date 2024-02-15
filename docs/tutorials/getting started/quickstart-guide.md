@@ -2,7 +2,7 @@
 
 This quick start guide introduces you to the Casper client commands and Wasm files necessary to deploy a CEP-78 Casper Enhanced NFT contract to the [Casper Testnet](https://testnet.cspr.live/). To execute transactions on a Casper network involving NFTs, you will need some CSPR tokens to pay for the transactions. The Testnet provides test tokens using a [faucet](https://docs.casper.network/users/testnet-faucet/).
 
-For greater detail into the creation and mechanics of the Casper NFT contract, see the complete [Casper NFT Tutorial](./full-tutorial.md).
+For greater detail into the creation and mechanics of the Casper NFT contract, see the complete [Casper NFT Tutorial](./full-installation-tutorial.md).
 
 ## Prerequisites
 
