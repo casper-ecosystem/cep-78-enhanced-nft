@@ -397,4 +397,4 @@ casper-client query-global-state -n https://rpc.testnet.casperlabs.io/ \
 
 ## Next Steps
 
-- [NFT Transfers](./transfer.md)
+- Learn to [Mint, Transfer, and Burn](./interacting-with-NFTs.md) NFT tokens

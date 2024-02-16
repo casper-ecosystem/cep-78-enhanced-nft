@@ -1,8 +1,8 @@
-# A Casper NFT Tutorial
+# Installing an NFT Contract using the Rust Casper Client
 
-This tutorial introduces an implementation of the CEP-78 standard for the Casper blockchain, known as the Casper Enhanced NFT standard. The code for this tutorial is available in [GitHub](https://github.com/casper-ecosystem/cep-78-enhanced-nft/).
+This documentation will guide you through the process of installing and interacting with an instance of the CEP-78 enhanced NFT standard contract through Casper's Rust CLI client. The contract code installs an instance of CEP-78 as per session arguments provided at the time of installation. It requires a minimum Rust version of `1.63.0`. The code for this tutorial is available in [GitHub](https://github.com/casper-ecosystem/cep-78-enhanced-nft/). A portion of this tutorial reviews the [contract](../../../contract/src/main.rs).
 
-The following functions implement the rules defined for Casper NFTs, and a portion of this tutorial reviews the [contract](../../../contract/src/main.rs).
+Information on the modalities used throughout this installation process can be found in the [modalities documentation](modalities.md).
 
 ## Table of Contents
 
@@ -17,7 +17,7 @@ The following functions implement the rules defined for Casper NFTs, and a porti
     - [Querying Global State](#querying-global-state)
     - [Sending the Installation Deploy](#sending-the-installation-deploy)
     - [Verifying the Installation](#verifying-the-installation)
-    - [Querying Contract Entry Points](#querying-contract-entry-points)
+4. [Next Steps](#next-steps)
 
 ## Environment Setup
 
@@ -55,7 +55,9 @@ info: component 'rust-std' for target 'wasm32-unknown-unknown' is up to date
 
 If you do not see this message, check the [Getting Started Guide](https://docs.casper.network/developers/writing-onchain-code/getting-started/).
 
-Next, compile your contract and run the contract unit tests.
+The contract code can be compiled to Wasm by running the `make build-contract` command provided in the Makefile at the top level. The Wasm will be found in the `contract/target/wasm32-unknown-unknown/release` directory as `contract.wasm`.
+
+You can also compile your contract and run the contract unit tests with this command:
 
 ```bash
 make test
@@ -141,7 +143,7 @@ There is also the [**migrate**](https://github.com/casper-ecosystem/cep-78-enhan
 
 ## Installing the Contract
 
-After customizing your instance of the  NFT contract, install it on the network, just like any other Casper contract. The following sections briefly cover the commands you need. Refer to [Sending Deploys to a Casper network using the Rust Client](https://docs.casper.network/developers/dapps/sending-deploys/) for more details.
+Installing the enhanced NFT contract to global state requires the use of a [Deploy](https://docs.casper.network/developers/dapps/sending-deploys/). But before proceeding with the installation, verify the network state and the status of the account that will send the installation deploy.
 
 ### Querying Global State
 
@@ -182,22 +184,50 @@ casper-client query-global-state --node-address https://rpc.testnet.casperlabs.i
 
 ### Sending the Installation Deploy
 
-Next, install the contract on the network. Use the Testnet to understand the exact gas amount required for installation. Refer to the [note about gas prices](https://docs.casper.network/developers/cli/sending-deploys/#a-note-about-gas-price) to understand payment amounts and gas price adjustments.
+Below is an example of a `casper-client` command that provides all required session arguments to install a valid instance of the CEP-78 contract on global state. 
 
-```bash
-casper-client put-deploy --node-address http://<HOST:PORT> \
---chain-name [NETWORK_NAME] \
---payment-amount [AMOUNT] \
---secret-key [PATH_TO_SECRET_KEY] \
---session-path [WASM_FILE_PATH] \
---session-arg <"NAME:TYPE='VALUE'">
-```
+Use the Testnet to understand the exact gas amount required for installation. Refer to the [note about gas prices](https://docs.casper.network/developers/cli/sending-deploys/#a-note-about-gas-price) to understand payment amounts and gas price adjustments.
 
-- `NETWORK_NAME`: Use the relevant network name
-- `PATH_TO_SECRET_KEY`: The path to your secret key
-- `AMOUNT`: Gas amount in motes needed for deploy execution
-- `WASM_FILE_PATH`: The location of the compiled NFT Wasm file
-- `NAME:TYPE='VALUE'`: The required and optional arguments for installing the contract
+- `casper-client put-deploy --node-address https://rpc.testnet.casperlabs.io/ --chain-name "casper-test" --payment-amount 200000000000 --secret-key ~/KEYS/secret_key.pem --session-path contract/target/wasm32-unknown-unknown/release/contract.wasm`
+
+1. `--session-arg "collection_name:string='CEP-78-collection'"`
+
+   The name of the NFT collection as a string. In this instance, "CEP-78-collection".
+
+2. `--session-arg "collection_symbol:string='CEP78'"`
+
+   The symbol representing the NFT collection as a string. In this instance, "CEP78".
+
+3. `--session-arg "total_token_supply:u64='100'"`
+
+   The total supply of tokens to be minted. In this instance, 100. If the contract owner is unsure of the total number of NFTs they will require, they should err on the side of caution.
+
+4. `--session-arg "ownership_mode:u8='2'"`
+
+   The ownership mode for this contract. In this instance the 2 represents "Transferable" mode. Under these conditions, users can freely transfer their NFTs between one another.
+
+5. `--session-arg "nft_kind:u8='1'"`
+
+   The type of commodity represented by these NFTs. In this instance, the 1 represents a digital collection.
+
+6. `--session-arg "nft_metadata_kind:u8='0'"`
+
+   The type of metadata used by this contract. In this instance, the 0 represents CEP-78 standard for metadata.
+
+7. `--session-arg "json_schema:string=''"`
+
+   An empty JSON string, as the contract has awareness of the CEP-78 JSON schema. Using the custom validated modality would require passing through a valid JSON schema for your custom metadata.
+
+8. `--session-arg "identifier_mode:u8='0'"`
+
+   The mode used to identify individual NFTs. For 0, this means an ordinal identification sequence rather than by hash.
+
+9. `--session-arg "metadata_mutability:u8='0'"`
+
+   A setting allowing for mutability of metadata. This is only available when using the ordinal identification mode, as the hash mode depends on immutability for identification. In this instance, despite ordinal identification, the 0 represents immutable metadata.
+
+The session arguments match the available [modalities](../../modalities.md).
+
 
 <details>
 <summary><b>Expand for a sample query and response</b></summary>
@@ -245,29 +275,8 @@ casper-client get-deploy --node-address https://rpc.testnet.casperlabs.io/ [DEPL
 
 <!-- TODO add a sample response -->
 
-### Querying Contract Entry Points
+## Next Steps
 
-This step will narrow down the context and check the status of a specific entry point using arguments.
+- Learn to [Query](./querying-NFTs.md) the NFT contract
+- Learn to [Mint, Transfer, and Burn](./interacting-with-NFTs.md) NFT tokens
 
-```bash
-casper-client query-global-state --node-address http://<HOST:PORT> \
---state-root-hash [STATE_ROOT_HASH] \
---key [ACCOUNT_HASH] \
--q "[CONTRACT_NAME/ARGUMENT]"
-```
-
-<!-- TODO add a correct query -->
-
-<details>
-<summary><b>Expand querying the contract name</b></summary>
-
-```bash
-casper-client query-global-state --node-address https://rpc.testnet.casperlabs.io/ \
---state-root-hash e45cab47e15615cfe27c889b0a6446986077a1d6fb5b6a2be49d230273bc8d5b \
---key account-hash-5cb74580bcf97d0a7fa034e60b3d2952e0b170ea5162153b1570e8b1ee4ec3f5 \
--q "nft_collection/name"
-```
-
-</details>
-
-<!-- TODO add a sample response -->

@@ -70,7 +70,7 @@ The following are the optional parameters that can be passed in at the time of i
 
 #### Example deploy
 
-The following is an example of installing the NFT contract via a deploy using the Rust CLI Casper client. You can find more examples [here](/docs/using-casper-client.md).
+The following is an example of installing the NFT contract via a deploy using the Rust CLI Casper client. You can find more examples [here](/docs/tutorials/getting-started/full-installation-tutorial.md).
 
 ```bash
 casper-client put-deploy -n http://65.108.0.148:7777/rpc --chain-name "casper-test" --payment-amount 500000000000 -k keys/secret_key.pem --session-path contract/target/wasm32-unknown-unknown/release/contract.wasm \
@@ -112,7 +112,7 @@ Upgrade to v1.1.1 using a [Standard NamedKey Convention](./docs/tutorials/standa
 
 ## Installing and Interacting with the Contract using the Rust Casper Client
 
-You can find instructions on installing an instance of the CEP-78 contract using the Rust CLI Casper client [here](/docs/using-casper-client.md).
+You can find instructions on installing an instance of the CEP-78 contract using the Rust CLI Casper client [here](/docs/tutorials/getting-started/full-installation-tutorial.md).
 
 ## Test Suite and Specification
 

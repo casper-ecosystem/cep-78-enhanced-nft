@@ -59,6 +59,6 @@ casper-client put-deploy --node-address https://rpc.testnet.casperlabs.io/ \
 
 Learn to query the contract, perform token transfers, set up approvals, and understand the testing framework.
 
-- [Exploring the NTF Contract](./query.md)
-- [NFT Transfers and Allowances](./transfer.md)
-- [Testing Framework for CEP-78](./tests.md)
+- [Query](./querying-NFTs.md) the NTF Contract
+- Learn to [Mint, Transfer, and Burn](./interacting-with-NFTs.md) NFT tokens
+- Review the [Tests](./testing-NFTs.md)
