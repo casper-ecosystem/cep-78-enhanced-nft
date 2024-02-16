@@ -21,7 +21,7 @@ casper-client put-deploy -n http://<HOST:PORT> \
 --session-hash [CEP-78_CONTRACT_HASH] \
 // The name of the entry point you are invoking.
 --session-entry-point "transfer" \
-// The account hash of the account that you are sending CEP-78 tokens to.
+// The account hash of the account to which you are sending CEP-78 tokens.
 --session-arg "recipient:key='account-hash-[HASH]" \
 // The amount of CEP-78 tokens you are sending to the receiving account.
 --session-arg "amount:u256='10'" \
@@ -57,9 +57,9 @@ casper-client put-deploy -n http://<HOST:PORT> \
 --secret-key [PATH_TO_SECRET_KEY] \
 --session-package-name "cep78_test_contract" \
 --session-entry-point "balance_of" \
-// This is the contract hash of your CEP-78 contract instance, passed in as an `account-hash-`.
+// The contract hash of your CEP-78 contract instance, passed in as an `account-hash-`.
 --session-arg "token_contract:account_hash='account-hash-[HASH]'" \
-// This is the account hash of the account you are checking the balance of.
+// The account hash of the account whose balance you are checking.
 --session-arg "address:key='account-hash-[HASH]'" \
 --payment-amount 1000000000
 ```
@@ -90,12 +90,12 @@ The following command approves another account to spend 15 tokens from the balan
 casper-client put-deploy -n http://<HOST:PORT> \
 --chain-name [CHAIN_NAME] \
 --secret-key [PATH_TO_SECRET_KEY] \
-// This is the contract hash of the CEP-78 token contract.
+// The contract hash of the CEP-78 token contract.
 --session-hash [CEP-78_CONTRACT_HASH] \
 --session-entry-point "approve" \
-// This is the account hash of the account that will receive an allowance from the balance of the account that sent the Deploy.
+// The account hash of the account that will receive an allowance from the balance of the account that sent the Deploy.
 --session-arg "spender:key='account-hash-[HASH]'" \
-// This is the number of CEP-78 tokens included in the allowance.
+// The number of CEP-78 tokens included in the allowance.
 --session-arg "amount:u256='15'" \
 --payment-amount "10000000000"
 ```
@@ -123,16 +123,16 @@ The following command allows an account to transfer CEP-78 tokens held by anothe
 ```bash
 casper-client put-deploy -n http://<HOST:PORT> \
 --chain-name [CHAIN_NAME] \
-// This is the secret key for the account that is spending their allowance from another account's balance.
+// The secret key for the account that is spending their allowance from another account's balance.
 --secret-key [PATH_TO_SECRET_KEY] \
-// This is the CEP-78 token contract.
+// The CEP-78 token contract.
 --session-hash [CEP-78_CONTRACT_HASH] \
 --session-entry-point "transfer" \
-// This is the account hash of the account that holds the CEP-78 in their balance.
+// The account hash of the account that holds the CEP-78 in their balance.
 --session-arg "owner:key='account-hash-[HASH]'" \
-// This is the account hash of the account that will receive the transferred CEP-78 tokens.
+// The account hash of the account that will receive the transferred CEP-78 tokens.
 --session-arg "recipient:key='account-hash-[HASH]'" \
-// This is the amount of tokens to be transferred. If this amount exceeds the allowance of the account sending the deploy, it will fail.
+// The amount of tokens to be transferred. If this amount exceeds the allowance of the account sending the deploy, it will fail.
 --session-arg "amount:u256='10'" \
 --payment-amount "10000000000"
 ```
@@ -163,9 +163,9 @@ casper-client put-deploy -n http://<HOST:PORT> \
 --secret-key [PATH_TO_SECRET_KEY] \
 --session-package-name "cep78_contract_package_CEP78" \
 --session-entry-point "mint" \
-// This is the account that will receive the newly minted CEP-78 tokens.
+// This account will receive the newly minted CEP-78 tokens.
 --session-arg "owner:key='account-hash-[HASH]'" \
-// This is the number of additional CEP-78 tokens to add to the total supply.
+// The number of additional CEP-78 tokens to add to the total supply.
 --session-arg "amount:U256='10'" \
 --payment-amount 1000000000
 ```
@@ -196,9 +196,9 @@ casper-client put-deploy -n http://<HOST:PORT> \
 --secret-key [PATH_TO_SECRET_KEY] \
 --session-package-name "cep78_contract_package_CEP78" \
 --session-entry-point "burn" \
-// This is the account that the tokens will be burned from.
+// The account from which the tokens will be burned.
 --session-arg "owner:key='account-hash-[HASH]'" \
-// This is the number of CEP-78 tokens to remove from the total supply.
+// The number of CEP-78 tokens to remove from the total supply.
 --session-arg "amount:U256='10'" \
 --payment-amount 1000000000
 ```
@@ -212,9 +212,7 @@ casper-client put-deploy -n https://rpc.testnet.casperlabs.io/ \
 --secret-key ~/KEYS/secret_key.pem \
 --session-package-name "cep78_contract_package_CEP78" \
 --session-entry-point "burn" \
-// This is the account that the tokens will be burned from.
 --session-arg "owner:key='account-hash-683f53f56926f54ef9584b07585b025c68415dc05f7b2e56749153574b83d5cd'" \
-// This is the number of CEP-78 tokens to remove from the total supply.
 --session-arg "amount:U256='10'" \
 --payment-amount 1000000000
 ```

@@ -8,7 +8,7 @@ This document covers different commands to query and interact with an NFT (CEP-7
 
 ## Querying the Contract
 
-First, identify the contract hash by looking at the account that installed the contract. Under the account's named keys, you will see a named key for the contract hash, which represents the stored contract. Copy this value and save it for future queries.
+First, identify the contract hash by looking at the account that installed the contract. Under the account's named keys, you will see a named key for the contract hash, representing the stored contract. Copy this value and save it for future queries.
 
 <div align="center">
 <img src="../../assets/the-nft-contract-hash.png" alt="Accessing the NFT Contract Hash" width="500"/>
@@ -20,9 +20,9 @@ Next, query the contract details.
 
 ```bash
 casper-client query-global-state -n http://<HOST:PORT> \
-// This is the contract hash, which can be found within the `NamedKeys` of the account that sent the installing deploy.
+// This is the contract hash, found within the `NamedKeys` of the account that sent the installing deploy.
 --key hash-30767a108fedcb8872a0cec5eabb76f743f1bf3bbac9cac6e9c15355ae17d61a \
-// This is the most up to date state root hash, which can found by using the `get-state-root-hash` command in the Casper client.
+// This is the most up-to-date state root hash, which can be found by using the `get-state-root-hash` command in the Casper client.
 --state-root-hash ca9ad2c99188cdbb8ceeccff16c6225b53b8c2e01dff945fb7ff3e33b427faf5
 ```
 
