@@ -2,10 +2,12 @@
 
 This document describes how to transfer NFTs on a Casper network using the Casper client.
 
+
 ## Prerequisites
 
 - Install the contract using the [Quickstart](./quickstart-guide.md) or the [Full Installation](./full-installation-tutorial.md) tutorials
 - Learn to [Query NFT Contracts](./querying-NFTs.md) and save the various hashes and URefs required throughout this document
+
 
 ## Table of Contents
 
@@ -29,41 +31,79 @@ You may invoke the `mint`, `transfer`, or `burn` entrypoints directly through ei
 In the case of `mint`, fewer runtime arguments must be provided, thereby reducing the total gas cost of minting an NFT.
 
 <details>
-<summary><b>Example Mint using StoredVersionByHash</b></summary>
+<summary><b>Example `mint` using the stored package hash</b></summary>
 
 ```bash
-
-casper-client put-deploy -n http://localhost:11101/rpc --chain-name "casper-net-1" \ --payment-amount 7500000000 \ -k ~/secret_key.pem \
---session-package-hash hash-b3b7a74ae9ef2ea8afc06d6a0830961259605e417e95a53c0cb1ca9737bb0ec7 \
+casper-client put-deploy --node-address http://localhost:11101/rpc/ \
+--chain-name "casper-net-1” \
+--payment-amount 5000000000 \
+--secret-key ~/casper/casper-node/utils/nctl/assets/net-1/nodes/node-1/keys/secret_key.pem \
+--session-package-hash hash-2b61207cd0e94ce1b1d40801b0abb1ab55fd7dae94c9dcf670292243f3791a30 \
 --session-entry-point "mint" \
---session-arg "token_owner:key='account-hash-e9ff87766a1d2bab2565bfd5799054946200b51b20c3ca7e54a9269e00fe7cfb'" \
+--session-arg "token_owner:key='account-hash-e70dbca48c2d31bc2d754e51860ceaa8a1a49dc627b20320b0ecee1b6d9ce655'" \
 --session-arg "token_meta_data:string='{\"name\": \"John Doe\",\"token_uri\": \"https:\/\/www.barfoo.com\",\"checksum\": \"940bffb3f2bba35f84313aa26da09ece3ad47045c6a1292c2bbd2df4ab1a55fb\"}'"
-
 ```
 
 </details>
 
 <details>
-<summary><b>Example Transfer using StoredContractByHash</b></summary>
+<summary><b>Example `transfer` using the stored contract hash</b></summary>
 
 Based on the identifier mode for the given contract instance, either the `token_id` runtime argument must be passed in or, in the case of the hash identifier mode, the `token_hash` runtime argument.
 
 ```bash
-
-casper-client put-deploy -n http://localhost:11101/rpc --chain-name "casper-net-1" \ --payment-amount 7500000000 \ -k ~/secret_key.pem \
---session-hash hash-b3b7a74ae9ef2ea8afc06d6a0830961259605e417e95a53c0cb1ca9737bb0ec7 \
+casper-client put-deploy --node-address http://localhost:11101/rpc/ \
+--chain-name "casper-net-1” \
+--payment-amount 5000000000 \
+--secret-key ~/casper/casper-node/utils/nctl/assets/net-1/nodes/node-1/keys/secret_key.pem \
+--session-hash hash-378a43e38bc5129d8aa3bcd04f5c9a97be73f85b5be574182ac1346f04520796 \
 --session-entry-point "transfer" \
---session-arg "source_key:key='account-hash-e9ff87766a1d2bab2565bfd5799054946200b51b20c3ca7e54a9269e00fe7cfb'" \
---session-arg "target_key:key='account-hash-b4782e7c47e4deca5bd90b7adb2d6e884f2d331825d5419d6cbfb59e17642aab'" \
+--session-arg "source_key:key='account-hash-e70dbca48c2d31bc2d754e51860ceaa8a1a49dc627b20320b0ecee1b6d9ce655'" \
+--session-arg "target_key:key='account-hash-0ea7998b2822afe5b62b08a21d54c941ad791279b089f3f7ede0d72b477eca34'" \
 --session-arg "token_id:u64='0'"
-
 ```
 
 </details>
 
-## Minting NFTs using Wasm
+
+## Minting NFTs
 
 Below is an example of a `casper-client` command that uses the `mint` entrypoint of the contract to mint an NFT for the user associated with `node-1` in an [NCTL environment](https://docs.casper.network/developers/dapps/nctl-test/).
+
+- `casper-client put-deploy -n http://localhost:11101/rpc --chain-name "casper-net-1" --payment-amount 5000000000 -k ~/casper/casper-node/utils/nctl/assets/net-1/nodes/node-1/keys/secret_key.pem --session-entry-point "mint"`
+
+1. `--session-package-hash hash-2b61207cd0e94ce1b1d40801b0abb1ab55fd7dae94c9dcf670292243f3791a30`
+
+   The package hash of the previously installed CEP-78 NFT contract from which we will be minting.
+
+2. `--session-arg "token_owner:key='account-hash-e9ff87766a1d2bab2565bfd5799054946200b51b20c3ca7e54a9269e00fe7cfb'"`
+
+   The collection name of the NFT to be minted.
+
+3. `--session-arg "token_meta_data:string='{\"name\": \"John Doe\",\"token_uri\": \"https:\/\/www.barfoo.com\",\"checksum\": \"940bffb3f2bba35f84313aa26da09ece3ad47045c6a1292c2bbd2df4ab1a55fb\"}'"`
+
+   Metadata describing the NFT to be minted, passed in as a `string`.
+
+<details>
+<summary><b>Casper client command without comments</b></summary>
+
+```bash
+casper-client put-deploy --node-address http://localhost:11101/rpc/ \
+--chain-name "casper-net-1” \
+--payment-amount 5000000000 \
+--secret-key ~/casper/casper-node/utils/nctl/assets/net-1/nodes/node-1/keys/secret_key.pem \
+--session-entry-point "mint" \
+--session-package-hash hash-2b61207cd0e94ce1b1d40801b0abb1ab55fd7dae94c9dcf670292243f3791a30 \
+--session-arg "token_owner:key='account-hash-e70dbca48c2d31bc2d754e51860ceaa8a1a49dc627b20320b0ecee1b6d9ce655'" \
+--session-arg "token_meta_data:string='{\"name\": \"John Doe\",\"token_uri\": \"https:\/\/www.barfoo.com\",\"checksum\": \"940bffb3f2bba35f84313aa26da09ece3ad47045c6a1292c2bbd2df4ab1a55fb\"}'"
+```
+
+</details>
+
+
+### Minting NFTs using Wasm
+
+This example invokes the `mint_call.wasm` session code provided in the `client` folder.
 
 - `casper-client put-deploy -n http://localhost:11101/rpc --chain-name "casper-net-1" --payment-amount 5000000000 -k ~/casper/casper-node/utils/nctl/assets/net-1/nodes/node-1/keys/secret_key.pem --session-path ~/casper/enhanced-nft/client/mint_session/target/wasm32-unknown-unknown/release/mint_call.wasm`
 
@@ -88,25 +128,27 @@ Below is an example of a `casper-client` command that uses the `mint` entrypoint
 <summary><b>Casper client command without comments</b></summary>
 
 ```bash
-casper-client put-deploy -n http://localhost:11101/rpc --chain-name "casper-net-1" \
+casper-client put-deploy --node-address http://localhost:11101/rpc/ \
+--chain-name "casper-net-1” \
 --payment-amount 5000000000 \
--k ~/casper/casper-node/utils/nctl/assets/net-1/nodes/node-1/keys/secret_key.pem \
+--secret-key ~/casper/casper-node/utils/nctl/assets/net-1/nodes/node-1/keys/secret_key.pem \
 --session-path ~/casper/enhanced-nft/client/mint_session/target/wasm32-unknown-unknown/release/mint_call.wasm \
 --session-arg "nft_contract_hash:key='hash-206339c3deb8e6146974125bb271eb510795be6f250c21b1bd4b698956669f95'" \
---session-arg "collection_name:string='cep78_<collection_name>'"` \
+--session-arg "collection_name:string='cep78_<collection_name>'" \
 --session-arg "token_owner:key='account-hash-e9ff87766a1d2bab2565bfd5799054946200b51b20c3ca7e54a9269e00fe7cfb'"  \
 --session-arg "token_meta_data:string='{\"name\": \"John Doe\",\"token_uri\": \"https:\/\/www.barfoo.com\",\"checksum\": \"940bffb3f2bba35f84313aa26da09ece3ad47045c6a1292c2bbd2df4ab1a55fb\"}'"
 ```
 
 </details>
 
+
 ## Transferring NFTs
 
-Below is an example of a `casper-client` command that uses the `transfer` entrypoint to transfer ownership of an NFT from one user to another. In this case, the command transfers a previously minted NFT from the user associated with `node-2` to the user associated with `node-3`.
+Below is an example of a `casper-client` command that uses the `transfer` entrypoint to transfer ownership of an NFT from one user to another.
 
-- `casper-client put-deploy -n http://localhost:11101/rpc --chain-name "casper-net-1" --payment-amount 5000000000 -k ~/casper/casper-node/utils/nctl/assets/net-1/nodes/node-2/keys/secret_key.pem --session-entry-point "transfer"`
+- `casper-client put-deploy -n http://localhost:11101/rpc --chain-name "casper-net-1" --payment-amount 5000000000 -k ~/casper/casper-node/utils/nctl/assets/net-1/nodes/node-1/keys/secret_key.pem --session-entry-point "transfer"`
 
-1. `--session-arg "nft_contract_hash:key='hash-52e78ae3f6c485d036a74f65ebbb8c75fcc7c33fb42eb667fb32aeba72c63fb5'"`
+1. `--session-hash hash-52e78ae3f6c485d036a74f65ebbb8c75fcc7c33fb42eb667fb32aeba72c63fb5'"`
 
    The contract hash of the CEP-78 NFT Contract associated with the NFT to be transferred.
 
@@ -132,9 +174,9 @@ Below is an example of a `casper-client` command that uses the `transfer` entryp
 ```bash
 casper-client put-deploy -n http://localhost:11101/rpc --chain-name "casper-net-1" \
 --payment-amount 5000000000 \
--k ~/casper/casper-node/utils/nctl/assets/net-1/nodes/node-2/keys/secret_key.pem \
+-k ~/casper/casper-node/utils/nctl/assets/net-1/nodes/node-1/keys/secret_key.pem \
 --session-entry-point "transfer" \
---session-arg "nft_contract_hash:key='hash-52e78ae3f6c485d036a74f65ebbb8c75fcc7c33fb42eb667fb32aeba72c63fb5'" \
+--session-hash hash-52e78ae3f6c485d036a74f65ebbb8c75fcc7c33fb42eb667fb32aeba72c63fb5 \
 --session-arg "source_key:key='account-hash-e9ff87766a1d2bab2565bfd5799054946200b51b20c3ca7e54a9269e00fe7cfb'" \
 --session-arg "target_key:key='account-hash-b4772e7c47e4deca5bd90b7adb2d6e884f2d331825d5419d6cbfb59e17642aab'" \
 --session-arg "is_hash_identifier_mode:bool='false'" \
@@ -145,9 +187,10 @@ casper-client put-deploy -n http://localhost:11101/rpc --chain-name "casper-net-
 
 This command will return a deploy hash that you can query using `casper-client get-deploy`. Querying the deploy allows you to verify execution success, but you will need to use the `balance_of` entry point to verify the account's balance as shown [below](#invoking-the-balance_of-entry-point).
 
+
 ### Transferring NFTs using Wasm
 
-Below is an example of a `casper-client` command that uses the `transfer` Wasm to transfer ownership of an NFT from one user to another.
+This example uses the `transfer_call.wasm` session code to transfer ownership of an NFT from one user to another.
 
 - `casper-client put-deploy -n http://localhost:11101/rpc --chain-name "casper-net-1" --payment-amount 5000000000 -k ~/secret_key.pem --session-path ~/casper/enhanced-nft/client/transfer_session/target/wasm32-unknown-unknown/release/transfer_call.wasm`
 
@@ -178,7 +221,7 @@ Below is an example of a `casper-client` command that uses the `transfer` Wasm t
 casper-client put-deploy -n http://localhost:11101/rpc --chain-name "casper-net-1" \
 --payment-amount 5000000000 \
 -k ~/casper/casper-node/utils/nctl/assets/net-1/nodes/node-2/keys/secret_key.pem \
---session-entry-point "transfer" \
+--session-path ~/casper/enhanced-nft/client/transfer_session/target/wasm32-unknown-unknown/release/transfer_call.wasm \
 --session-arg "nft_contract_hash:key='hash-52e78ae3f6c485d036a74f65ebbb8c75fcc7c33fb42eb667fb32aeba72c63fb5'" \
 --session-arg "source_key:key='account-hash-e9ff87766a1d2bab2565bfd5799054946200b51b20c3ca7e54a9269e00fe7cfb'" \
 --session-arg "target_key:key='account-hash-b4772e7c47e4deca5bd90b7adb2d6e884f2d331825d5419d6cbfb59e17642aab'" \
@@ -188,22 +231,24 @@ casper-client put-deploy -n http://localhost:11101/rpc --chain-name "casper-net-
 
 </details>
 
-### Invoking the `balance_of` Entry Point
 
-The following Casper client command invokes the `balance_of` entry point on the `cep78_test_contract`.
+## Checking the Balance
 
-```bash
-casper-client put-deploy -n http://<HOST:PORT> \
---chain-name [CHAIN_NAME] \
---secret-key [PATH_TO_SECRET_KEY] \
---session-package-name "cep78_test_contract" \
---session-entry-point "balance_of" \
-// The contract hash of your CEP-78 contract instance, passed in as an `account-hash-`.
---session-arg "token_contract:account_hash='account-hash-[HASH]'" \
-// The account hash of the account whose balance you are checking.
---session-arg "address:key='account-hash-[HASH]'" \
---payment-amount 1000000000
-```
+The following command invokes the `balance_of` entry point and saves the amount of tokens owned under the account's named keys.
+
+- `casper-client put-deploy -n http://localhost:11101/rpc --chain-name "casper-net-1" --payment-amount 5000000000 -k ~/casper/casper-node/utils/nctl/assets/net-1/nodes/node-1/keys/secret_key.pem --session-path ~/casper/enhanced-nft/client/balance_of_session/target/wasm32-unknown-unknown/release/balance_of_call.wasm`
+
+1. `--session-arg "nft_contract_hash:key='hash-378a43e38bc5129d8aa3bcd04f5c9a97be73f85b5be574182ac1346f04520796'"`
+
+   The contract hash of the previously installed CEP-78 NFT contract.
+
+2. `--session-arg "token_owner:key='account-hash-e70dbca48c2d31bc2d754e51860ceaa8a1a49dc627b20320b0ecee1b6d9ce655'"`
+
+   The account hash of the user whose token balance we are checking.
+
+3. `--session-arg "key_name:string='balance'"`
+
+   The name for the entry under the `NamedKeys` under which the balance amount will be stored
 
 <details>
 <summary><b>Casper client command without comments</b></summary>
@@ -212,34 +257,34 @@ casper-client put-deploy -n http://<HOST:PORT> \
 casper-client put-deploy -n http://localhost:11101/rpc/ \
 --chain-name "casper-net-1" \
 --payment-amount 5000000000 \
--k ~/casper/casper-node/utils/nctl/assets/net-1/nodes/node-2/keys/secret_key.pem \
---session-package-name "cep78_test_contract" \
---session-entry-point "balance_of" \
---session-arg "token_contract:account_hash='account-hash-b568f50a64acc8bbe43462ffe243849a88111060b228dacb8f08d42e26985180'" \
---session-arg "address:key='account-hash-303c0f8208220fe9a4de40e1ada1d35fdd6c678877908f01fddb2a56502d67fd'" \
+-k ~/casper/casper-node/utils/nctl/assets/net-1/nodes/node-1/keys/secret_key.pem \
+--session-path ~/casper/enhanced-nft/client/balance_of_session/target/wasm32-unknown-unknown/release/balance_of_call.wasm \
+--session-arg "nft_contract_hash:key='hash-378a43e38bc5129d8aa3bcd04f5c9a97be73f85b5be574182ac1346f04520796'" \
+--session-arg "token_owner:key='account-hash-e70dbca48c2d31bc2d754e51860ceaa8a1a49dc627b20320b0ecee1b6d9ce655'" \
+--session-arg "key_name:string='balance'"
 ```
 
 </details>
 
-## Approving Another Account
 
-The Casper NFT contract features an `approve` entry point that allows an account to delegate another account to spend a preset number of CEP-78 tokens from their balance.
+## Approving an Account
 
-The following command approves another account to spend 15 tokens from the balance of the account that installed and owns the CEP-78 contract instance.
+The Casper NFT contract features an `approve` entry point allowing another account to manage a specific token. During contract installation, the `ownership_mode` must be set to 2, meaning `Transferable`.
 
-```bash
-casper-client put-deploy -n http://<HOST:PORT> \
---chain-name [CHAIN_NAME] \
---secret-key [PATH_TO_SECRET_KEY] \
-// The contract hash of the CEP-78 token contract.
---session-hash [CEP-78_CONTRACT_HASH] \
---session-entry-point "approve" \
-// The account hash of the account that will receive an allowance from the balance of the account that sent the Deploy.
---session-arg "spender:key='account-hash-[HASH]'" \
-// The number of CEP-78 tokens included in the allowance.
---session-arg "amount:u256='15'" \
---payment-amount "10000000000"
-```
+- `casper-client put-deploy -n http://localhost:11101/rpc --chain-name "casper-net-1" --payment-amount 5000000000 -k ~/casper/casper-node/utils/nctl/assets/net-1/nodes/node-1/keys/secret_key.pem --session-entry-point "approve"`
+
+1. `--session-hash hash-52e78ae3f6c485d036a74f65ebbb8c75fcc7c33fb42eb667fb32aeba72c63fb5`
+
+   The contract hash of the previously installed CEP-78 NFT contract.
+
+2. `--session-arg "spender:key='account-hash-17192017d32db5dc9f598bf8ac6ac35ee4b64748669b00572d88335941479513'"`
+
+   The hash of the account receiving the approval.
+
+3. `--session-arg "token_id:u64='1'"`
+
+   The token ID of the approved NFT.
+
 
 <details>
 <summary><b>Casper client command without comments</b></summary>
@@ -248,57 +293,13 @@ casper-client put-deploy -n http://<HOST:PORT> \
 casper-client put-deploy -n http://localhost:11101/rpc/ \
 --chain-name "casper-net-1" \
 --payment-amount 5000000000 \
--k ~/casper/casper-node/utils/nctl/assets/net-1/nodes/node-2/keys/secret_key.pem \
---session-hash hash-05d893e76c731729fc26339e5a970bd79fbf4a6adf743c8385431fb494bff45e \
+-k ~/casper/casper-node/utils/nctl/assets/net-1/nodes/node-1/keys/secret_key.pem \
 --session-entry-point "approve" \
+--session-hash hash-52e78ae3f6c485d036a74f65ebbb8c75fcc7c33fb42eb667fb32aeba72c63fb5 \
 --session-arg "spender:key='account-hash-17192017d32db5dc9f598bf8ac6ac35ee4b64748669b00572d88335941479513'" \
---session-arg "amount:u256='15'"
+--session-arg "token_id:u64='1'"
 ```
 
-</details>
-
-### Transferring Tokens from an Approved Account
-
-The following command allows an account to transfer CEP-78 tokens held by another account up to their approved allowance. The command is similar to the transfer example above.
-
-- `casper-client put-deploy -n http://localhost:11101/rpc --chain-name "casper-net-1" --payment-amount 5000000000 -k ~/casper/casper-node/utils/nctl/assets/net-1/nodes/node-2/keys/secret_key.pem --session-entry-point "transfer"`
-
-1. `--session-arg "nft_contract_hash:key='hash-52e78ae3f6c485d036a74f65ebbb8c75fcc7c33fb42eb667fb32aeba72c63fb5'"`
-
-   The contract hash of the CEP-78 NFT Contract associated with the NFT to be transferred.
-
-2. `--session-arg "source_key:key='account-hash-e9ff87766a1d2bab2565bfd5799054946200b51b20c3ca7e54a9269e00fe7cfb'"`
-
-   The account hash of the user that currently owns the NFT and wishes to transfer it.
-
-3. `--session-arg "target_key:key='account-hash-b4772e7c47e4deca5bd90b7adb2d6e884f2d331825d5419d6cbfb59e17642aab'"`
-
-   The account hash of the user that will receive the NFT.
-
-4. `--session-arg "is_hash_identifier_mode:bool='false'"`
-
-   Argument that the hash identifier mode is ordinal, thereby requiring a `token_id` rather than a `token_hash`.
-
-5. `--session-arg "token_id:u64='0'"`
-
-   The `token_id` of the NFT to be transferred.
-
-
-<details>
-<summary><b>Casper client command without comments</b></summary>
-
-```bash
-casper-client put-deploy -n http://localhost:11101/rpc/ \
---chain-name "casper-net-1" \
---payment-amount 5000000000 \
--k ~/casper/casper-node/utils/nctl/assets/net-1/nodes/node-2/keys/secret_key.pem \
---session-hash hash-05d893e76c731729fc26339e5a970bd79fbf4a6adf743c8385431fb494bff45e \
---session-entry-point "transfer" \
---session-arg "owner:key='account-hash-39f15c23df9be1244572bb499fac62cbcad3cab2dc1438609842f602f943d7d2'" \
---session-arg "recipient:key='account-hash-17192017d32db5dc9f598bf8ac6ac35ee4b64748669b00572d88335941479513'" \
---session-arg "amount:u256='10'" \
---payment-amount "10000000000"
-```
 </details>
 
 
@@ -334,6 +335,7 @@ casper-client put-deploy -n http://localhost:11101/rpc --chain-name "casper-net-
 
 </details>
 
-### Next Steps
+
+## Next Steps
 
 - [Testing Framework for CEP-78](./testing-NFTs.md)

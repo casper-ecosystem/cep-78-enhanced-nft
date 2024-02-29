@@ -18,152 +18,193 @@ First, identify the contract hash by looking at the account that installed the c
 
 Next, query the contract details.
 
-```bash
-casper-client query-global-state -n http://<HOST:PORT> \
-// This is the contract hash, found within the `NamedKeys` of the account that sent the installing deploy.
---key hash-30767a108fedcb8872a0cec5eabb76f743f1bf3bbac9cac6e9c15355ae17d61a \
-// This is the most up-to-date state root hash, which can be found by using the `get-state-root-hash` command in the Casper client.
---state-root-hash ca9ad2c99188cdbb8ceeccff16c6225b53b8c2e01dff945fb7ff3e33b427faf5
-```
+- `casper-client query-global-state -n http://localhost:11101/rpc/`
+
+1. `--key [CONTRACT_HASH]`
+
+   The contract hash, found within the `NamedKeys` of the account that sent the installing deploy.
+
+2. `--state-root-hash [STATE_ROOT_HASH]`
+
+   The most up-to-date state root hash, which can be found by using the `get-state-root-hash` command in the Casper client.
 
 <details>
-<summary><b>Casper client command without comments</b></summary>
+<summary><b>Expand to see the query and sample contract</b></summary>
+
 
 ```bash
-casper-client query-global-state -n hhttp://localhost:11101/rpc/ \
---key hash-30767a108fedcb8872a0cec5eabb76f743f1bf3bbac9cac6e9c15355ae17d61a \
---state-root-hash ca9ad2c99188cdbb8ceeccff16c6225b53b8c2e01dff945fb7ff3e33b427faf5
+casper-client query-global-state -n http://localhost:11101/rpc/ \
+--key hash-378a43e38bc5129d8aa3bcd04f5c9a97be73f85b5be574182ac1346f04520796 \
+--state-root-hash 2a8cfc20d24b4bc629ea6d26cc820560a1baf3d4275079d5382242c9fa1e86fe
 ```
-
-</details>
-<br>
-
-<details>
-<summary><b>Expand to see the contract</b></summary>
 
 ```json
 {
   "jsonrpc": "2.0",
-  "id": -5249732042108614691,
+  "id": -5355991397545050403,
   "result": {
     "api_version": "1.5.6",
     "block_header": null,
     "stored_value": {
       "Contract": {
-        "contract_package_hash": "contract-package-c6bb687a72d0aa341317ef85cc8668c6627f0c1e8233ead4aa97e0399c9366ea",
-        "contract_wasm_hash": "contract-wasm-f8fadaf90a26db147a56005891b2fc7f33c90ea4d39f533078be36894d99cff1",
+        "contract_package_hash": "contract-package-2b61207cd0e94ce1b1d40801b0abb1ab55fd7dae94c9dcf670292243f3791a30",
+        "contract_wasm_hash": "contract-wasm-845d3d08e29642afba35704bcb6e38f3c40f1469763bff7a88674c9a5be3f01b",
         "named_keys": [
           {
+            "name": "acl_package_mode",
+            "key": "uref-5e950cdd5497633c1d03284ec6e70ce436744cc172d6e26e21e4e474d1b34312-007"
+          },
+          {
+            "name": "acl_whitelist",
+            "key": "uref-77b5861bdc04f3c63417dd2ed1943f659f6180603982a24587f79cbc38801cf4-007"
+          },
+          {
             "name": "allow_minting",
-            "key": "uref-f4aa245fb70fdc6557cbbc61703629f616a2d5c270ee0c427147947d8cd8b12c-007"
+            "key": "uref-dca79aa4244d0123ad52799fc4f922b2ae9fc023c9e56f999979f535a792eef5-007"
+          },
+          {
+            "name": "approved",
+            "key": "uref-76aac8f7224c5c1624b4255fff59ecc8ee2c7a1ba460b4f70945d7548abbffd0-007"
           },
           {
             "name": "balances",
-            "key": "uref-953333e2c0249bd7db687b43cb2585d0ad5356eb7be6c4f56479070d3c33c1dd-007"
+            "key": "uref-3d271bac2030ddee54bf4ea92b9b854d800a10a0df5d6e328a045be19af27538-007"
           },
           {
             "name": "burn_mode",
-            "key": "uref-9791a13ce6c3d3251607073c75fb548dcf70a6a84f2847845b08b7e797a9b40b-007"
+            "key": "uref-eb1a7f69592881587805fde2d53e8e5b3dcbabd81311faa7b9d19ea731f83d9b-007"
           },
           {
             "name": "burnt_tokens",
-            "key": "uref-704d3105e3ee90e3f072f04333dd1644a3617013588981b18fa01afe570b6a97-007"
+            "key": "uref-0c144d231ac070adb2668f2a9f3d0eba32c7468efa879f0f29c832c63698966b-007"
+          },
+          {
+            "name": "cep78_CEP-78-collection2",
+            "key": "uref-ac99c07d666f45ff5c86a2c1bb6cc44b612ddd5d39a9de88045b441ff6e6b327-007"
           },
           {
             "name": "collection_name",
-            "key": "uref-2957503e067a14bb8017b17af807699998b17cb2889a351dce8aeb8d6c4672fd-007"
+            "key": "uref-5aed76a73089e7e32f6fbf5d9a9597843215d4810cd5822c0f5c6e65a0bbb7a3-007"
           },
           {
             "name": "collection_symbol",
-            "key": "uref-be0d965414348f285c698dc67371a7dbc8974d4cd957f1cf162f0d6ce2fe215b-007"
+            "key": "uref-ba4247cc0354644474758d1292924c5115c61c8012cae3f094a91060d9dff779-007"
           },
           {
-            "name": "contract_whitelist",
-            "key": "uref-b2dd80cc9ea15fee10c841e49eb2db724ca4af85b47be5d37793994d879e97ec-007"
+            "name": "events_mode",
+            "key": "uref-51acad53fd1a6ce6a52cf83ed7f921565311ed86cd362969bacf9457b6bf5c1a-007"
+          },
+          {
+            "name": "hash_by_index",
+            "key": "uref-e280dd23c847724422543b0d70f1ed4c95c8da9e1a71927ae39add652859775c-007"
           },
           {
             "name": "holder_mode",
-            "key": "uref-a561a0171e7bfffcfe7c8e487c0f4e3528a807152c27d5b235445a3aad21a016-007"
+            "key": "uref-8443151d736bb3268815ad7848708d44ccc661799f969697c64b1cddb5ce89a7-007"
           },
           {
             "name": "identifier_mode",
-            "key": "uref-5f7b8694da08e7b7c9f7613cd02da4c19aa0f3b26db033c09e4d42920a5f284d-007"
+            "key": "uref-f53ea99b60ae6d046a6fb0d996475714ef03ed33b39674a8fe016c8324116baf-007"
+          },
+          {
+            "name": "index_by_hash",
+            "key": "uref-6299c9322631f374fc1a5e20920641b23f437a3c0ba8da22cc23cba11b0fa3a5-007"
           },
           {
             "name": "installer",
-            "key": "account-hash-5cb74580bcf97d0a7fa034e60b3d2952e0b170ea5162153b1570e8b1ee4ec3f5"
+            "key": "account-hash-e70dbca48c2d31bc2d754e51860ceaa8a1a49dc627b20320b0ecee1b6d9ce655"
           },
           {
             "name": "json_schema",
-            "key": "uref-fcc796a2d21efbbf777d1e5f1e6436ab4b0ba9a308c63502b0a26f82b4e53f21-007"
+            "key": "uref-772103052d4559fcc2f8f2c2568eb75214462d463009106938e6f20e1cc0a7c0-007"
           },
           {
             "name": "metadata_cep78",
-            "key": "uref-64e0268f09395f215ee71dd668ac3e6f8fbf6b9340ee88d0e5381996ae577c0e-007"
+            "key": "uref-2c2176a9efd465d2e4d5de05d75d029e03040d0a5668c4e08facb0cd3442d30a-007"
           },
           {
             "name": "metadata_custom_validated",
-            "key": "uref-000c5609c2f884d4ae1bb3406f3ba1a9ce5fbe03eaa8dd6edd6d42ea7d4e43e9-007"
+            "key": "uref-575108b0258e92ebede1e50345b608d42963bdac24379022be20b76cfde15301-007"
           },
           {
             "name": "metadata_mutability",
-            "key": "uref-eabf6aa4701272e56012b3567403434368aac7f6d43b5c26cc3ab5b29e96d14b-007"
+            "key": "uref-2ca963a70a69df2db931b8761b4de13bd22e2fc54a415b0b57d4204c9b90dde9-007"
           },
           {
             "name": "metadata_nft721",
-            "key": "uref-585836baca4e24d53234671c7e70ab1f5d2d8ed9e6eb083218365d71700f7626-007"
+            "key": "uref-eb37c0fe3b53fa5c72b02976f2840b7bf3692954fc830f8a10dc538d0c506e63-007"
           },
           {
             "name": "metadata_raw",
-            "key": "uref-5d7a570165127633392eb40e8b899fa7d5f0fc90f589e6d425994aac050a7cae-007"
+            "key": "uref-cdb17062423b769a7b0bc18fe0a2202b68d2ba77786291018a24fd53f4532ab8-007"
           },
           {
             "name": "minting_mode",
-            "key": "uref-81a08d4b64c0a8c08ef75b164da3ae3914883224857632ab4f476f386e853d01-007"
+            "key": "uref-3b45a30c98d90de2c62812c6689aa2fac0cb4d08772fcfdee0584c5db2b1d12a-007"
           },
           {
             "name": "nft_kind",
-            "key": "uref-a50039ae7e9191fed14bff1b1404538189894d2bf7d279672c1b0ec4e7f6441b-007"
+            "key": "uref-e02c29a6120d5da7f14fb664ca60c3ade56a3171a670c292d0a4ea0f9ae4f0c8-007"
           },
           {
             "name": "nft_metadata_kind",
-            "key": "uref-0c8b9018f09e90d2823134cdf0d70cdec08decaaa822aa1311e79242b616e4d3-007"
+            "key": "uref-45e1bc671353ae58c41a703055959da243deefc7f4c3f121f3f9828d97475bda-007"
+          },
+          {
+            "name": "nft_metadata_kinds",
+            "key": "uref-05c0eb8e7ef4caa6f228e8ee91874dc64926b95926d839b458fdce356063a817-007"
           },
           {
             "name": "number_of_minted_tokens",
-            "key": "uref-c02c67cc721aa82ecd70adae2647b94125dde3fb4899a44ab03c944f3dfe7923-007"
+            "key": "uref-f86e2c4057cc17d93593fb203a923d67e5bc68e6428a6d94f6eab0c35450653d-007"
           },
           {
-            "name": "operator",
-            "key": "uref-6ced629a6c54e24ca0a2c4af0cce2a69139fac7461294234bd91b442886e0c13-007"
+            "name": "operator_burn_mode",
+            "key": "uref-f226eed9d0c5fcf58e6b481d45417721e35435c2ef5eb4d26d215209149438ba-007"
           },
           {
-            "name": "owned_tokens",
-            "key": "uref-456e98216d72a0a1a0427fb6ddf4cc7070d1450faa841cf381c821c415092228-007"
+            "name": "operators",
+            "key": "uref-ff8ad952307b57a051ef6cb597a55cc2007e587c575584addf6a6fc12c0efd7b-007"
           },
           {
             "name": "ownership_mode",
-            "key": "uref-b23f6166e076cc347ab0ba68343e51d3ecf9808e6a960386f5fc8af8cdce4df8-007"
+            "key": "uref-89711af74265427dc65d7c5a421cedde82de69d192cad36f34efa36504108572-007"
+          },
+          {
+            "name": "package_operator_mode",
+            "key": "uref-05c2868f179f6b2323f1d4ea069858956c9666d14073748aae4a748d27a8a894-007"
+          },
+          {
+            "name": "page_table",
+            "key": "uref-00efcfa874a60b5b615b3c6d781cf69c3559b5372d15457fe4a3bb6d07c66acd-007"
           },
           {
             "name": "receipt_name",
-            "key": "uref-006512abe036cf2b923418a22c426fd59d88a812a8e3c478c630faa376e20832-007"
+            "key": "uref-1ec63ea6442d9b4ef40d926280f8b72704b763d3ef7cdaccd9ecb04af5562d99-007"
+          },
+          {
+            "name": "reporting_mode",
+            "key": "uref-4d851152d7b89dff805dcf6eb61a33870dab9345084a5874575476a584d71b83-007"
+          },
+          {
+            "name": "rlo_mflag",
+            "key": "uref-2e3b8aafb27aae47c9b7d3728d20d8815b706e2245c23b84f0e712cd1d1e9124-007"
           },
           {
             "name": "token_issuers",
-            "key": "uref-5ba273a67b785a6580d0784362f09761c4bb9f0e261c8a583e74af0ab68fe010-007"
+            "key": "uref-5700d04b36eb1f50204c0d1d05c8ed6aae77eaeaa8a425c78f5a24cbae2e4d26-007"
           },
           {
             "name": "token_owners",
-            "key": "uref-962891f947726ef87e6988d26ae5bb65c1376520278a149ea0044aafc94f3a91-007"
+            "key": "uref-ff53b7094bcb6659b558d31fdf63f837b05c0ee6030bfe18ad4c3fb0462b9b17-007"
           },
           {
             "name": "total_token_supply",
-            "key": "uref-e2116be250c30901324f4590683774a83577a51b174274d371c38d574b065d90-007"
+            "key": "uref-e5f06deadcbfe5a469e7c162346580744746bfdc0ec67002e0ecba5b11096827-007"
           },
           {
             "name": "whitelist_mode",
-            "key": "uref-ab9b9c51e591e56e8042a1ae6649dad31d52be6febc4aba62c414ff069089bf6-007"
+            "key": "uref-a77f2ac1f5e72c6b096ca414ae2c986a5387442ddf8e89a35b787a756adc4bb4-007"
           }
         ],
         "entry_points": [
@@ -171,7 +212,7 @@ casper-client query-global-state -n hhttp://localhost:11101/rpc/ \
             "name": "approve",
             "args": [
               {
-                "name": "operator",
+                "name": "spender",
                 "cl_type": "Key"
               }
             ],
@@ -247,12 +288,18 @@ casper-client query-global-state -n hhttp://localhost:11101/rpc/ \
                 "cl_type": "U8"
               },
               {
-                "name": "contract_whitelist",
+                "name": "acl_whitelist",
                 "cl_type": {
-                  "List": {
-                    "ByteArray": 32
-                  }
+                  "List": "Key"
                 }
+              },
+              {
+                "name": "acl_package_mode",
+                "cl_type": "Bool"
+              },
+              {
+                "name": "package_operator_mode",
+                "cl_type": "Bool"
               },
               {
                 "name": "json_schema",
@@ -269,6 +316,32 @@ casper-client query-global-state -n hhttp://localhost:11101/rpc/ \
               {
                 "name": "burn_mode",
                 "cl_type": "U8"
+              },
+              {
+                "name": "operator_burn_mode",
+                "cl_type": "Bool"
+              },
+              {
+                "name": "nft_metadata_kind",
+                "cl_type": "U8"
+              },
+              {
+                "name": "metadata_mutability",
+                "cl_type": "U8"
+              },
+              {
+                "name": "owner_reverse_lookup_mode",
+                "cl_type": "U8"
+              },
+              {
+                "name": "events_mode",
+                "cl_type": "U8"
+              },
+              {
+                "name": "transfer_filter_contract",
+                "cl_type": {
+                  "Option": "Key"
+                }
               }
             ],
             "ret": "Unit",
@@ -276,9 +349,37 @@ casper-client query-global-state -n hhttp://localhost:11101/rpc/ \
             "entry_point_type": "Contract"
           },
           {
+            "name": "is_approved_for_all",
+            "args": [
+              {
+                "name": "token_owner",
+                "cl_type": "Key"
+              },
+              {
+                "name": "operator",
+                "cl_type": "Key"
+              }
+            ],
+            "ret": "Bool",
+            "access": "Public",
+            "entry_point_type": "Contract"
+          },
+          {
             "name": "metadata",
             "args": [],
             "ret": "String",
+            "access": "Public",
+            "entry_point_type": "Contract"
+          },
+          {
+            "name": "migrate",
+            "args": [
+              {
+                "name": "cep78_package_key",
+                "cl_type": "Any"
+              }
+            ],
+            "ret": "Unit",
             "access": "Public",
             "entry_point_type": "Contract"
           },
@@ -312,12 +413,27 @@ casper-client query-global-state -n hhttp://localhost:11101/rpc/ \
             "entry_point_type": "Contract"
           },
           {
+            "name": "register_owner",
+            "args": [],
+            "ret": {
+              "Tuple2": [
+                "String",
+                "URef"
+              ]
+            },
+            "access": "Public",
+            "entry_point_type": "Contract"
+          },
+          {
+            "name": "revoke",
+            "args": [],
+            "ret": "Unit",
+            "access": "Public",
+            "entry_point_type": "Contract"
+          },
+          {
             "name": "set_approval_for_all",
             "args": [
-              {
-                "name": "token_owner",
-                "cl_type": "Key"
-              },
               {
                 "name": "approve_all",
                 "cl_type": "Bool"
@@ -357,6 +473,24 @@ casper-client query-global-state -n hhttp://localhost:11101/rpc/ \
                     "ByteArray": 32
                   }
                 }
+              },
+              {
+                "name": "acl_whitelist",
+                "cl_type": {
+                  "List": "Key"
+                }
+              },
+              {
+                "name": "acl_package_mode",
+                "cl_type": "Bool"
+              },
+              {
+                "name": "package_operator_mode",
+                "cl_type": "Bool"
+              },
+              {
+                "name": "operator_burn_mode",
+                "cl_type": "Bool"
               }
             ],
             "ret": "Unit",
@@ -383,12 +517,26 @@ casper-client query-global-state -n hhttp://localhost:11101/rpc/ \
             },
             "access": "Public",
             "entry_point_type": "Contract"
+          },
+          {
+            "name": "updated_receipts",
+            "args": [],
+            "ret": {
+              "List": {
+                "Tuple2": [
+                  "String",
+                  "Key"
+                ]
+              }
+            },
+            "access": "Public",
+            "entry_point_type": "Contract"
           }
         ],
-        "protocol_version": "1.4.10"
+        "protocol_version": "1.5.6"
       }
     },
-    "merkle_proof": "[31286 hex chars]"
+    "merkle_proof": "[33244 hex chars]"
   }
 }
 ```
