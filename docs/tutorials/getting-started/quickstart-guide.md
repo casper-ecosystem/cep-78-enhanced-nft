@@ -9,7 +9,7 @@ For greater detail into the creation and mechanics of the Casper NFT contract, s
 Before using this guide, ensure you meet the following requirements:
 
 - Set up the [development prerequisites](https://docs.casper.network/developers/prerequisites/), including the [Casper client](https://docs.casper.network/developers/prerequisites/#install-casper-client)
-- Get a valid [node address](https://docs.casper.network/developers/prerequisites/#acquire-node-address-from-network-peers), or use the following Testnet node: [https://rpc.testnet.casperlabs.io/](https://rpc.testnet.casperlabs.io/)
+- Get a valid [node address](https://docs.casper.network/developers/prerequisites/#acquire-node-address-from-network-peers) from the network
 - Know how to install a [smart contract](https://docs.casper.network/developers/cli/sending-deploys/) on a Casper network
 - Hold enough CSPR tokens to pay for transactions
 
@@ -39,10 +39,10 @@ test result: ok. 159 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; fi
 The following command will install a sample NFT contract on the Testnet:
 
 ```bash
-casper-client put-deploy --node-address https://rpc.testnet.casperlabs.io/ \
---chain-name "casper-test" \
---payment-amount 200000000000 \
---secret-key ~/KEYS/secret_key.pem \
+casper-client put-deploy --node-address http://localhost:11101/rpc/ \
+--chain-name "casper-net-1" \
+--payment-amount 5000000000 \
+--secret-key ~/casper/casper-node/utils/nctl/assets/net-1/nodes/node-1/keys/secret_key.pem \
 --session-path contract/target/wasm32-unknown-unknown/release/contract.wasm \
 --session-arg "collection_name:string='CEP-78-collection'" \
 --session-arg "collection_symbol:string='CEP78'" \

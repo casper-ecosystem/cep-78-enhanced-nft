@@ -26,7 +26,7 @@ Information on the modalities used throughout this installation process can be f
 Before using this guide, ensure you meet the following requirements:
 
 - Set up the [development prerequisites](https://docs.casper.network/developers/prerequisites/), including the [Casper client](https://docs.casper.network/developers/prerequisites/#install-casper-client)
-- Get a valid [node address](https://docs.casper.network/developers/prerequisites/#acquire-node-address-from-network-peers), or use the following Testnet node: [https://rpc.testnet.casperlabs.io/](https://rpc.testnet.casperlabs.io/)
+- Get a valid [node address](https://docs.casper.network/developers/prerequisites/#acquire-node-address-from-network-peers) from the network
 - Know how to install a [smart contract](https://docs.casper.network/developers/cli/sending-deploys/) on a Casper network
 - Hold enough CSPR tokens to pay for transactions
 
@@ -150,7 +150,7 @@ Installing the enhanced NFT contract to global state requires the use of a [Depl
 This step queries information about the network state given the latest state root hash. You will also need the [IP address](https://docs.casper.network/developers/prerequisites/#acquire-node-address-from-network-peers) from a Testnet peer node.
 
 ```bash
-casper-client get-state-root-hash --node-address https://rpc.testnet.casperlabs.io/
+casper-client get-state-root-hash --node-address http://localhost:11101/rpc/
 ```
 
 ### Querying the Account State
@@ -173,9 +173,9 @@ casper-client query-global-state --node-address http://<HOST:PORT> \
 <summary><b>Expand for a sample command</b></summary>
 
 ```bash
-casper-client query-global-state --node-address https://rpc.testnet.casperlabs.io/ \
---state-root-hash e45cab47e15615cfe27c889b0a6446986077a1d6fb5b6a2be49d230273bc8d5b \
---key account-hash-5cb74580bcf97d0a7fa034e60b3d2952e0b170ea5162153b1570e8b1ee4ec3f5
+casper-client query-global-state --node-address http://localhost:11101/rpc/ \
+--state-root-hash 376b18e95312328f212f9966200fa40734e66118cbd34ace0a1ec14eacaea6e6 \
+--key account-hash-82729ae3b368bb2c45d23c05c872c446cbcf32b694f1d9efd3d1ea46cf227a11
 ```
 
 </details>
@@ -188,7 +188,7 @@ Below is an example of a `casper-client` command that provides all required sess
 
 Use the Testnet to understand the exact gas amount required for installation. Refer to the [note about gas prices](https://docs.casper.network/developers/cli/sending-deploys/#a-note-about-gas-price) to understand payment amounts and gas price adjustments.
 
-- `casper-client put-deploy --node-address https://rpc.testnet.casperlabs.io/ --chain-name "casper-test" --payment-amount 200000000000 --secret-key ~/KEYS/secret_key.pem --session-path contract/target/wasm32-unknown-unknown/release/contract.wasm`
+- `casper-client put-deploy -n http://localhost:11101/rpc/ --chain-name "casper-net-1" --payment-amount 5000000000 -k ~/casper/casper-node/utils/nctl/assets/net-1/nodes/node-2/keys/secret_key.pem --session-path contract/target/wasm32-unknown-unknown/release/contract.wasm`
 
 1. `--session-arg "collection_name:string='CEP-78-collection'"`
 
@@ -233,10 +233,10 @@ The session arguments match the available [modalities](../../modalities.md).
 <summary><b>Expand for a sample query and response</b></summary>
 
 ```bash
-casper-client put-deploy --node-address https://rpc.testnet.casperlabs.io/ \
---chain-name "casper-test" \
---payment-amount 200000000000 \
---secret-key ~/KEYS/secret_key.pem \
+casper-client put-deploy --node-address http://localhost:11101/rpc/ \
+--chain-name "casper-net-1" \
+--payment-amount 5000000000 \
+--secret-key ~/casper/casper-node/utils/nctl/assets/net-1/nodes/node-1/keys/secret_key.pem \
 --session-path contract/target/wasm32-unknown-unknown/release/contract.wasm \
 --session-arg "collection_name:string='CEP-78-collection'" \
 --session-arg "collection_symbol:string='CEP78'" \
@@ -270,7 +270,7 @@ This command will output the `deploy_hash`, which can be used in the next step t
 Verify the sent deploy using the `get-deploy` command.
 
 ```bash
-casper-client get-deploy --node-address https://rpc.testnet.casperlabs.io/ [DEPLOY_HASH]
+casper-client get-deploy --node-address http://localhost:11101/rpc/ [DEPLOY_HASH]
 ```
 
 <!-- TODO add a sample response -->

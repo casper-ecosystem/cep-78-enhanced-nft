@@ -30,7 +30,7 @@ casper-client query-global-state -n http://<HOST:PORT> \
 <summary><b>Casper client command without comments</b></summary>
 
 ```bash
-casper-client query-global-state -n https://rpc.testnet.casperlabs.io/ \
+casper-client query-global-state -n hhttp://localhost:11101/rpc/ \
 --key hash-30767a108fedcb8872a0cec5eabb76f743f1bf3bbac9cac6e9c15355ae17d61a \
 --state-root-hash ca9ad2c99188cdbb8ceeccff16c6225b53b8c2e01dff945fb7ff3e33b427faf5
 ```

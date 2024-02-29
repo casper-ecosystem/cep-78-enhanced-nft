@@ -73,7 +73,7 @@ The following are the optional parameters that can be passed in at the time of i
 The following is an example of installing the NFT contract via a deploy using the Rust CLI Casper client. You can find more examples [here](/docs/tutorials/getting-started/full-installation-tutorial.md).
 
 ```bash
-casper-client put-deploy -n http://65.108.0.148:7777/rpc --chain-name "casper-test" --payment-amount 500000000000 -k keys/secret_key.pem --session-path contract/target/wasm32-unknown-unknown/release/contract.wasm \
+casper-client put-deploy -n https://rpc.testnet.casperlabs.io/ --chain-name "casper-test" --payment-amount 500000000000 -k keys/secret_key.pem --session-path contract/target/wasm32-unknown-unknown/release/contract.wasm \
 --session-arg "collection_name:string='enhanced-nft-1'" \
 --session-arg "collection_symbol:string='ENFT-1'" \
 --session-arg "total_token_supply:u64='10'" \

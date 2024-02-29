@@ -86,7 +86,7 @@ The following is an example of upgrading and migrating to version 1.1.1 of a pre
 
 ```bash
 casper-client put-deploy \
---node-addres http://65.21.235.219:7777 \
+--node-addres https://rpc.testnet.casperlabs.io/ \
 --chain-name "casper-test" \
 --secret-key ~/KEYS/secret_key.pem \
 --payment-amount 300000000000 \
