@@ -22,11 +22,11 @@ This document describes how to transfer NFTs on a Casper network using the Caspe
 
 ## Directly Invoking Entrypoints
 
-With the release of CEP-78 version 1.1, users that are interacting with a CEP-78 contract that does not use `ReverseLookupMode` should opt out of using the client Wasm files provided as part of the release. Opting out in this situation is recommended, as directly invoking the entrypoints incurs a lower gas cost compared against using the provided client Wasm to invoke the entrypoint.
+With the release of CEP-78 version 1.1, users who are interacting with a CEP-78 contract that does not use `ReverseLookupMode` should opt out of using the client Wasm files provided as part of the release. Opting out in this situation is recommended, as directly invoking the entrypoints incurs a lower gas cost compared to using the provided client Wasm to invoke the entrypoint.
 
-You may invoke the `mint`, `transfer` or `burn` entrypoints directly through either the contract package hash or the contract hash directly.
+You may invoke the `mint`, `transfer`, or `burn` entrypoints directly through either the contract package hash or the contract hash directly.
 
-Specifically in the case of `mint`, there are fewer runtime arguments that must be provided, thereby reducing the total gas cost of minting an NFT.
+In the case of `mint`, fewer runtime arguments must be provided, thereby reducing the total gas cost of minting an NFT.
 
 <details>
 <summary><b>Example Mint using StoredVersionByHash</b></summary>
@@ -46,7 +46,7 @@ casper-client put-deploy -n https://rpc.testnet.casperlabs.io/ --chain-name "cas
 <details>
 <summary><b>Example Transfer using StoredContractByHash</b></summary>
 
-Based on the identifier mode for the given contract instance, either the `token_id` runtime argument must be passed in or in the case of the hash identifier mode, the `token_hash` runtime argument.
+Based on the identifier mode for the given contract instance, either the `token_id` runtime argument must be passed in or, in the case of the hash identifier mode, the `token_hash` runtime argument.
 
 ```bash
 
