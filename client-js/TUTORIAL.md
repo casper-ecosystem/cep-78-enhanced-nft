@@ -18,7 +18,7 @@ npm install casper-cep78-js-client
 
 ## Installing a CEP-78 Contract using the JavaScript Client
 
-The `install` method crafts a [Deploy](https://docs.casperlabs.io/design/casper-design/#execution-semantics-deploys) using `InstallArgs`.
+The `install` method crafts a [Deploy](https://docs.casper.network/deploy-and-deploy-lifecycle/#execution-semantics-deploys) using `InstallArgs`.
 As with every deploy created by the SDK, you can send it using the `.send(rpcUrl)` method providing the RPC URL that you want to use. It will return deployHash. 
 
 ```js
@@ -83,7 +83,7 @@ As with every deploy created by the SDK, you can send it using the `.send(rpcUrl
 
 * `ownerReverseLookupMode` - The `OwnerReverseLookupMode` dictates whether the contract will index ownership of tokens as outlined [here](../docs/reverse-lookup.md#the-cep-78-page-system) to allow lookup of owned tokens by account. **This parameter cannot be changed once the contract has been installed**.
 
-Further information on CEP-78 modality options can be found in the base [cep-78-enhanced-nft](https://github.com/ACStoneCL/cep-78-enhanced-nft) repository on GitHub.
+Further information on CEP-78 modality options can be found [here](../docs/modalities.md).
 
 ## Minting a Token
 
@@ -112,7 +112,7 @@ The CEP-78 JS Client includes code to construct a deploy that will `Mint` a toke
 ```
 The arguments adhere to those provided in the original installation, with the `.send()` pointing to a valid RPC URL on your target Casper network. In this instance, we are using an NCTL RPC URL.
 
-In this example, the [`useSessionCode`](https://github.com/casper-ecosystem/cep-78-enhanced-nft/blob/dev/client-js/examples/usage.ts#L86-L88) variable decides if the user will call `mint` using session code, or not. It will be set to `true` if the `OwnerReverseLookupMode` is set to `Complete`. [It then registers the recipient with the contract](https://github.com/casper-ecosystem/cep-78-enhanced-nft/blob/dev/client-js/examples/usage.ts#L116-L130) and mints the token.
+In this example, the [`useSessionCode`](https://github.com/casper-ecosystem/cep-78-enhanced-nft/blob/d218c0544a00f2eea23ea820ae59466ce4bb6d7d/client-js/examples/usage.ts#L101-L103) variable decides if the user will call `mint` using session code, or not. It will be set to `true` if the `OwnerReverseLookupMode` is set to `Complete`. [It then registers the recipient with the contract](https://github.com/casper-ecosystem/cep-78-enhanced-nft/blob/d218c0544a00f2eea23ea820ae59466ce4bb6d7d/client-js/examples/usage.ts#L141) and mints the token.
 
 If `OwnerReverseLookupMode` is set to `NoLookup`, `useSessionCode` will be set to `false` and it will simply mint the token as it does not need to register the recipient.
 
@@ -192,7 +192,7 @@ This repository includes an example script for installing a CEP-78 contract inst
 
 You will need to define the following variables in the `.env` file:
 
-* `NODE_URL` - The address of a node. If you are testing using [NCTL](https://docs.casperlabs.io/dapp-dev-guide/building-dapps/setup-nctl/), this will be `http://localhost:11101/rpc`.
+* `NODE_URL` - The address of a node. If you are testing using [NCTL](https://docs.casper.network/developers/dapps/setup-nctl/), this will be `http://localhost:11101/rpc`.
 
 * `NETWORK_NAME` - The name of the Casper network you are operating on, `casper-net-1` when testing using a local network with NCTL.
 
