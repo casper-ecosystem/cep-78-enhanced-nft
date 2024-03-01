@@ -1,6 +1,6 @@
 # Token Ownership in Casper NFT Contracts (Release v1.1.1)
 
-This tutorial demonstrates how to check token ownership in CEP-78 NFT contracts, starting with version [v1.1.1](https://github.com/casper-ecosystem/cep-78-enhanced-nft/releases/tag/v1.1.1). For this tutorial, the `OwnerReverseLookupMode` modality must be set to `Complete` as described [here](../README.md#ownerreverselookupmode).
+This tutorial demonstrates how to check token ownership in CEP-78 NFT contracts, starting with version [v1.1.1](https://github.com/casper-ecosystem/cep-78-enhanced-nft/releases/tag/v1.1.1). For this tutorial, the `OwnerReverseLookupMode` modality must be set to `Complete` as described [here](../modalities.md#ownerreverselookupmode).
 
 As someone interacting with an NFT contract, you might want to answer the following questions:
 
@@ -27,14 +27,14 @@ The tutorial presents sample accounts, contracts, and NamedKeys to explain, by e
 
 ## Prerequisites
 
-- You have installed or upgraded to a CEP-78 contract that uses release v1.1.1, and the `OwnerReverseLookupMode` modality is set to `Complete` as described [here](../README.md#ownerreverselookupmode).
+- You have installed or upgraded to a CEP-78 contract that uses release v1.1.1, and the `OwnerReverseLookupMode` modality is set to `Complete` as described [here](../modalities.md#ownerreverselookupmode).
 - The contract has minted one or more tokens, and you have access to the account or the contract that owns these tokens.
 - You have experience with the [Casper CEP-78 NFT Standard](https://github.com/casper-ecosystem/cep-78-enhanced-nft/) and the Casper command-line client and know how to interact with a Casper network.
-- You understand the [Owner Reverse Lookup Functionality](https://github.com/casper-ecosystem/cep-78-enhanced-nft/#owner-reverse-lookup-functionality) and [CEP-78 Page System](../README.md#the-cep-78-page-system) introduced in [Version 1.1](https://github.com/casper-ecosystem/cep-78-enhanced-nft/#new-in-version-11) of the CEP-78 Enhanced NFT Standard.
+- You understand the [Owner Reverse Lookup Functionality](https://github.com/casper-ecosystem/cep-78-enhanced-nft/#owner-reverse-lookup-functionality) and [CEP-78 Page System](../docs/reverse-lookup.md#the-cep-78-page-system) introduced in [Version 1.1.0](https://github.com/casper-ecosystem/cep-78-enhanced-nft/releases/tag/v1.1.0) of the CEP-78 Enhanced NFT Standard.
 
 ## Method 1 - Querying the Account 
 
-In this method of checking token ownership, examine the account or the calling contract's NamedKeys. Look for NamedKeys that use this format: "cep78_*_m_1000_p_#". For more information on this format, read about the [CEP-78 Page System](../README.md#the-cep-78-page-system). This way, you can access the dictionary storing the NFTs directly and retrieve ownership information.
+In this method of checking token ownership, examine the account or the calling contract's NamedKeys. Look for NamedKeys that use this format: "cep78_*_m_1000_p_#". For more information on this format, read about the [CEP-78 Page System](../docs/reverse-lookup.md#the-cep-78-page-system). This way, you can access the dictionary storing the NFTs directly and retrieve ownership information.
 
 In the following example, the contract minted a small number of NFTs and has the following NamedKey: `cep78_CEP-78-collection_m_1000_p_0`. 
 
@@ -91,7 +91,7 @@ To interpret the output, you need to know how the token identifier mode was set 
 
 ### Tokens Identified by Token ID
 
-If the token identifier mode was set to "Ordinal", the token number is the token ID. In this case, the output above tells us that this account owns the first two tokens in the list. Also, the NamedKey `cep78_CEP-78-collection_m_1000_p_0` indicates that the tokens owned are on "page_0" from the "page_table" dictionary. By doing the math explained [here](../README.md#the-cep-78-page-system) and considering that the token number is the token ID, this account owns tokens 0 and 1.
+If the token identifier mode was set to "Ordinal", the token number is the token ID. In this case, the output above tells us that this account owns the first two tokens in the list. Also, the NamedKey `cep78_CEP-78-collection_m_1000_p_0` indicates that the tokens owned are on "page_0" from the "page_table" dictionary. By doing the math explained [here](../docs/reverse-lookup.md#the-cep-78-page-system) and considering that the token number is the token ID, this account owns tokens 0 and 1.
 
 > **Note**: What if the named key was `cep78_CEP-78-collection_m_1000_p_11` for the same sample output above? In that case, the account would own tokens on page 11, at index 0 and 1, which would be tokens 11,000 and 11,001.
 
@@ -189,7 +189,7 @@ casper-client get-dictionary-item \
 }
 ```
 
-The sample response includes only one "parsed" value equal to "true", meaning that one page was allocated at index 0 to track tokens owned by the account specified. In other words, the account with hash "e861226c153eefc0ca48bf29c76bc305235151aebde76257bf9bbacb4fa041f7" owns tokens tracked in the "page_0" dictionary. To understand the page structure further, review how the contract manages storage and token ownership [here](../README.md#the-cep-78-page-system).
+The sample response includes only one "parsed" value equal to "true", meaning that one page was allocated at index 0 to track tokens owned by the account specified. In other words, the account with hash "e861226c153eefc0ca48bf29c76bc305235151aebde76257bf9bbacb4fa041f7" owns tokens tracked in the "page_0" dictionary. To understand the page structure further, review how the contract manages storage and token ownership [here](../docs/reverse-lookup.md#the-cep-78-page-system).
 
 Since the NFT contract allocated the "page_0" dictionary to track tokens for this account, expect to see a NamedKey called "page_0". Using the URef of the "page_0" dictionary and the account hash, retrieve the token IDs that the account owns.
 

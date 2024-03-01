@@ -8,11 +8,11 @@ This tutorial uses the Casper command-line client to upgrade *and* migrate from 
 - Your v1.0.0 NFT contract instance uses the contract package hash and contract package access URef created during installation in a **standard way**, without using other NamedKeys to manage the contract package.
 - You have the v1.0.0 contract package hash stored under the `nft_contract_package` NamedKey in the account that installed the contract.
 - You have the v1.0.0 contract package access URef stored under the `nft_contract_package_access` NamedKey in the account that installed the contract.
-- You understand what is [New in Version 1.1](https://github.com/casper-ecosystem/cep-78-enhanced-nft/#new-in-version-11) of the CEP-78 Enhanced NFT Standard.
+- You understand what is new in [Version 1.1.0](https://github.com/casper-ecosystem/cep-78-enhanced-nft/releases/tag/v1.1.0) of the CEP-78 Enhanced NFT Standard.
 
 ## Upgrading and Migrating Terminology
 
-An [upgrade](https://docs.casperlabs.io/dapp-dev-guide/writing-contracts/upgrading-contracts/) is the usual manner to release newer versions of a contract inside a contract package. When users install v1.1.* of a CEP-78 contract, they perform an upgrade and a data migration to a new [page system](https://github.com/casper-ecosystem/cep-78-enhanced-nft#the-cep-78-page-system) tracking token ownership. The [OwnerReverseLookupMode](https://github.com/casper-ecosystem/cep-78-enhanced-nft#ownerreverselookupmode) modality introduced in version 1.1.0 allows users to list NFTs by owner. The [README](../README.md) states:
+An [upgrade](https://docs.casperlabs.io/dapp-dev-guide/writing-contracts/upgrading-contracts/) is the usual manner to release newer versions of a contract inside a contract package. When users install v1.1.* of a CEP-78 contract, they perform an upgrade and a data migration to a new [page system](../reverse-lookup.md#the-cep-78-page-system) tracking token ownership. The [OwnerReverseLookupMode](../modalities.md#ownerreverselookupmode) modality introduced in version 1.1.0 allows users to list NFTs by owner. The [README](../README.md) states:
 
 ```
 If you are upgrading a contract from CEP-78 version 1.0 to 1.1, `OwnerReverseLookupMode` will be set to `Complete`, as this was the standard behavior of CEP-78 1.0. In addition to being set to `Complete`, existing records will be migrated into the CEP-78 1.1 format, which will impose a one-time gas cost to cover the migration.
@@ -28,7 +28,7 @@ The `cep-78-wasm` folder contains the `contract.wasm` to send to the network to 
 
 ### Standard NamedKeys before Migration
 
-The standard migration path assumes that the contract uses the NamedKey entries created during the v1.0.0 installation without any modifications. See the example below as well as the [NamedKeyConvention](https://github.com/casper-ecosystem/cep-78-enhanced-nft#namedkeyconventionmode) modality.
+The standard migration path assumes that the contract uses the NamedKey entries created during the v1.0.0 installation without any modifications. See the example below as well as the [NamedKeyConvention](../modalities.md#namedkeyconventionmode) modality.
 
 | NamedKey Pre-Migration | Explanation |
 |-------------|-------------|
@@ -45,8 +45,8 @@ The standard migration path assumes that the contract uses the NamedKey entries 
 
 When upgrading using the `casper-client`, you must provide two runtime arguments:
 
-- `named_key_convention`: The [NamedKeyConvention](https://github.com/casper-ecosystem/cep-78-enhanced-nft#namedkeyconventionmode) runtime argument as a u8 value equal to 1: `--session-arg "named_key_convention:u8='1'"`. See the [ARG_NAMED_KEY_CONVENTION](https://github.com/casper-ecosystem/cep-78-enhanced-nft/blob/408db77c3b9ca22752c7f877ea99a01dfca03a7b/contract/src/main.rs#L1991).
-- `collection_name`: The collection name specified when the contract was [installed](https://github.com/casper-ecosystem/cep-78-enhanced-nft#installing-the-contract) using the `collection_name` option. See the [contract code](https://github.com/casper-ecosystem/cep-78-enhanced-nft/blob/408db77c3b9ca22752c7f877ea99a01dfca03a7b/contract/src/main.rs#L93) for details. 
+- `named_key_convention`: The [NamedKeyConvention](../modalities.md#namedkeyconventionmode) runtime argument as a u8 value equal to 1: `--session-arg "named_key_convention:u8='1'"`. See the [ARG_NAMED_KEY_CONVENTION](https://github.com/casper-ecosystem/cep-78-enhanced-nft/blob/408db77c3b9ca22752c7f877ea99a01dfca03a7b/contract/src/main.rs#L1991).
+- `collection_name`: The collection name specified when the contract was [installed](./getting-started/full-installation-tutorial.md) using the `collection_name` option. See the [contract code](https://github.com/casper-ecosystem/cep-78-enhanced-nft/blob/408db77c3b9ca22752c7f877ea99a01dfca03a7b/contract/src/main.rs#L93) for details. 
 
 Here is the `casper-client` command to upgrade and migrate to version 1.1.1 of the NFT collection specified:
 
@@ -67,7 +67,7 @@ Here is the full list of required arguments:
 - `secret-key`: The file name containing the secret key of the account paying for the deploy.
 - `payment-amount`: The payment for the deploy in motes.
 - `session-path`: The path to the compiled Wasm on your computer. When using the [cep-78-wasm.tar.gz](https://github.com/casper-ecosystem/cep-78-enhanced-nft/releases/download/v1.1.1/cep-78-wasm.tar.gz) provided, this would be the path to the `contract.wasm` file.
-- `named_key_convention`: Argument that specifies the use of the `V_1_0_standard` [NamedKeyConvention](../README.md#namedkeyconventionmode).
+- `named_key_convention`: Argument that specifies the use of the `V_1_0_standard` [NamedKeyConvention](../modalities.md#namedkeyconventionmode).
 - `collection_name`: Argument that specifies the collection name as a String.
 
 The command returns the deploy hash that you can use to verify whether or not the deploy succeeded.

@@ -67,7 +67,7 @@ As with every deploy created by the SDK, you can send it using the `.send(rpcUrl
 
 * `nftKind` - The `NFTKind` modality that specifies the off-chain items represented by the on-chain NFT data. This argument is passed in as a `u8` value and is required at the time of installation.
 
-* `jsonSchema` - The JSON schema for the NFT tokens that will be minted by the NFT contract passed in as a `String`. More information on `NFTMetadataKind` can be found [here](https://github.com/casper-ecosystem/cep-78-enhanced-nft#nftmetadatakind). This parameter may be left empty if metadata kind is set to `Raw(3)`. If the metadata kind is set to `CustomValidated(4)`, it will require a specifically formatted custom schema. This parameter **cannot be changed post installation**.
+* `jsonSchema` - The JSON schema for the NFT tokens that will be minted by the NFT contract passed in as a `String`. More information on `NFTMetadataKind` can be found [here](../docs/modalities.md#nftmetadatakind). This parameter may be left empty if metadata kind is set to `Raw(3)`. If the metadata kind is set to `CustomValidated(4)`, it will require a specifically formatted custom schema. This parameter **cannot be changed post installation**.
 
 * `nftMetadataKind` - The metadata schema for the NFTs to be minted by the NFT contract. This argument is passed in as a `u8` value and is required at the time of installation.
 
@@ -81,7 +81,7 @@ As with every deploy created by the SDK, you can send it using the `.send(rpcUrl
 
 * `burnMode` - The `BurnMode` modality dictates whether minted NFTs can be burned. This optional parameter will allow tokens to be burnt by default. **This parameter cannot be changed once the contract has been installed**.
 
-* `ownerReverseLookupMode` - The `OwnerReverseLookupMode` dictates whether the contract will index ownership of tokens as outlined [here](https://github.com/casper-ecosystem/cep-78-enhanced-nft#the-cep-78-page-system) to allow lookup of owned tokens by account. **This parameter cannot be changed once the contract has been installed**.
+* `ownerReverseLookupMode` - The `OwnerReverseLookupMode` dictates whether the contract will index ownership of tokens as outlined [here](../docs/reverse-lookup.md#the-cep-78-page-system) to allow lookup of owned tokens by account. **This parameter cannot be changed once the contract has been installed**.
 
 Further information on CEP-78 modality options can be found in the base [cep-78-enhanced-nft](https://github.com/ACStoneCL/cep-78-enhanced-nft) repository on GitHub.
 
