@@ -185,7 +185,7 @@ casper-client put-deploy -n http://localhost:11101/rpc --chain-name "casper-net-
 
 </details>
 
-This command will return a deploy hash that you can query using `casper-client get-deploy`. Querying the deploy allows you to verify execution success, but you will need to use the `balance_of` entrypoint to verify the account's balance as shown [below](#invoking-the-balance_of-entry-point).
+This command will return a deploy hash that you can query using `casper-client get-deploy`. Querying the deploy allows you to verify execution success, but you will need to use the `balance_of` entrypoint to verify the account's balance as shown [below](#checking-the-balance).
 
 
 ### Transferring NFTs using Wasm
