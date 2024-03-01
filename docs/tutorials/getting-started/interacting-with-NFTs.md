@@ -1,6 +1,6 @@
 # Interacting with the NFT Contract using the Rust Casper Client
 
-This document describes how to transfer NFTs on a Casper network using the Casper client.
+This document describes interacting with NFTs on a Casper network using the Rust command-line client.
 
 
 ## Prerequisites
@@ -24,7 +24,7 @@ This document describes how to transfer NFTs on a Casper network using the Caspe
 
 ## Directly Invoking Entrypoints
 
-With the release of CEP-78 version 1.1, users who are interacting with a CEP-78 contract that does not use `ReverseLookupMode` should opt out of using the client Wasm files provided as part of the release. Opting out in this situation is recommended, as directly invoking the entrypoints incurs a lower gas cost compared to using the provided client Wasm to invoke the entrypoint.
+With the release of CEP-78 version 1.1, users interacting with a CEP-78 contract that does not use `ReverseLookupMode` should opt out of using the client Wasm files provided as part of the release. Opting out in this situation is recommended, as directly invoking the entrypoints incurs a lower gas cost than using the provided client Wasm to invoke the entrypoint.
 
 You may invoke the `mint`, `transfer`, or `burn` entrypoints directly through either the contract package hash or the contract hash directly.
 
@@ -162,7 +162,7 @@ Below is an example of a `casper-client` command that uses the `transfer` entryp
 
 4. `--session-arg "is_hash_identifier_mode:bool='false'"`
 
-   Argument that the hash identifier mode is ordinal, thereby requiring a `token_id` rather than a `token_hash`.
+   The argument that the hash identifier mode is ordinal, thereby requiring a `token_id` rather than a `token_hash`.
 
 5. `--session-arg "token_id:u64='0'"`
 
@@ -185,7 +185,7 @@ casper-client put-deploy -n http://localhost:11101/rpc --chain-name "casper-net-
 
 </details>
 
-This command will return a deploy hash that you can query using `casper-client get-deploy`. Querying the deploy allows you to verify execution success, but you will need to use the `balance_of` entry point to verify the account's balance as shown [below](#invoking-the-balance_of-entry-point).
+This command will return a deploy hash that you can query using `casper-client get-deploy`. Querying the deploy allows you to verify execution success, but you will need to use the `balance_of` entrypoint to verify the account's balance as shown [below](#invoking-the-balance_of-entry-point).
 
 
 ### Transferring NFTs using Wasm
@@ -234,7 +234,7 @@ casper-client put-deploy -n http://localhost:11101/rpc --chain-name "casper-net-
 
 ## Checking the Balance
 
-The following command invokes the `balance_of` entry point and saves the amount of tokens owned under the account's named keys.
+The following command invokes the `balance_of_call.wasm` and saves the number of tokens owned under the account's named keys.
 
 - `casper-client put-deploy -n http://localhost:11101/rpc --chain-name "casper-net-1" --payment-amount 5000000000 -k ~/casper/casper-node/utils/nctl/assets/net-1/nodes/node-1/keys/secret_key.pem --session-path ~/casper/enhanced-nft/client/balance_of_session/target/wasm32-unknown-unknown/release/balance_of_call.wasm`
 
@@ -248,7 +248,7 @@ The following command invokes the `balance_of` entry point and saves the amount 
 
 3. `--session-arg "key_name:string='balance'"`
 
-   The name for the entry under the `NamedKeys` under which the balance amount will be stored
+   The name for the entry under the `NamedKeys` under which the balance amount will be stored.
 
 <details>
 <summary><b>Casper client command without comments</b></summary>
@@ -269,7 +269,7 @@ casper-client put-deploy -n http://localhost:11101/rpc/ \
 
 ## Approving an Account
 
-The Casper NFT contract features an `approve` entry point allowing another account to manage a specific token. During contract installation, the `ownership_mode` must be set to 2, meaning `Transferable`.
+The Casper NFT contract features an `approve` entrypoint, allowing another account to manage a specific token. During contract installation, the `ownership_mode` must be set to 2, meaning `Transferable`.
 
 - `casper-client put-deploy -n http://localhost:11101/rpc --chain-name "casper-net-1" --payment-amount 5000000000 -k ~/casper/casper-node/utils/nctl/assets/net-1/nodes/node-1/keys/secret_key.pem --session-entry-point "approve"`
 

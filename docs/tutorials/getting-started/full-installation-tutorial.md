@@ -1,6 +1,6 @@
 # Installing an NFT Contract using the Rust Casper Client
 
-This documentation will guide you through the process of installing and interacting with an instance of the CEP-78 enhanced NFT standard contract through Casper's Rust CLI client. The contract code installs an instance of CEP-78 as per session arguments provided at the time of installation. It requires a minimum Rust version of `1.63.0`. The code for this tutorial is available in [GitHub](https://github.com/casper-ecosystem/cep-78-enhanced-nft/). A portion of this tutorial reviews the [contract](../../../contract/src/main.rs).
+This documentation will guide you through installing and interacting with an instance of the CEP-78 enhanced NFT standard contract through Casper's Rust CLI client. The contract code installs an instance of CEP-78 given the session arguments provided. It requires a minimum Rust version of `1.63.0`. The code for this tutorial is available in [GitHub](https://github.com/casper-ecosystem/cep-78-enhanced-nft/). A portion of this tutorial reviews the [contract](../../../contract/src/main.rs).
 
 Information on the modalities used throughout this installation process can be found in the [modalities documentation](modalities.md).
 
@@ -34,7 +34,7 @@ The [Writing Rust Contracts on Casper](https://docs.casper.network/developers/wr
 
 ### Building the Contract and Tests
 
-First clone the contract from GitHub:
+First, clone the contract from GitHub:
 
 ```bash
 git clone https://github.com/casper-ecosystem/cep-78-enhanced-nft/ && cd cep-78-enhanced-nft
@@ -143,7 +143,7 @@ There is also the [**migrate**](https://github.com/casper-ecosystem/cep-78-enhan
 
 ## Installing the Contract
 
-Installing the enhanced NFT contract to global state requires the use of a [Deploy](https://docs.casper.network/developers/dapps/sending-deploys/). But before proceeding with the installation, verify the network state and the status of the account that will send the installation deploy.
+Installing the enhanced NFT contract to global state requires using a [Deploy](https://docs.casper.network/developers/dapps/sending-deploys/). But before proceeding with the installation, verify the network state and the status of the account that will send the installation deploy.
 
 ### Querying Global State
 
@@ -232,7 +232,7 @@ Use the Testnet to understand the exact gas amount required for installation. Re
 
 4. `--session-arg "ownership_mode:u8='2'"`
 
-   The ownership mode for this contract. In this instance the 2 represents "Transferable" mode. Under these conditions, users can freely transfer their NFTs between one another.
+   The ownership mode for this contract. In this instance, the 2 represents "Transferable" mode. Under these conditions, users can freely transfer their NFTs between one another.
 
 5. `--session-arg "nft_kind:u8='1'"`
 
@@ -244,7 +244,7 @@ Use the Testnet to understand the exact gas amount required for installation. Re
 
 7. `--session-arg "json_schema:string=''"`
 
-   An empty JSON string, as the contract has awareness of the CEP-78 JSON schema. Using the custom validated modality would require passing through a valid JSON schema for your custom metadata.
+   An empty JSON string, as the contract has awareness of the CEP-78 JSON schema. Using the custom-validated modality would require passing through a valid JSON schema for your custom metadata.
 
 8. `--session-arg "identifier_mode:u8='0'"`
 
