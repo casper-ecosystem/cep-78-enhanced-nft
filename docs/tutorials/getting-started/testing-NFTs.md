@@ -20,6 +20,6 @@ To build and run the tests, issue the following command in the project folder:
 make test
 ```
 
-The project contains a [Makefile](../../../Makefile), which is a custom build script that compiles the contract before running tests in _release_ mode. Then, the script copies the `contract.wasm` file to the corresponding version folder in the [tests/wasm](../../../tests/wasm/) directory. In practice, you only need to run the `make test` command during development without building the contract separately.
+The project contains a [Makefile](../../../Makefile), which is a custom build script that compiles the contract before running tests in _release_ mode. Then, the script copies the `contract.wasm` file to the corresponding version folder in the `tests/wasm` directory. In practice, you only need to run the `make test` command during development without building the contract separately.
 
 This example uses `bash`. If you use a Rust IDE, you must configure it to run the tests.
