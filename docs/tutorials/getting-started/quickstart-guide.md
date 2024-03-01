@@ -13,7 +13,7 @@ Before using this guide, ensure you meet the following requirements:
 - Know how to install a [smart contract](https://docs.casper.network/developers/cli/sending-deploys/) on a Casper network
 - Hold enough CSPR tokens to pay for transactions
 
-# Setup
+## Setup
 
 Clone the Casper NFT (CEP-78) [contract repository](https://github.com/casper-ecosystem/cep-78-enhanced-nft/).
 
@@ -55,7 +55,7 @@ casper-client put-deploy --node-address http://localhost:11101/rpc/ \
 --session-arg "metadata_mutability:u8='0'"
 ```
 
-### Next Steps
+## Next Steps
 
 Learn to query the contract, perform token transfers, set up approvals, and understand the testing framework.
 
