@@ -13,13 +13,17 @@ This document describes interacting with NFTs on a Casper network using the Rust
 
 1. [Directly Invoking Entrypoints](#directly-invoking-entrypoints)
 
-2. [Transferring NFTs](#transferring-nfts)
+2. [Minting NFTs](#minting-nfts)
 
-3. [Approving Another Account](#approving-another-account)
+3. [Transferring NFTs](#transferring-nfts)
 
-4. [Minting NFTs](#minting-nfts)
+4. [Checking Balances](#checking-balances)
 
-5. [Burning NFTs](#burning-nfts)
+5. [Approving an Account](#approving-an-account)
+
+6. [Burning NFTs](#burning-nfts)
+
+7.  [Next Steps](#next-steps)
 
 
 ## Directly Invoking Entrypoints
@@ -232,7 +236,7 @@ casper-client put-deploy -n http://localhost:11101/rpc --chain-name "casper-net-
 </details>
 
 
-## Checking the Balance
+## Checking Balances
 
 To check an account's balance, get the latest state root hash and query the `balances` dictionary given the NFT contract hash and the owner's account hash without the "account-hash-" prefix, as shown below.
 
