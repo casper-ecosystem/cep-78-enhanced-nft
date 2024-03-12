@@ -74,50 +74,6 @@ There are four steps to follow when you intend to create your implementation of 
 3. Compile the customized code to Wasm.
 4. Send the customized Wasm as a deploy to a Casper network.
 
-### Required Crates
-
-This tutorial applies to the Rust implementation of the Casper NFT standard, which requires the following Casper crates:
-
-- [casper_contract](https://docs.rs/casper-contract/latest/casper_contract/index.html) - A Rust library for writing smart contracts on Casper networks
-- [casper_types](https://docs.rs/casper-types/latest/casper_types/) - Types used to allow the creation of Wasm contracts and tests for use on Casper networks
-
-Here is the code snippet that imports those crates:
-
-```rust
-use casper_contract::{
-    contract_api::{
-        runtime::{self, call_contract, revert},
-        storage::{self},
-    },
-    unwrap_or_revert::UnwrapOrRevert,
-};
-use casper_types::{
-    contracts::NamedKeys, runtime_args, CLType, CLValue, ContractHash, ContractPackageHash,
-    EntryPoint, EntryPointAccess, EntryPointType, EntryPoints, Key, KeyTag, Parameter, RuntimeArgs,
-    Tagged,
-};
-```
-
-**Note**: In Rust, the keyword `use` is like an include statement in C/C++.
-
-The contract code defines additional modules in the `contract/src` folder:
-
-```rust
-mod constants;
-mod error;
-mod events;
-mod metadata;
-mod modalities;
-mod utils;
-```
-
-- `constants` - Constant values required to run the contract code
-- `error` - Errors related to the NFT contract
-- `events` - A library for contract-emitted events
-- `metadata` - Module handling the contract's metadata and corresponding dictionary
-- `modalities` - Common expectations around contract usage and behavior
-- `utils` - Utility and helper functions to run the contract code
-
 ### Initialization Flow
 
 Initializing the contract happens through the `call() -> install_contract() -> init()` functions inside the [main.rs](../../../contract/src/main.rs) contract file. The `init()` function reads the runtime arguments and defines parameters such as `collection_name`, `collection_symbol`, and `total_token_supply`, among the other required and optional arguments described in the [README](../../../README.md#required-runtime-arguments).
