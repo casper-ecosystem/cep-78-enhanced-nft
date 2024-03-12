@@ -10,7 +10,7 @@ Information on the modalities used throughout this installation process can be f
     - [Prerequisites](#prerequisites)
     - [Building the Contract and Tests](#building-the-contract-and-tests)
 2. [Reviewing the Contract Implementation](#reviewing-the-contract-implementation)
-    - [Crates and Modules](#crates-and-modules)
+    - [Included Crates and Modules](#included-crates-and-modules)
     - [Initialization Flow](#Initialization-flow)
     - [Contract Entrypoints](#contract-entrypoints)
 3. [Installing the Contract](#installing-the-contract)
@@ -74,7 +74,7 @@ There are four steps to follow when you intend to create your implementation of 
 3. Compile the customized code to Wasm.
 4. Send the customized Wasm as a deploy to a Casper network.
 
-### Crates and Modules
+### Included Crates and Modules
 
 The contract implementation starts by importing the following essential Casper crates:
 
@@ -96,22 +96,35 @@ Initializing the contract happens through the `call() -> install_contract() -> i
 
 ### Contract Entrypoints
 
-This section briefly explains the essential entrypoints used in the Casper NFT contract. To see their full implementation, refer to the [main.rs](../../../contract/src/main.rs) contract file. For further questions, contact the Casper support team via the [Discord channel](https://discord.com/invite/casperblockchain). The following entrypoints are listed as they are found in the code.
+This section briefly explains the essential entrypoints used in the Casper NFT contract. To see their full implementation, refer to the [main.rs](../../../contract/src/main.rs) contract file. For further questions, contact the Casper support team via the [Discord channel](https://discord.com/invite/casperblockchain).
 
 - [**approve**](https://github.com/casper-ecosystem/cep-78-enhanced-nft/blob/440bff44277ab5fd295f37229fe92278339d3753/contract/src/main.rs#L1002) - Allows a spender to transfer up to an amount of the owners’s tokens
 - [**balance_of**](https://github.com/casper-ecosystem/cep-78-enhanced-nft/blob/440bff44277ab5fd295f37229fe92278339d3753/contract/src/main.rs#L1616) - Returns the token balance of the owner
 - [**burn**](https://github.com/casper-ecosystem/cep-78-enhanced-nft/blob/440bff44277ab5fd295f37229fe92278339d3753/contract/src/main.rs#L874) - Burns tokens, reducing the total supply
 - [**get_approved**](https://github.com/casper-ecosystem/cep-78-enhanced-nft/blob/440bff44277ab5fd295f37229fe92278339d3753/contract/src/main.rs#L1728) - Returns the hash of the approved account for a specified token identifier
 - [**init**](https://github.com/casper-ecosystem/cep-78-enhanced-nft/blob/440bff44277ab5fd295f37229fe92278339d3753/contract/src/main.rs#L81) - Sets the collection name, symbol, and total token supply; initializes the allow minting setting, minting mode, ownership mode, NFT kind, holder mode, whitelist mode and contract whitelist, JSON schema, receipt name, identifier mode, and burn mode. This entrypoint can only be called once when the contract is installed on the network
+- [**is_approved_for_all**](https://github.com/casper-ecosystem/cep-78-enhanced-nft/blob/440bff44277ab5fd295f37229fe92278339d3753/contract/src/main.rs#L1328) - Returns yes if an account is approved as an operator for a token owner
 - [**metadata**](https://github.com/casper-ecosystem/cep-78-enhanced-nft/blob/440bff44277ab5fd295f37229fe92278339d3753/contract/src/main.rs#L1675) - Returns the metadata associated with a token identifier
 - [**mint**](https://github.com/casper-ecosystem/cep-78-enhanced-nft/blob/440bff44277ab5fd295f37229fe92278339d3753/contract/src/main.rs#L619) - Mints additional tokens if minting is allowed, increasing the total supply
 - [**owner_of**](https://github.com/casper-ecosystem/cep-78-enhanced-nft/blob/440bff44277ab5fd295f37229fe92278339d3753/contract/src/main.rs#L1636) - Returns the owner for a specified token identifier
+- [**register_owner**](https://github.com/casper-ecosystem/cep-78-enhanced-nft/blob/440bff44277ab5fd295f37229fe92278339d3753/contract/src/main.rs#L2159) - Register an owner for a specified token identifier. Works when the *OwnerReverseLookupMode* is set to *Complete*
+- [**revoke**](https://github.com/casper-ecosystem/cep-78-enhanced-nft/blob/440bff44277ab5fd295f37229fe92278339d3753/contract/src/main.rs#L1138) - Revokes an account that was approved for an identified token transfer. The *OwnershipMode* must be set to *Transferable*
 - [**set_approval_for_all**](https://github.com/casper-ecosystem/cep-78-enhanced-nft/blob/440bff44277ab5fd295f37229fe92278339d3753/contract/src/main.rs#L1254) - Allows a spender to transfer all of the owner's tokens
 - [**set_token_metadata**](https://github.com/casper-ecosystem/cep-78-enhanced-nft/blob/440bff44277ab5fd295f37229fe92278339d3753/contract/src/main.rs#L1773) - Sets the metadata associated with a token identifier
 - [**set_variables**](https://github.com/casper-ecosystem/cep-78-enhanced-nft/blob/440bff44277ab5fd295f37229fe92278339d3753/contract/src/main.rs#L496) - Allows the user to set any combination of variables simultaneously, defining which variables are mutable or immutable
-- [**transfer**](https://github.com/casper-ecosystem/cep-78-enhanced-nft/blob/440bff44277ab5fd295f37229fe92278339d3753/contract/src/main.rs#L1359) - Transfers tokens from the token owner to a specified account.  The transfer will succeed if the caller is the token owner or an approved operator. The transfer will fail if the OwnershipMode is set to Minter or Assigned
+- [**transfer**](https://github.com/casper-ecosystem/cep-78-enhanced-nft/blob/440bff44277ab5fd295f37229fe92278339d3753/contract/src/main.rs#L1359) - Transfers tokens from the token owner to a specified account.  The transfer will succeed if the caller is the token owner or an approved operator. The *OwnershipMode* must be set to *Transferable*
+- [**updated_receipts**](https://github.com/casper-ecosystem/cep-78-enhanced-nft/blob/440bff44277ab5fd295f37229fe92278339d3753/contract/src/main.rs#L2111) - Allows an owner of one or more NFTs held by the contract instance to attain up to date receipt information for the NFTs they currently own. Works when the *OwnerReverseLookupMode* is set to *Complete*
 
 There is also the [**migrate**](https://github.com/casper-ecosystem/cep-78-enhanced-nft/blob/440bff44277ab5fd295f37229fe92278339d3753/contract/src/main.rs#L1975) entrypoint, which was needed only for migrating a 1.0 version of the NFT contract to version 1.1.
+
+**IMPORTANT**: The following entrypoints return data using `runtime::ret`, which is useful mainly if the entrypoint caller is a contract:
+
+- `mint` (with *OwnerReverseLookupMode* set to *Complete*)
+- `transfer` (with *OwnerReverseLookupMode* set to *TransfersOnly*)
+- `balance_of`
+- `is_approved_for_all`
+- `owner_of`
+- `metadata`
 
 ## Installing the Contract
 
