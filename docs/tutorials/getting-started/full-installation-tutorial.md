@@ -10,7 +10,7 @@ Information on the modalities used throughout this installation process can be f
     - [Prerequisites](#prerequisites)
     - [Building the Contract and Tests](#building-the-contract-and-tests)
 2. [Reviewing the Contract Implementation](#reviewing-the-contract-implementation)
-    - [Required Crates](#required-crates)
+    - [Crates and Modules](#crates-and-modules)
     - [Initialization Flow](#Initialization-flow)
     - [Contract Entrypoints](#contract-entrypoints)
 3. [Installing the Contract](#installing-the-contract)
@@ -73,6 +73,22 @@ There are four steps to follow when you intend to create your implementation of 
 2. Perform any necessary customization changes on your fork of the example contract.
 3. Compile the customized code to Wasm.
 4. Send the customized Wasm as a deploy to a Casper network.
+
+### Crates and Modules
+
+The contract implementation starts by importing the following essential Casper crates:
+
+- [casper_contract](https://docs.rs/casper-contract/latest/casper_contract/index.html) - A Rust library for writing smart contracts on Casper networks
+- [casper_types](https://docs.rs/casper-types/latest/casper_types/) - Types used to allow the creation of Wasm contracts and tests for use on Casper networks
+
+The contract code defines additional modules in the `contract/src` folder:
+
+- `constants` - Constant values required to run the contract code
+- `error` - Errors related to the NFT contract
+- `events` - A library for contract-emitted events
+- `metadata` - A module handling the contract's metadata and corresponding dictionary
+- `modalities` - Common expectations around contract usage and behavior
+- `utils` - Utility and helper functions to run the contract code
 
 ### Initialization Flow
 
