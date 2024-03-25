@@ -88,6 +88,8 @@ Below is an example of a `casper-client` command that uses the `mint` entrypoint
 
    Metadata describing the NFT to be minted, passed in as a `string`.
 
+**Note**: If the `identifier_mode` was set to hash (1) during installation, the `token_hash` runtime argument needs to be specified during minting. Since you already know the NFT's identifier, you can easily query the NFT's `meta_data`, which is a very useful feature. This example uses an ordinal (0) `identifier_mode`.
+
 <details>
 <summary><b>Casper client command without comments</b></summary>
 
