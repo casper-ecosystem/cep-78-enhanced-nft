@@ -70,10 +70,10 @@ The following are the optional parameters that can be passed in at the time of i
 
 #### Example deploy
 
-The following is an example of installing the NFT contract via a deploy using the Rust CLI Casper client. You can find more examples [here](/docs/using-casper-client.md).
+The following is an example of installing the NFT contract via a deploy using the Rust CLI Casper client. You can find more examples [here](/docs/tutorials/getting-started/full-installation-tutorial.md).
 
 ```bash
-casper-client put-deploy -n http://65.108.0.148:7777/rpc --chain-name "casper-test" --payment-amount 500000000000 -k keys/secret_key.pem --session-path contract/target/wasm32-unknown-unknown/release/contract.wasm \
+casper-client put-deploy -n https://rpc.testnet.casperlabs.io/ --chain-name "casper-test" --payment-amount 500000000000 -k keys/secret_key.pem --session-path contract/target/wasm32-unknown-unknown/release/contract.wasm \
 --session-arg "collection_name:string='enhanced-nft-1'" \
 --session-arg "collection_symbol:string='ENFT-1'" \
 --session-arg "total_token_supply:u64='10'" \
@@ -104,15 +104,15 @@ folder within the project folder.
 
 ### Checking Token Ownership
 
-[Learn to check token ownership](./tutorials/token-ownership-tutorial.md) starting with version [v1.1.1](https://github.com/casper-ecosystem/cep-78-enhanced-nft/releases/tag/v1.1.1). The `OwnerReverseLookupMode` modality must be set to `Complete` as described [here](/docs/reverse-lookup.md).
+[Learn to check token ownership](./docs/tutorials/token-ownership-tutorial.md) starting with version [v1.1.1](https://github.com/casper-ecosystem/cep-78-enhanced-nft/releases/tag/v1.1.1). The `OwnerReverseLookupMode` modality must be set to `Complete` as described [here](/docs/reverse-lookup.md).
 
 ### Upgrading to Version 1.1.1
 
-Upgrade to v1.1.1 using a [Standard NamedKey Convention](./tutorials/standard-migration-tutorial.md) or a [Custom NamedKey Convention](./tutorials/custom-migration-tutorial.md).
+Upgrade to v1.1.1 using a [Standard NamedKey Convention](./docs/tutorials/standard-migration-tutorial.md) or a [Custom NamedKey Convention](./docs/tutorials/custom-migration-tutorial.md).
 
 ## Installing and Interacting with the Contract using the Rust Casper Client
 
-You can find instructions on installing an instance of the CEP-78 contract using the Rust CLI Casper client [here](/docs/using-casper-client.md).
+You can find instructions on installing an instance of the CEP-78 contract using the Rust CLI Casper client [here](/docs/tutorials/getting-started/full-installation-tutorial.md).
 
 ## Test Suite and Specification
 

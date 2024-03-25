@@ -1,6 +1,6 @@
 # Token Ownership in Casper NFT Contracts (Release v1.1.1)
 
-This tutorial demonstrates how to check token ownership in CEP-78 NFT contracts, starting with version [v1.1.1](https://github.com/casper-ecosystem/cep-78-enhanced-nft/releases/tag/v1.1.1). For this tutorial, the `OwnerReverseLookupMode` modality must be set to `Complete` as described [here](../docs/modalities.md#ownerreverselookupmode).
+This tutorial demonstrates how to check token ownership in CEP-78 NFT contracts, starting with version [v1.1.1](https://github.com/casper-ecosystem/cep-78-enhanced-nft/releases/tag/v1.1.1). For this tutorial, the `OwnerReverseLookupMode` modality must be set to `Complete` as described [here](../modalities.md#ownerreverselookupmode).
 
 As someone interacting with an NFT contract, you might want to answer the following questions:
 
@@ -9,12 +9,12 @@ As someone interacting with an NFT contract, you might want to answer the follow
 
 You might be an account user or owner of a contract that interacts with the NFT contract.
 
-The first method to answer these questions is an [account-centric approach](./token-ownership-tutorial.md#method-1---querying-the-account), in which you trust the account owner and the information stored in the account's NamedKeys. This account could be an account you own or someone else owns. This method is less secure and needs to be based on trust. To apply this method, proceed according to the following steps:
+The first method to answer these questions is an [account-centric approach](#querying-the-account), in which you trust the account owner and the information stored in the account's NamedKeys. This account could be an account you own or someone else owns. This method is less secure and needs to be based on trust. To apply this method, proceed according to the following steps:
 
 - Look for NamedKeys in this format: "cep78_*_m_1000_p_#".
 - Query each "cep78_*_m_1000_p_#" dictionary using the `casper-client get-dictionary-item` and the `dictionary-address`.
 
-The second method is a [contract-centric approach](./token-ownership-tutorial.md#method-2---querying-the-contract), in which you query the NFT contract. This method is more secure than the first approach and can be used when you need to verify or cannot trust an account's NamedKeys. To apply this method, follow these steps:
+The second method is a [contract-centric approach](#querying-the-contract), in which you query the NFT contract. This method is more secure than the first approach and can be used when you need to verify or cannot trust an account's NamedKeys. To apply this method, follow these steps:
 
 - Query the "page_table" dictionary from the CEP-78 contract using its seed URef and the account hash (without the "account-hash-" prefix).
 - Then, query each page dictionary given its seed URef and the account hash (again, without the "account-hash-" prefix).
@@ -27,10 +27,10 @@ The tutorial presents sample accounts, contracts, and NamedKeys to explain, by e
 
 ## Prerequisites
 
-- You have installed or upgraded to a CEP-78 contract that uses release v1.1.1, and the `OwnerReverseLookupMode` modality is set to `Complete` as described [here](../docs/modalities.md#ownerreverselookupmode).
+- You have installed or upgraded to a CEP-78 contract that uses release v1.1.1, and the `OwnerReverseLookupMode` modality is set to `Complete` as described [here](../modalities.md#ownerreverselookupmode).
 - The contract has minted one or more tokens, and you have access to the account or the contract that owns these tokens.
 - You have experience with the [Casper CEP-78 NFT Standard](https://github.com/casper-ecosystem/cep-78-enhanced-nft/) and the Casper command-line client and know how to interact with a Casper network.
-- You understand the [Owner Reverse Lookup Functionality](../docs/reverse-lookup.md) and [CEP-78 Page System](../docs/reverse-lookup.md#the-cep-78-page-system) introduced in [Version 1.1](https://github.com/casper-ecosystem/cep-78-enhanced-nft/#new-in-version-11) of the CEP-78 Enhanced NFT Standard.
+- You understand the [Owner Reverse Lookup Functionality](https://github.com/casper-ecosystem/cep-78-enhanced-nft/#owner-reverse-lookup-functionality) and [CEP-78 Page System](../docs/reverse-lookup.md#the-cep-78-page-system) introduced in [Version 1.1.0](https://github.com/casper-ecosystem/cep-78-enhanced-nft/releases/tag/v1.1.0) of the CEP-78 Enhanced NFT Standard.
 
 ## Method 1 - Querying the Account 
 
@@ -239,7 +239,7 @@ casper-client get-dictionary-item \
 }
 ```
 
-Notice that the output is the same as what was displayed when using the first method; the dictionary address is "dictionary-eb837c4c92199e66619e163271a7e487704b5be7b103e785ed5b262f36ab6f50". Therefore, to understand the output, follow the [Tokens Identified by Token ID](./token-ownership-tutorial.md#tokens-identified-by-token-id) and [Tokens Identified by Hash](./token-ownership-tutorial.md#tokens-identified-by-hash) sections.
+Notice that the output is the same as what was displayed when using the first method; the dictionary address is "dictionary-eb837c4c92199e66619e163271a7e487704b5be7b103e785ed5b262f36ab6f50". Therefore, to understand the output, follow the [Tokens Identified by Token ID](tokens-identified-by-token-id) and [Tokens Identified by Hash](tokens-identified-by-hash) sections.
 
 ## Frequently Asked Questions
 
