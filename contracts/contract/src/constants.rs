@@ -1,5 +1,3 @@
-pub const PROTOCOL_VERSION: u32 = 2u32;
-
 pub const PREFIX_ACCESS_KEY_NAME: &str = "cep78_contract_package_access";
 pub const PREFIX_CEP78: &str = "cep78";
 pub const PREFIX_CONTRACT_NAME: &str = "cep78_contract_hash";
