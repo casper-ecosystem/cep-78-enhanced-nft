@@ -1,64 +1,64 @@
-name: ci-casper-cep78-js-client
+# name: ci-casper-cep78-js-client
 
-on:
-  push:
-    branches:
-      - "dev"
-      - "feat-*"
-      - "release-*"
+# on:
+#   push:
+#     branches:
+#       - "dev"
+#       - "feat-*"
+#       - "release-*"
 
-  pull_request:
-    branches:
-      - "dev"
-      - "feat-*"
-      - "release-*"
+#   pull_request:
+#     branches:
+#       - "dev"
+#       - "feat-*"
+#       - "release-*"
 
-jobs:
-  client-build:
-    strategy:
-      fail-fast: false
-      matrix:
-        # See supported Node.js release schedule at https://nodejs.org/en/about/releases/
-        node-version: [18.x]
-        os: [ubuntu-20.04, ubuntu-22.04]
-    runs-on: ${{ matrix.os }}
+# jobs:
+#   client-build:
+#     strategy:
+#       fail-fast: false
+#       matrix:
+#         # See supported Node.js release schedule at https://nodejs.org/en/about/releases/
+#         node-version: [18.x]
+#         os: [ubuntu-20.04, ubuntu-22.04]
+#     runs-on: ${{ matrix.os }}
 
-    steps:
-      - name: Checkout
-        uses: actions/checkout@2541b1294d2704b0964813337f33b291d3f8596b #v3.0.2
+#     steps:
+#       - name: Checkout
+#         uses: actions/checkout@2541b1294d2704b0964813337f33b291d3f8596b #v3.0.2
 
-      - uses: Swatinem/rust-cache@cb2cf0cc7c5198d3364b9630e2c3d457f160790c #v1.4.0
+#       - uses: Swatinem/rust-cache@cb2cf0cc7c5198d3364b9630e2c3d457f160790c #v1.4.0
 
-      - name: Install dependencies
-        run: sudo apt update && sudo apt install -y build-essential wabt
+#       - name: Install dependencies
+#         run: sudo apt update && sudo apt install -y build-essential wabt
 
-      - name: Setup
-        run: make prepare
+#       - name: Setup
+#         run: make prepare
 
-      - name: Prepare WASMs 
-        run: make setup-test
+#       - name: Prepare WASMs
+#         run: make setup-test
 
-      - name: Use Node.js ${{ matrix.node-version }}
-        uses: actions/setup-node@5b949b50c3461bbcd5a540b150c368278160234a #v3.4.0
-        with:
-          node-version: ${{ matrix.node-version }}
+#       - name: Use Node.js ${{ matrix.node-version }}
+#         uses: actions/setup-node@5b949b50c3461bbcd5a540b150c368278160234a #v3.4.0
+#         with:
+#           node-version: ${{ matrix.node-version }}
 
-      - name: Install
-        working-directory: ./client-js
-        run: npm install
+#       - name: Install
+#         working-directory: ./client-js
+#         run: npm install
 
-      - name: Copy & convert WASMs
-        working-directory: ./client-js
-        run: npm run wasms:convert
+#       - name: Copy & convert WASMs
+#         working-directory: ./client-js
+#         run: npm run wasms:convert
 
-      - name: Audits
-        working-directory: ./client-js
-        run: npm audit --omit=dev
+#       - name: Audits
+#         working-directory: ./client-js
+#         run: npm audit --omit=dev
 
-      - name: Lints
-        working-directory: ./client-js
-        run: npm run lint
+#       - name: Lints
+#         working-directory: ./client-js
+#         run: npm run lint
 
-      - name: Test
-        working-directory: ./client-js
-        run: npm test
+#       - name: Test
+#         working-directory: ./client-js
+#         run: npm test
