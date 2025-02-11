@@ -11,18 +11,18 @@ use core::{convert::TryInto, mem::MaybeUninit};
 
 use casper_contract::{
     contract_api::{
-        self, alloc_bytes,
-        runtime::{self, PROTOCOL_VERSION_FIELD_IDX, PROTOCOL_VERSION_LENGTH},
+        self,
+        runtime::{self, get_protocol_version},
         storage,
     },
-    ext_ffi::{self, casper_get_block_info},
+    ext_ffi::{self},
     unwrap_or_revert::UnwrapOrRevert,
 };
 use casper_types::{
     account::AccountHash,
     api_error,
     bytesrepr::{self, FromBytes, ToBytes},
-    contracts::{ContractHash, ContractVersionKey, ProtocolVersionMajor},
+    contracts::{ContractHash, ContractVersionKey},
     system::CallStackElement,
     AddressableEntityHash, ApiError, CLTyped, Key, PackageHash, URef,
 };
@@ -350,14 +350,8 @@ pub fn get_immediate_caller() -> (Key, Option<Key>) {
 }
 
 pub fn get_contract_version_key(contract_version: u32) -> ContractVersionKey {
-    let dest_ptr = alloc_bytes(PROTOCOL_VERSION_LENGTH as usize);
-    unsafe {
-        casper_get_block_info(PROTOCOL_VERSION_FIELD_IDX, dest_ptr.as_ptr());
-        let protocol_version_major = ProtocolVersionMajor::from(u32::from_ne_bytes(
-            core::ptr::read_unaligned(dest_ptr.as_ptr() as *const [u8; 4]),
-        ));
-        ContractVersionKey::new(protocol_version_major, contract_version)
-    }
+    let (major, _, _) = get_protocol_version().destructure();
+    ContractVersionKey::new(major, contract_version)
 }
 
 pub fn get_token_identifier_from_runtime_args(
