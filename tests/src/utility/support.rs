@@ -21,7 +21,6 @@ use casper_engine_test_support::{
 use casper_execution_engine::{engine_state::Error as EngineStateError, execution::ExecError};
 use casper_types::{
     account::AccountHash,
-    addressable_entity::EntityKindTag,
     bytesrepr::{Bytes, FromBytes},
     contracts::{ContractHash, ContractPackageHash},
     AddressableEntityHash, ApiError, CLTyped, CLValueError, EntityAddr, GenesisAccount, Key, Motes,

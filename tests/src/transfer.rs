@@ -2,10 +2,7 @@ use casper_engine_test_support::{
     ExecuteRequestBuilder, LmdbWasmTestBuilder, DEFAULT_ACCOUNT_ADDR,
 };
 
-use casper_types::{
-    account::AccountHash, addressable_entity::EntityKindTag, contracts::ContractHash, runtime_args,
-    Key,
-};
+use casper_types::{account::AccountHash, contracts::ContractHash, runtime_args, Key};
 use cep78::{
     constants::{
         ACL_WHITELIST, APPROVED, ARG_APPROVE_ALL, ARG_COLLECTION_NAME, ARG_OPERATOR,
@@ -1793,10 +1790,7 @@ fn check_transfers_with_transfer_filter_contract_modes() {
         .with_collection_symbol(NFT_TEST_SYMBOL.to_string())
         .with_total_token_supply(token_supply)
         .with_ownership_mode(OwnershipMode::Transferable)
-        .with_transfer_filter_contract(Key::addressable_entity_key(
-            EntityKindTag::SmartContract,
-            transfer_filter_contract_hash,
-        ))
+        .with_transfer_filter_contract(Key::contract_entity_key(transfer_filter_contract_hash))
         .build();
 
     builder.exec(install_request).expect_success().commit();
