@@ -2,6 +2,11 @@
 name = "cep78"
 version.workspace = true
 edition.workspace = true
+description.workspace = true
+homepage.workspace = true
+license-file.workspace = true
+readme.workspace = true
+repository.workspace = true
 
 [dependencies]
 casper-types.workspace = true
