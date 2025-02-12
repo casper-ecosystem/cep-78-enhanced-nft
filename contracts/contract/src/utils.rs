@@ -1,32 +1,4 @@
 #![allow(deprecated)]
-use alloc::{
-    borrow::ToOwned,
-    format,
-    string::{String, ToString},
-    vec,
-    vec::Vec,
-};
-use casper_event_standard::Schemas;
-use core::{convert::TryInto, mem::MaybeUninit};
-
-use casper_contract::{
-    contract_api::{
-        self,
-        runtime::{self, get_protocol_version},
-        storage,
-    },
-    ext_ffi::{self},
-    unwrap_or_revert::UnwrapOrRevert,
-};
-use casper_types::{
-    account::AccountHash,
-    api_error,
-    bytesrepr::{self, FromBytes, ToBytes},
-    contracts::{ContractHash, ContractVersionKey},
-    system::CallStackElement,
-    AddressableEntityHash, ApiError, CLTyped, Key, PackageHash, URef,
-};
-
 use crate::{
     constants::{
         ACL_WHITELIST, ARG_TOKEN_HASH, ARG_TOKEN_ID, BURNT_TOKENS, BURN_MODE, CONTRACT_WHITELIST,
@@ -44,8 +16,39 @@ use crate::{
         BurnMode, MetadataRequirement, MintingMode, NFTHolderMode, NFTIdentifierMode,
         NFTMetadataKind, OwnerReverseLookupMode, OwnershipMode, Requirement, TokenIdentifier,
     },
-    utils,
 };
+use alloc::{
+    format,
+    string::{String, ToString},
+    vec,
+    vec::Vec,
+};
+use casper_contract::{
+    contract_api::{
+        self,
+        runtime::{
+            self, blake2b, get_immediate_caller as casper_get_immediate_caller, get_key,
+            get_protocol_version, put_key, remove_key, revert,
+        },
+        storage::{dictionary_get, dictionary_put, new_dictionary, new_uref, read, write},
+    },
+    ext_ffi::{
+        casper_get_key, casper_get_named_arg, casper_get_named_arg_size, casper_read_host_buffer,
+        casper_read_value,
+    },
+    unwrap_or_revert::UnwrapOrRevert,
+};
+use casper_event_standard::Schemas;
+use casper_types::{
+    self,
+    account::AccountHash,
+    api_error::result_from,
+    bytesrepr::{deserialize, FromBytes, ToBytes},
+    contracts::{ContractHash, ContractPackageHash, ContractVersionKey},
+    AddressableEntityHash, ApiError, CLTyped, EntityAddr, Key, PackageHash, URef,
+};
+use core::{convert::TryInto, mem::MaybeUninit};
+use hex::encode;
 
 // The size of a given page, it is currently set to 1000
 // to ease the math around addressing newly minted tokens.
@@ -62,9 +65,9 @@ pub fn upsert_dictionary_value_from_key<T: CLTyped + FromBytes + ToBytes>(
         NFTCoreError::InvalidStorageUref,
     );
 
-    match storage::dictionary_get::<T>(seed_uref, key) {
-        Ok(None | Some(_)) => storage::dictionary_put(seed_uref, key, value),
-        Err(error) => runtime::revert(error),
+    match dictionary_get::<T>(seed_uref, key) {
+        Ok(None | Some(_)) => dictionary_put(seed_uref, key, value),
+        Err(error) => revert(error),
     }
 }
 
@@ -91,7 +94,7 @@ pub fn encode_dictionary_item_key(key: Key) -> String {
         Key::Account(account_hash) => account_hash.to_string(),
         Key::Hash(hash_addr) => ContractHash::new(hash_addr).to_string(),
         Key::AddressableEntity(entity) => match entity {
-            casper_types::EntityAddr::System(_) => runtime::revert(NFTCoreError::InvalidKey),
+            casper_types::EntityAddr::System(_) => revert(NFTCoreError::InvalidKey),
             casper_types::EntityAddr::Account(hash_addr) => AddressableEntityHash::new(hash_addr),
             casper_types::EntityAddr::SmartContract(hash_addr) => {
                 AddressableEntityHash::new(hash_addr)
@@ -99,7 +102,7 @@ pub fn encode_dictionary_item_key(key: Key) -> String {
         }
         .to_string(),
         Key::SmartContract(package_addr) => PackageHash::from(package_addr).to_string(),
-        _ => runtime::revert(NFTCoreError::InvalidKey),
+        _ => revert(NFTCoreError::InvalidKey),
     }
 }
 
@@ -109,8 +112,8 @@ pub fn make_dictionary_item_key<T: CLTyped + ToBytes>(key: &Key, value: &T) -> S
 
     bytes_a.append(&mut bytes_b);
 
-    let bytes = runtime::blake2b(bytes_a);
-    hex::encode(bytes)
+    let bytes = blake2b(bytes_a);
+    encode(bytes)
 }
 
 pub fn get_dictionary_value_from_key<T: CLTyped + FromBytes>(
@@ -123,9 +126,9 @@ pub fn get_dictionary_value_from_key<T: CLTyped + FromBytes>(
         NFTCoreError::InvalidStorageUref,
     );
 
-    match storage::dictionary_get::<T>(seed_uref, key) {
+    match dictionary_get::<T>(seed_uref, key) {
         Ok(maybe_value) => maybe_value,
-        Err(error) => runtime::revert(error),
+        Err(error) => revert(error),
     }
 }
 
@@ -141,13 +144,13 @@ pub fn get_stored_value_with_user_errors<T: CLTyped + FromBytes>(
 pub fn get_named_arg_size(name: &str) -> Option<usize> {
     let mut arg_size: usize = 0;
     let ret = unsafe {
-        ext_ffi::casper_get_named_arg_size(
+        casper_get_named_arg_size(
             name.as_bytes().as_ptr(),
             name.len(),
             &mut arg_size as *mut usize,
         )
     };
-    match api_error::result_from(ret) {
+    match result_from(ret) {
         Ok(_) => Some(arg_size),
         Err(ApiError::MissingArgument) => None,
         Err(e) => runtime::revert(e),
@@ -164,7 +167,7 @@ pub fn get_optional_named_arg_with_user_errors<T: FromBytes>(
     match get_named_arg_with_user_errors::<T>(name, NFTCoreError::Phantom, invalid) {
         Ok(val) => Some(val),
         Err(NFTCoreError::Phantom) => None,
-        Err(e) => runtime::revert(e),
+        Err(e) => revert(e),
     }
 }
 
@@ -178,7 +181,7 @@ pub fn get_named_arg_with_user_errors<T: FromBytes>(
         let res = {
             let data_non_null_ptr = contract_api::alloc_bytes(arg_size);
             let ret = unsafe {
-                ext_ffi::casper_get_named_arg(
+                casper_get_named_arg(
                     name.as_bytes().as_ptr(),
                     name.len(),
                     data_non_null_ptr.as_ptr(),
@@ -187,7 +190,7 @@ pub fn get_named_arg_with_user_errors<T: FromBytes>(
             };
             let data =
                 unsafe { Vec::from_raw_parts(data_non_null_ptr.as_ptr(), arg_size, arg_size) };
-            api_error::result_from(ret).map(|_| data)
+            result_from(ret).map(|_| data)
         };
         // Assumed to be safe as `get_named_arg_size` checks the argument already
         res.unwrap_or_revert_with(NFTCoreError::FailedToGetArgBytes)
@@ -196,7 +199,7 @@ pub fn get_named_arg_with_user_errors<T: FromBytes>(
         Vec::new()
     };
 
-    bytesrepr::deserialize(arg_bytes).map_err(|_| invalid)
+    deserialize(arg_bytes).map_err(|_| invalid)
 }
 
 pub fn get_account_hash(name: &str, missing: NFTCoreError, invalid: NFTCoreError) -> AccountHash {
@@ -211,94 +214,6 @@ pub fn get_uref(name: &str, missing: NFTCoreError, invalid: NFTCoreError) -> URe
         .unwrap_or_revert_with(NFTCoreError::UnexpectedKeyVariant)
 }
 
-pub fn named_uref_exists(name: &str) -> bool {
-    let (name_ptr, name_size, _bytes) = to_ptr(name);
-    let mut key_bytes = vec![0u8; Key::max_serialized_length()];
-    let mut total_bytes: usize = 0;
-    let ret = unsafe {
-        ext_ffi::casper_get_key(
-            name_ptr,
-            name_size,
-            key_bytes.as_mut_ptr(),
-            key_bytes.len(),
-            &mut total_bytes as *mut usize,
-        )
-    };
-
-    api_error::result_from(ret).is_ok()
-}
-
-pub fn get_key_with_user_errors(name: &str, missing: NFTCoreError, invalid: NFTCoreError) -> Key {
-    let (name_ptr, name_size, _bytes) = to_ptr(name);
-    let mut key_bytes = vec![0u8; Key::max_serialized_length()];
-    let mut total_bytes: usize = 0;
-    let ret = unsafe {
-        ext_ffi::casper_get_key(
-            name_ptr,
-            name_size,
-            key_bytes.as_mut_ptr(),
-            key_bytes.len(),
-            &mut total_bytes as *mut usize,
-        )
-    };
-    match api_error::result_from(ret) {
-        Ok(_) => {}
-        Err(ApiError::MissingKey) => runtime::revert(missing),
-        Err(e) => runtime::revert(e),
-    }
-    key_bytes.truncate(total_bytes);
-
-    bytesrepr::deserialize(key_bytes).unwrap_or_revert_with(invalid)
-}
-
-pub fn read_with_user_errors<T: CLTyped + FromBytes>(
-    uref: URef,
-    missing: NFTCoreError,
-    invalid: NFTCoreError,
-) -> T {
-    let key: Key = uref.into();
-    let (key_ptr, key_size, _bytes) = to_ptr(key);
-
-    let value_size = {
-        let mut value_size = MaybeUninit::uninit();
-        let ret = unsafe { ext_ffi::casper_read_value(key_ptr, key_size, value_size.as_mut_ptr()) };
-        match api_error::result_from(ret) {
-            Ok(_) => unsafe { value_size.assume_init() },
-            Err(ApiError::ValueNotFound) => runtime::revert(missing),
-            Err(e) => runtime::revert(e),
-        }
-    };
-
-    let value_bytes = read_host_buffer(value_size).unwrap_or_revert_with(ApiError::User(303));
-
-    bytesrepr::deserialize(value_bytes).unwrap_or_revert_with(invalid)
-}
-
-// TODO CHECK *runtime::get_call_stack()
-fn read_host_buffer(size: usize) -> Result<Vec<u8>, ApiError> {
-    let mut dest: Vec<u8> = if size == 0 {
-        Vec::new()
-    } else {
-        let bytes_non_null_ptr = contract_api::alloc_bytes(size);
-        unsafe { Vec::from_raw_parts(bytes_non_null_ptr.as_ptr(), size, size) }
-    };
-    read_host_buffer_into(&mut dest)?;
-    Ok(dest)
-}
-
-// TODO CHECK *runtime::get_call_stack()
-fn read_host_buffer_into(dest: &mut [u8]) -> Result<usize, ApiError> {
-    let mut bytes_written = MaybeUninit::uninit();
-    let ret = unsafe {
-        ext_ffi::casper_read_host_buffer(dest.as_mut_ptr(), dest.len(), bytes_written.as_mut_ptr())
-    };
-    // NOTE: When rewriting below expression as `result_from(ret).map(|_| unsafe { ... })`, and the
-    // caller ignores the return value, execution of the contract becomes unstable and ultimately
-    // leads to `Unreachable` error.
-    api_error::result_from(ret)?;
-    Ok(unsafe { bytes_written.assume_init() })
-}
-
 pub fn to_ptr<T: ToBytes>(t: T) -> (*const u8, usize, Vec<u8>) {
     let bytes = t.into_bytes().unwrap_or_revert_with(ApiError::User(304));
     let ptr = bytes.as_ptr();
@@ -306,46 +221,170 @@ pub fn to_ptr<T: ToBytes>(t: T) -> (*const u8, usize, Vec<u8>) {
     (ptr, size, bytes)
 }
 
-// TODO CHECK *runtime::get_call_stack()
-pub fn get_call_stack() -> Vec<CallStackElement> {
-    let (call_stack_len, result_size) = {
-        let mut call_stack_len: usize = 0;
-        let mut result_size: usize = 0;
-        let ret = unsafe {
-            ext_ffi::casper_load_call_stack(
-                &mut call_stack_len as *mut usize,
-                &mut result_size as *mut usize,
-            )
-        };
-        api_error::result_from(ret).unwrap_or_revert();
-        (call_stack_len, result_size)
+pub fn named_uref_exists(name: &str) -> bool {
+    let (name_ptr, name_size, _bytes) = to_ptr(name);
+    let mut key_bytes = vec![0u8; Key::max_serialized_length()];
+    let mut total_bytes: usize = 0;
+    let ret = unsafe {
+        casper_get_key(
+            name_ptr,
+            name_size,
+            key_bytes.as_mut_ptr(),
+            key_bytes.len(),
+            &mut total_bytes as *mut usize,
+        )
     };
-    if call_stack_len == 0 {
-        return Vec::new();
+
+    result_from(ret).is_ok()
+}
+
+pub fn get_key_with_user_errors(name: &str, missing: NFTCoreError, invalid: NFTCoreError) -> Key {
+    let (name_ptr, name_size, _bytes) = to_ptr(name);
+    let mut key_bytes = vec![0u8; Key::max_serialized_length()];
+    let mut total_bytes: usize = 0;
+    let ret = unsafe {
+        casper_get_key(
+            name_ptr,
+            name_size,
+            key_bytes.as_mut_ptr(),
+            key_bytes.len(),
+            &mut total_bytes as *mut usize,
+        )
+    };
+    match result_from(ret) {
+        Ok(_) => {}
+        Err(ApiError::MissingKey) => revert(missing),
+        Err(e) => revert(e),
     }
-    let bytes = read_host_buffer(result_size).unwrap_or_revert();
-    bytesrepr::deserialize(bytes).unwrap_or_revert()
+    key_bytes.truncate(total_bytes);
+
+    deserialize(key_bytes).unwrap_or_revert_with(invalid)
+}
+
+fn read_with_user_errors<T: CLTyped + FromBytes>(
+    uref: URef,
+    missing: NFTCoreError,
+    invalid: NFTCoreError,
+) -> T {
+    let key: Key = uref.into();
+    let (key_ptr, key_size, _bytes) = to_ptr(key);
+
+    // Get the size of the value
+    let value_size = {
+        let mut value_size = MaybeUninit::uninit();
+        let ret = unsafe { casper_read_value(key_ptr, key_size, value_size.as_mut_ptr()) };
+        match result_from(ret) {
+            Ok(_) => unsafe { value_size.assume_init() },
+            Err(ApiError::ValueNotFound) => revert(missing),
+            Err(e) => revert(e),
+        }
+    };
+
+    // Allocate a buffer to store the value
+    let mut buffer = vec![0u8; value_size];
+    let mut bytes_written = 0usize;
+
+    let ret = unsafe {
+        casper_read_host_buffer(
+            buffer.as_mut_ptr(),
+            value_size,
+            &mut bytes_written as *mut usize,
+        )
+    };
+
+    // Check for errors
+    match result_from(ret) {
+        Ok(_) => {}
+        Err(e) => revert(e),
+    }
+
+    if bytes_written != value_size {
+        revert(ApiError::UnexpectedKeyVariant);
+    }
+
+    deserialize(buffer).unwrap_or_revert_with(invalid)
 }
 
 pub fn get_immediate_caller() -> (Key, Option<Key>) {
-    //! TODO GR
-    // CHECK *runtime::get_call_stack() // get_immediate_caller() CallerInfo into Key (Caller ?)
-    match *get_call_stack()
-        .iter()
-        .nth_back(1)
-        .to_owned()
-        .unwrap_or_revert()
-    {
-        CallStackElement::Session { account_hash } => (Key::from(account_hash), None),
-        CallStackElement::StoredSession {
-            account_hash: _, // Caller is contract
-            contract_package_hash,
-            contract_hash,
-        } => (contract_hash.into(), Some(contract_package_hash.into())),
-        CallStackElement::StoredContract {
-            contract_package_hash,
-            contract_hash,
-        } => (contract_hash.into(), Some(contract_package_hash.into())),
+    const ACCOUNT: u8 = 0;
+    const PACKAGE: u8 = 1;
+    const CONTRACT_PACKAGE: u8 = 2;
+    const ENTITY: u8 = 3;
+    const CONTRACT: u8 = 4;
+
+    let caller_info = casper_get_immediate_caller().unwrap_or_revert();
+
+    match caller_info.kind() {
+        ACCOUNT => {
+            let account_hash = caller_info
+                .get_field_by_index(ACCOUNT)
+                .unwrap()
+                .to_t::<Option<AccountHash>>()
+                .unwrap_or_revert()
+                .unwrap_or_revert_with(NFTCoreError::UnexpectedKeyVariant);
+            (Key::from(account_hash), None)
+        }
+        PACKAGE => {
+            let package_hash = caller_info
+                .get_field_by_index(PACKAGE)
+                .unwrap()
+                .to_t::<Option<PackageHash>>()
+                .unwrap_or_revert()
+                .unwrap_or_revert_with(NFTCoreError::UnexpectedKeyVariant);
+            let contract_hash = caller_info
+                .get_field_by_index(CONTRACT)
+                .unwrap()
+                .to_t::<Option<ContractHash>>()
+                .unwrap_or_revert()
+                .unwrap_or_revert_with(NFTCoreError::UnexpectedKeyVariant);
+            (Key::from(contract_hash), Some(Key::from(package_hash)))
+        }
+        CONTRACT_PACKAGE => {
+            let contract_package_hash = caller_info
+                .get_field_by_index(CONTRACT_PACKAGE)
+                .unwrap()
+                .to_t::<Option<ContractPackageHash>>()
+                .unwrap_or_revert()
+                .unwrap_or_revert_with(NFTCoreError::UnexpectedKeyVariant);
+            let contract_hash = caller_info
+                .get_field_by_index(CONTRACT)
+                .unwrap()
+                .to_t::<Option<ContractHash>>()
+                .unwrap_or_revert()
+                .unwrap_or_revert_with(NFTCoreError::UnexpectedKeyVariant);
+            (
+                Key::from(contract_hash),
+                Some(Key::from(contract_package_hash)),
+            )
+        }
+        ENTITY => {
+            let entity_addr = caller_info
+                .get_field_by_index(ENTITY)
+                .unwrap()
+                .to_t::<Option<EntityAddr>>()
+                .unwrap_or_revert()
+                .unwrap_or_revert_with(NFTCoreError::UnexpectedKeyVariant);
+            (Key::from(entity_addr), None)
+        }
+        CONTRACT => {
+            let contract_hash = caller_info
+                .get_field_by_index(CONTRACT)
+                .unwrap()
+                .to_t::<Option<ContractHash>>()
+                .unwrap_or_revert()
+                .unwrap_or_revert_with(NFTCoreError::UnexpectedKeyVariant);
+            let contract_package_hash = caller_info
+                .get_field_by_index(CONTRACT_PACKAGE)
+                .unwrap()
+                .to_t::<Option<ContractPackageHash>>()
+                .unwrap_or_revert()
+                .unwrap_or_revert_with(NFTCoreError::UnexpectedKeyVariant);
+            (
+                Key::from(contract_hash),
+                Some(Key::from(contract_package_hash)),
+            )
+        }
+        _ => revert(NFTCoreError::UnexpectedKeyVariant),
     }
 }
 
@@ -434,7 +473,7 @@ pub fn get_transfer_filter_contract() -> Option<ContractHash> {
 pub fn max_number_of_pages(total_token_supply: u64) -> u64 {
     if total_token_supply < PAGE_SIZE {
         let dictionary_name = format!("{PREFIX_PAGE_DICTIONARY}_{}", 0);
-        storage::new_dictionary(&dictionary_name)
+        new_dictionary(&dictionary_name)
             .unwrap_or_revert_with(NFTCoreError::FailedToCreateDictionary);
         1
     } else {
@@ -442,7 +481,7 @@ pub fn max_number_of_pages(total_token_supply: u64) -> u64 {
         let overflow = total_token_supply % PAGE_SIZE;
         for page_number in 0..max_number_of_pages {
             let dictionary_name = format!("{PREFIX_PAGE_DICTIONARY}_{page_number}");
-            storage::new_dictionary(&dictionary_name)
+            new_dictionary(&dictionary_name)
                 .unwrap_or_revert_with(NFTCoreError::FailedToCreateDictionary);
         }
         // With a page size of say 1000 and a token supply of 1050
@@ -473,25 +512,25 @@ pub fn insert_hash_id_lookups(
         NFTCoreError::MissingIndexByHash,
         NFTCoreError::InvalidIndexByHash,
     );
-    if storage::dictionary_get::<u64>(
+    if dictionary_get::<u64>(
         index_by_hash_uref,
         &token_identifier.get_dictionary_item_key(),
     )
     .unwrap_or_revert_with(ApiError::User(309))
     .is_some()
     {
-        runtime::revert(NFTCoreError::DuplicateIdentifier)
+        revert(NFTCoreError::DuplicateIdentifier)
     }
-    if storage::dictionary_get::<String>(
+    if dictionary_get::<String>(
         hash_by_index_uref,
         &current_number_of_minted_tokens.to_string(),
     )
     .unwrap_or_revert_with(ApiError::User(310))
     .is_some()
     {
-        runtime::revert(NFTCoreError::DuplicateIdentifier)
+        revert(NFTCoreError::DuplicateIdentifier)
     }
-    storage::dictionary_put(
+    dictionary_put(
         hash_by_index_uref,
         &current_number_of_minted_tokens.to_string(),
         token_identifier
@@ -499,7 +538,7 @@ pub fn insert_hash_id_lookups(
             .get_hash()
             .unwrap_or_revert_with(ApiError::User(311)),
     );
-    storage::dictionary_put(
+    dictionary_put(
         index_by_hash_uref,
         &token_identifier.get_dictionary_item_key(),
         current_number_of_minted_tokens,
@@ -515,7 +554,7 @@ pub fn get_token_index(token_identifier: &TokenIdentifier) -> u64 {
                 NFTCoreError::MissingIndexByHash,
                 NFTCoreError::InvalidIndexByHash,
             );
-            storage::dictionary_get::<u64>(
+            dictionary_get::<u64>(
                 index_by_hash_uref,
                 &token_identifier.get_dictionary_item_key(),
             )
@@ -526,7 +565,7 @@ pub fn get_token_index(token_identifier: &TokenIdentifier) -> u64 {
 }
 
 pub fn migrate_owned_tokens_in_ordinal_mode() {
-    let current_number_of_minted_tokens = utils::get_stored_value_with_user_errors::<u64>(
+    let current_number_of_minted_tokens = get_stored_value_with_user_errors::<u64>(
         NUMBER_OF_MINTED_TOKENS,
         NFTCoreError::MissingTotalTokenSupply,
         NFTCoreError::InvalidTotalTokenSupply,
@@ -562,35 +601,32 @@ pub fn migrate_owned_tokens_in_ordinal_mode() {
                     .unwrap_or_revert_with(ApiError::User(314));
                 let page_number = token_id / PAGE_SIZE;
                 let page_index = token_id % PAGE_SIZE;
-                let mut page_record = match storage::dictionary_get::<Vec<bool>>(
-                    page_table_uref,
-                    &token_owner_item_key,
-                )
-                .unwrap_or_revert_with(ApiError::User(315))
-                {
-                    Some(page_record) => page_record,
-                    None => vec![false; page_table_width as usize],
-                };
+                let mut page_record =
+                    match dictionary_get::<Vec<bool>>(page_table_uref, &token_owner_item_key)
+                        .unwrap_or_revert_with(ApiError::User(315))
+                    {
+                        Some(page_record) => page_record,
+                        None => vec![false; page_table_width as usize],
+                    };
                 let page_uref = get_uref(
                     &format!("{PREFIX_PAGE_DICTIONARY}_{page_number}"),
                     NFTCoreError::MissingStorageUref,
                     NFTCoreError::InvalidStorageUref,
                 );
                 let _ = core::mem::replace(&mut page_record[page_number as usize], true);
-                storage::dictionary_put(page_table_uref, &token_owner_item_key, page_record);
-                let mut page =
-                    match storage::dictionary_get::<Vec<bool>>(page_uref, &token_owner_item_key)
-                        .unwrap_or_revert_with(ApiError::User(316))
-                    {
-                        None => vec![false; PAGE_SIZE as usize],
-                        Some(single_page) => single_page,
-                    };
+                dictionary_put(page_table_uref, &token_owner_item_key, page_record);
+                let mut page = match dictionary_get::<Vec<bool>>(page_uref, &token_owner_item_key)
+                    .unwrap_or_revert_with(ApiError::User(316))
+                {
+                    None => vec![false; PAGE_SIZE as usize],
+                    Some(single_page) => single_page,
+                };
                 let is_already_marked_as_owned =
                     core::mem::replace(&mut page[page_index as usize], true);
                 if is_already_marked_as_owned {
-                    runtime::revert(NFTCoreError::InvalidPageIndex)
+                    revert(NFTCoreError::InvalidPageIndex)
                 }
-                storage::dictionary_put(page_uref, &token_owner_item_key, page);
+                dictionary_put(page_uref, &token_owner_item_key, page);
                 searched_token_ids.push(token_id)
             }
         }
@@ -613,12 +649,10 @@ pub fn should_migrate_token_hashes(token_owner: Key) -> bool {
     );
     // If the owner has registered, then they will have an page table entry
     // but it will contain no bits set.
-    let page_table = storage::dictionary_get::<Vec<bool>>(
-        page_table_uref,
-        &encode_dictionary_item_key(token_owner),
-    )
-    .unwrap_or_revert_with(ApiError::User(317))
-    .unwrap_or_revert_with(NFTCoreError::UnregisteredOwnerFromMigration);
+    let page_table =
+        dictionary_get::<Vec<bool>>(page_table_uref, &encode_dictionary_item_key(token_owner))
+            .unwrap_or_revert_with(ApiError::User(317))
+            .unwrap_or_revert_with(NFTCoreError::UnregisteredOwnerFromMigration);
     if page_table.contains(&true) {
         return false;
     }
@@ -633,7 +667,7 @@ pub fn migrate_token_hashes(token_owner: Key) {
     );
 
     if unmatched_hash_count == 0 {
-        runtime::revert(NFTCoreError::InvalidNumberOfMintedTokens)
+        revert(NFTCoreError::InvalidNumberOfMintedTokens)
     }
 
     let token_owner_item_key = encode_dictionary_item_key(token_owner);
@@ -658,27 +692,27 @@ pub fn migrate_token_hashes(token_owner: Key) {
         let page_table_entry = token_address / PAGE_SIZE;
         let page_address = token_address % PAGE_SIZE;
         let mut page_table =
-            match storage::dictionary_get::<Vec<bool>>(page_table_uref, &token_owner_item_key)
+            match dictionary_get::<Vec<bool>>(page_table_uref, &token_owner_item_key)
                 .unwrap_or_revert_with(ApiError::User(318))
             {
                 Some(page_record) => page_record,
                 None => vec![false; page_table_width as usize],
             };
         let _ = core::mem::replace(&mut page_table[page_table_entry as usize], true);
-        storage::dictionary_put(page_table_uref, &token_owner_item_key, page_table);
+        dictionary_put(page_table_uref, &token_owner_item_key, page_table);
         let page_uref = get_uref(
             &format!("{PREFIX_PAGE_DICTIONARY}_{page_table_entry}"),
             NFTCoreError::MissingStorageUref,
             NFTCoreError::InvalidStorageUref,
         );
-        let mut page = match storage::dictionary_get::<Vec<bool>>(page_uref, &token_owner_item_key)
+        let mut page = match dictionary_get::<Vec<bool>>(page_uref, &token_owner_item_key)
             .unwrap_or_revert_with(ApiError::User(319))
         {
             Some(single_page) => single_page,
             None => vec![false; PAGE_SIZE as usize],
         };
         let _ = core::mem::replace(&mut page[page_address as usize], true);
-        storage::dictionary_put(page_uref, &token_owner_item_key, page);
+        dictionary_put(page_uref, &token_owner_item_key, page);
         insert_hash_id_lookups(unmatched_hash_count - 1, token_identifier);
         unmatched_hash_count -= 1;
     }
@@ -689,11 +723,11 @@ pub fn migrate_token_hashes(token_owner: Key) {
         NFTCoreError::InvalidUnmatchedHashCount,
     );
 
-    storage::write(unmatched_hash_count_uref, unmatched_hash_count);
+    write(unmatched_hash_count_uref, unmatched_hash_count);
 }
 
 pub fn get_receipt_name(page_table_entry: u64) -> String {
-    let receipt = utils::get_stored_value_with_user_errors::<String>(
+    let receipt = get_stored_value_with_user_errors::<String>(
         RECEIPT_NAME,
         NFTCoreError::MissingReceiptName,
         NFTCoreError::InvalidReceiptName,
@@ -702,7 +736,7 @@ pub fn get_receipt_name(page_table_entry: u64) -> String {
 }
 
 pub fn get_reporting_mode() -> OwnerReverseLookupMode {
-    utils::get_stored_value_with_user_errors::<u8>(
+    get_stored_value_with_user_errors::<u8>(
         REPORTING_MODE,
         NFTCoreError::MissingReportingMode,
         NFTCoreError::InvalidReportingMode,
@@ -723,24 +757,24 @@ pub fn add_page_entry_and_page_record(
     let page_address = tokens_count % PAGE_SIZE;
 
     // Update the page entry first
-    let page_table_uref = utils::get_uref(
+    let page_table_uref = get_uref(
         PAGE_TABLE,
         NFTCoreError::MissingPageTableURef,
         NFTCoreError::InvalidPageTableURef,
     );
 
     // Update the individual page record.
-    let page_uref = utils::get_uref(
+    let page_uref = get_uref(
         &format!("{PREFIX_PAGE_DICTIONARY}_{page_table_entry}"),
         NFTCoreError::MissingPageUref,
         NFTCoreError::InvalidPageUref,
     );
 
-    let mut page_table = match storage::dictionary_get::<Vec<bool>>(page_table_uref, item_key)
+    let mut page_table = match dictionary_get::<Vec<bool>>(page_table_uref, item_key)
         .unwrap_or_revert_with(ApiError::User(321))
     {
         Some(page_table) => page_table,
-        None => runtime::revert(if on_mint {
+        None => revert(if on_mint {
             NFTCoreError::UnregisteredOwnerInMint
         } else {
             NFTCoreError::UnregisteredOwnerInTransfer
@@ -750,17 +784,17 @@ pub fn add_page_entry_and_page_record(
     let mut page = if !page_table[page_table_entry as usize] {
         // We mark the page table entry to true to signal the allocation of a page.
         let _ = core::mem::replace(&mut page_table[page_table_entry as usize], true);
-        storage::dictionary_put(page_table_uref, item_key, page_table);
+        dictionary_put(page_table_uref, item_key, page_table);
         vec![false; PAGE_SIZE as usize]
     } else {
-        storage::dictionary_get::<Vec<bool>>(page_uref, item_key)
+        dictionary_get::<Vec<bool>>(page_uref, item_key)
             .unwrap_or_revert_with(ApiError::User(322))
             .unwrap_or_revert_with(NFTCoreError::MissingPage)
     };
 
     let _ = core::mem::replace(&mut page[page_address as usize], true);
 
-    storage::dictionary_put(page_uref, item_key, page);
+    dictionary_put(page_uref, item_key, page);
     (page_table_entry, page_uref)
 }
 
@@ -772,48 +806,48 @@ pub fn update_page_entry_and_page_record(
     let page_table_entry = tokens_count / PAGE_SIZE;
     let page_address = tokens_count % PAGE_SIZE;
 
-    let page_uref = utils::get_uref(
+    let page_uref = get_uref(
         &format!("{PREFIX_PAGE_DICTIONARY}_{page_table_entry}"),
         NFTCoreError::MissingStorageUref,
         NFTCoreError::InvalidStorageUref,
     );
 
-    let mut source_page = storage::dictionary_get::<Vec<bool>>(page_uref, old_item_key)
+    let mut source_page = dictionary_get::<Vec<bool>>(page_uref, old_item_key)
         .unwrap_or_revert_with(ApiError::User(323))
         .unwrap_or_revert_with(NFTCoreError::InvalidPageNumber);
 
     if !source_page[page_address as usize] {
-        runtime::revert(NFTCoreError::InvalidTokenIdentifier)
+        revert(NFTCoreError::InvalidTokenIdentifier)
     }
 
     let _ = core::mem::replace(&mut source_page[page_address as usize], false);
 
-    storage::dictionary_put(page_uref, old_item_key, source_page);
+    dictionary_put(page_uref, old_item_key, source_page);
 
-    let page_table_uref = utils::get_uref(
+    let page_table_uref = get_uref(
         PAGE_TABLE,
         NFTCoreError::MissingPageTableURef,
         NFTCoreError::InvalidPageTableURef,
     );
 
-    let mut target_page_table = storage::dictionary_get::<Vec<bool>>(page_table_uref, new_item_key)
+    let mut target_page_table = dictionary_get::<Vec<bool>>(page_table_uref, new_item_key)
         .unwrap_or_revert_with(ApiError::User(324))
         .unwrap_or_revert_with(NFTCoreError::UnregisteredOwnerInTransfer);
 
     let mut target_page = if !target_page_table[page_table_entry as usize] {
         // Create a new page here
         let _ = core::mem::replace(&mut target_page_table[page_table_entry as usize], true);
-        storage::dictionary_put(page_table_uref, new_item_key, target_page_table);
+        dictionary_put(page_table_uref, new_item_key, target_page_table);
         vec![false; PAGE_SIZE as usize]
     } else {
-        storage::dictionary_get::<Vec<bool>>(page_uref, new_item_key)
+        dictionary_get::<Vec<bool>>(page_uref, new_item_key)
             .unwrap_or_revert_with(ApiError::User(325))
             .unwrap_or_revert_with(ApiError::User(326))
     };
 
     let _ = core::mem::replace(&mut target_page[page_address as usize], true);
 
-    storage::dictionary_put(page_uref, new_item_key, target_page);
+    dictionary_put(page_uref, new_item_key, target_page);
     (page_table_entry, page_uref)
 }
 
@@ -859,23 +893,23 @@ pub fn init_events() {
 }
 
 pub fn requires_rlo_migration() -> bool {
-    match runtime::get_key(MIGRATION_FLAG) {
+    match get_key(MIGRATION_FLAG) {
         Some(migration_flag_key) => {
             let migration_uref = migration_flag_key
                 .into_uref()
                 .unwrap_or_revert_with(NFTCoreError::InvalidUrefMigrationKey);
-            let has_rlo_migration = storage::read::<bool>(migration_uref)
+            let has_rlo_migration = read::<bool>(migration_uref)
                 .unwrap_or_revert_with(ApiError::User(329))
                 .unwrap_or_revert_with(ApiError::User(330));
-            runtime::remove_key(MIGRATION_FLAG);
+            remove_key(MIGRATION_FLAG);
             !has_rlo_migration
         }
-        None => match runtime::get_key(RLO_MFLAG) {
+        None => match get_key(RLO_MFLAG) {
             Some(rlo_flag_key) => {
                 let rlo_flag_uref = rlo_flag_key
                     .into_uref()
                     .unwrap_or_revert_with(NFTCoreError::InvalidRloKey);
-                storage::read::<bool>(rlo_flag_uref)
+                read::<bool>(rlo_flag_uref)
                     .unwrap_or_revert_with(ApiError::User(331))
                     .unwrap_or_revert_with(ApiError::User(332))
             }
@@ -886,10 +920,9 @@ pub fn requires_rlo_migration() -> bool {
 
 pub fn migrate_contract_whitelist_to_acl_whitelist() {
     // Add ACL whitelist dict and migrate old contract whitelist to new ACL dict
-    if runtime::get_key(ACL_WHITELIST).is_none() {
-        storage::new_dictionary(ACL_WHITELIST)
-            .unwrap_or_revert_with(NFTCoreError::FailedToCreateDictionary);
-        let contract_whitelist = utils::get_stored_value_with_user_errors::<Vec<ContractHash>>(
+    if get_key(ACL_WHITELIST).is_none() {
+        new_dictionary(ACL_WHITELIST).unwrap_or_revert_with(NFTCoreError::FailedToCreateDictionary);
+        let contract_whitelist = get_stored_value_with_user_errors::<Vec<ContractHash>>(
             CONTRACT_WHITELIST,
             NFTCoreError::MissingWhitelistMode,
             NFTCoreError::InvalidWhitelistMode,
@@ -898,7 +931,7 @@ pub fn migrate_contract_whitelist_to_acl_whitelist() {
         // If mining mode is Installer and contract whitelist is not empty then migrate to minting
         // mode ACL and fill ACL_WHITELIST dictionnary
         if !contract_whitelist.is_empty() {
-            let minting_mode: MintingMode = utils::get_stored_value_with_user_errors::<u8>(
+            let minting_mode: MintingMode = get_stored_value_with_user_errors::<u8>(
                 MINTING_MODE,
                 NFTCoreError::MissingMintingMode,
                 NFTCoreError::InvalidMintingMode,
@@ -908,19 +941,12 @@ pub fn migrate_contract_whitelist_to_acl_whitelist() {
 
             // Migrate to ACL
             if MintingMode::Installer == minting_mode {
-                runtime::put_key(
-                    MINTING_MODE,
-                    storage::new_uref(MintingMode::Acl as u8).into(),
-                );
+                put_key(MINTING_MODE, new_uref(MintingMode::Acl as u8).into());
             }
 
             // Update acl whitelist
             for contract_hash in contract_whitelist.iter() {
-                utils::upsert_dictionary_value_from_key(
-                    ACL_WHITELIST,
-                    &contract_hash.to_string(),
-                    true,
-                );
+                upsert_dictionary_value_from_key(ACL_WHITELIST, &contract_hash.to_string(), true);
             }
         }
     }
