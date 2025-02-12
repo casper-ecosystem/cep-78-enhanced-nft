@@ -2,13 +2,14 @@ import * as path from "node:path";
 import * as fs from "fs";
 
 const LIST_OF_WASMS = [
-  "contract.wasm",
-  "mint_call.wasm",
-  "balance_of_call.wasm",
-  "owner_of_call.wasm",
-  "get_approved_call.wasm",
-  "transfer_call.wasm",
+  "cep78.wasm",
+  "mint_session.wasm",
+  "balance_of_session.wasm",
+  "owner_of_session.wasm",
+  "get_approved_session.wasm",
+  "transfer_session.wasm",
   "updated_receipts.wasm",
+  "is_approved_for_all_session.wasm",
 ];
 
 const PATH_FROM = path.resolve(__dirname, '../../tests/wasm');

@@ -59,7 +59,7 @@ and only exists to specify the correlation between on-chain data and off-chain i
 2. `Digital`: The NFT represents a digital item, e.g., a unique JPEG or digital art.
 3. `Virtual`: The NFT is the virtual representation of a physical notion, e.g., a patent or copyright.
 
-The `NFTKind` mode is a required installation parameter and cannot be changed once the contract has been installed.
+This modality is an optional installation parameter and will default to the `Virtual` mode if not provided. However, this mode cannot be changed once the contract has been installed.
 The mode is passed in as a `u8` value to `nft_kind` runtime argument.
 
 | NFTKind  | u8  |
@@ -85,8 +85,7 @@ If the `NFTHolderMode` is set to `Contracts` a `ContractHash` whitelist must be 
 | Contracts     | 1   |
 | Mixed         | 2   |
 
-This modality is an optional installation parameter and will default to the `Mixed` mode if not provided. However, this
-mode cannot be changed once the contract has been installed.
+This modality is an optional installation parameter and will default to the `Mixed` mode if not provided. However, this mode cannot be changed once the contract has been installed.
 The mode is passed in as a `u8` value to `nft_holder_mode` runtime argument.
 
 ## WhitelistMode

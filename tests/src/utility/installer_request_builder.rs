@@ -3,7 +3,7 @@ use casper_engine_test_support::{ExecuteRequest, ExecuteRequestBuilder};
 use casper_types::{
     account::AccountHash, bytesrepr::Bytes, contracts::ContractHash, CLValue, Key, RuntimeArgs,
 };
-use contract::constants::{
+use cep78::constants::{
     ARG_ACL_PACKAGE_MODE, ARG_ACL_WHITELIST, ARG_ADDITIONAL_REQUIRED_METADATA, ARG_ALLOW_MINTING,
     ARG_BURN_MODE, ARG_COLLECTION_NAME, ARG_COLLECTION_SYMBOL, ARG_CONTRACT_WHITELIST,
     ARG_EVENTS_MODE, ARG_HOLDER_MODE, ARG_IDENTIFIER_MODE, ARG_JSON_SCHEMA,
@@ -17,7 +17,7 @@ use serde::{Deserialize, Serialize};
 use std::collections::BTreeMap;
 
 // Modalities reexports.
-pub use contract::modalities::{
+pub use cep78::modalities::{
     EventsMode, MintingMode, NFTHolderMode, NFTKind, OwnershipMode, WhitelistMode,
 };
 

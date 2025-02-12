@@ -2,15 +2,15 @@ use casper_engine_test_support::DEFAULT_ACCOUNT_ADDR;
 use casper_types::{account::AccountHash, Key, PublicKey, SecretKey};
 use once_cell::sync::Lazy;
 
-pub const BALANCE_OF_SESSION_WASM: &str = "balance_of_call.wasm";
-pub const GET_APPROVED_WASM: &str = "get_approved_call.wasm";
-pub const IS_APPROVED_FOR_ALL_WASM: &str = "is_approved_for_all_call.wasm";
-pub const MINT_SESSION_WASM: &str = "mint_call.wasm";
+pub const BALANCE_OF_SESSION_WASM: &str = "balance_of_session.wasm";
+pub const GET_APPROVED_WASM: &str = "get_approved_session.wasm";
+pub const IS_APPROVED_FOR_ALL_WASM: &str = "is_approved_for_all_session.wasm";
+pub const MINT_SESSION_WASM: &str = "mint_session.wasm";
 pub const MINTING_CONTRACT_WASM: &str = "minting_contract.wasm";
 pub const TRANSFER_FILTER_CONTRACT_WASM: &str = "transfer_filter_contract.wasm";
-pub const NFT_CONTRACT_WASM: &str = "contract.wasm";
-pub const OWNER_OF_SESSION_WASM: &str = "owner_of_call.wasm";
-pub const TRANSFER_SESSION_WASM: &str = "transfer_call.wasm";
+pub const NFT_CONTRACT_WASM: &str = "cep78.wasm";
+pub const OWNER_OF_SESSION_WASM: &str = "owner_of_session.wasm";
+pub const TRANSFER_SESSION_WASM: &str = "transfer_session.wasm";
 
 pub const ARG_IS_HASH_IDENTIFIER_MODE: &str = "is_hash_identifier_mode";
 pub const ARG_KEY_NAME: &str = "key_name";

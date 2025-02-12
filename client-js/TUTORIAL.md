@@ -19,7 +19,7 @@ npm install casper-cep78-js-client
 ## Installing a CEP-78 Contract using the JavaScript Client
 
 The `install` method crafts a [Deploy](https://docs.casper.network/deploy-and-deploy-lifecycle/#execution-semantics-deploys) using `InstallArgs`.
-As with every deploy created by the SDK, you can send it using the `.send(rpcUrl)` method providing the RPC URL that you want to use. It will return deployHash. 
+As with every deploy created by the SDK, you can send it using the `.send(rpcUrl)` method providing the RPC URL that you want to use. It will return deployHash.
 
 ```js
 
@@ -65,7 +65,7 @@ As with every deploy created by the SDK, you can send it using the `.send(rpcUrl
 
 * `ownershipMode` - The `OwnershipMode` modality that dictates the ownership behavior of the NFT contract. This argument is passed in as a `u8` value and is required at the time of installation.
 
-* `nftKind` - The `NFTKind` modality that specifies the off-chain items represented by the on-chain NFT data. This argument is passed in as a `u8` value and is required at the time of installation.
+* `nftKind` - The `NFTKind` modality that specifies the off-chain items represented by the on-chain NFT data. This argument is passed in as a `u8` value and is optional at the time of installation.
 
 * `jsonSchema` - The JSON schema for the NFT tokens that will be minted by the NFT contract passed in as a `String`. More information on `NFTMetadataKind` can be found [here](../docs/modalities.md#nftmetadatakind). This parameter may be left empty if metadata kind is set to `Raw(3)`. If the metadata kind is set to `CustomValidated(4)`, it will require a specifically formatted custom schema. This parameter **cannot be changed post installation**.
 
@@ -116,7 +116,7 @@ In this example, the [`useSessionCode`](https://github.com/casper-ecosystem/cep-
 
 If `OwnerReverseLookupMode` is set to `NoLookup`, `useSessionCode` will be set to `false` and it will simply mint the token as it does not need to register the recipient.
 
-## Register Recipient 
+## Register Recipient
 
 As we used `ownerReverseLookupMode: OwnerReverseLookupMode.Complete` in this contract installation, we must register the recipient. To do this, we construct a `register` deploy:
 
@@ -132,9 +132,9 @@ As we used `ownerReverseLookupMode: OwnerReverseLookupMode.Complete` in this con
     );
 
     const registerDeployHash = await registerDeploy.send("http://localhost:11101/rpc");
-    
+
 ```
-    
+
 ## Transferring a Token
 
 After minting one or more tokens, you can then use the following code to transfer the tokens between accounts:

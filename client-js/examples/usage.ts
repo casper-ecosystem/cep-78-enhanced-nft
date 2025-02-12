@@ -1,49 +1,44 @@
+// eslint-disable-next-line eslint-comments/disable-enable-pair
+/* eslint-disable no-console */
+import {
+  DeployUtil,
+  CLPublicKey,
+  EventStream,
+  EventName,
+  CasperServiceByJsonRPC
+} from "casper-js-sdk";
 import {
   CEP78Client,
   OwnerReverseLookupMode,
-  CEP47EventParserFactory,
   CESEventParserFactory,
-  CEP47Events,
+  EventItem,
 } from "../src/index";
 
 import {
   FAUCET_KEYS,
   USER1_KEYS,
-  USER2_KEYS,
   getDeploy,
   getAccountInfo,
   getAccountNamedKeyValue,
   printHeader,
 } from "./common";
 
-import {
-  DeployUtil,
-  CLPublicKey,
-  EventStream,
-  EventName,
-  CLValueParsers,
-  CLTypeTag,
-  CLMap,
-  CLValue,
-  CLValueBuilder,
-  CasperServiceByJsonRPC
-} from "casper-js-sdk";
 
 const { NODE_URL, EVENT_STREAM_ADDRESS } = process.env;
 
 const runDeployFlow = async (deploy: DeployUtil.Deploy) => {
-  const deployHash = await deploy.send(NODE_URL!);
+  const deployHash = await deploy.send(NODE_URL);
 
   console.log("...... Deploy hash: ", deployHash);
   console.log("...... Waiting for the deploy...");
 
-  await getDeploy(NODE_URL!, deployHash);
+  await getDeploy(NODE_URL, deployHash);
 
   console.log(`...... Deploy ${deployHash} succedeed`);
 };
 
-const run = async () => {
-  const cc = new CEP78Client(process.env.NODE_URL!, process.env.NETWORK_NAME!);
+const usage = async () => {
+  const cc = new CEP78Client(process.env.NODE_URL, process.env.NETWORK_NAME);
 
   const printTokenDetails = async (id: string, pk: CLPublicKey) => {
     const ownerOfToken = await cc.getOwnerOf(id);
@@ -56,19 +51,20 @@ const run = async () => {
     console.log(`> Token ${id} metadata`, metadataOfZero);
   };
 
-  let accountInfo = await getAccountInfo(NODE_URL!, FAUCET_KEYS.publicKey);
+  // eslint-disable-next-line @typescript-eslint/no-unsafe-call
+  let accountInfo = await getAccountInfo(NODE_URL, FAUCET_KEYS.publicKey);
 
   console.log(`\n=====================================\n`);
 
   console.log(`... Account Info: `);
   console.log(JSON.stringify(accountInfo, null, 2));
 
-  const contractHash = await getAccountNamedKeyValue(
+  const contractHash = getAccountNamedKeyValue(
     accountInfo,
     `cep78_contract_hash_my-collection`
   );
 
-  const contractPackageHash = await getAccountNamedKeyValue(
+  const contractPackageHash = getAccountNamedKeyValue(
     accountInfo,
     `cep78_contract_package_my-collection`
   );
@@ -76,11 +72,11 @@ const run = async () => {
   console.log(`... Contract Hash: ${contractHash}`);
   console.log(`... Contract Package Hash: ${contractPackageHash}`);
 
-  await cc.setContractHash(contractHash, undefined);
+  cc.setContractHash(contractHash, undefined);
 
   console.log(`\n=====================================\n`);
 
-  const allowMintingSetting = await cc.getAllowMintingConfig();
+  const allowMintingSetting = await cc.getAllowMintingConfig() as string;
   console.log(`AllowMintingSetting: ${allowMintingSetting}`);
 
   const burnModeSetting = await cc.getBurnModeConfig();
@@ -102,35 +98,28 @@ const run = async () => {
     ownerReverseLookupModeSetting ===
     OwnerReverseLookupMode[OwnerReverseLookupMode.Complete];
 
-  const JSONSetting = await cc.getJSONSchemaConfig();
-
-  const cep47EventParser = CEP47EventParserFactory({
-    contractPackageHash,
-    eventNames: [
-      CEP47Events.Mint,
-      CEP47Events.Transfer,
-      CEP47Events.Burn
-    ],
-  });
-
   const casperClient = new CasperServiceByJsonRPC(NODE_URL);
   const cesEventParser = CESEventParserFactory({
     contractHashes: [contractHash],
     casperClient,
   });
 
-  const es = new EventStream(EVENT_STREAM_ADDRESS!);
+  const es = new EventStream(EVENT_STREAM_ADDRESS);
 
-  es.subscribe(EventName.DeployProcessed, async (event) => {
-    const parsedEvents = await cesEventParser(event); //cep47EventParser(event);
-
-    if (parsedEvents?.success) {
-      console.log("*** EVENT ***");
-      console.log(parsedEvents.data);
-      console.log("*** ***");
-    } else {
-      console.log("*** EVENT NOT RELATED TO WATCHED CONTRACT ***");
-    }
+  es.subscribe(EventName.DeployProcessed, (event: EventItem) => {
+    cesEventParser(event)
+      .then((parsedEvents) => {
+        if (parsedEvents?.success) {
+          console.log("*** EVENT ***");
+          console.log(parsedEvents.data);
+          console.log("*** ***");
+        } else {
+          console.log("*** EVENT NOT RELATED TO WATCHED CONTRACT ***");
+        }
+      })
+      .catch((error) => {
+        console.error("Error processing event:", error);
+      });
   });
 
   es.start();
@@ -212,9 +201,10 @@ const run = async () => {
   await runDeployFlow(storeOwnerOfDeploy);
 
   // Getting new account info to update namedKeys
-  accountInfo = await getAccountInfo(NODE_URL!, FAUCET_KEYS.publicKey);
 
-  const storedOwnerValue = await getAccountNamedKeyValue(
+  accountInfo = await getAccountInfo(NODE_URL, FAUCET_KEYS.publicKey);
+
+  const storedOwnerValue = getAccountNamedKeyValue(
     accountInfo,
     `stored_owner_of_token`
   );
@@ -234,4 +224,10 @@ const run = async () => {
   await runDeployFlow(burnDeploy);
 };
 
-run();
+usage()
+  .then(() => {
+    console.log("Usage completed successfully.");
+  })
+  .catch((error) => {
+    console.error("Usage failed:", error);
+  });

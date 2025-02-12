@@ -4,7 +4,7 @@ use casper_engine_test_support::{ExecuteRequestBuilder, DEFAULT_ACCOUNT_ADDR};
 use casper_event_standard::EVENTS_DICT;
 use casper_types::{addressable_entity::EntityKindTag, runtime_args, AddressableEntityHash, Key};
 
-use contract::{
+use cep78::{
     constants::{
         APPROVED, ARG_APPROVE_ALL, ARG_COLLECTION_NAME, ARG_OPERATOR, ARG_SOURCE_KEY, ARG_SPENDER,
         ARG_TARGET_KEY, ARG_TOKEN_HASH, ARG_TOKEN_ID, ARG_TOKEN_META_DATA, ARG_TOKEN_OWNER, BURNER,
@@ -31,8 +31,7 @@ use crate::utility::{
     },
     support::{
         self, call_session_code_with_ret, genesis, get_dictionary_value_from_key,
-        get_nft_contract_entity_hash_key, get_nft_contract_hash, get_token_page_by_id,
-        query_stored_value,
+        get_nft_contract_hash, get_nft_contract_hash_key, get_token_page_by_id, query_stored_value,
     },
 };
 
@@ -52,7 +51,7 @@ fn should_record_cep47_dictionary_style_mint_event() {
         .expect_success()
         .commit();
 
-    let nft_contract_key: Key = get_nft_contract_entity_hash_key(&builder);
+    let nft_contract_key: Key = get_nft_contract_hash_key(&builder);
 
     let mint_session_call = ExecuteRequestBuilder::standard(
         *DEFAULT_ACCOUNT_ADDR,
@@ -75,16 +74,13 @@ fn should_record_cep47_dictionary_style_mint_event() {
         "0",
     );
 
-    let collection_name: String = query_stored_value(
-        &builder,
-        nft_contract_key,
-        vec![ARG_COLLECTION_NAME.to_string()],
-    );
+    let collection_name: String =
+        query_stored_value(&builder, nft_contract_key, ARG_COLLECTION_NAME);
 
     let package = query_stored_value::<String>(
         &builder,
         nft_contract_key,
-        vec![format!("{PREFIX_CEP78}_{collection_name}")],
+        &format!("{PREFIX_CEP78}_{collection_name}"),
     );
 
     let mut expected_event: BTreeMap<String, String> = BTreeMap::new();
@@ -114,8 +110,7 @@ fn should_record_cep47_dictionary_style_transfer_token_event_in_hash_identifier_
     builder.exec(install_request).expect_success().commit();
 
     let nft_contract_hash = get_nft_contract_hash(&builder);
-    let nft_contract_key: Key =
-        Key::addressable_entity_key(EntityKindTag::SmartContract, nft_contract_hash);
+    let nft_contract_key: Key = get_nft_contract_hash_key(&builder);
 
     let mint_session_call = ExecuteRequestBuilder::standard(
         *DEFAULT_ACCOUNT_ADDR,
@@ -173,16 +168,13 @@ fn should_record_cep47_dictionary_style_transfer_token_event_in_hash_identifier_
         "1",
     );
 
-    let collection_name: String = query_stored_value(
-        &builder,
-        nft_contract_key,
-        vec![ARG_COLLECTION_NAME.to_string()],
-    );
+    let collection_name: String =
+        query_stored_value(&builder, nft_contract_key, ARG_COLLECTION_NAME);
 
     let package = query_stored_value::<String>(
         &builder,
         nft_contract_key,
-        vec![format!("{PREFIX_CEP78}_{collection_name}")],
+        &format!("{PREFIX_CEP78}_{collection_name}"),
     );
 
     let mut expected_event: BTreeMap<String, String> = BTreeMap::new();
@@ -220,7 +212,7 @@ fn should_record_cep47_dictionary_style_metadata_update_event_for_nft721_using_t
 
     builder.exec(install_request).expect_success().commit();
 
-    let nft_contract_key: Key = get_nft_contract_entity_hash_key(&builder);
+    let nft_contract_key: Key = get_nft_contract_hash_key(&builder);
 
     let custom_metadata = serde_json::to_string_pretty(&*TEST_CUSTOM_METADATA)
         .expect("must convert to json metadata");
@@ -333,16 +325,13 @@ fn should_record_cep47_dictionary_style_metadata_update_event_for_nft721_using_t
         "1",
     );
 
-    let collection_name: String = query_stored_value(
-        &builder,
-        nft_contract_key,
-        vec![ARG_COLLECTION_NAME.to_string()],
-    );
+    let collection_name: String =
+        query_stored_value(&builder, nft_contract_key, ARG_COLLECTION_NAME);
 
     let package = query_stored_value::<String>(
         &builder,
         nft_contract_key,
-        vec![format!("{PREFIX_CEP78}_{collection_name}")],
+        &format!("{PREFIX_CEP78}_{collection_name}"),
     );
 
     let mut expected_event: BTreeMap<String, String> = BTreeMap::new();
@@ -370,7 +359,7 @@ fn should_cep47_dictionary_style_burn_event() {
         .expect_success()
         .commit();
 
-    let nft_contract_key: Key = get_nft_contract_entity_hash_key(&builder);
+    let nft_contract_key: Key = get_nft_contract_hash_key(&builder);
 
     let mint_session_call = ExecuteRequestBuilder::standard(
         *DEFAULT_ACCOUNT_ADDR,
@@ -438,16 +427,13 @@ fn should_cep47_dictionary_style_burn_event() {
         "1",
     );
 
-    let collection_name: String = query_stored_value(
-        &builder,
-        nft_contract_key,
-        vec![ARG_COLLECTION_NAME.to_string()],
-    );
+    let collection_name: String =
+        query_stored_value(&builder, nft_contract_key, ARG_COLLECTION_NAME);
 
     let package = query_stored_value::<String>(
         &builder,
         nft_contract_key,
-        vec![format!("{PREFIX_CEP78}_{collection_name}")],
+        &format!("{PREFIX_CEP78}_{collection_name}"),
     );
 
     let mut expected_event: BTreeMap<String, String> = BTreeMap::new();
@@ -475,8 +461,7 @@ fn should_cep47_dictionary_style_approve_event_in_hash_identifier_mode() {
     builder.exec(install_request).expect_success().commit();
 
     let nft_contract_hash = get_nft_contract_hash(&builder);
-    let nft_contract_key: Key =
-        Key::addressable_entity_key(EntityKindTag::SmartContract, nft_contract_hash);
+    let nft_contract_key: Key = get_nft_contract_hash_key(&builder);
 
     let mint_session_call = ExecuteRequestBuilder::standard(
         *DEFAULT_ACCOUNT_ADDR,
@@ -529,16 +514,13 @@ fn should_cep47_dictionary_style_approve_event_in_hash_identifier_mode() {
         "1",
     );
 
-    let collection_name: String = query_stored_value(
-        &builder,
-        nft_contract_key,
-        vec![ARG_COLLECTION_NAME.to_string()],
-    );
+    let collection_name: String =
+        query_stored_value(&builder, nft_contract_key, ARG_COLLECTION_NAME);
 
     let package = query_stored_value::<String>(
         &builder,
         nft_contract_key,
-        vec![format!("{PREFIX_CEP78}_{collection_name}")],
+        &format!("{PREFIX_CEP78}_{collection_name}"),
     );
     let mut expected_event: BTreeMap<String, String> = BTreeMap::new();
     expected_event.insert(EVENT_TYPE.to_string(), "Approve".to_string());
@@ -568,8 +550,7 @@ fn should_cep47_dictionary_style_approvall_for_all_event() {
         .commit();
 
     let nft_contract_hash = get_nft_contract_hash(&builder);
-    let nft_contract_key: Key =
-        Key::addressable_entity_key(EntityKindTag::SmartContract, nft_contract_hash);
+    let nft_contract_key: Key = get_nft_contract_hash_key(&builder);
 
     let mint_session_call = ExecuteRequestBuilder::standard(
         *DEFAULT_ACCOUNT_ADDR,
@@ -624,16 +605,13 @@ fn should_cep47_dictionary_style_approvall_for_all_event() {
         "1",
     );
 
-    let collection_name: String = query_stored_value(
-        &builder,
-        nft_contract_key,
-        vec![ARG_COLLECTION_NAME.to_string()],
-    );
+    let collection_name: String =
+        query_stored_value(&builder, nft_contract_key, ARG_COLLECTION_NAME);
 
     let package = query_stored_value::<String>(
         &builder,
         nft_contract_key,
-        vec![format!("{PREFIX_CEP78}_{collection_name}")],
+        &format!("{PREFIX_CEP78}_{collection_name}"),
     );
     let mut expected_event: BTreeMap<String, String> = BTreeMap::new();
     expected_event.insert(EVENT_TYPE.to_string(), "ApprovalForAll".to_string());
@@ -659,8 +637,7 @@ fn should_cep47_dictionary_style_revoked_for_all_event() {
         .commit();
 
     let nft_contract_hash = get_nft_contract_hash(&builder);
-    let nft_contract_key: Key =
-        Key::addressable_entity_key(EntityKindTag::SmartContract, nft_contract_hash);
+    let nft_contract_key: Key = get_nft_contract_hash_key(&builder);
 
     let mint_session_call = ExecuteRequestBuilder::standard(
         *DEFAULT_ACCOUNT_ADDR,
@@ -731,16 +708,13 @@ fn should_cep47_dictionary_style_revoked_for_all_event() {
         "2",
     );
 
-    let collection_name: String = query_stored_value(
-        &builder,
-        nft_contract_key,
-        vec![ARG_COLLECTION_NAME.to_string()],
-    );
+    let collection_name: String =
+        query_stored_value(&builder, nft_contract_key, ARG_COLLECTION_NAME);
 
     let package = query_stored_value::<String>(
         &builder,
         nft_contract_key,
-        vec![format!("{PREFIX_CEP78}_{collection_name}")],
+        &format!("{PREFIX_CEP78}_{collection_name}"),
     );
     let mut expected_event: BTreeMap<String, String> = BTreeMap::new();
     expected_event.insert(EVENT_TYPE.to_string(), "RevokedForAll".to_string());
@@ -800,9 +774,7 @@ fn should_not_record_events_in_no_events_mode() {
         .expect_success()
         .commit();
 
-    let nft_contract_hash = get_nft_contract_hash(&builder);
-    let nft_contract_key: Key =
-        Key::addressable_entity_key(EntityKindTag::SmartContract, nft_contract_hash);
+    let nft_contract_key: Key = get_nft_contract_hash_key(&builder);
 
     let mint_session_call = ExecuteRequestBuilder::standard(
         *DEFAULT_ACCOUNT_ADDR,

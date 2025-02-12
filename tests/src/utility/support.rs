@@ -15,28 +15,28 @@ use blake2::{
     VarBlake2b,
 };
 use casper_engine_test_support::{
-    utils::create_run_genesis_request, ExecuteRequestBuilder, LmdbWasmTestBuilder,
+    utils::create_run_genesis_request, ChainspecConfig, ExecuteRequestBuilder, LmdbWasmTestBuilder,
     DEFAULT_ACCOUNT_ADDR, DEFAULT_ACCOUNT_PUBLIC_KEY,
 };
-
 use casper_execution_engine::{engine_state::Error as EngineStateError, execution::ExecError};
-
 use casper_types::{
     account::AccountHash,
-    addressable_entity::EntityKindTag,
     bytesrepr::{Bytes, FromBytes},
     contracts::{ContractHash, ContractPackageHash},
     AddressableEntityHash, ApiError, CLTyped, CLValueError, EntityAddr, GenesisAccount, Key, Motes,
     PackageHash, RuntimeArgs, URef, BLAKE2B_DIGEST_LENGTH, U512,
 };
-use contract::constants::{HASH_KEY_NAME_1_0_0, INDEX_BY_HASH, PREFIX_PAGE_DICTIONARY};
+use cep78::constants::{HASH_KEY_NAME_1_0_0, INDEX_BY_HASH, PREFIX_PAGE_DICTIONARY};
 use rand::prelude::*;
+use rand::random;
 use serde::{Deserialize, Serialize};
 use sha256::digest;
 use std::fmt::Debug;
 
 pub(crate) fn genesis() -> LmdbWasmTestBuilder {
     let mut builder = LmdbWasmTestBuilder::default();
+    // TODO Set enable_addressable_entity as param
+    builder.with_chainspec(ChainspecConfig::default().with_enable_addressable_entity(false));
     builder.run_genesis(create_run_genesis_request(vec![
         GenesisAccount::Account {
             public_key: DEFAULT_ACCOUNT_PUBLIC_KEY.clone(),
@@ -75,8 +75,12 @@ pub(crate) fn get_nft_contract_hash(builder: &LmdbWasmTestBuilder) -> Addressabl
         .expect("must get entity_hash")
 }
 
-pub(crate) fn get_nft_contract_entity_hash_key(builder: &LmdbWasmTestBuilder) -> Key {
-    Key::addressable_entity_key(EntityKindTag::SmartContract, get_nft_contract_hash(builder))
+pub(crate) fn get_nft_contract_hash_key(builder: &LmdbWasmTestBuilder) -> Key {
+    let nft_contract_hash: ContractHash = get_nft_contract_hash(builder).into();
+    // With entities enabled
+    //  let nft_contract_key: Key = Key::contract_entity_key(nft_contract_hash.into()); // As AddressableEntityHash
+    let nft_contract_key: Key = nft_contract_hash.into(); // As Key::Hash
+    nft_contract_key
 }
 
 pub(crate) fn get_nft_contract_package_hash(builder: &LmdbWasmTestBuilder) -> ContractPackageHash {
@@ -107,17 +111,23 @@ pub(crate) fn get_nft_contract_package_hash_cep78(
     ContractPackageHash::new(nft_hash_addr)
 }
 
-pub(crate) fn get_minting_contract_hash(builder: &LmdbWasmTestBuilder) -> ContractHash {
-    let minting_contract_hash = builder
+pub(crate) fn get_minting_contract_hash(builder: &LmdbWasmTestBuilder) -> AddressableEntityHash {
+    builder
         .get_entity_with_named_keys_by_account_hash(*DEFAULT_ACCOUNT_ADDR)
         .unwrap()
         .named_keys()
         .get(MINTING_CONTRACT_NAME)
         .expect("must have minting contract hash entry in named keys")
-        .into_entity_hash_addr()
-        .expect("must get hash_addr");
+        .into_entity_hash()
+        .expect("must get hash_addr")
+}
 
-    ContractHash::new(minting_contract_hash)
+pub(crate) fn get_minting_contract_hash_key(builder: &LmdbWasmTestBuilder) -> Key {
+    let minting_contract_hash: ContractHash = get_minting_contract_hash(builder).into();
+    // With entities enabled
+    // let minting_contract_key: Key = Key::contract_entity_key(minting_contract_hash.into());
+    let minting_contract_key: Key = minting_contract_hash.into();
+    minting_contract_key
 }
 
 pub(crate) fn get_minting_contract_package_hash(builder: &LmdbWasmTestBuilder) -> PackageHash {
@@ -236,9 +246,9 @@ pub(crate) fn _get_uref(builder: &LmdbWasmTestBuilder, key: &str) -> URef {
 pub(crate) fn query_stored_value<T: CLTyped + FromBytes>(
     builder: &LmdbWasmTestBuilder,
     base_key: Key,
-    path: Vec<String>,
+    name: &str,
 ) -> T {
-    let stored = builder.query(None, base_key, &path);
+    let stored = builder.query(None, base_key, &[name.to_string()]);
     let cl_value = stored
         .expect("must have stored value")
         .as_cl_value()
@@ -265,7 +275,7 @@ pub(crate) fn call_session_code_with_ret<T: CLTyped + FromBytes>(
     let session_call =
         ExecuteRequestBuilder::standard(account_hash, wasm_file_name, runtime_args).build();
     builder.exec(session_call).expect_success().commit();
-    query_stored_value::<T>(builder, account_hash.into(), [key_name.to_string()].into())
+    query_stored_value::<T>(builder, account_hash.into(), key_name)
 }
 
 pub(crate) fn create_blake2b_hash<T: AsRef<[u8]>>(data: T) -> [u8; BLAKE2B_DIGEST_LENGTH] {
@@ -312,7 +322,7 @@ fn make_page_dictionary_item_key(token_owner_key: &Key) -> String {
             EntityAddr::SmartContract(hash_addr) => AddressableEntityHash::new(*hash_addr),
         }
         .to_string(),
-        Key::Package(token_owner_package_addr) => {
+        Key::SmartContract(token_owner_package_addr) => {
             PackageHash::new(*token_owner_package_addr).to_string()
         }
         _ => panic!("invalid key type"),

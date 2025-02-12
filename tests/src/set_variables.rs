@@ -1,6 +1,6 @@
 use casper_engine_test_support::{ExecuteRequestBuilder, DEFAULT_ACCOUNT_ADDR};
-use casper_types::{addressable_entity::EntityKindTag, runtime_args, Key};
-use contract::{
+use casper_types::{runtime_args, Key};
+use cep78::{
     constants::{
         ACL_PACKAGE_MODE, ALLOW_MINTING, ARG_ACL_PACKAGE_MODE, ARG_ALLOW_MINTING,
         ARG_OPERATOR_BURN_MODE, ARG_PACKAGE_OPERATOR_MODE, ENTRY_POINT_SET_VARIABLES,
@@ -14,8 +14,7 @@ use crate::utility::{
     constants::{ACCOUNT_1_ADDR, NFT_CONTRACT_WASM, NFT_TEST_COLLECTION, NFT_TEST_SYMBOL},
     installer_request_builder::{InstallerRequestBuilder, OwnerReverseLookupMode},
     support::{
-        self, assert_expected_error, genesis, get_nft_contract_entity_hash_key,
-        get_nft_contract_hash,
+        self, assert_expected_error, genesis, get_nft_contract_hash, get_nft_contract_hash_key,
     },
 };
 
@@ -36,8 +35,7 @@ fn only_installer_should_be_able_to_toggle_allow_minting() {
     builder.exec(install_request).expect_success().commit();
 
     let nft_contract_hash = get_nft_contract_hash(&builder);
-    let nft_contract_key: Key =
-        Key::addressable_entity_key(EntityKindTag::SmartContract, nft_contract_hash);
+    let nft_contract_key: Key = get_nft_contract_hash_key(&builder);
 
     // Account other than installer account should not be able to change allow_minting
     // Red test
@@ -64,7 +62,7 @@ fn only_installer_should_be_able_to_toggle_allow_minting() {
     );
 
     let allow_minting: bool =
-        support::query_stored_value(&builder, nft_contract_key, vec![ALLOW_MINTING.to_string()]);
+        support::query_stored_value(&builder, nft_contract_key, ALLOW_MINTING);
 
     assert!(!allow_minting);
 
@@ -84,7 +82,7 @@ fn only_installer_should_be_able_to_toggle_allow_minting() {
         .commit();
 
     let allow_minting: bool =
-        support::query_stored_value(&builder, nft_contract_key, vec![ALLOW_MINTING.to_string()]);
+        support::query_stored_value(&builder, nft_contract_key, ALLOW_MINTING);
 
     assert!(allow_minting);
 
@@ -108,13 +106,10 @@ fn installer_should_be_able_to_toggle_acl_package_mode() {
     builder.exec(install_request).expect_success().commit();
 
     let nft_contract_hash = get_nft_contract_hash(&builder);
-    let nft_contract_key = get_nft_contract_entity_hash_key(&builder);
+    let nft_contract_key = get_nft_contract_hash_key(&builder);
 
-    let is_acl_packge_mode: bool = support::query_stored_value(
-        &builder,
-        nft_contract_key,
-        vec![ARG_ACL_PACKAGE_MODE.to_string()],
-    );
+    let is_acl_packge_mode: bool =
+        support::query_stored_value(&builder, nft_contract_key, ARG_ACL_PACKAGE_MODE);
 
     assert!(!is_acl_packge_mode);
 
@@ -132,11 +127,8 @@ fn installer_should_be_able_to_toggle_acl_package_mode() {
         .expect_success()
         .commit();
 
-    let is_acl_packge_mode: bool = support::query_stored_value(
-        &builder,
-        nft_contract_key,
-        vec![ACL_PACKAGE_MODE.to_string()],
-    );
+    let is_acl_packge_mode: bool =
+        support::query_stored_value(&builder, nft_contract_key, ACL_PACKAGE_MODE);
 
     assert!(is_acl_packge_mode);
 
@@ -160,13 +152,10 @@ fn installer_should_be_able_to_toggle_package_operator_mode() {
     builder.exec(install_request).expect_success().commit();
 
     let nft_contract_hash = get_nft_contract_hash(&builder);
-    let nft_contract_key = get_nft_contract_entity_hash_key(&builder);
+    let nft_contract_key = get_nft_contract_hash_key(&builder);
 
-    let is_package_operator_mode: bool = support::query_stored_value(
-        &builder,
-        nft_contract_key,
-        vec![ARG_PACKAGE_OPERATOR_MODE.to_string()],
-    );
+    let is_package_operator_mode: bool =
+        support::query_stored_value(&builder, nft_contract_key, ARG_PACKAGE_OPERATOR_MODE);
 
     assert!(!is_package_operator_mode);
 
@@ -184,11 +173,8 @@ fn installer_should_be_able_to_toggle_package_operator_mode() {
         .expect_success()
         .commit();
 
-    let is_package_operator_mode: bool = support::query_stored_value(
-        &builder,
-        nft_contract_key,
-        vec![PACKAGE_OPERATOR_MODE.to_string()],
-    );
+    let is_package_operator_mode: bool =
+        support::query_stored_value(&builder, nft_contract_key, PACKAGE_OPERATOR_MODE);
 
     assert!(is_package_operator_mode);
 
@@ -212,13 +198,10 @@ fn installer_should_be_able_to_toggle_operator_burn_mode() {
     builder.exec(install_request).expect_success().commit();
 
     let nft_contract_hash = get_nft_contract_hash(&builder);
-    let nft_contract_key = get_nft_contract_entity_hash_key(&builder);
+    let nft_contract_key = get_nft_contract_hash_key(&builder);
 
-    let is_package_operator_mode: bool = support::query_stored_value(
-        &builder,
-        nft_contract_key,
-        vec![ARG_OPERATOR_BURN_MODE.to_string()],
-    );
+    let is_package_operator_mode: bool =
+        support::query_stored_value(&builder, nft_contract_key, ARG_OPERATOR_BURN_MODE);
 
     assert!(!is_package_operator_mode);
 
@@ -236,11 +219,8 @@ fn installer_should_be_able_to_toggle_operator_burn_mode() {
         .expect_success()
         .commit();
 
-    let is_package_operator_mode: bool = support::query_stored_value(
-        &builder,
-        nft_contract_key,
-        vec![OPERATOR_BURN_MODE.to_string()],
-    );
+    let is_package_operator_mode: bool =
+        support::query_stored_value(&builder, nft_contract_key, OPERATOR_BURN_MODE);
 
     assert!(is_package_operator_mode);
 

@@ -10,14 +10,15 @@ use crate::utility::{
     },
     support::{
         self, genesis, get_dictionary_value_from_key, get_minting_contract_hash,
-        get_minting_contract_package_hash, get_nft_contract_entity_hash_key, get_nft_contract_hash,
+        get_minting_contract_package_hash, get_nft_contract_hash, get_nft_contract_hash_key,
     },
 };
 use casper_engine_test_support::{ExecuteRequestBuilder, DEFAULT_ACCOUNT_ADDR};
 use casper_types::{
-    addressable_entity::EntityKindTag, contracts::ContractPackageHash, runtime_args, Key,
+    contracts::{ContractHash, ContractPackageHash},
+    runtime_args, Key,
 };
-use contract::{
+use cep78::{
     constants::{
         ARG_APPROVE_ALL, ARG_COLLECTION_NAME, ARG_OPERATOR, ARG_TOKEN_HASH, ARG_TOKEN_ID,
         ARG_TOKEN_META_DATA, ARG_TOKEN_OWNER, BURNT_TOKENS, BURN_MODE, ENTRY_POINT_BURN,
@@ -42,9 +43,9 @@ fn should_burn_minted_token(reporting: OwnerReverseLookupMode) {
         .expect_success()
         .commit();
 
-    let nft_contract_hash = get_nft_contract_hash(&builder);
-    let nft_contract_key: Key =
-        Key::addressable_entity_key(EntityKindTag::SmartContract, nft_contract_hash);
+    let nft_contract_hash: ContractHash = get_nft_contract_hash(&builder).into();
+    let nft_contract_key: Key = get_nft_contract_hash_key(&builder);
+
     let token_owner: Key = *DEFAULT_ACCOUNT_KEY;
     let token_id = 0u64;
 
@@ -80,7 +81,7 @@ fn should_burn_minted_token(reporting: OwnerReverseLookupMode) {
 
         let minting_request = ExecuteRequestBuilder::contract_call_by_hash(
             *DEFAULT_ACCOUNT_ADDR,
-            nft_contract_hash,
+            nft_contract_hash.into(),
             ENTRY_POINT_MINT,
             mint_runtime_args,
         )
@@ -160,7 +161,7 @@ fn should_not_burn_previously_burnt_token() {
         .expect_success()
         .commit();
 
-    let nft_contract_key: Key = get_nft_contract_entity_hash_key(&builder);
+    let nft_contract_key: Key = get_nft_contract_hash_key(&builder);
 
     let mint_session_call = ExecuteRequestBuilder::standard(
         *DEFAULT_ACCOUNT_ADDR,
@@ -265,9 +266,8 @@ fn should_return_expected_error_burning_of_others_users_token() {
         .expect_success()
         .commit();
 
-    let nft_contract_hash = get_nft_contract_hash(&builder);
-    let nft_contract_key: Key =
-        Key::addressable_entity_key(EntityKindTag::SmartContract, nft_contract_hash);
+    let nft_contract_hash: ContractHash = get_nft_contract_hash(&builder).into();
+    let nft_contract_key: Key = get_nft_contract_hash_key(&builder);
 
     let account_user_1 = ACCOUNT_1_ADDR.to_owned();
 
@@ -292,7 +292,7 @@ fn should_return_expected_error_burning_of_others_users_token() {
 
     let incorrect_burn_request = ExecuteRequestBuilder::contract_call_by_hash(
         account_user_1,
-        nft_contract_hash,
+        nft_contract_hash.into(),
         ENTRY_POINT_BURN,
         runtime_args! {
             ARG_TOKEN_ID => 0u64,
@@ -323,8 +323,8 @@ fn should_allow_contract_to_burn_token() {
         .expect_success()
         .commit();
 
-    let minting_contract_hash = get_minting_contract_hash(&builder);
-
+    // TODO check
+    let minting_contract_hash: ContractHash = get_minting_contract_hash(&builder).into();
     let contract_whitelist = vec![Key::from(minting_contract_hash)];
 
     let install_request = InstallerRequestBuilder::new(*DEFAULT_ACCOUNT_ADDR, NFT_CONTRACT_WASM)
@@ -339,7 +339,7 @@ fn should_allow_contract_to_burn_token() {
 
     builder.exec(install_request).expect_success().commit();
 
-    let nft_contract_key: Key = get_nft_contract_entity_hash_key(&builder);
+    let nft_contract_key: Key = get_nft_contract_hash_key(&builder);
 
     let mint_runtime_args = runtime_args! {
         ARG_NFT_CONTRACT_HASH => nft_contract_key,
@@ -409,7 +409,7 @@ fn should_not_burn_in_non_burn_mode() {
 
     builder.exec(install_request).expect_success().commit();
 
-    let nft_contract_key: Key = get_nft_contract_entity_hash_key(&builder);
+    let nft_contract_key: Key = get_nft_contract_hash_key(&builder);
     let burn_mode: u8 = builder
         .query(None, nft_contract_key, &[BURN_MODE.to_string()])
         .unwrap()
@@ -464,9 +464,9 @@ fn should_let_account_operator_burn_tokens_with_operator_burn_mode() {
 
     builder.exec(install_request).expect_success().commit();
 
-    let nft_contract_hash = get_nft_contract_hash(&builder);
-    let nft_contract_key: Key =
-        Key::addressable_entity_key(EntityKindTag::SmartContract, nft_contract_hash);
+    let nft_contract_hash: ContractHash = get_nft_contract_hash(&builder).into();
+    let nft_contract_key: Key = get_nft_contract_hash_key(&builder);
+
     let token_owner: Key = *DEFAULT_ACCOUNT_KEY;
 
     let mint_session_call = ExecuteRequestBuilder::standard(
@@ -489,7 +489,7 @@ fn should_let_account_operator_burn_tokens_with_operator_burn_mode() {
 
     let burn_request = ExecuteRequestBuilder::contract_call_by_hash(
         operator,
-        nft_contract_hash,
+        nft_contract_hash.into(),
         ENTRY_POINT_BURN,
         runtime_args! {
             ARG_TOKEN_ID => token_id,
@@ -508,7 +508,7 @@ fn should_let_account_operator_burn_tokens_with_operator_burn_mode() {
 
     let approve_all_request = ExecuteRequestBuilder::contract_call_by_hash(
         *DEFAULT_ACCOUNT_ADDR,
-        nft_contract_hash,
+        nft_contract_hash.into(),
         ENTRY_POINT_SET_APPROVALL_FOR_ALL,
         runtime_args! {
             ARG_APPROVE_ALL => true,
@@ -521,7 +521,7 @@ fn should_let_account_operator_burn_tokens_with_operator_burn_mode() {
 
     let burn_request = ExecuteRequestBuilder::contract_call_by_hash(
         operator,
-        nft_contract_hash,
+        nft_contract_hash.into(),
         ENTRY_POINT_BURN,
         runtime_args! {
             ARG_TOKEN_ID => token_id,
@@ -573,9 +573,9 @@ fn should_let_contract_operator_burn_tokens_with_operator_burn_mode() {
 
     builder.exec(install_request).expect_success().commit();
 
-    let nft_contract_hash = get_nft_contract_hash(&builder);
-    let nft_contract_key: Key =
-        Key::addressable_entity_key(EntityKindTag::SmartContract, nft_contract_hash);
+    let nft_contract_hash: ContractHash = get_nft_contract_hash(&builder).into();
+    let nft_contract_key: Key = get_nft_contract_hash_key(&builder);
+
     let token_owner: Key = *DEFAULT_ACCOUNT_KEY;
 
     let mint_session_call = ExecuteRequestBuilder::standard(
@@ -612,7 +612,7 @@ fn should_let_contract_operator_burn_tokens_with_operator_burn_mode() {
 
     let burn_request = ExecuteRequestBuilder::contract_call_by_hash(
         account_user_1,
-        minting_contract_hash.into(),
+        minting_contract_hash,
         ENTRY_POINT_BURN,
         runtime_args! {
             ARG_TOKEN_ID => token_id,
@@ -632,7 +632,7 @@ fn should_let_contract_operator_burn_tokens_with_operator_burn_mode() {
 
     let approve_all_request = ExecuteRequestBuilder::contract_call_by_hash(
         *DEFAULT_ACCOUNT_ADDR,
-        nft_contract_hash,
+        nft_contract_hash.into(),
         ENTRY_POINT_SET_APPROVALL_FOR_ALL,
         runtime_args! {
             ARG_APPROVE_ALL => true,
@@ -645,7 +645,7 @@ fn should_let_contract_operator_burn_tokens_with_operator_burn_mode() {
 
     let burn_request = ExecuteRequestBuilder::contract_call_by_hash(
         account_user_1,
-        minting_contract_hash.into(),
+        minting_contract_hash,
         ENTRY_POINT_BURN,
         runtime_args! {
             ARG_TOKEN_ID => token_id,
@@ -699,9 +699,9 @@ fn should_let_package_operator_burn_tokens_with_contract_package_mode_and_operat
 
     builder.exec(install_request).expect_success().commit();
 
-    let nft_contract_hash = get_nft_contract_hash(&builder);
-    let nft_contract_key: Key =
-        Key::addressable_entity_key(EntityKindTag::SmartContract, nft_contract_hash);
+    let nft_contract_hash: ContractHash = get_nft_contract_hash(&builder).into();
+    let nft_contract_key: Key = get_nft_contract_hash_key(&builder);
+
     let token_owner: Key = *DEFAULT_ACCOUNT_KEY;
 
     let mint_session_call = ExecuteRequestBuilder::standard(
@@ -739,7 +739,7 @@ fn should_let_package_operator_burn_tokens_with_contract_package_mode_and_operat
 
     let burn_request = ExecuteRequestBuilder::contract_call_by_hash(
         account_user_1,
-        minting_contract_hash.into(),
+        minting_contract_hash,
         ENTRY_POINT_BURN,
         runtime_args! {
             ARG_TOKEN_ID => token_id,
@@ -759,7 +759,7 @@ fn should_let_package_operator_burn_tokens_with_contract_package_mode_and_operat
 
     let approve_all_request = ExecuteRequestBuilder::contract_call_by_hash(
         *DEFAULT_ACCOUNT_ADDR,
-        nft_contract_hash,
+        nft_contract_hash.into(),
         ENTRY_POINT_SET_APPROVALL_FOR_ALL,
         runtime_args! {
             ARG_APPROVE_ALL => true,
@@ -772,7 +772,7 @@ fn should_let_package_operator_burn_tokens_with_contract_package_mode_and_operat
 
     let burn_request = ExecuteRequestBuilder::contract_call_by_hash(
         account_user_1,
-        minting_contract_hash.into(),
+        minting_contract_hash,
         ENTRY_POINT_BURN,
         runtime_args! {
             ARG_TOKEN_ID => token_id,
@@ -826,9 +826,8 @@ fn should_burn_token_in_hash_identifier_mode() {
 
     builder.exec(install_request).expect_success().commit();
 
-    let nft_contract_hash = get_nft_contract_hash(&builder);
-    let nft_contract_key: Key =
-        Key::addressable_entity_key(EntityKindTag::SmartContract, nft_contract_hash);
+    let nft_contract_hash: ContractHash = get_nft_contract_hash(&builder).into();
+    let nft_contract_key: Key = get_nft_contract_hash_key(&builder);
 
     let mint_session_call = ExecuteRequestBuilder::standard(
         *DEFAULT_ACCOUNT_ADDR,
@@ -849,7 +848,7 @@ fn should_burn_token_in_hash_identifier_mode() {
 
     let burn_request = ExecuteRequestBuilder::contract_call_by_hash(
         *DEFAULT_ACCOUNT_ADDR,
-        nft_contract_hash,
+        nft_contract_hash.into(),
         ENTRY_POINT_BURN,
         runtime_args! {
             ARG_TOKEN_HASH => token_hash,

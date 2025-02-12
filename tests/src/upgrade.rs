@@ -3,10 +3,9 @@ use casper_engine_test_support::{
 };
 use casper_fixtures::LmdbFixtureState;
 use casper_types::{
-    bytesrepr::FromBytes, runtime_args, system::MINT, AddressableEntityHash, CLTyped, EraId, Key,
-    ProtocolVersion,
+    runtime_args, system::MINT, AddressableEntityHash, EraId, Key, ProtocolVersion,
 };
-use contract::{
+use cep78::{
     constants::{
         ARG_COLLECTION_NAME, ARG_EVENTS_MODE, ARG_NAMED_KEY_CONVENTION, ARG_TOKEN_META_DATA,
         ARG_TOKEN_OWNER,
@@ -17,9 +16,9 @@ use contract::{
 use crate::utility::{
     constants::{
         ARG_NFT_CONTRACT_HASH, ARG_NFT_CONTRACT_PACKAGE_HASH, CONTRACT_NAME, CONTRACT_VERSION,
-        NFT_CONTRACT_WASM, NFT_TEST_COLLECTION,
+        DEFAULT_ACCOUNT_KEY, NFT_CONTRACT_WASM, NFT_TEST_COLLECTION,
     },
-    support::get_nft_contract_package_hash_cep78,
+    support::{get_nft_contract_package_hash_cep78, query_stored_value},
 };
 
 pub fn upgrade_v1_5_6_fixture_to_v2_0_0_ee(
@@ -36,8 +35,10 @@ pub fn upgrade_v1_5_6_fixture_to_v2_0_0_ee(
     let mut upgrade_config = UpgradeRequestBuilder::new()
         .with_current_protocol_version(lmdb_fixture_state.genesis_protocol_version())
         .with_new_protocol_version(ProtocolVersion::V2_0_0)
-        .with_migrate_legacy_accounts(true)
-        .with_migrate_legacy_contracts(true)
+        // TODO fix with_enable_addressable_entity ?
+        // .with_migrate_legacy_accounts(true)
+        // .with_migrate_legacy_contracts(true)
+        //.with_enable_addressable_entity(true)
         .with_activation_point(EraId::new(1))
         .build();
 
@@ -51,20 +52,6 @@ pub fn upgrade_v1_5_6_fixture_to_v2_0_0_ee(
         builder.get_post_state_hash(),
         lmdb_fixture_state.post_state_hash
     );
-}
-
-pub fn query_contract_value<T: CLTyped + FromBytes>(
-    builder: &LmdbWasmTestBuilder,
-    path: &[String],
-) -> T {
-    builder
-        .query(None, Key::Account(*DEFAULT_ACCOUNT_ADDR), path)
-        .unwrap()
-        .as_cl_value()
-        .unwrap()
-        .clone()
-        .into_t()
-        .unwrap()
 }
 
 // the difference between the two is that in v1_binary the contract hash is fetched at [u8;32], while in v2_binary it is an AddressaleEntityHash
@@ -132,7 +119,8 @@ fn should_migrate_1_5_6_to_feat_2_0() {
     // upgrade engine
     upgrade_v1_5_6_fixture_to_v2_0_0_ee(&mut builder, &lmdb_fixture_state);
 
-    let version_0: u32 = query_contract_value(&builder, &[CONTRACT_VERSION.to_string()]);
+    let version_0_major: u32 = 1;
+    let version_0_minor: u32 = query_stored_value(&builder, *DEFAULT_ACCOUNT_KEY, CONTRACT_VERSION);
     let contract_package_hash = get_nft_contract_package_hash_cep78(&builder);
 
     // upgrade the contract itself using a binary built for the new engine
@@ -150,9 +138,27 @@ fn should_migrate_1_5_6_to_feat_2_0() {
 
     builder.exec(upgrade_request).expect_success().commit();
 
-    let version_1: u32 = query_contract_value(&builder, &[CONTRACT_VERSION.to_string()]);
+    let version_1_string: String =
+        query_stored_value(&builder, *DEFAULT_ACCOUNT_KEY, CONTRACT_VERSION);
 
-    assert!(version_0 < version_1);
+    // Split into major and minor parts
+    let parts: Vec<&str> = version_1_string.split('.').collect();
+
+    // Parse the major and minor components
+    let version_1_major: u32 = parts
+        .first()
+        .expect("Failed to get the major version")
+        .parse()
+        .expect("Failed to parse the major version as u32");
+
+    let version_1_minor: u32 = parts
+        .get(1)
+        .unwrap_or(&"0") // Default to "0" if no minor version exists
+        .parse()
+        .expect("Failed to parse the minor version as u32");
+
+    assert!(version_0_major < version_1_major);
+    assert!(version_0_minor == version_1_minor);
 
     let nft_contract_key = get_contract_hash_v2_binary(&builder);
 

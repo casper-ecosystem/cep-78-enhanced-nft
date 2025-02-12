@@ -1,0 +1,36 @@
+[workspace]
+members = [
+  "contracts/contract",
+  "contracts/client/balance_of_session",
+  "contracts/client/get_approved_session",
+  "contracts/client/is_approved_for_all_session",
+  "contracts/client/mint_session",
+  "contracts/client/owner_of_session",
+  "contracts/client/transfer_session",
+  "contracts/client/updated_receipts",
+  "contracts/test-contracts/mangle_named_keys",
+  "contracts/test-contracts/minting_contract",
+  "contracts/test-contracts/transfer_filter_contract",
+  "tests",
+]
+default-members = ["contracts/contract", "tests"]
+resolver = "2"
+
+[workspace.package]
+version = "2.0.0"
+edition = "2021"
+description = "A library for developing CEP-78 tokens for the Casper network."
+readme = "README.md"
+documentation = "https://docs.rs/casper-cep78"
+homepage = "https://github.com/casper-ecosystem"
+repository = "https://github.com/casper-ecosystem/cep-78-enhanced-nft"
+license-file = "LICENSE"
+
+[workspace.dependencies]
+casper-contract = { version = "4.0.0", git = "https://github.com/casper-network/casper-node.git", default-features = false }
+casper-types = { version = "5.0.0", git = "https://github.com/casper-network/casper-node.git", default-features = false }
+casper-event-standard = { git = "https://github.com/make-software/casper-event-standard", branch = "casper-2.0", default-features = false }
+
+[profile.release]
+codegen-units = 1
+lto = true
