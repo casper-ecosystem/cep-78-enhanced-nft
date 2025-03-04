@@ -17,8 +17,8 @@ use casper_contract::{
 };
 use casper_types::{
     contracts::{ContractHash, ContractVersion},
-    ApiError, CLType, CLValue, EntryPoint, EntryPointAccess, EntryPointPayment, EntryPointType,
-    EntryPoints, Key, NamedKeys, Parameter,
+    ApiError, CLType, CLValue, EntityEntryPoint as EntryPoint, EntryPointAccess, EntryPointPayment,
+    EntryPointType, EntryPoints, Key, NamedKeys, Parameter,
 };
 
 const CONTRACT_NAME: &str = "transfer_filter_contract_hash";

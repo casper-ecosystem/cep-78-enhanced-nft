@@ -19,8 +19,9 @@ use casper_contract::{
 use casper_types::{
     api_error,
     contracts::{ContractHash, ContractVersion},
-    runtime_args, AddressableEntityHash, ApiError, CLType, EntryPoint, EntryPointAccess,
-    EntryPointPayment, EntryPointType, EntryPoints, Key, NamedKeys, PackageHash, Parameter, URef,
+    runtime_args, AddressableEntityHash, ApiError, CLType, EntityEntryPoint as EntryPoint,
+    EntryPointAccess, EntryPointPayment, EntryPointType, EntryPoints, Key, NamedKeys, PackageHash,
+    Parameter, URef,
 };
 
 const CONTRACT_NAME: &str = "minting_contract_hash";
