@@ -32,9 +32,9 @@ use casper_types::{
     account::AccountHash,
     contract_messages::MessageTopicOperation,
     contracts::{ContractHash, ContractPackageHash},
-    runtime_args, ApiError, CLType, CLValue, EntityAddr, EntryPoint, EntryPointAccess,
-    EntryPointPayment, EntryPointType, EntryPoints, Key, KeyTag, NamedKeys, PackageHash, Parameter,
-    RuntimeArgs, Tagged,
+    runtime_args, ApiError, CLType, CLValue, EntityAddr, EntityEntryPoint as EntryPoint,
+    EntryPointAccess, EntryPointPayment, EntryPointType, EntryPoints, Key, KeyTag, NamedKeys,
+    PackageHash, Parameter, RuntimeArgs, Tagged,
 };
 use constants::{
     ACCESS_KEY_NAME_1_0_0, ACL_PACKAGE_MODE, ACL_WHITELIST, ALLOW_MINTING, APPROVED,
