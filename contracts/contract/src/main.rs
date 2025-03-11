@@ -2596,8 +2596,8 @@ fn install_contract() {
     };
 
     let hash_key_name = format!("{PREFIX_HASH_KEY_NAME}_{collection_name}");
-    let mut message_topics = BTreeMap::new();
-    message_topics.insert(EVENTS.to_string(), MessageTopicOperation::Add);
+    let message_topics = BTreeMap::from([(EVENTS.to_string(), MessageTopicOperation::Add)]);
+
     let (contract_hash, contract_version) = storage::new_contract(
         entry_points,
         Some(named_keys),
@@ -2695,8 +2695,7 @@ fn migrate_contract(access_key_name: String, package_key_name: String) {
         )
     }
 
-    let mut message_topics = BTreeMap::new();
-    message_topics.insert(EVENTS.to_string(), MessageTopicOperation::Add);
+    let message_topics = BTreeMap::from([(EVENTS.to_string(), MessageTopicOperation::Add)]);
 
     let (contract_hash, contract_version) = storage::add_contract_version(
         nft_contract_package_hash.into(),
