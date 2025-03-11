@@ -58,12 +58,12 @@ clippy:
 	$(foreach crate, $(ALL_CRATES), \
 		cargo +$(PINNED_TOOLCHAIN) clippy --release -p $(crate) --bins --target wasm32-unknown-unknown $(CARGO_BUILD_FLAGS) -- -D warnings; \
 	)
-	cargo clippy --release -p tests --all-targets -- -D warnings
+	cargo +stable clippy -p tests --all-targets -- -D warnings
 
 .PHONY: check-lint
 check-lint: clippy
 	$(foreach crate, $(ALL_CRATES), cargo +$(PINNED_TOOLCHAIN) fmt -p $(crate) -- --check;)
-	cargo fmt -p tests -- --check
+	cargo +stable fmt -p tests -- --check
 
 .PHONY: lint
 lint: clippy format
@@ -71,7 +71,7 @@ lint: clippy format
 .PHONY: format
 format:
 	$(foreach crate, $(ALL_CRATES), cargo +$(PINNED_TOOLCHAIN) fmt -p $(crate);)
-	cargo fmt -p tests
+	cargo +stable fmt -p tests
 
 .PHONY: clean
 clean:
