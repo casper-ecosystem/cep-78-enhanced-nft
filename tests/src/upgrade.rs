@@ -283,7 +283,7 @@ fn should_upgrade_contract_from_native_to_ces() {
 
     let expected_event = Migration::new();
     let event_index = 0;
-    // Contract key was update by upgrade
+    // Contract key was updated by upgrade
     let nft_contract_key: Key = get_nft_contract_hash_key(&builder);
 
     let actual_event: Migration = get_event(&mut builder, &nft_contract_key, event_index).unwrap();
