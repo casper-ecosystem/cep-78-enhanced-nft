@@ -224,7 +224,7 @@ fn should_upgrade_contract_from_ces_to_native() {
 
     builder.exec(upgrade_request).expect_success().commit();
 
-    let nft_contract_hash: AddressableEntityHash = get_nft_contract_hash(&builder).into();
+    let nft_contract_hash: AddressableEntityHash = get_nft_contract_hash(&builder);
 
     let entity_addr = EntityAddr::SmartContract(nft_contract_hash.value());
     let binding = builder.message_topics(None, entity_addr).unwrap();
@@ -286,6 +286,6 @@ fn should_upgrade_contract_from_native_to_ces() {
     // Contract key was updated by upgrade
     let nft_contract_key: Key = get_nft_contract_hash_key(&builder);
 
-    let actual_event: Migration = get_event(&mut builder, &nft_contract_key, event_index).unwrap();
+    let actual_event: Migration = get_event(&builder, &nft_contract_key, event_index).unwrap();
     assert_eq!(actual_event, expected_event, "Expected Migration event.");
 }
