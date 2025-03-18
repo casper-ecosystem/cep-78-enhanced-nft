@@ -2304,7 +2304,6 @@ fn generate_entry_points() -> EntryPoints {
     let migrate = EntryPoint::new(
         ENTRY_POINT_MIGRATE,
         vec![
-            Parameter::new(ARG_NFT_PACKAGE_KEY, CLType::String),
             Parameter::new(ARG_EVENTS_MODE, CLType::U8),
             Parameter::new(ARG_ACL_PACKAGE_MODE, CLType::Bool),
             Parameter::new(ARG_PACKAGE_OPERATOR_MODE, CLType::Bool),
@@ -2340,7 +2339,7 @@ fn generate_entry_points() -> EntryPoints {
     // in order to own NFTs.
     let register_owner = EntryPoint::new(
         ENTRY_POINT_REGISTER_OWNER,
-        vec![],
+        vec![Parameter::new(ARG_TOKEN_OWNER, CLType::Key)],
         CLType::Tuple2([Box::new(CLType::String), Box::new(CLType::URef)]),
         EntryPointAccess::Public,
         EntryPointType::Called,
@@ -2754,7 +2753,6 @@ fn migrate_contract(access_key_name: String, package_key_name: String) {
     .unwrap_or_default();
 
     let mut runtime_args = runtime_args! {
-        ARG_NFT_PACKAGE_KEY => nft_contract_package_hash,
         ARG_EVENTS_MODE => events_mode,
         ARG_ACL_PACKAGE_MODE => acl_package_mode,
         ARG_PACKAGE_OPERATOR_MODE => package_operator_mode,

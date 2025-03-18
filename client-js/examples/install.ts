@@ -1,91 +1,138 @@
-// eslint-disable-next-line eslint-comments/disable-enable-pair
-/* eslint-disable no-console */
+import {
+  CHAIN_NAME,
+  PRIVATE_KEY_FAUCET,
+  PRIVATE_KEY_USER_1,
+  RPC_URL,
+  SSE_URL,
+} from '../config';
 import {
   CEP78Client,
-  NFTOwnershipMode,
-  NFTKind,
-  NFTMetadataKind,
-  NFTIdentifierMode,
-  MetadataMutability,
-  OwnerReverseLookupMode,
-  MintingMode,
-  EventsMode
-} from "../src/index";
-
+  ContractWASM as wasm,
+  EVENTS_MODE,
+  type InstallArgs,
+  type TransactionParams,
+  type TransactionResult,
+  NFT_METADATA_KIND,
+  NFT_IDENTIFIER_MODE,
+  METADATA_MUTABILITY,
+  MINTING_MODE,
+  OWNER_REVERSE_LOOKUP_MODE,
+  NFT_OWNERSHIP_MODE,
+  NFT_KIND,
+  NFT_HOLDER_MODE,
+  WHITELIST_MODE,
+} from '../dist';
 import {
-  FAUCET_KEYS,
-  getDeploy,
+  findKeyFromAccountNamedKeys,
   getAccountInfo,
-  getAccountNamedKeyValue,
-} from "./common";
+  getSigningKey,
+} from '../tests/utils';
+
+if (!PRIVATE_KEY_FAUCET) {
+  throw new Error('FAUCET_SECRET_KEY environment variable is not set.');
+}
+if (!PRIVATE_KEY_USER_1) {
+  throw new Error('PRIVATE_KEY_USER_1 environment variable is not set.');
+}
+
+const collectionName = 'TEST_CEP78',
+  collectionSymbol = 'CEP78',
+  totalTokenSupply = String(1000),
+  eventsMode = EVENTS_MODE.CES,
+  ownershipMode = NFT_OWNERSHIP_MODE.Transferable,
+  jsonSchema = {
+    properties: {
+      ucid: { name: 'ucid', description: '', required: true },
+      ipfs_cid: { name: 'ipfs_cid', description: '', required: true },
+      color: { name: 'color', description: '', required: false },
+    },
+  },
+  nftKind = NFT_KIND.Virtual,
+  holderMode = NFT_HOLDER_MODE.Mixed,
+  nftMetadataKind = NFT_METADATA_KIND.CustomValidated,
+  identifierMode = NFT_IDENTIFIER_MODE.Hash,
+  metadataMutability = METADATA_MUTABILITY.Immutable,
+  mintingMode = MINTING_MODE.Acl,
+  whitelistMode = WHITELIST_MODE.Locked,
+  ownerReverseLookupMode = OWNER_REVERSE_LOOKUP_MODE.Complete,
+  waitForTransactionProcessed = true,
+  sender = getSigningKey(PRIVATE_KEY_FAUCET),
+  minter = getSigningKey(PRIVATE_KEY_USER_1),
+  paymentAmount = String(600_000_000_000),
+  aclWhitelist = [minter.publicKey];
 
 const install = async () => {
-  const cc = new CEP78Client(process.env.NODE_URL, process.env.NETWORK_NAME);
+  const cep78 = new CEP78Client(RPC_URL, SSE_URL, CHAIN_NAME);
 
-  const collectionName = "my-collection";
+  const params: TransactionParams = {
+    wasm,
+    sender: sender.publicKey,
+    paymentAmount,
+    signingKeys: [sender],
+  };
 
-  const installDeploy = cc.install(
-    {
-      collectionName,
-      collectionSymbol: "MY-NFTS",
-      totalTokenSupply: "1000",
-      ownershipMode: NFTOwnershipMode.Transferable,
-      nftKind: NFTKind.Physical,
-      jsonSchema: {
-        properties: {
-          color: { name: "color", description: "", required: true },
-          size: { name: "size", description: "", required: true },
-          material: { name: "material", description: "", required: true },
-          condition: { name: "condition", description: "", required: false },
-        },
-      },
-      nftMetadataKind: NFTMetadataKind.CustomValidated,
-      identifierMode: NFTIdentifierMode.Ordinal,
-      metadataMutability: MetadataMutability.Immutable,
-      mintingMode: MintingMode.Installer,
-      ownerReverseLookupMode: OwnerReverseLookupMode.Complete,
-      eventsMode: EventsMode.CES
-    },
-    "250000000000",
-    FAUCET_KEYS.publicKey,
-    [FAUCET_KEYS]
-  );
+  const args: InstallArgs = {
+    collectionName,
+    collectionSymbol,
+    totalTokenSupply,
+    nftKind,
+    holderMode,
+    eventsMode,
+    ownershipMode,
+    jsonSchema,
+    nftMetadataKind,
+    identifierMode,
+    metadataMutability,
+    mintingMode,
+    ownerReverseLookupMode,
+    whitelistMode,
+    aclWhitelist,
+  };
 
-  const hash = await installDeploy.send(process.env.NODE_URL);
+  const transactionResult: TransactionResult = await cep78.install({
+    params,
+    args,
+    waitForTransactionProcessed,
+  });
 
-  console.log(`... Contract installation deployHash: ${hash}`);
-
-  await getDeploy(process.env.NODE_URL, hash);
-
-  console.log(`... Contract installed successfully.`);
-
-  // eslint-disable-next-line @typescript-eslint/no-unsafe-call
-  const accountInfo = await getAccountInfo(
-    process.env.NODE_URL,
-    FAUCET_KEYS.publicKey
-  );
-
-  console.log(`... Account Info: `);
-  console.log(JSON.stringify(accountInfo, null, 2));
-
-  const contractHash = getAccountNamedKeyValue(
-    accountInfo,
-    `cep78_contract_hash_${collectionName}`
-  ) as string;
-
-  const contractPackageHash = getAccountNamedKeyValue(
-    accountInfo,
-    `cep78_contract_package_${collectionName}`
-  ) as string;;
-
-  console.log(`... Contract Hash: ${contractHash}`);
-  console.log(`... Contract Package Hash: ${contractPackageHash}`);
+  if (!transactionResult.transactionInfo.transactionHash) {
+    throw Error('Invalid transaction hash');
+  }
+  return transactionResult;
 };
 
 install()
-  .then(() => {
-    console.log("Installation completed successfully.");
+  .then(async (transactionResult) => {
+    const { transactionInfo, executionResult } = transactionResult;
+    console.info(
+      `Contract installation transaction hash: ${transactionInfo.transactionHash}`
+    );
+
+    if (executionResult) {
+      if (executionResult?.errorMessage) {
+        throw new Error(
+          `Error during installation.\n${executionResult?.errorMessage.toString()}`
+        );
+      } else {
+        console.info(
+          `Contract installation cost consumed: ${executionResult?.consumed}`
+        );
+      }
+    }
+
+    const account = await getAccountInfo(RPC_URL, sender.publicKey),
+      contractHash = findKeyFromAccountNamedKeys(
+        account,
+        `cep78_contract_hash_${collectionName}`
+      ),
+      contractPackageHash = findKeyFromAccountNamedKeys(
+        account,
+        `cep78_contract_package_${collectionName}`
+      );
+
+    console.info(`Contract Hash: ${contractHash}`);
+    console.info(`Contract Package Hash: ${contractPackageHash}`);
   })
   .catch((error) => {
-    console.error("Installation failed:", error);
+    console.error(error);
   });
