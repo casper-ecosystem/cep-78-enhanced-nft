@@ -1789,7 +1789,7 @@ pub extern "C" fn set_token_metadata() {
     .try_into()
     .unwrap_or_revert();
 
-    let token_identifier = utils::get_token_identifier_from_runtime_args(&identifier_mode);
+    let mut token_identifier = utils::get_token_identifier_from_runtime_args(&identifier_mode);
 
     let token_owner = utils::get_dictionary_value_from_key::<Key>(
         TOKEN_OWNERS,
@@ -1830,11 +1830,70 @@ pub extern "C" fn set_token_metadata() {
             metadata::validate_metadata(&metadata_kind, updated_token_metadata.clone());
         match token_metadata_validation {
             Ok(validated_token_metadata) => {
-                utils::upsert_dictionary_value_from_key(
-                    &metadata::get_metadata_dictionary_name(&metadata_kind),
-                    &token_identifier.get_dictionary_item_key(),
-                    validated_token_metadata,
-                );
+                let dictionary_item_key = token_identifier.get_dictionary_item_key();
+                if identifier_mode == NFTIdentifierMode::Hash {
+                    let token_owner = token_owner
+                        .unwrap_or_revert_with(NFTCoreError::MissingOwnerTokenIdentifierKey);
+
+                    let curent_metadata = utils::get_dictionary_value_from_key::<String>(
+                        &metadata::get_metadata_dictionary_name(&metadata_kind),
+                        &dictionary_item_key,
+                    )
+                    .unwrap_or_revert_with(NFTCoreError::InvalidTokenIdentifier);
+
+                    let stored_token_identifier =
+                        base16::encode_lower(&runtime::blake2b(curent_metadata));
+
+                    // Token identifier as hash can be either a blake2b or a custom string, check
+                    // if current identifier is as blake2b by comparing old (curent_metadata) and
+                    // new computed value validated_token_metadata to eventually update a blake2b,
+                    // but not a custom token_identifier string
+                    if stored_token_identifier == token_identifier.to_string() {
+                        let new_token_identifier = TokenIdentifier::new_hash(base16::encode_lower(
+                            &runtime::blake2b(validated_token_metadata.clone()),
+                        ));
+                        utils::delete_dictionary_entry::<Key>(TOKEN_OWNERS, &dictionary_item_key);
+                        utils::delete_dictionary_entry::<Key>(TOKEN_ISSUERS, &dictionary_item_key);
+                        utils::delete_dictionary_entry::<String>(
+                            &metadata::get_metadata_dictionary_name(&metadata_kind),
+                            &dictionary_item_key,
+                        );
+
+                        let dictionary_item_key = new_token_identifier.get_dictionary_item_key();
+
+                        utils::upsert_dictionary_value_from_key(
+                            TOKEN_OWNERS,
+                            &dictionary_item_key,
+                            token_owner,
+                        );
+                        utils::upsert_dictionary_value_from_key(
+                            TOKEN_ISSUERS,
+                            &dictionary_item_key,
+                            token_owner,
+                        );
+
+                        utils::upsert_dictionary_value_from_key(
+                            &metadata::get_metadata_dictionary_name(&metadata_kind),
+                            &dictionary_item_key,
+                            validated_token_metadata,
+                        );
+                        token_identifier = new_token_identifier;
+                    } else {
+                        // This is a custom token_identifier as hash, do not update it
+                        utils::upsert_dictionary_value_from_key(
+                            &metadata::get_metadata_dictionary_name(&metadata_kind),
+                            &dictionary_item_key,
+                            validated_token_metadata,
+                        );
+                    }
+                } else {
+                    // This is a custom token_identifier as ordinal, do not update it
+                    utils::upsert_dictionary_value_from_key(
+                        &metadata::get_metadata_dictionary_name(&metadata_kind),
+                        &dictionary_item_key,
+                        validated_token_metadata,
+                    );
+                }
             }
             Err(err) => {
                 if required == Requirement::Required {
@@ -2302,6 +2361,7 @@ fn generate_entry_points() -> EntryPoints {
         vec![
             Parameter::new(ARG_TOKEN_OWNER, CLType::Key),
             Parameter::new(ARG_TOKEN_META_DATA, CLType::String),
+            Parameter::new(ARG_TOKEN_HASH, CLType::String),
         ],
         CLType::Tuple3([
             Box::new(CLType::String),
@@ -2430,7 +2490,11 @@ fn generate_entry_points() -> EntryPoints {
     // This entrypoint updates the metadata if valid.
     let set_token_metadata = EntryPoint::new(
         ENTRY_POINT_SET_TOKEN_METADATA,
-        vec![Parameter::new(ARG_TOKEN_META_DATA, CLType::String)],
+        vec![
+            Parameter::new(ARG_TOKEN_META_DATA, CLType::String),
+            Parameter::new(ARG_TOKEN_ID, CLType::U64),
+            Parameter::new(ARG_TOKEN_HASH, CLType::String),
+        ],
         CLType::Unit,
         EntryPointAccess::Public,
         EntryPointType::Contract,
@@ -2681,10 +2745,6 @@ fn install_contract() {
         NFTCoreError::InvalidMetadataMutability,
     )
     .unwrap_or_revert();
-
-    if identifier_mode == 1 && metadata_mutability == 1 {
-        runtime::revert(NFTCoreError::InvalidMetadataMutability)
-    }
 
     // Represents whether the minted tokens can be burnt.
     // This value cannot be changed post installation. Refer to `BurnMode` in

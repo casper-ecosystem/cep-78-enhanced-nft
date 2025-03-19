@@ -86,27 +86,6 @@ fn should_prevent_update_in_immutable_mode() {
 }
 
 #[test]
-fn should_prevent_install_with_hash_identifier_in_mutable_mode() {
-    let mut builder = InMemoryWasmTestBuilder::default();
-    builder
-        .run_genesis(&PRODUCTION_RUN_GENESIS_REQUEST)
-        .commit();
-
-    let install_request = InstallerRequestBuilder::new(*DEFAULT_ACCOUNT_ADDR, NFT_CONTRACT_WASM)
-        .with_total_token_supply(10u64)
-        .with_nft_metadata_kind(NFTMetadataKind::NFT721)
-        .with_identifier_mode(NFTIdentifierMode::Hash)
-        .with_metadata_mutability(MetadataMutability::Mutable)
-        .build();
-
-    builder.exec(install_request).expect_failure();
-
-    let error = builder.get_error().expect("must fail at installation");
-
-    assert_expected_error(error, 102, "Should raise InvalidMetadataMutability(102)")
-}
-
-#[test]
 fn should_prevent_update_for_invalid_metadata() {
     let mut builder = InMemoryWasmTestBuilder::default();
     builder
@@ -264,7 +243,7 @@ fn should_allow_update_for_valid_metadata_based_on_kind(
     let original_metadata = match &nft_metadata_kind {
         NFTMetadataKind::CEP78 => TEST_PRETTY_CEP78_METADATA,
         NFTMetadataKind::NFT721 => TEST_PRETTY_721_META_DATA,
-        NFTMetadataKind::Raw => "",
+        NFTMetadataKind::Raw => "raw",
         NFTMetadataKind::CustomValidated => &custom_metadata,
     };
 
@@ -314,7 +293,7 @@ fn should_allow_update_for_valid_metadata_based_on_kind(
     let updated_metadata = match &nft_metadata_kind {
         NFTMetadataKind::CEP78 => TEST_PRETTY_UPDATED_CEP78_METADATA,
         NFTMetadataKind::NFT721 => TEST_PRETTY_UPDATED_721_META_DATA,
-        NFTMetadataKind::Raw => "",
+        NFTMetadataKind::Raw => "raw_updated",
         NFTMetadataKind::CustomValidated => &custom_updated_metadata,
     };
 
@@ -325,7 +304,7 @@ fn should_allow_update_for_valid_metadata_based_on_kind(
         match identifier_mode {
             NFTIdentifierMode::Ordinal => args.insert(ARG_TOKEN_ID, 0u64).expect("must get args"),
             NFTIdentifierMode::Hash => args
-                .insert(ARG_TOKEN_HASH, token_hash)
+                .insert(ARG_TOKEN_HASH, token_hash.clone())
                 .expect("must get args"),
         }
         args
@@ -982,4 +961,36 @@ fn should_not_require_json_schema_when_kind_is_not_custom_validated() {
     should_not_require_json_schema_when_kind_is(NFTMetadataKind::Raw);
     should_not_require_json_schema_when_kind_is(NFTMetadataKind::CEP78);
     should_not_require_json_schema_when_kind_is(NFTMetadataKind::NFT721);
+}
+
+#[test]
+fn should_update_metadata_for_cep78_using_token_hash() {
+    should_allow_update_for_valid_metadata_based_on_kind(
+        NFTMetadataKind::CEP78,
+        NFTIdentifierMode::Hash,
+    )
+}
+
+#[test]
+fn should_update_metadata_for_nft721_using_token_hash() {
+    should_allow_update_for_valid_metadata_based_on_kind(
+        NFTMetadataKind::NFT721,
+        NFTIdentifierMode::Hash,
+    )
+}
+
+#[test]
+fn should_update_metadata_for_raw_using_token_hash() {
+    should_allow_update_for_valid_metadata_based_on_kind(
+        NFTMetadataKind::Raw,
+        NFTIdentifierMode::Hash,
+    )
+}
+
+#[test]
+fn should_update_metadata_for_custom_validated_using_token_hash() {
+    should_allow_update_for_valid_metadata_based_on_kind(
+        NFTMetadataKind::CustomValidated,
+        NFTIdentifierMode::Hash,
+    )
 }
