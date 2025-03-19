@@ -140,12 +140,7 @@ pub(crate) fn create_funded_dummy_account(
     builder: &mut WasmTestBuilder<InMemoryGlobalState>,
     account_string: Option<[u8; 32]>,
 ) -> AccountHash {
-    let (_, account_public_key) =
-        create_dummy_key_pair(if let Some(account_string) = account_string {
-            account_string
-        } else {
-            [7u8; 32]
-        });
+    let (_, account_public_key) = create_dummy_key_pair(account_string.unwrap_or([7u8; 32]));
     let account = account_public_key.to_account_hash();
 
     let transfer = ExecuteRequestBuilder::transfer(

@@ -28,7 +28,7 @@ use crate::utility::{
         TEST_CUSTOM_METADATA, TEST_CUSTOM_METADATA_SCHEMA, TEST_CUSTOM_UPDATED_METADATA,
     },
     support,
-    support::{assert_expected_error, get_minting_contract_hash, get_nft_contract_hash},
+    support::{get_minting_contract_hash, get_nft_contract_hash},
 };
 
 #[test]
