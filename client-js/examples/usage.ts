@@ -24,6 +24,7 @@ import {
   TransferArgs,
   BurnArgs,
   TransactionResult,
+  OwnerOfArgs,
 } from '../dist';
 import {
   findKeyFromAccountNamedKeys,
@@ -172,6 +173,42 @@ const usage = async () => {
   );
   await printTokenDetails(cep78, ali.publicKey, tokenIdentifier);
 
+  /* Store owner of at account named key */
+  console.info(`Store owner of token ${tokenIdentifier}`);
+
+  params = {
+    sender: ali.publicKey,
+    paymentAmount: String(1_000_000_000), // 1 CSPR
+    signingKeys: [ali],
+  };
+
+  const keyName = 'stored_owner_of_token';
+
+  const ownerOfArgs: OwnerOfArgs = {
+    keyName,
+    ...(identifierMode === NFT_IDENTIFIER_MODE[NFT_IDENTIFIER_MODE.Hash]
+      ? { tokenHash: tokenIdentifier }
+      : { tokenId: tokenIdentifier }),
+  };
+
+  await executeTransaction(
+    'ownerOf',
+    cep78,
+    params,
+    ownerOfArgs,
+    waitForTransactionProcessed
+  );
+
+  // Getting ali's account namedKeys, value was stored as temp data and may not reflect actual global state,
+  // specially after next burn action
+  const aliAccountInfo = await getAccountInfo(RPC_URL, ali.publicKey);
+  const storedOwnerOfValue = findKeyFromAccountNamedKeys(
+    aliAccountInfo,
+    keyName
+  );
+
+  console.info(`Stored OwnerOf value at URef: ${storedOwnerOfValue}`);
+
   console.info('Burn');
   params = {
     sender: ali.publicKey,
@@ -194,10 +231,10 @@ const usage = async () => {
 };
 
 async function executeTransaction(
-  action: 'mint' | 'register' | 'transfer' | 'burn',
+  action: 'mint' | 'register' | 'transfer' | 'burn' | 'ownerOf',
   cep78: CEP78Client,
   params: TransactionParams,
-  args: MintArgs | RegisterArgs | TransferArgs | BurnArgs,
+  args: MintArgs | RegisterArgs | TransferArgs | BurnArgs | OwnerOfArgs,
   waitForTransactionProcessed?: boolean,
   callSessionWasm?: boolean
 ): Promise<void> {
@@ -239,6 +276,13 @@ async function executeTransaction(
         waitForTransactionProcessed,
       }));
       break;
+    case 'ownerOf':
+      ({ transactionInfo, executionResult } = (await cep78.ownerOf({
+        params,
+        args: args as OwnerOfArgs,
+        waitForTransactionProcessed,
+      })) as TransactionResult);
+      break;
     default:
       throw new Error(`Unknown action: ${action}`);
   }
@@ -262,13 +306,13 @@ const printTokenDetails = async (
   account: PublicKey,
   tokenIdentifier: string
 ) => {
-  const ownerBalance = await cep78.balanceOf(account);
+  const ownerBalance = (await cep78.balanceOf(account)) as string;
   console.info(`Account ${account} balance ${ownerBalance}`);
 
-  const tokenOwner = await cep78.ownerOf(tokenIdentifier);
+  const tokenOwner = (await cep78.ownerOf(tokenIdentifier)) as string;
   console.info(`Owner of token ${tokenIdentifier} is ${tokenOwner}`);
 
-  const metadata = await cep78.metadata(tokenIdentifier);
+  const metadata = (await cep78.metadata(tokenIdentifier)) as unknown;
   console.info(`Metadata:`, metadata);
 };
 
