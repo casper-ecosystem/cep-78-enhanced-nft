@@ -38,7 +38,15 @@ const collectionName = 'TEST_CEP78',
   collectionSymbol = 'CEP78',
   totalTokenSupply = String(1000),
   eventsMode = EVENTS_MODE.CES,
+  sender = getSigningKey(PRIVATE_KEY_FAUCET),
+  minter = getSigningKey(PRIVATE_KEY_USER_1),
+  holderMode = NFT_HOLDER_MODE.Mixed,
+  mintingMode = MINTING_MODE.Acl,
+  aclWhitelist = [sender.publicKey, minter.publicKey],
+  whitelistMode = WHITELIST_MODE.Unlocked,
   ownershipMode = NFT_OWNERSHIP_MODE.Transferable,
+  nftKind = NFT_KIND.Virtual,
+  nftMetadataKind = NFT_METADATA_KIND.CustomValidated,
   jsonSchema = {
     properties: {
       ucid: { name: 'ucid', description: '', required: true },
@@ -46,19 +54,11 @@ const collectionName = 'TEST_CEP78',
       color: { name: 'color', description: '', required: false },
     },
   },
-  nftKind = NFT_KIND.Virtual,
-  holderMode = NFT_HOLDER_MODE.Mixed,
-  nftMetadataKind = NFT_METADATA_KIND.CustomValidated,
   identifierMode = NFT_IDENTIFIER_MODE.Hash,
   metadataMutability = METADATA_MUTABILITY.Immutable,
-  mintingMode = MINTING_MODE.Acl,
-  whitelistMode = WHITELIST_MODE.Unlocked,
   ownerReverseLookupMode = OWNER_REVERSE_LOOKUP_MODE.Complete,
-  waitForTransactionProcessed = true,
-  sender = getSigningKey(PRIVATE_KEY_FAUCET),
-  minter = getSigningKey(PRIVATE_KEY_USER_1),
   paymentAmount = String(600_000_000_000),
-  aclWhitelist = [sender.publicKey, minter.publicKey];
+  waitForTransactionProcessed = true;
 
 const install = async () => {
   const cep78 = new CEP78Client(RPC_URL, SSE_URL, CHAIN_NAME);

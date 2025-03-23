@@ -43,6 +43,7 @@ import {
   SetVariablesParams,
   StoreOwnerOfParams,
   StoreBalanceOfParams,
+  MINTING_MODE,
 } from './types';
 import BalanceOfWASM from './wasm/balance_of_session';
 import ContractWASM from './wasm/cep78';
@@ -135,28 +136,6 @@ export default class CEP78Client extends Client {
     return super.stopEventStream() as unknown as CEP78Client;
   }
 
-  /**
-   * Installs the CEP-78 contract on the Casper network.
-   *
-   * @param params - The installation parameters, including:
-   *   - `wasm`: The compiled contract in `Uint8Array` format.
-   *   - `paymentAmount`: The amount of payment required for contract installation.
-   *   - `sender`: The public key of the account deploying the contract.
-   *   - `chainName`: (Optional) The name of the network where the contract will be deployed.
-   *   - `signingKeys`: (Optional) An array of private keys used for signing the transaction.
-   *   - `args`: Contract-specific arguments, including:
-   *
-   *   - `waitForTransactionProcessed`: (Optional) If `true`, waits for the transaction to be processed.
-   *
-   * @returns A `Promise` resolving to `TransactionResult`, containing the transaction details.
-   *
-   * @throws Will throw an error if the Wasm file is missing or if an error occurs during installation.
-   *
-   * @remarks
-   * This method installs a new CEP-78 contract on the Casper network. It requires a compiled Wasm contract file and includes necessary arguments such as the token name, symbol, decimals, and total supply.
-   * If `waitForTransactionProcessed` is `true`, it waits for the transaction to be processed and returns the execution result.
-   * Ensure that the Wasm file is valid and the required arguments are properly provided before invoking the method.
-   */
   public async install(params: InstallParams): Promise<TransactionResult> {
     const {
       params: { wasm, paymentAmount, sender, chainName, signingKeys },
@@ -465,23 +444,6 @@ export default class CEP78Client extends Client {
     );
   }
 
-  /**
-   * Transfers tokens from the sender to another user.
-   *
-   * @param params - The transfer parameters, including:
-   *   - `args`: Contains the transfer details:
-   *     - `recipient`: The recipient's public key or account address.
-   *     - `amount`: The amount of tokens to transfer.
-   *   - `paymentAmount`: The amount of payment required for executing the transaction.
-   *   - `sender`: The public key of the sender initiating the transfer.
-   *   - `signingKeys`: (Optional) An array of private keys used to sign the transaction.
-   *   - `chainName`: (Optional) The name of the network to which the transaction will be deployed.
-   *   - `waitForTransactionProcessed`: (Optional) If `true`, waits for the transaction to be processed before resolving.
-   *
-   * @returns A `Promise` that resolves to a `TransactionResult` containing the details of the transaction.
-   *
-   * @throws Will throw an error if the transaction execution fails or if any of the required parameters are missing.
-   */
   public async transfer(
     params: TransferParams,
     callSessionWasm = false
@@ -840,18 +802,17 @@ export default class CEP78Client extends Client {
   }
 
   public async getApproved(params: GetApprovedParams) {
+    if (!this.contractHash) {
+      throw new Error('Contract hash is not set.');
+    }
+    // ! TODO toPrefixedString() ?
+    const key = `hash-${this.contractHash?.hash?.toHex()}`;
+
     const {
       params: { wasm, sender, paymentAmount, signingKeys, chainName },
       args: { tokenId, tokenHash, keyName },
       waitForTransactionProcessed,
     } = params;
-
-    if (!this.contractHash) {
-      throw Error('Contract hash is not set.');
-    }
-
-    // ! TODO toPrefixedString() ?
-    const key = `hash-${this.contractHash?.hash?.toHex()}`;
 
     if (keyName) {
       const wasmBytes = wasm || GetApprovedWASM;
@@ -909,18 +870,17 @@ export default class CEP78Client extends Client {
   }
 
   public async isApprovedForAll(params: IsApprovedForAlldParams) {
+    if (!this.contractHash) {
+      throw new Error('Contract hash is not set.');
+    }
+    // ! TODO toPrefixedString() ?
+    const key = `hash-${this.contractHash?.hash?.toHex()}`;
+
     const {
       params: { wasm, sender, paymentAmount, signingKeys, chainName },
       args: { tokenOwner, operator, keyName },
       waitForTransactionProcessed,
     } = params;
-
-    if (!this.contractHash) {
-      throw Error('Contract hash is not set.');
-    }
-
-    // ! TODO toPrefixedString() ?
-    const key = `hash-${this.contractHash?.hash?.toHex()}`;
 
     if (keyName) {
       const wasmBytes = wasm || isApprovedForAllWASM;
@@ -1163,13 +1123,28 @@ export default class CEP78Client extends Client {
     return this.queryContractData(['number_of_minted_tokens']);
   }
 
+  public async allowMinting(): Promise<boolean> {
+    const result = await this.queryContractData(['allow_minting']);
+    return result === 'true';
+  }
+
+  public async mintingMode() {
+    const internalValue = (await this.queryContractData([
+      'minting_mode',
+    ])) as unknown as number;
+    return MINTING_MODE[internalValue] as keyof typeof MINTING_MODE;
+  }
+
+  // ! TODO GR FIX
   public async aclWhitelist() {
     return this.queryContractData(['acl_whitelist']);
   }
 
-  public async allowMinting(): Promise<boolean> {
-    const result = await this.queryContractData(['allow_minting']);
-    return result === 'true';
+  public async whitelistMode() {
+    const internalValue = (await this.queryContractData([
+      'whitelist_mode',
+    ])) as unknown as number;
+    return WHITELIST_MODE[internalValue] as keyof typeof WHITELIST_MODE;
   }
 
   public async reportingMode() {
@@ -1179,13 +1154,6 @@ export default class CEP78Client extends Client {
     return OWNER_REVERSE_LOOKUP_MODE[
       internalValue
     ] as keyof typeof OWNER_REVERSE_LOOKUP_MODE;
-  }
-
-  public async whitelistMode() {
-    const internalValue = (await this.queryContractData([
-      'whitelist_mode',
-    ])) as unknown as number;
-    return WHITELIST_MODE[internalValue] as keyof typeof WHITELIST_MODE;
   }
 
   public async burnMode() {

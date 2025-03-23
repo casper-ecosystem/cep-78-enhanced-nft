@@ -1,6 +1,10 @@
 import { sha256 } from '@noble/hashes/sha256';
 import { bytesToHex } from '@noble/hashes/utils';
-import { PublicKey } from 'casper-js-sdk';
+import {
+  ExecutionResult,
+  PublicKey,
+  PutTransactionResult,
+} from 'casper-js-sdk';
 import { TextEncoder } from 'node:util';
 import {
   PRIVATE_KEY_FAUCET,
@@ -19,6 +23,7 @@ import {
   RegisterArgs,
   TransferArgs,
   BurnArgs,
+  TransactionResult,
 } from '../dist';
 import {
   findKeyFromAccountNamedKeys,
@@ -33,9 +38,6 @@ if (!PRIVATE_KEY_FAUCET) {
 }
 if (!PRIVATE_KEY_USER_1) {
   throw new Error('PRIVATE_KEY_USER_1 environment variable is not set.');
-}
-if (!PRIVATE_KEY_USER_2) {
-  throw new Error('PRIVATE_KEY_USER_2 environment variable is not set.');
 }
 
 const testCollectionName = 'TEST_CEP78',
@@ -55,26 +57,30 @@ const usage = async () => {
   );
   console.info(`Contract Hash: ${cep78.contractHash.toPrefixedString()}`);
 
-  // Fetch token info
+  // Fetch some token info
   const collectionName = await cep78.collectionName(),
     symbol = await cep78.collectionSymbol(),
     tokenTotalSupply = await cep78.tokenTotalSupply(),
     allowMinting = await cep78.allowMinting(),
+    mintingMode = await cep78.mintingMode(),
     burnMode = await cep78.burnMode(),
     holderMode = await cep78.holderMode(),
     identifierMode = await cep78.identifierMode(),
     whitelistMode = await cep78.whitelistMode(),
-    ownerReverseLookupMode = await cep78.reportingMode();
+    ownerReverseLookupMode = await cep78.reportingMode(),
+    metadataMutability = await cep78.metadataMutability();
 
   console.info('Collection info:', {
     collectionName,
     symbol,
     tokenTotalSupply: tokenTotalSupply.toString(),
-    allowMinting,
-    burnMode,
     holderMode,
-    identifierMode,
+    allowMinting,
+    mintingMode,
     whitelistMode,
+    burnMode,
+    identifierMode,
+    metadataMutability,
     ownerReverseLookupMode,
   });
 
@@ -103,139 +109,153 @@ const usage = async () => {
     mintArgs.tokenHash = tokenIdentifier;
   } else {
     // If token identifier is not a custom hash or given token id, assume token id is owner current balance
-    tokenIdentifier = `${+(await cep78.balanceOf(owner.publicKey))}`;
+    tokenIdentifier = `${+(await cep78.numOfMintedTokens())}`;
   }
 
   mintArgs.tokenMetaData['ucid'] = tokenIdentifier;
 
   console.info(`Mint token ${tokenIdentifier}`);
 
-  let params: TransactionParams = {
+  let params = {
     sender: owner.publicKey,
-    paymentAmount: String(5_000_000_000),
+    paymentAmount: String(5_000_000_000), // 5 CSPR
     signingKeys: [owner],
   };
 
-  let { transactionInfo, executionResult } = await cep78.mint(
-    {
-      params,
-      args: mintArgs,
-      waitForTransactionProcessed,
-    },
+  await executeTransaction(
+    'mint',
+    cep78,
+    params,
+    mintArgs,
+    waitForTransactionProcessed,
     callSessionWasm
   );
-
-  if (executionResult?.errorMessage) {
-    throw new Error(
-      `Error during mint.\n${executionResult?.errorMessage.toString()}`
-    );
-  } else {
-    console.info(
-      `Token mint transaction hash: ${transactionInfo.transactionHash}`
-    );
-    console.info(`Mint cost consumed: ${executionResult?.consumed}`);
-  }
-
   await printTokenDetails(cep78, owner.publicKey, tokenIdentifier);
 
   console.info('Register');
-
   params = {
     sender: ali.publicKey,
-    paymentAmount: String(310_000_000),
+    paymentAmount: String(500_000_000), // 0.5 CSPR
     signingKeys: [ali],
   };
 
-  const registerArgs: RegisterArgs = {
-    tokenOwner: ali.publicKey,
-  };
-
-  ({ transactionInfo, executionResult } = await cep78.register({
+  await executeTransaction(
+    'register',
+    cep78,
     params,
-    args: registerArgs,
-    waitForTransactionProcessed,
-  }));
-
-  if (executionResult?.errorMessage) {
-    throw new Error(
-      `Error during register.\n${executionResult?.errorMessage.toString()}`
-    );
-  } else {
-    console.info(
-      `Owner register transaction hash: ${transactionInfo.transactionHash}`
-    );
-    console.info(`Register cost consumed: ${executionResult?.consumed}`);
-  }
+    { tokenOwner: ali.publicKey },
+    waitForTransactionProcessed
+  );
 
   console.info('Transfer');
-
   params = {
     sender: owner.publicKey,
-    paymentAmount: String(4_500_000_000),
+    paymentAmount: String(5_000_000_000), // 5 CSPR
     signingKeys: [owner],
   };
 
-  const transferArgs: TransferArgs = {
+  const transferArgs = {
     source: owner.publicKey,
     target: ali.publicKey,
+    ...(identifierMode === NFT_IDENTIFIER_MODE[NFT_IDENTIFIER_MODE.Hash]
+      ? { tokenHash: tokenIdentifier }
+      : { tokenId: tokenIdentifier }),
   };
 
-  if (identifierMode === NFT_IDENTIFIER_MODE[NFT_IDENTIFIER_MODE.Hash]) {
-    transferArgs.tokenHash = tokenIdentifier;
-  } else {
-    transferArgs.tokenId = tokenIdentifier;
-  }
-
-  ({ transactionInfo, executionResult } = await cep78.transfer({
+  await executeTransaction(
+    'transfer',
+    cep78,
     params,
-    args: transferArgs,
+    transferArgs,
     waitForTransactionProcessed,
-  }));
-
-  if (executionResult?.errorMessage) {
-    throw new Error(
-      `Error during transfer.\n${executionResult?.errorMessage.toString()}`
-    );
-  } else {
-    console.info(
-      `Transfer transaction hash: ${transactionInfo.transactionHash}`
-    );
-    console.info(`Transfer cost consumed: ${executionResult?.consumed}`);
-  }
-
+    callSessionWasm
+  );
   await printTokenDetails(cep78, ali.publicKey, tokenIdentifier);
 
-  /* Burn */
   console.info('Burn');
-
   params = {
     sender: ali.publicKey,
-    paymentAmount: String(1_000_000_000),
+    paymentAmount: String(1_000_000_000), // 1 CSPR
     signingKeys: [ali],
   };
 
-  const burnArgs: BurnArgs = {};
-  if (identifierMode === NFT_IDENTIFIER_MODE[NFT_IDENTIFIER_MODE.Hash]) {
-    burnArgs.tokenHash = tokenIdentifier;
-  } else {
-    burnArgs.tokenId = tokenIdentifier;
-  }
+  const burnArgs: { tokenHash?: string; tokenId?: string } =
+    identifierMode === NFT_IDENTIFIER_MODE[NFT_IDENTIFIER_MODE.Hash]
+      ? { tokenHash: tokenIdentifier }
+      : { tokenId: tokenIdentifier };
 
-  ({ transactionInfo, executionResult } = await cep78.burn({
+  await executeTransaction(
+    'burn',
+    cep78,
     params,
-    args: burnArgs,
-    waitForTransactionProcessed,
-  }));
+    burnArgs,
+    waitForTransactionProcessed
+  );
+};
+
+async function executeTransaction(
+  action: 'mint' | 'register' | 'transfer' | 'burn',
+  cep78: CEP78Client,
+  params: TransactionParams,
+  args: MintArgs | RegisterArgs | TransferArgs | BurnArgs,
+  waitForTransactionProcessed?: boolean,
+  callSessionWasm?: boolean
+): Promise<void> {
+  let transactionInfo: PutTransactionResult,
+    executionResult: ExecutionResult | undefined;
+
+  switch (action) {
+    case 'mint':
+      ({ transactionInfo, executionResult } = await cep78.mint(
+        {
+          params,
+          args: args as MintArgs,
+          waitForTransactionProcessed,
+        },
+        callSessionWasm
+      ));
+      break;
+    case 'register':
+      ({ transactionInfo, executionResult } = await cep78.register({
+        params,
+        args: args as RegisterArgs,
+        waitForTransactionProcessed,
+      }));
+      break;
+    case 'transfer':
+      ({ transactionInfo, executionResult } = await cep78.transfer(
+        {
+          params,
+          args: args as TransferArgs,
+          waitForTransactionProcessed,
+        },
+        callSessionWasm
+      ));
+      break;
+    case 'burn':
+      ({ transactionInfo, executionResult } = await cep78.burn({
+        params,
+        args: args as BurnArgs,
+        waitForTransactionProcessed,
+      }));
+      break;
+    default:
+      throw new Error(`Unknown action: ${action}`);
+  }
 
   if (executionResult?.errorMessage) {
     throw new Error(
-      `Error during burn.\n${executionResult?.errorMessage.toString()}`
+      `Error during ${action}.\n${executionResult?.errorMessage.toString()}`
     );
   } else {
-    console.info(`Burn transaction hash: ${transactionInfo.transactionHash}`);
-    console.info(`Burn cost consumed: ${executionResult?.consumed}`);
+    console.info(
+      `${action.charAt(0).toUpperCase() + action.slice(1)} transaction hash: ${transactionInfo.transactionHash}`
+    );
+    console.info(
+      `${action.charAt(0).toUpperCase() + action.slice(1)} cost consumed: ${executionResult?.consumed}`
+    );
   }
-};
+}
 
 const printTokenDetails = async (
   cep78: CEP78Client,
