@@ -10,12 +10,13 @@ import {
   ParamDictionaryIdentifier,
   ParamDictionaryIdentifierContractNamedKey,
   SessionBuilder,
+  PublicKey,
 } from 'casper-js-sdk';
 import Client from './client';
 import {
   type SetApprovallForAllParams,
   type ApproveParams,
-  type balanceOfParams,
+  type BalanceOfParams,
   BURN_MODE,
   type BurnParams,
   EVENTS_MODE,
@@ -36,11 +37,12 @@ import {
   type InstallParams,
   type TransactionResult,
   type TransferParams,
-  type getMetadataOfParams,
   type IsApprovedForAlldParams,
   updatedReceiptsParams,
-  RegisterOwnerParams,
+  RegisterParams,
   SetVariablesParams,
+  StoreOwnerOfParams,
+  StoreBalanceOfParams,
 } from './types';
 import BalanceOfWASM from './wasm/balance_of_session';
 import ContractWASM from './wasm/cep78';
@@ -50,6 +52,8 @@ import MintWASM from './wasm/mint_session';
 import GetOwnerOfWASM from './wasm/owner_of_session';
 import TransferWASM from './wasm/transfer_session';
 import UpdatedReceiptsWASM from './wasm/updated_receipts';
+
+const prefixRegex = /^.*-/;
 
 /**
  * CEP78Client extends the base `Client` class to provide specific functionality
@@ -82,8 +86,8 @@ export default class CEP78Client extends Client {
     contractHash: string | ContractHash,
     contractPackageHash?: string | ContractPackageHash
   ): CEP78Client {
-    const removePrefix = (str: string | undefined) =>
-      str ? str.replace(/^.*-/, '') : '';
+    const removePrefix = (str?: string) =>
+      str ? str.replace(prefixRegex, '') : '';
 
     const hexContractHash =
         typeof contractHash === 'string' ? removePrefix(contractHash) : '',
@@ -378,17 +382,13 @@ export default class CEP78Client extends Client {
     }
   }
 
-  public mint(params: MintParams) {
+  public mint(params: MintParams, callSessionWasm = false) {
+    if (!this.contractHash) {
+      throw Error('Contract hash is not set.');
+    }
     const {
-      params: {
-        wasm,
-        callSessionWasm,
-        paymentAmount,
-        sender,
-        chainName,
-        signingKeys,
-      },
-      args: { tokenOwner, tokenMetaData, tokenHash, collectionName },
+      params: { wasm, paymentAmount, sender, chainName, signingKeys },
+      args: { tokenOwner, tokenMetaData, tokenHash },
       waitForTransactionProcessed,
     } = params;
 
@@ -409,16 +409,12 @@ export default class CEP78Client extends Client {
         throw new Error('Wasm file is missing.');
       }
 
-      if (collectionName !== undefined) {
-        runtimeArgs.insert(
-          'collection_name',
-          CLValue.newCLString(collectionName)
-        );
-      }
+      // ! TODO toPrefixedString() ?
+      const key = `hash-${this.contractHash?.hash?.toHex()}`;
 
       runtimeArgs.insert(
         'nft_contract_hash',
-        CLValue.newCLKey(Key.newKey(this.contractHash.toPrefixedString()))
+        CLValue.newCLKey(Key.newKey(key))
       );
 
       return this.callSession(
@@ -454,9 +450,7 @@ export default class CEP78Client extends Client {
 
     if (tokenId) {
       runtimeArgs.insert('token_id', CLValue.newCLUint64(tokenId));
-    }
-
-    if (tokenHash) {
+    } else if (tokenHash) {
       runtimeArgs.insert('token_hash', CLValue.newCLString(tokenHash));
     }
 
@@ -488,16 +482,12 @@ export default class CEP78Client extends Client {
    *
    * @throws Will throw an error if the transaction execution fails or if any of the required parameters are missing.
    */
-  public async transfer(params: TransferParams): Promise<TransactionResult> {
+  public async transfer(
+    params: TransferParams,
+    callSessionWasm = false
+  ): Promise<TransactionResult> {
     const {
-      params: {
-        wasm,
-        callSessionWasm,
-        sender,
-        paymentAmount,
-        signingKeys,
-        chainName,
-      },
+      params: { wasm, sender, paymentAmount, signingKeys, chainName },
       args: { target, source, tokenId, tokenHash },
       waitForTransactionProcessed,
     } = params;
@@ -513,13 +503,7 @@ export default class CEP78Client extends Client {
 
     if (tokenId) {
       runtimeArgs.insert('token_id', CLValue.newCLUint64(tokenId));
-    }
-
-    if (tokenHash) {
-      runtimeArgs.insert(
-        'is_hash_identifier_mode',
-        CLValue.newCLValueBool(true)
-      );
+    } else if (tokenHash) {
       runtimeArgs.insert('token_hash', CLValue.newCLString(tokenHash));
     }
 
@@ -528,6 +512,14 @@ export default class CEP78Client extends Client {
       if (!wasmBytes) {
         throw new Error('Wasm file is missing.');
       }
+
+      // ! TODO toPrefixedString() ?
+      const key = `hash-${this.contractHash?.hash?.toHex()}`;
+
+      runtimeArgs.insert(
+        'nft_contract_hash',
+        CLValue.newCLKey(Key.newKey(key))
+      );
 
       return this.callSession(
         wasmBytes,
@@ -551,7 +543,7 @@ export default class CEP78Client extends Client {
     );
   }
 
-  public register(params: RegisterOwnerParams) {
+  public register(params: RegisterParams): Promise<TransactionResult> {
     const {
       params: { paymentAmount, sender, chainName, signingKeys },
       args: { tokenOwner },
@@ -575,7 +567,7 @@ export default class CEP78Client extends Client {
     );
   }
 
-  public approve(params: ApproveParams) {
+  public approve(params: ApproveParams): Promise<TransactionResult> {
     const {
       params: { sender, paymentAmount, signingKeys, chainName },
       args: { operator, tokenId, tokenHash },
@@ -590,9 +582,7 @@ export default class CEP78Client extends Client {
 
     if (tokenId) {
       runtimeArgs.insert('token_id', CLValue.newCLUint64(tokenId));
-    }
-
-    if (tokenHash) {
+    } else if (tokenHash) {
       runtimeArgs.insert('token_hash', CLValue.newCLString(tokenHash));
     }
 
@@ -607,7 +597,7 @@ export default class CEP78Client extends Client {
     );
   }
 
-  public revoke(params: ApproveParams) {
+  public revoke(params: ApproveParams): Promise<TransactionResult> {
     const {
       params: { sender, paymentAmount, signingKeys, chainName },
       args: { operator, tokenId, tokenHash },
@@ -622,9 +612,7 @@ export default class CEP78Client extends Client {
 
     if (tokenId) {
       runtimeArgs.insert('token_id', CLValue.newCLUint64(tokenId));
-    }
-
-    if (tokenHash) {
+    } else if (tokenHash) {
       runtimeArgs.insert('token_hash', CLValue.newCLString(tokenHash));
     }
 
@@ -639,7 +627,9 @@ export default class CEP78Client extends Client {
     );
   }
 
-  public setApprovalForAll(params: SetApprovallForAllParams) {
+  public setApprovalForAll(
+    params: SetApprovallForAllParams
+  ): Promise<TransactionResult> {
     const {
       params: { paymentAmount, sender, chainName, signingKeys },
       args: { tokenOwner, operator, approveAll },
@@ -667,7 +657,9 @@ export default class CEP78Client extends Client {
     );
   }
 
-  public setTokenMetadata(params: TokenMetadataParams) {
+  public setTokenMetadata(
+    params: TokenMetadataParams
+  ): Promise<TransactionResult> {
     const {
       params: { sender, paymentAmount, signingKeys, chainName },
       args: { tokenMetaData },
@@ -689,70 +681,61 @@ export default class CEP78Client extends Client {
     );
   }
 
-  public async getOwnerOf(params: OwnerOfParams) {
-    const {
-      params: {
-        wasm,
-        callSessionWasm,
-        sender,
-        paymentAmount,
-        signingKeys,
-        chainName,
-      },
-      args: { tokenId, tokenHash, keyName },
-      waitForTransactionProcessed,
-    } = params;
-
+  public async ownerOf(
+    params: OwnerOfParams
+  ): Promise<string | TransactionResult | undefined> {
     if (!this.contractHash) {
-      throw Error('Contract hash is not set.');
+      throw new Error('Contract hash is not set.');
     }
-
-    if (callSessionWasm && keyName) {
-      const wasmBytes = wasm || GetOwnerOfWASM;
-      if (!wasmBytes) {
-        throw new Error('Wasm file is missing.');
-      }
-
-      const runtimeArgs = RuntimeArgs.fromMap({
-        nft_contract_hash: CLValue.newCLKey(
-          Key.newKey(this.contractHash.toPrefixedString())
-        ),
-        key_name: CLValue.newCLString(keyName),
-      });
-
-      if (tokenId) {
-        runtimeArgs.insert('token_id', CLValue.newCLUint64(tokenId));
-      }
-
-      if (tokenHash) {
-        runtimeArgs.insert(
-          'is_hash_identifier_mode',
-          CLValue.newCLValueBool(true)
-        );
-        runtimeArgs.insert('token_hash', CLValue.newCLString(tokenHash));
-      }
-
-      return this.callSession(
-        wasmBytes,
-        runtimeArgs,
-        paymentAmount,
-        sender,
-        signingKeys,
-        chainName,
-        waitForTransactionProcessed
-      );
-    }
-
-    const dictionaryItemKey = tokenId || tokenHash;
     // ! TODO toPrefixedString() ?
     const key = `hash-${this.contractHash?.hash?.toHex()}`;
 
-    const contractNamedKey: ParamDictionaryIdentifierContractNamedKey =
-      new ParamDictionaryIdentifierContractNamedKey(
-        key,
-        'token_owners',
-        dictionaryItemKey!
+    if (typeof params === 'object') {
+      const {
+        params: { wasm, sender, paymentAmount, signingKeys, chainName },
+        args: { tokenId, tokenHash, keyName },
+        waitForTransactionProcessed,
+      } = params as StoreOwnerOfParams;
+
+      const runtimeArgs = this.addTokenIdentifierRuntimeArgs(
+        RuntimeArgs.fromMap({}),
+        tokenId,
+        tokenHash
       );
+
+      if (keyName) {
+        const wasmBytes = wasm || GetOwnerOfWASM;
+        if (!wasmBytes) {
+          throw new Error('Wasm file is missing.');
+        }
+
+        runtimeArgs.insert(
+          'nft_contract_hash',
+          CLValue.newCLKey(Key.newKey(key))
+        );
+        runtimeArgs.insert('key_name', CLValue.newCLString(keyName));
+
+        return this.callSession(
+          wasmBytes,
+          runtimeArgs,
+          paymentAmount!,
+          sender!,
+          signingKeys,
+          chainName,
+          waitForTransactionProcessed
+        );
+      }
+    }
+
+    const tokenIdentifier = params as string;
+
+    const dictionaryItemKey = tokenIdentifier;
+
+    const contractNamedKey = new ParamDictionaryIdentifierContractNamedKey(
+      key,
+      'token_owners',
+      dictionaryItemKey!
+    );
 
     const identifier = new ParamDictionaryIdentifier(
       undefined,
@@ -762,73 +745,73 @@ export default class CEP78Client extends Client {
     );
 
     try {
-      return (
-        await this.rpcClient.getDictionaryItemByIdentifier(null, identifier)
-      ).storedValue.clValue?.toString();
+      const stateGetDictionaryResult =
+        await this.rpcClient.getDictionaryItemByIdentifier(null, identifier);
+      return stateGetDictionaryResult.storedValue.clValue?.toString();
     } catch (error) {
       if (error instanceof Error && error.toString().includes('Query failed')) {
-        console.warn(`No owner found for ${tokenId || tokenHash}`);
-        return '';
+        console.warn(`No owner found for ${dictionaryItemKey}`);
+        return undefined;
       } else throw error;
     }
   }
 
   public async balanceOf(
-    params: balanceOfParams
+    params: BalanceOfParams
   ): Promise<TransactionResult | string> {
-    const {
-      params: {
-        wasm,
-        callSessionWasm,
-        sender,
-        paymentAmount,
-        signingKeys,
-        chainName,
-      },
-      args: { tokenOwner, keyName },
-      waitForTransactionProcessed,
-    } = params;
-
     if (!this.contractHash) {
       throw Error('Contract hash is not set.');
     }
 
-    if (callSessionWasm && keyName) {
-      const wasmBytes = wasm || BalanceOfWASM;
-      if (!wasmBytes) {
-        throw new Error('Wasm file is missing.');
-      }
+    // ! TODO toPrefixedString() ?
+    const key = `hash-${this.contractHash?.hash?.toHex()}`;
+
+    if (!(params instanceof PublicKey)) {
+      const {
+        params: { wasm, sender, paymentAmount, signingKeys, chainName },
+        args: { tokenOwner, keyName },
+        waitForTransactionProcessed,
+      } = params as StoreBalanceOfParams;
 
       const runtimeArgs = RuntimeArgs.fromMap({
-        nft_contract_hash: CLValue.newCLKey(
-          Key.newKey(this.contractHash.toPrefixedString())
-        ),
         token_owner: CLValue.newCLKey(
           Key.newKey(tokenOwner.accountHash().toPrefixedString())
         ),
-        key_name: CLValue.newCLString(keyName),
       });
 
-      return this.callSession(
-        wasmBytes,
-        runtimeArgs,
-        paymentAmount,
-        sender,
-        signingKeys,
-        chainName,
-        waitForTransactionProcessed
-      );
+      if (keyName) {
+        const wasmBytes = wasm || BalanceOfWASM;
+        if (!wasmBytes) {
+          throw new Error('Wasm file is missing.');
+        }
+
+        runtimeArgs.insert(
+          'nft_contract_hash',
+          CLValue.newCLKey(Key.newKey(key))
+        );
+        runtimeArgs.insert('key_name', CLValue.newCLString(keyName));
+
+        return this.callSession(
+          wasmBytes,
+          runtimeArgs,
+          paymentAmount,
+          sender,
+          signingKeys,
+          chainName,
+          waitForTransactionProcessed
+        );
+      }
     }
+
+    const tokenOwner = params as PublicKey;
 
     const tokenOwnerKey = Key.newKey(
       tokenOwner.accountHash().toPrefixedString()
     );
 
-    const dictionaryItemKey = tokenOwnerKey.toPrefixedString();
-
-    // ! TODO toPrefixedString() ?
-    const key = `hash-${this.contractHash?.hash?.toHex()}`;
-
+    const dictionaryItemKey = tokenOwnerKey
+      .toPrefixedString()
+      .replace(prefixRegex, '');
     const contractNamedKey: ParamDictionaryIdentifierContractNamedKey =
       new ParamDictionaryIdentifierContractNamedKey(
         key,
@@ -858,14 +841,7 @@ export default class CEP78Client extends Client {
 
   public async getApproved(params: GetApprovedParams) {
     const {
-      params: {
-        wasm,
-        callSessionWasm,
-        sender,
-        paymentAmount,
-        signingKeys,
-        chainName,
-      },
+      params: { wasm, sender, paymentAmount, signingKeys, chainName },
       args: { tokenId, tokenHash, keyName },
       waitForTransactionProcessed,
     } = params;
@@ -874,28 +850,23 @@ export default class CEP78Client extends Client {
       throw Error('Contract hash is not set.');
     }
 
-    if (callSessionWasm && keyName) {
+    // ! TODO toPrefixedString() ?
+    const key = `hash-${this.contractHash?.hash?.toHex()}`;
+
+    if (keyName) {
       const wasmBytes = wasm || GetApprovedWASM;
       if (!wasmBytes) {
         throw new Error('Wasm file is missing.');
       }
 
       const runtimeArgs = RuntimeArgs.fromMap({
-        nft_contract_hash: CLValue.newCLKey(
-          Key.newKey(this.contractHash.toPrefixedString())
-        ),
+        nft_contract_hash: CLValue.newCLKey(Key.newKey(key)),
         key_name: CLValue.newCLString(keyName),
       });
 
       if (tokenId) {
         runtimeArgs.insert('token_id', CLValue.newCLUint64(tokenId));
-      }
-
-      if (tokenHash) {
-        runtimeArgs.insert(
-          'is_hash_identifier_mode',
-          CLValue.newCLValueBool(true)
-        );
+      } else if (tokenHash) {
         runtimeArgs.insert('token_hash', CLValue.newCLString(tokenHash));
       }
 
@@ -911,9 +882,6 @@ export default class CEP78Client extends Client {
     }
 
     const dictionaryItemKey = tokenId || tokenHash;
-    // ! TODO toPrefixedString() ?
-    const key = `hash-${this.contractHash?.hash?.toHex()}`;
-
     const contractNamedKey: ParamDictionaryIdentifierContractNamedKey =
       new ParamDictionaryIdentifierContractNamedKey(
         key,
@@ -942,14 +910,7 @@ export default class CEP78Client extends Client {
 
   public async isApprovedForAll(params: IsApprovedForAlldParams) {
     const {
-      params: {
-        wasm,
-        callSessionWasm,
-        sender,
-        paymentAmount,
-        signingKeys,
-        chainName,
-      },
+      params: { wasm, sender, paymentAmount, signingKeys, chainName },
       args: { tokenOwner, operator, keyName },
       waitForTransactionProcessed,
     } = params;
@@ -958,16 +919,17 @@ export default class CEP78Client extends Client {
       throw Error('Contract hash is not set.');
     }
 
-    if (callSessionWasm && keyName) {
+    // ! TODO toPrefixedString() ?
+    const key = `hash-${this.contractHash?.hash?.toHex()}`;
+
+    if (keyName) {
       const wasmBytes = wasm || isApprovedForAllWASM;
       if (!wasmBytes) {
         throw new Error('Wasm file is missing.');
       }
 
       const runtimeArgs = RuntimeArgs.fromMap({
-        nft_contract_hash: CLValue.newCLKey(
-          Key.newKey(this.contractHash.toPrefixedString())
-        ),
+        nft_contract_hash: CLValue.newCLKey(Key.newKey(key)),
         token_owner: CLValue.newCLKey(
           Key.newKey(tokenOwner.accountHash().toPrefixedString())
         ),
@@ -1001,14 +963,10 @@ export default class CEP78Client extends Client {
 
     const blaked = blake2b(finalBytes, { dkLen: 32 });
     const dictionaryItemKey = bytesToHex(blaked);
-
-    // ! TODO toPrefixedString() ?
-    const key = `hash-${this.contractHash?.hash?.toHex()}`;
-
     const contractNamedKey: ParamDictionaryIdentifierContractNamedKey =
       new ParamDictionaryIdentifierContractNamedKey(
         key,
-        'token_owners',
+        'operators',
         dictionaryItemKey!
       );
 
@@ -1092,10 +1050,13 @@ export default class CEP78Client extends Client {
     );
   }
 
-  public async getMetadataOf(params: getMetadataOfParams) {
-    const {
-      args: { tokenId, tokenHash },
-    } = params;
+  public async metadata(tokenIdentifier: string) {
+    if (!this.contractHash) {
+      throw Error('Contract hash is not set.');
+    }
+
+    // ! TODO toPrefixedString() ?
+    const key = `hash-${this.contractHash?.hash?.toHex()}`;
 
     const metadataToCheck: NFT_METADATA_KIND =
       NFT_METADATA_KIND[await this.metadataKind()];
@@ -1107,14 +1068,7 @@ export default class CEP78Client extends Client {
       [NFT_METADATA_KIND.CustomValidated]: 'metadata_custom_validated',
     };
 
-    const dictionaryItemKey = tokenId || tokenHash;
-
-    if (!this.contractHash) {
-      throw Error('Contract hash is not set.');
-    }
-
-    // ! TODO toPrefixedString() ?
-    const key = `hash-${this.contractHash?.hash?.toHex()}`;
+    const dictionaryItemKey = tokenIdentifier;
 
     const contractNamedKey: ParamDictionaryIdentifierContractNamedKey =
       new ParamDictionaryIdentifierContractNamedKey(
@@ -1138,37 +1092,38 @@ export default class CEP78Client extends Client {
       return metadata;
     } catch (error) {
       if (error instanceof Error && error.toString().includes('Query failed')) {
-        console.warn(`Not metadata found for ${tokenId || tokenHash}`);
+        console.warn(`No metadata found for ${tokenIdentifier}`);
         return {};
       } else throw error;
     }
   }
 
   // Deprecated for 1.1 version
-  public updatedReceipts(params: updatedReceiptsParams) {
+  public updatedReceipts(
+    params: updatedReceiptsParams,
+    callSessionWasm = true
+  ) {
     const {
-      params: {
-        wasm,
-        callSessionWasm,
-        sender,
-        paymentAmount,
-        signingKeys,
-        chainName,
-      },
+      params: { wasm, sender, paymentAmount, signingKeys, chainName },
       waitForTransactionProcessed,
     } = params;
 
-    const runtimeArgs = RuntimeArgs.fromMap({
-      nft_contract_hash: CLValue.newCLKey(
-        Key.newKey(this.contractHash.toPrefixedString())
-      ),
-    });
+    if (!this.contractHash) {
+      throw Error('Contract package hash is not set.');
+    }
+
+    // ! TODO toPrefixedString() ?
+    const key = `hash-${this.contractPackageHash?.hash?.toHex()}`;
 
     if (callSessionWasm) {
       const wasmBytes = wasm || UpdatedReceiptsWASM;
       if (!wasmBytes) {
         throw new Error('Wasm file is missing.');
       }
+
+      const runtimeArgs = RuntimeArgs.fromMap({
+        nft_contract_hash: CLValue.newCLKey(Key.newKey(key)),
+      });
 
       return this.callSession(
         wasmBytes,
@@ -1183,7 +1138,7 @@ export default class CEP78Client extends Client {
 
     return this.callEntrypoint(
       'updated_receipts',
-      runtimeArgs,
+      RuntimeArgs.fromMap({}),
       paymentAmount,
       sender,
       signingKeys,
@@ -1212,8 +1167,9 @@ export default class CEP78Client extends Client {
     return this.queryContractData(['acl_whitelist']);
   }
 
-  public async allowMinting() {
-    return this.queryContractData(['allow_minting']);
+  public async allowMinting(): Promise<boolean> {
+    const result = await this.queryContractData(['allow_minting']);
+    return result === 'true';
   }
 
   public async reportingMode() {
@@ -1305,5 +1261,18 @@ export default class CEP78Client extends Client {
     ])) as string;
 
     return EVENTS_MODE[internalValue] as keyof typeof EVENTS_MODE;
+  }
+
+  private addTokenIdentifierRuntimeArgs(
+    runtimeArgs: RuntimeArgs,
+    tokenId?: string,
+    tokenHash?: string
+  ) {
+    if (tokenId) {
+      runtimeArgs.insert('token_id', CLValue.newCLUint64(tokenId));
+    } else if (tokenHash) {
+      runtimeArgs.insert('token_hash', CLValue.newCLString(tokenHash));
+    }
+    return runtimeArgs;
   }
 }

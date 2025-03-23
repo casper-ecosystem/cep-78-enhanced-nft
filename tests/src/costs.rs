@@ -9,9 +9,8 @@ use crate::{
     costs::support::get_nft_contract_hash_key,
     utility::{
         constants::{
-            ARG_IS_HASH_IDENTIFIER_MODE, ARG_NFT_CONTRACT_HASH, DEFAULT_ACCOUNT_KEY,
-            MINT_SESSION_WASM, NFT_CONTRACT_WASM, NFT_TEST_COLLECTION, NFT_TEST_SYMBOL,
-            TRANSFER_SESSION_WASM,
+            ARG_NFT_CONTRACT_HASH, DEFAULT_ACCOUNT_KEY, MINT_SESSION_WASM, NFT_CONTRACT_WASM,
+            NFT_TEST_COLLECTION, NFT_TEST_SYMBOL, TRANSFER_SESSION_WASM,
         },
         installer_request_builder::{
             InstallerRequestBuilder, NFTIdentifierMode, NFTMetadataKind, OwnerReverseLookupMode,
@@ -141,7 +140,6 @@ fn transfer_costs_should_remain_stable() {
         TRANSFER_SESSION_WASM,
         runtime_args! {
             ARG_NFT_CONTRACT_HASH => nft_contract_key,
-            ARG_IS_HASH_IDENTIFIER_MODE => false,
             ARG_SOURCE_KEY => *DEFAULT_ACCOUNT_KEY,
             ARG_TARGET_KEY => Key::Account(AccountHash::new([9u8; 32])),
             ARG_TOKEN_ID => 0u64,
@@ -159,7 +157,6 @@ fn transfer_costs_should_remain_stable() {
         TRANSFER_SESSION_WASM,
         runtime_args! {
             ARG_NFT_CONTRACT_HASH => nft_contract_key,
-            ARG_IS_HASH_IDENTIFIER_MODE => false,
             ARG_SOURCE_KEY => *DEFAULT_ACCOUNT_KEY,
             ARG_TARGET_KEY => Key::Account(AccountHash::new([9u8; 32])),
             ARG_TOKEN_ID => 1u64,
@@ -182,7 +179,6 @@ fn transfer_costs_should_remain_stable() {
         TRANSFER_SESSION_WASM,
         runtime_args! {
             ARG_NFT_CONTRACT_HASH => nft_contract_key,
-            ARG_IS_HASH_IDENTIFIER_MODE => false,
             ARG_SOURCE_KEY => *DEFAULT_ACCOUNT_KEY,
             ARG_TARGET_KEY => Key::Account(AccountHash::new([9u8; 32])),
             ARG_TOKEN_ID => 2u64,
@@ -222,6 +218,8 @@ fn should_cost_less_when_installing_without_reverse_lookup(reporting: OwnerRever
     let page_dictionary_lookup = builder.query(None, reverse_lookup_hash, &["page_0".to_string()]);
 
     assert!(page_dictionary_lookup.is_ok());
+
+    let mut builder = genesis();
 
     let install_request = InstallerRequestBuilder::new(*DEFAULT_ACCOUNT_ADDR, NFT_CONTRACT_WASM)
         .with_collection_name(NFT_TEST_COLLECTION.to_string())

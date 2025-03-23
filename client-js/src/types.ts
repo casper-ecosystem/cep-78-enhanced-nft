@@ -107,7 +107,6 @@ export type TransactionParams = {
   sender: PublicKey;
   paymentAmount: string;
   wasm?: Uint8Array;
-  callSessionWasm?: boolean;
   signingKeys?: PrivateKey[];
   chainName?: string;
 };
@@ -127,15 +126,15 @@ export interface JSONSchemaObject {
   properties: Record<string, JSONSchemaEntry>;
 }
 
-export interface RegisterArgs {
-  tokenOwner: PublicKey;
-}
-
 export interface MintArgs {
   tokenOwner: PublicKey;
   tokenMetaData: Record<string, string>;
   tokenHash?: string;
   collectionName?: string;
+}
+
+export interface RegisterArgs {
+  tokenOwner: PublicKey;
 }
 
 export interface TokenArgs {
@@ -149,13 +148,11 @@ export type TransferArgs = { target: PublicKey; source: PublicKey } & TokenArgs;
 
 export type TokenMetadataArgs = { tokenMetaData: Record<string, string> };
 
-export type BalanceOfArgs = { tokenOwner: PublicKey; keyName?: string };
+export type BalanceOfArgs = { tokenOwner: PublicKey; keyName: string };
 
-export type GetApprovedArgs = { keyName?: string } & TokenArgs;
+export type GetApprovedArgs = { keyName: string } & TokenArgs;
 
-export type OwnerOfArgs = GetApprovedArgs;
-
-export type RegisterOwnerArgs = { tokenOwner: PublicKey };
+export type OwnerOfArgs = { keyName: string } & TokenArgs;
 
 export type ApproveArgs = { operator: PublicKey } & TokenArgs;
 
@@ -170,7 +167,7 @@ export type SetApprovallForAllArgs = {
 export type IsApprovedForAllArgs = {
   tokenOwner: PublicKey;
   operator: PublicKey;
-  keyName?: string;
+  keyName: string;
 };
 
 export type SetVariablesArgs = {
@@ -214,8 +211,8 @@ export interface ApproveParams extends BaseParams {
   args: ApproveArgs;
 }
 
-export interface RegisterOwnerParams extends BaseParams {
-  args: RegisterOwnerArgs;
+export interface RegisterParams extends BaseParams {
+  args: RegisterArgs;
 }
 
 export interface RevokeParams extends BaseParams {
@@ -226,13 +223,17 @@ export interface SetApprovallForAllParams extends BaseParams {
   args: SetApprovallForAllArgs;
 }
 
-export interface balanceOfParams extends BaseParams {
+export interface StoreBalanceOfParams extends BaseParams {
   args: BalanceOfArgs;
 }
 
-export interface OwnerOfParams extends BaseParams {
+export type BalanceOfParams = PublicKey | StoreBalanceOfParams;
+
+export interface StoreOwnerOfParams extends BaseParams {
   args: OwnerOfArgs;
 }
+
+export type OwnerOfParams = string | StoreOwnerOfParams;
 
 export interface GetApprovedParams extends BaseParams {
   args: GetApprovedArgs;
@@ -244,10 +245,6 @@ export interface IsApprovedForAlldParams extends BaseParams {
 
 export interface SetVariablesParams extends BaseParams {
   args: SetVariablesArgs;
-}
-
-export interface getMetadataOfParams {
-  args: TokenArgs;
 }
 
 export interface updatedReceiptsParams extends BaseParams {}

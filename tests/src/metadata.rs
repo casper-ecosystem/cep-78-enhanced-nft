@@ -14,10 +14,9 @@ use cep78::{
 
 use crate::utility::{
     constants::{
-        ARG_IS_HASH_IDENTIFIER_MODE, ARG_NFT_CONTRACT_HASH, ARG_REVERSE_LOOKUP,
-        DEFAULT_ACCOUNT_KEY, MALFORMED_META_DATA, MINTING_CONTRACT_WASM, MINT_SESSION_WASM,
-        NFT_CONTRACT_WASM, NFT_TEST_COLLECTION, TEST_PRETTY_721_META_DATA,
-        TEST_PRETTY_CEP78_METADATA, TEST_PRETTY_UPDATED_721_META_DATA,
+        ARG_NFT_CONTRACT_HASH, ARG_REVERSE_LOOKUP, DEFAULT_ACCOUNT_KEY, MALFORMED_META_DATA,
+        MINTING_CONTRACT_WASM, MINT_SESSION_WASM, NFT_CONTRACT_WASM, NFT_TEST_COLLECTION,
+        TEST_PRETTY_721_META_DATA, TEST_PRETTY_CEP78_METADATA, TEST_PRETTY_UPDATED_721_META_DATA,
         TEST_PRETTY_UPDATED_CEP78_METADATA, TOKEN_HASH,
     },
     installer_request_builder::{
@@ -461,7 +460,6 @@ fn should_get_metadata_using_token_id() {
         minting_contract_hash.into(),
         ENTRY_POINT_METADATA,
         runtime_args! {
-            ARG_IS_HASH_IDENTIFIER_MODE => false,
             ARG_TOKEN_ID => 0u64,
             ARG_NFT_CONTRACT_HASH => nft_contract_key
         },
@@ -551,7 +549,6 @@ fn should_get_metadata_using_token_metadata_hash() {
         minting_contract_hash.into(),
         ENTRY_POINT_METADATA,
         runtime_args! {
-            ARG_IS_HASH_IDENTIFIER_MODE => true,
             ARG_TOKEN_HASH => token_hash,
             ARG_NFT_CONTRACT_HASH => nft_contract_key
         },
@@ -641,7 +638,6 @@ fn should_revert_minting_token_metadata_hash_twice() {
         minting_contract_hash.into(),
         ENTRY_POINT_METADATA,
         runtime_args! {
-            ARG_IS_HASH_IDENTIFIER_MODE => true,
             ARG_TOKEN_HASH => token_hash,
             ARG_NFT_CONTRACT_HASH => nft_contract_key
         },
@@ -742,7 +738,6 @@ fn should_get_metadata_using_custom_token_hash() {
         minting_contract_hash.into(),
         ENTRY_POINT_METADATA,
         runtime_args! {
-            ARG_IS_HASH_IDENTIFIER_MODE => true,
             ARG_TOKEN_HASH => TOKEN_HASH.to_string(),
             ARG_NFT_CONTRACT_HASH => nft_contract_key
         },
@@ -830,7 +825,6 @@ fn should_revert_minting_custom_token_hash_identifier_twice() {
         minting_contract_hash.into(),
         ENTRY_POINT_METADATA,
         runtime_args! {
-            ARG_IS_HASH_IDENTIFIER_MODE => true,
             ARG_TOKEN_HASH => TOKEN_HASH.to_string(),
             ARG_NFT_CONTRACT_HASH => nft_contract_key
         },

@@ -1,7 +1,6 @@
 import { CHAIN_NAME, PRIVATE_KEY_FAUCET, RPC_URL, SSE_URL } from '../config';
 import {
   CEP78Client,
-  ContractWASM as wasm,
   EVENTS_MODE,
   type TransactionParams,
   type TransactionResult,
@@ -26,7 +25,6 @@ const collectionName = 'TEST_CEP78',
 const upgrade = async () => {
   const cep78 = new CEP78Client(RPC_URL, SSE_URL, CHAIN_NAME),
     params: TransactionParams = {
-      wasm,
       sender: sender.publicKey,
       paymentAmount,
       signingKeys: [sender],

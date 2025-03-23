@@ -23,7 +23,7 @@ use alloc::{
 };
 use casper_contract::{
     contract_api::{
-        runtime::{self, call_contract, get_key, get_named_arg, revert},
+        runtime::{self, call_contract, get_key, revert},
         storage::{self, read},
     },
     unwrap_or_revert::UnwrapOrRevert,
@@ -2376,7 +2376,6 @@ fn install_contract() {
     )
     .unwrap_or_revert();
 
-    // TODO: figure out examples of collection_symbol
     // The symbol for the NFT collection.
     // This value cannot be changed after installation.
     let collection_symbol: String = utils::get_named_arg_with_user_errors(
@@ -2667,25 +2666,12 @@ fn install_contract() {
 }
 
 fn migrate_contract(access_key_name: String, package_key_name: String) {
-    let nft_contract_package_hash = match runtime::get_key(&package_key_name)
-        .unwrap_or_revert_with(NFTCoreError::MissingPackageHashForUpgrade)
-    {
-        Key::Hash(hash_addr) => PackageHash::new(hash_addr),
-        Key::SmartContract(package_addr) => PackageHash::new(package_addr),
-        _ => revert(NFTCoreError::InvalidPackageHash),
-    };
-
     let collection_name: String = utils::get_named_arg_with_user_errors(
         ARG_COLLECTION_NAME,
         NFTCoreError::MissingCollectionName,
         NFTCoreError::InvalidCollectionName,
     )
     .unwrap_or_revert();
-
-    runtime::put_key(
-        &format!("{PREFIX_HASH_KEY_NAME}_{collection_name}"),
-        nft_contract_package_hash.into(),
-    );
 
     if let Some(access_key) = runtime::get_key(&access_key_name) {
         runtime::put_key(
@@ -2710,6 +2696,14 @@ fn migrate_contract(access_key_name: String, package_key_name: String) {
         BTreeMap::new()
     } else {
         BTreeMap::from([(EVENTS.to_string(), MessageTopicOperation::Add)])
+    };
+
+    let nft_contract_package_hash = match runtime::get_key(&package_key_name)
+        .unwrap_or_revert_with(NFTCoreError::MissingPackageHashForUpgrade)
+    {
+        Key::Hash(hash_addr) => PackageHash::new(hash_addr),
+        Key::SmartContract(package_addr) => PackageHash::new(package_addr),
+        _ => revert(NFTCoreError::InvalidPackageHash),
     };
 
     let (contract_hash, contract_version) = storage::add_contract_version(
@@ -2784,24 +2778,18 @@ pub extern "C" fn call() {
 
     match convention_mode {
         NamedKeyConventionMode::DerivedFromCollectionName => {
-            let collection_symbol = utils::get_named_arg_with_user_errors::<String>(
-                ARG_COLLECTION_SYMBOL,
-                NFTCoreError::MissingCollectionSymbol,
-                NFTCoreError::InvalidCollectionSymbol,
-            );
-            match collection_symbol {
-                Ok(_) => install_contract(),
-                Err(e) => {
-                    if e as u8 == NFTCoreError::MissingCollectionSymbol as u8 {
-                        let collection_name = get_named_arg::<String>(ARG_COLLECTION_NAME);
-                        migrate_contract(
-                            format!("{PREFIX_ACCESS_KEY_NAME}_{collection_name}"),
-                            format!("{PREFIX_HASH_KEY_NAME}_{collection_name}"),
-                        );
-                    } else {
-                        revert(e)
-                    }
-                }
+            let collection_name: String = utils::get_named_arg_with_user_errors(
+                ARG_COLLECTION_NAME,
+                NFTCoreError::MissingCollectionName,
+                NFTCoreError::InvalidCollectionName,
+            )
+            .unwrap_or_revert();
+            match runtime::get_key(&format!("{PREFIX_ACCESS_KEY_NAME}_{collection_name}")) {
+                None => install_contract(),
+                Some(_) => migrate_contract(
+                    format!("{PREFIX_ACCESS_KEY_NAME}_{collection_name}"),
+                    format!("{PREFIX_HASH_KEY_NAME}_{collection_name}"),
+                ),
             }
         }
         NamedKeyConventionMode::V1_0Standard => migrate_contract(

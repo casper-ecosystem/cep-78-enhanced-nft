@@ -7,7 +7,6 @@ import {
 } from '../config';
 import {
   CEP78Client,
-  ContractWASM as wasm,
   EVENTS_MODE,
   type InstallArgs,
   type TransactionParams,
@@ -53,19 +52,18 @@ const collectionName = 'TEST_CEP78',
   identifierMode = NFT_IDENTIFIER_MODE.Hash,
   metadataMutability = METADATA_MUTABILITY.Immutable,
   mintingMode = MINTING_MODE.Acl,
-  whitelistMode = WHITELIST_MODE.Locked,
+  whitelistMode = WHITELIST_MODE.Unlocked,
   ownerReverseLookupMode = OWNER_REVERSE_LOOKUP_MODE.Complete,
   waitForTransactionProcessed = true,
   sender = getSigningKey(PRIVATE_KEY_FAUCET),
   minter = getSigningKey(PRIVATE_KEY_USER_1),
   paymentAmount = String(600_000_000_000),
-  aclWhitelist = [minter.publicKey];
+  aclWhitelist = [sender.publicKey, minter.publicKey];
 
 const install = async () => {
   const cep78 = new CEP78Client(RPC_URL, SSE_URL, CHAIN_NAME);
 
   const params: TransactionParams = {
-    wasm,
     sender: sender.publicKey,
     paymentAmount,
     signingKeys: [sender],

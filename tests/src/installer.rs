@@ -19,7 +19,10 @@ use crate::utility::{
         InstallerRequestBuilder, MintingMode, NFTHolderMode, NFTIdentifierMode, NFTMetadataKind,
         OwnerReverseLookupMode, OwnershipMode, WhitelistMode,
     },
-    support::{self, genesis, get_dictionary_value_from_key, get_nft_contract_hash_key},
+    support::{
+        self, genesis, get_dictionary_value_from_key, get_nft_contract_hash_key,
+        get_nft_contract_package_hash_cep78,
+    },
 };
 
 #[test]
@@ -403,4 +406,40 @@ fn should_allow_installation_with_ownership_transferable_and_owner_reverse_looku
         .build();
 
     builder.exec(install_request).expect_success().commit();
+}
+
+#[test]
+fn should_prevent_double_install_but_upgrade_instead() {
+    let mut builder = genesis();
+
+    let install_request = InstallerRequestBuilder::new(*DEFAULT_ACCOUNT_ADDR, NFT_CONTRACT_WASM)
+        .with_collection_name(NFT_TEST_COLLECTION.to_string())
+        .with_collection_symbol(NFT_TEST_SYMBOL.to_string())
+        .with_total_token_supply(1u64)
+        .with_reporting_mode(OwnerReverseLookupMode::NoLookUp)
+        .build();
+
+    builder.exec(install_request).expect_success().commit();
+
+    let first_nft_contract_package_hash = get_nft_contract_package_hash_cep78(&builder);
+
+    dbg!(first_nft_contract_package_hash);
+
+    let install_request = InstallerRequestBuilder::new(*DEFAULT_ACCOUNT_ADDR, NFT_CONTRACT_WASM)
+        .with_collection_name(NFT_TEST_COLLECTION.to_string())
+        .with_collection_symbol(NFT_TEST_SYMBOL.to_string())
+        .with_total_token_supply(1u64)
+        .with_reporting_mode(OwnerReverseLookupMode::NoLookUp)
+        .build();
+
+    builder.exec(install_request).expect_success().commit();
+
+    let last_nft_contract_package_hash = get_nft_contract_package_hash_cep78(&builder);
+
+    assert_eq!(
+        first_nft_contract_package_hash,
+        last_nft_contract_package_hash
+    );
+
+    dbg!(last_nft_contract_package_hash);
 }

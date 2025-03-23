@@ -12,7 +12,6 @@ pub const NFT_CONTRACT_WASM: &str = "cep78.wasm";
 pub const OWNER_OF_SESSION_WASM: &str = "owner_of_session.wasm";
 pub const TRANSFER_SESSION_WASM: &str = "transfer_session.wasm";
 
-pub const ARG_IS_HASH_IDENTIFIER_MODE: &str = "is_hash_identifier_mode";
 pub const ARG_KEY_NAME: &str = "key_name";
 pub const ARG_NFT_CONTRACT_HASH: &str = "nft_contract_hash";
 pub const ARG_NFT_CONTRACT_PACKAGE_HASH: &str = "nft_contract_package_hash";
