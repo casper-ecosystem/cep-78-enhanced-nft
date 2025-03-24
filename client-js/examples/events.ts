@@ -98,6 +98,7 @@ const usage = async () => {
 
   mintArgs.tokenMetaData['ucid'] = tokenIdentifier;
 
+  // Mint
   console.info(`Mint token ${tokenIdentifier}`);
 
   await cep78.mint(
@@ -125,6 +126,7 @@ const usage = async () => {
     `Token minted successfully, Ali's balance: ${aliBalance.toString()}`
   );
 
+  // Approve
   console.info(`Approval for Bob ${bob.publicKey}`);
 
   params = {
@@ -159,9 +161,13 @@ const usage = async () => {
 
   const approved = (await cep78.ownerOf(tokenIdentifier)) as string;
 
-  console.info(`Approved account for token ${tokenIdentifier}\n${approved}`);
+  console.info(`Approved account for token ${tokenIdentifier}: ${approved}`);
 
-  console.info('Transfer');
+  // Clean subscriptions, either the stream is running or you're waiting for a transaction
+  cep78.stopEventStream();
+
+  // Transfer
+  console.info(`Transfer token ${tokenIdentifier}`);
   params = {
     sender: bob.publicKey,
     paymentAmount: String(5_000_000_000), // 5 CSPR
@@ -176,9 +182,6 @@ const usage = async () => {
       : { tokenId: tokenIdentifier }),
   };
 
-  // Clean subscriptions, either the stream is running or you're waiting for a transaction
-  cep78.stopEventStream();
-
   let { transactionInfo } = await cep78.transfer({
     params,
     args: transferArgs,
@@ -186,7 +189,7 @@ const usage = async () => {
   });
 
   console.info(
-    `Contract transfer transaction hash: ${transactionInfo.transactionHash}`
+    `Contract  Transfer transaction hash: ${transactionInfo.transactionHash}`
   );
 
   const bobBalance = await cep78.balanceOf(bob.publicKey);
@@ -195,6 +198,7 @@ const usage = async () => {
     `Token transfer successfully, Bob's balance: ${bobBalance.toString()}, Ali's balance: ${aliBalance.toString()}`
   );
 
+  // SetApprovallForAll
   params = {
     sender: bob.publicKey,
     paymentAmount: String(1_000_000_000), // 1 CSPR
@@ -213,9 +217,10 @@ const usage = async () => {
   }));
 
   console.info(
-    `Contract transfer transaction hash: ${transactionInfo.transactionHash}`
+    `Contract SetApprovalForAll transaction hash: ${transactionInfo.transactionHash}`
   );
 
+  // IsApprovedForAlldParams
   const isApprovedForAlldParams: IsApprovedForAlldParams = {
     tokenOwner: bob.publicKey,
     operator: owner.publicKey,
@@ -229,6 +234,7 @@ const usage = async () => {
     `Owner is approved for all token from Bob ${bob.publicKey}: ${isApprovedForAll}`
   );
 
+  // Store IsApprovedForAlldParams
   const keyName = 'test_is_approved_for_all';
 
   const isApprovedForAllArgs: IsApprovedForAllArgs = {
