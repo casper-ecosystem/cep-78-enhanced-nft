@@ -1852,6 +1852,12 @@ pub extern "C" fn set_token_metadata() {
                         let new_token_identifier = TokenIdentifier::new_hash(base16::encode_lower(
                             &runtime::blake2b(validated_token_metadata.clone()),
                         ));
+                        let token_issuer = utils::get_dictionary_value_from_key::<Key>(
+                            TOKEN_ISSUERS,
+                            &token_identifier.get_dictionary_item_key(),
+                        )
+                        .unwrap_or_revert_with(NFTCoreError::MissingTokenIssuerIdentifierKey);
+
                         utils::delete_dictionary_entry::<Key>(TOKEN_OWNERS, &dictionary_item_key);
                         utils::delete_dictionary_entry::<Key>(TOKEN_ISSUERS, &dictionary_item_key);
                         utils::delete_dictionary_entry::<String>(
@@ -1866,10 +1872,11 @@ pub extern "C" fn set_token_metadata() {
                             &dictionary_item_key,
                             token_owner,
                         );
+
                         utils::upsert_dictionary_value_from_key(
                             TOKEN_ISSUERS,
                             &dictionary_item_key,
-                            token_owner,
+                            token_issuer,
                         );
 
                         utils::upsert_dictionary_value_from_key(
