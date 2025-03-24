@@ -171,7 +171,7 @@ const usage = async () => {
   );
   await printTokenDetails(cep78, ali.publicKey, tokenIdentifier);
 
-  /* Store owner of at account named key */
+  // Store owner of at account named key
   console.info(`Store owner of token ${tokenIdentifier}`);
 
   params = {
@@ -180,6 +180,7 @@ const usage = async () => {
     signingKeys: [ali],
   };
 
+  // Store ownerOfArgs, call session client contract and store to keyName
   const keyName = 'stored_owner_of_token';
 
   const ownerOfArgs: OwnerOfArgs = {

@@ -1255,7 +1255,12 @@ export default class CEP78Client extends Client {
     return runtimeArgs;
   }
 
-  private isOperatorArgs(obj: any): obj is OperatorArgs {
-    return obj && 'tokenOwner' in obj && 'operator' in obj;
+  private isOperatorArgs(obj: unknown): obj is OperatorArgs {
+    return (
+      typeof obj === 'object' &&
+      obj !== null &&
+      'tokenOwner' in obj &&
+      'operator' in obj
+    );
   }
 }

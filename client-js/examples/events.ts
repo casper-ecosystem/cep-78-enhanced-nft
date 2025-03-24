@@ -220,7 +220,7 @@ const usage = async () => {
     `Contract SetApprovalForAll transaction hash: ${transactionInfo.transactionHash}`
   );
 
-  // IsApprovedForAlldParams
+  // IsApprovedForAlldParams, query global state dictionary
   const isApprovedForAlldParams: IsApprovedForAlldParams = {
     tokenOwner: bob.publicKey,
     operator: owner.publicKey,
@@ -234,7 +234,7 @@ const usage = async () => {
     `Owner is approved for all token from Bob ${bob.publicKey}: ${isApprovedForAll}`
   );
 
-  // Store IsApprovedForAlldParams
+  // Store IsApprovedForAlldParams, call session client contract and store to keyName
   const keyName = 'test_is_approved_for_all';
 
   const isApprovedForAllArgs: IsApprovedForAllArgs = {
