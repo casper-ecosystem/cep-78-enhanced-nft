@@ -7,6 +7,7 @@ import {
   ExecutionResult,
   Key,
   KeyAlgorithm,
+  ParamDictionaryIdentifierContractNamedKey,
   PrivateKey,
   PutTransactionResult,
   RpcClient,
@@ -33,6 +34,11 @@ import {
   NFT_KIND,
   OWNER_REVERSE_LOOKUP_MODE,
   WHITELIST_MODE,
+  RegisterParams,
+  SetApprovallForAllParams,
+  TokenMetadataParams,
+  OwnerOfParams,
+  StoreBalanceOfParams,
 } from '../../src';
 
 describe('CEP78Client Unit', () => {
@@ -326,241 +332,6 @@ describe('CEP78Client Unit', () => {
     });
   });
 
-  describe('CEP78Client - transfer', () => {
-    let client: CEP78Client;
-    const key = PrivateKey.generate(KeyAlgorithm.ED25519);
-    const key2 = PrivateKey.generate(KeyAlgorithm.ED25519);
-    const mockParams: TransferParams = {
-      params: {
-        sender: key.publicKey,
-        paymentAmount: '1000',
-        signingKeys: [key],
-        chainName: 'testnet',
-      },
-      args: {
-        target: key.publicKey,
-        source: key2.publicKey,
-        tokenHash: 'tokenHash',
-      },
-      waitForTransactionProcessed: false,
-    };
-
-    beforeEach(() => {
-      client = new CEP78Client('http://mock-rpc-url');
-      vi.spyOn(client as any, 'callEntrypoint').mockResolvedValue({
-        transactionInfo: { transactionHash: 'mockTransactionHash' },
-      });
-      vi.spyOn(client, 'waitForTransactionProcessed').mockResolvedValue({
-        transactionProcessedPayload: {
-          executionResult: { errorMessage: '' } as ExecutionResult,
-        } as unknown as TransactionProcessedPayload,
-      });
-    });
-
-    it('should successfully transfer', async () => {
-      const result = await client.transfer(mockParams);
-
-      // Check that callEntrypoint was called with correct parameters
-      expect(client['callEntrypoint']).toHaveBeenCalledWith(
-        'transfer',
-        expect.anything(),
-        mockParams.params.paymentAmount,
-        mockParams.params.sender,
-        mockParams.params.signingKeys,
-        mockParams.params.chainName,
-        mockParams.waitForTransactionProcessed
-      );
-
-      // Check the result
-      expect(result).toEqual({
-        transactionInfo: { transactionHash: 'mockTransactionHash' },
-      });
-    });
-
-    it('should call callEntrypoint with correct runtime arguments', async () => {
-      await client.transfer(mockParams);
-
-      const runtimeArgs = (client as any).callEntrypoint.mock.calls[0][1];
-
-      // Assert the runtime arguments for transfer
-      expect(runtimeArgs).toEqual(
-        Args.fromMap({
-          target_key: CLValue.newCLKey(
-            Key.newKey(key.publicKey.accountHash().toPrefixedString())
-          ),
-          source_key: CLValue.newCLKey(
-            Key.newKey(key2.publicKey.accountHash().toPrefixedString())
-          ),
-          token_hash: CLValue.newCLString('tokenHash'),
-        })
-      );
-    });
-
-    it('should successfully transfer when waitForTransactionProcessed is true', async () => {
-      const paramsWithWait = {
-        ...mockParams,
-        waitForTransactionProcessed: true,
-      };
-      vi.spyOn(client as any, 'callEntrypoint').mockResolvedValue({
-        transactionInfo: { transactionHash: 'mockTransactionHash' },
-        executionResult: { errorMessage: '' } as ExecutionResult,
-      });
-
-      const result = await client.transfer(paramsWithWait);
-
-      // Check the result
-      expect(result).toEqual({
-        transactionInfo: { transactionHash: 'mockTransactionHash' },
-        executionResult: { errorMessage: '' } as ExecutionResult,
-      });
-    });
-
-    it('should handle the case when waitForTransactionProcessed is true', async () => {
-      const paramsWithWait = {
-        ...mockParams,
-        waitForTransactionProcessed: true,
-      };
-      await client.transfer(paramsWithWait);
-
-      expect(client['callEntrypoint']).toHaveBeenCalledWith(
-        'transfer',
-        expect.anything(),
-        mockParams.params.paymentAmount,
-        mockParams.params.sender,
-        mockParams.params.signingKeys,
-        mockParams.params.chainName,
-        true
-      );
-    });
-
-    it('should handle errors during the transfer process', async () => {
-      const errorMessage = 'Error during transfer.';
-      vi.spyOn(client as any, 'callEntrypoint').mockRejectedValueOnce(
-        new Error(errorMessage)
-      );
-
-      await expect(client.transfer(mockParams)).rejects.toThrow(
-        'Error during transfer.'
-      );
-    });
-  });
-
-  describe('CEP78Client - approve', () => {
-    let client: CEP78Client;
-    const key = PrivateKey.generate(KeyAlgorithm.ED25519);
-    const spenderKey = PrivateKey.generate(KeyAlgorithm.ED25519);
-    const mockParams: ApproveParams = {
-      params: {
-        sender: key.publicKey,
-        paymentAmount: '1000',
-        signingKeys: [key],
-        chainName: 'testnet',
-      },
-      args: {
-        operator: spenderKey.publicKey,
-        tokenHash: 'tokenHash',
-      },
-      waitForTransactionProcessed: false,
-    };
-
-    beforeEach(() => {
-      client = new CEP78Client('http://mock-rpc-url');
-      vi.spyOn(client as any, 'callEntrypoint').mockResolvedValue({
-        transactionInfo: { transactionHash: 'mockTransactionHash' },
-      });
-      vi.spyOn(client, 'waitForTransactionProcessed').mockResolvedValue({
-        transactionProcessedPayload: {
-          executionResult: { errorMessage: '' } as ExecutionResult,
-        } as unknown as TransactionProcessedPayload,
-      });
-    });
-
-    it('should successfully execute approve', async () => {
-      const result = await client.approve(mockParams);
-
-      // Verify callEntrypoint was called with correct parameters
-      expect(client['callEntrypoint']).toHaveBeenCalledWith(
-        'approve',
-        expect.anything(),
-        mockParams.params.paymentAmount,
-        mockParams.params.sender,
-        mockParams.params.signingKeys,
-        mockParams.params.chainName,
-        mockParams.waitForTransactionProcessed
-      );
-
-      // Validate result
-      expect(result).toEqual({
-        transactionInfo: { transactionHash: 'mockTransactionHash' },
-      });
-    });
-
-    it('should call callEntrypoint with correct runtime arguments', async () => {
-      await client.approve(mockParams);
-
-      // Retrieve runtimeArgs from spy call
-      const runtimeArgs = (client as any).callEntrypoint.mock.calls[0][1];
-
-      // Validate runtime arguments for approve
-      expect(runtimeArgs).toEqual(
-        Args.fromMap({
-          operator: CLValue.newCLKey(
-            Key.newKey(spenderKey.publicKey.accountHash().toPrefixedString())
-          ),
-          token_hash: CLValue.newCLString('tokenHash'),
-        })
-      );
-    });
-
-    it('should successfully execute approve when waitForTransactionProcessed is true', async () => {
-      const paramsWithWait = {
-        ...mockParams,
-        waitForTransactionProcessed: true,
-      };
-      vi.spyOn(client as any, 'callEntrypoint').mockResolvedValue({
-        transactionInfo: { transactionHash: 'mockTransactionHash' },
-        executionResult: { errorMessage: '' } as ExecutionResult,
-      });
-
-      const result = await client.approve(paramsWithWait);
-
-      // Validate result
-      expect(result).toEqual({
-        transactionInfo: { transactionHash: 'mockTransactionHash' },
-        executionResult: { errorMessage: '' } as ExecutionResult,
-      });
-    });
-
-    it('should handle the case when waitForTransactionProcessed is true', async () => {
-      const paramsWithWait = {
-        ...mockParams,
-        waitForTransactionProcessed: true,
-      };
-      await client.approve(paramsWithWait);
-
-      expect(client['callEntrypoint']).toHaveBeenCalledWith(
-        'approve',
-        expect.anything(),
-        mockParams.params.paymentAmount,
-        mockParams.params.sender,
-        mockParams.params.signingKeys,
-        mockParams.params.chainName,
-        true
-      );
-    });
-
-    it('should handle errors during the approve process', async () => {
-      const errorMessage = 'Error during approve.';
-      vi.spyOn(client as any, 'callEntrypoint').mockRejectedValueOnce(
-        new Error(errorMessage)
-      );
-
-      await expect(client.approve(mockParams)).rejects.toThrow(
-        'Error during approve.'
-      );
-    });
-  });
-
   describe('CEP78Client - mint', () => {
     let client: CEP78Client;
     const key = PrivateKey.generate(KeyAlgorithm.ED25519);
@@ -747,7 +518,7 @@ describe('CEP78Client Unit', () => {
       // Validate runtime arguments for burn
       expect(runtimeArgs).toEqual(
         Args.fromMap({
-          token_hash: CLValue.newCLString(mockParams.args.tokenHash),
+          token_hash: CLValue.newCLString(mockParams.args.tokenHash!),
         })
       );
     });
@@ -801,6 +572,930 @@ describe('CEP78Client Unit', () => {
     });
   });
 
+  describe('CEP78Client - transfer', () => {
+    let client: CEP78Client;
+    const key = PrivateKey.generate(KeyAlgorithm.ED25519);
+    const key2 = PrivateKey.generate(KeyAlgorithm.ED25519);
+    const mockParams: TransferParams = {
+      params: {
+        sender: key.publicKey,
+        paymentAmount: '1000',
+        signingKeys: [key],
+        chainName: 'testnet',
+      },
+      args: {
+        target: key.publicKey,
+        source: key2.publicKey,
+        tokenHash: 'tokenHash',
+      },
+      waitForTransactionProcessed: false,
+    };
+
+    beforeEach(() => {
+      client = new CEP78Client('http://mock-rpc-url');
+      vi.spyOn(client as any, 'callEntrypoint').mockResolvedValue({
+        transactionInfo: { transactionHash: 'mockTransactionHash' },
+      });
+      vi.spyOn(client, 'waitForTransactionProcessed').mockResolvedValue({
+        transactionProcessedPayload: {
+          executionResult: { errorMessage: '' } as ExecutionResult,
+        } as unknown as TransactionProcessedPayload,
+      });
+    });
+
+    it('should successfully transfer', async () => {
+      const result = await client.transfer(mockParams);
+
+      // Check that callEntrypoint was called with correct parameters
+      expect(client['callEntrypoint']).toHaveBeenCalledWith(
+        'transfer',
+        expect.anything(),
+        mockParams.params.paymentAmount,
+        mockParams.params.sender,
+        mockParams.params.signingKeys,
+        mockParams.params.chainName,
+        mockParams.waitForTransactionProcessed
+      );
+
+      // Check the result
+      expect(result).toEqual({
+        transactionInfo: { transactionHash: 'mockTransactionHash' },
+      });
+    });
+
+    it('should call callEntrypoint with correct runtime arguments', async () => {
+      await client.transfer(mockParams);
+
+      const runtimeArgs = (client as any).callEntrypoint.mock.calls[0][1];
+
+      // Assert the runtime arguments for transfer
+      expect(runtimeArgs).toEqual(
+        Args.fromMap({
+          target_key: CLValue.newCLKey(
+            Key.newKey(key.publicKey.accountHash().toPrefixedString())
+          ),
+          source_key: CLValue.newCLKey(
+            Key.newKey(key2.publicKey.accountHash().toPrefixedString())
+          ),
+          token_hash: CLValue.newCLString('tokenHash'),
+        })
+      );
+    });
+
+    it('should successfully transfer when waitForTransactionProcessed is true', async () => {
+      const paramsWithWait = {
+        ...mockParams,
+        waitForTransactionProcessed: true,
+      };
+      vi.spyOn(client as any, 'callEntrypoint').mockResolvedValue({
+        transactionInfo: { transactionHash: 'mockTransactionHash' },
+        executionResult: { errorMessage: '' } as ExecutionResult,
+      });
+
+      const result = await client.transfer(paramsWithWait);
+
+      // Check the result
+      expect(result).toEqual({
+        transactionInfo: { transactionHash: 'mockTransactionHash' },
+        executionResult: { errorMessage: '' } as ExecutionResult,
+      });
+    });
+
+    it('should handle the case when waitForTransactionProcessed is true', async () => {
+      const paramsWithWait = {
+        ...mockParams,
+        waitForTransactionProcessed: true,
+      };
+      await client.transfer(paramsWithWait);
+
+      expect(client['callEntrypoint']).toHaveBeenCalledWith(
+        'transfer',
+        expect.anything(),
+        mockParams.params.paymentAmount,
+        mockParams.params.sender,
+        mockParams.params.signingKeys,
+        mockParams.params.chainName,
+        true
+      );
+    });
+
+    it('should handle errors during the transfer process', async () => {
+      const errorMessage = 'Error during transfer.';
+      vi.spyOn(client as any, 'callEntrypoint').mockRejectedValueOnce(
+        new Error(errorMessage)
+      );
+
+      await expect(client.transfer(mockParams)).rejects.toThrow(
+        'Error during transfer.'
+      );
+    });
+  });
+
+  describe('CEP78Client - register', () => {
+    let client: CEP78Client;
+    const key = PrivateKey.generate(KeyAlgorithm.ED25519);
+    const ownerKey = PrivateKey.generate(KeyAlgorithm.ED25519);
+    const mockParams: RegisterParams = {
+      params: {
+        sender: key.publicKey,
+        paymentAmount: '1000',
+        signingKeys: [key],
+        chainName: 'testnet',
+      },
+      args: {
+        tokenOwner: ownerKey.publicKey,
+      },
+      waitForTransactionProcessed: false,
+    };
+
+    beforeEach(() => {
+      client = new CEP78Client('http://mock-rpc-url');
+      vi.spyOn(client as any, 'callEntrypoint').mockResolvedValue({
+        transactionInfo: { transactionHash: 'mockTransactionHash' },
+      });
+      vi.spyOn(client, 'waitForTransactionProcessed').mockResolvedValue({
+        transactionProcessedPayload: {
+          executionResult: { errorMessage: '' } as ExecutionResult,
+        } as unknown as TransactionProcessedPayload,
+      });
+    });
+
+    it('should successfully register a token owner', async () => {
+      const result = await client.register(mockParams);
+
+      // Verify callEntrypoint was called with correct parameters
+      expect(client['callEntrypoint']).toHaveBeenCalledWith(
+        'register_owner',
+        expect.anything(),
+        mockParams.params.paymentAmount,
+        mockParams.params.sender,
+        mockParams.params.signingKeys,
+        mockParams.params.chainName,
+        mockParams.waitForTransactionProcessed
+      );
+
+      // Validate result
+      expect(result).toEqual({
+        transactionInfo: { transactionHash: 'mockTransactionHash' },
+      });
+    });
+
+    it('should call callEntrypoint with correct runtime arguments for register', async () => {
+      await client.register(mockParams);
+
+      // Retrieve runtimeArgs from spy call
+      const runtimeArgs = (client as any).callEntrypoint.mock.calls[0][1];
+
+      // Validate runtime arguments for register
+      expect(runtimeArgs).toEqual(
+        Args.fromMap({
+          token_owner: CLValue.newCLKey(
+            Key.newKey(ownerKey.publicKey.accountHash().toPrefixedString())
+          ),
+        })
+      );
+    });
+
+    it('should successfully execute register when waitForTransactionProcessed is true', async () => {
+      const paramsWithWait = {
+        ...mockParams,
+        waitForTransactionProcessed: true,
+      };
+      vi.spyOn(client as any, 'callEntrypoint').mockResolvedValue({
+        transactionInfo: { transactionHash: 'mockTransactionHash' },
+        executionResult: { errorMessage: '' } as ExecutionResult,
+      });
+
+      const result = await client.register(paramsWithWait);
+
+      // Validate result
+      expect(result).toEqual({
+        transactionInfo: { transactionHash: 'mockTransactionHash' },
+        executionResult: { errorMessage: '' } as ExecutionResult,
+      });
+    });
+
+    it('should handle the case when waitForTransactionProcessed is true', async () => {
+      const paramsWithWait = {
+        ...mockParams,
+        waitForTransactionProcessed: true,
+      };
+      await client.register(paramsWithWait);
+
+      expect(client['callEntrypoint']).toHaveBeenCalledWith(
+        'register_owner',
+        expect.anything(),
+        mockParams.params.paymentAmount,
+        mockParams.params.sender,
+        mockParams.params.signingKeys,
+        mockParams.params.chainName,
+        true
+      );
+    });
+
+    it('should handle errors during the register process', async () => {
+      const errorMessage = 'Error during register.';
+      vi.spyOn(client as any, 'callEntrypoint').mockRejectedValueOnce(
+        new Error(errorMessage)
+      );
+
+      await expect(client.register(mockParams)).rejects.toThrow(
+        'Error during register.'
+      );
+    });
+  });
+
+  describe('CEP78Client - approve', () => {
+    let client: CEP78Client;
+    const key = PrivateKey.generate(KeyAlgorithm.ED25519);
+    const spenderKey = PrivateKey.generate(KeyAlgorithm.ED25519);
+    const mockParams: ApproveParams = {
+      params: {
+        sender: key.publicKey,
+        paymentAmount: '1000',
+        signingKeys: [key],
+        chainName: 'testnet',
+      },
+      args: {
+        operator: spenderKey.publicKey,
+        tokenHash: 'tokenHash',
+      },
+      waitForTransactionProcessed: false,
+    };
+
+    beforeEach(() => {
+      client = new CEP78Client('http://mock-rpc-url');
+      vi.spyOn(client as any, 'callEntrypoint').mockResolvedValue({
+        transactionInfo: { transactionHash: 'mockTransactionHash' },
+      });
+      vi.spyOn(client, 'waitForTransactionProcessed').mockResolvedValue({
+        transactionProcessedPayload: {
+          executionResult: { errorMessage: '' } as ExecutionResult,
+        } as unknown as TransactionProcessedPayload,
+      });
+    });
+
+    it('should successfully execute approve', async () => {
+      const result = await client.approve(mockParams);
+
+      // Verify callEntrypoint was called with correct parameters
+      expect(client['callEntrypoint']).toHaveBeenCalledWith(
+        'approve',
+        expect.anything(),
+        mockParams.params.paymentAmount,
+        mockParams.params.sender,
+        mockParams.params.signingKeys,
+        mockParams.params.chainName,
+        mockParams.waitForTransactionProcessed
+      );
+
+      // Validate result
+      expect(result).toEqual({
+        transactionInfo: { transactionHash: 'mockTransactionHash' },
+      });
+    });
+
+    it('should call callEntrypoint with correct runtime arguments', async () => {
+      await client.approve(mockParams);
+
+      // Retrieve runtimeArgs from spy call
+      const runtimeArgs = (client as any).callEntrypoint.mock.calls[0][1];
+
+      // Validate runtime arguments for approve
+      expect(runtimeArgs).toEqual(
+        Args.fromMap({
+          operator: CLValue.newCLKey(
+            Key.newKey(spenderKey.publicKey.accountHash().toPrefixedString())
+          ),
+          token_hash: CLValue.newCLString('tokenHash'),
+        })
+      );
+    });
+
+    it('should successfully execute approve when waitForTransactionProcessed is true', async () => {
+      const paramsWithWait = {
+        ...mockParams,
+        waitForTransactionProcessed: true,
+      };
+      vi.spyOn(client as any, 'callEntrypoint').mockResolvedValue({
+        transactionInfo: { transactionHash: 'mockTransactionHash' },
+        executionResult: { errorMessage: '' } as ExecutionResult,
+      });
+
+      const result = await client.approve(paramsWithWait);
+
+      // Validate result
+      expect(result).toEqual({
+        transactionInfo: { transactionHash: 'mockTransactionHash' },
+        executionResult: { errorMessage: '' } as ExecutionResult,
+      });
+    });
+
+    it('should handle the case when waitForTransactionProcessed is true', async () => {
+      const paramsWithWait = {
+        ...mockParams,
+        waitForTransactionProcessed: true,
+      };
+      await client.approve(paramsWithWait);
+
+      expect(client['callEntrypoint']).toHaveBeenCalledWith(
+        'approve',
+        expect.anything(),
+        mockParams.params.paymentAmount,
+        mockParams.params.sender,
+        mockParams.params.signingKeys,
+        mockParams.params.chainName,
+        true
+      );
+    });
+
+    it('should handle errors during the approve process', async () => {
+      const errorMessage = 'Error during approve.';
+      vi.spyOn(client as any, 'callEntrypoint').mockRejectedValueOnce(
+        new Error(errorMessage)
+      );
+
+      await expect(client.approve(mockParams)).rejects.toThrow(
+        'Error during approve.'
+      );
+    });
+  });
+
+  describe('CEP78Client - revoke', () => {
+    let client: CEP78Client;
+    const key = PrivateKey.generate(KeyAlgorithm.ED25519);
+    const operatorKey = PrivateKey.generate(KeyAlgorithm.ED25519);
+    const mockParams: ApproveParams = {
+      params: {
+        sender: key.publicKey,
+        paymentAmount: '1000',
+        signingKeys: [key],
+        chainName: 'testnet',
+      },
+      args: {
+        operator: operatorKey.publicKey,
+        tokenHash: 'tokenHash',
+        tokenId: undefined, // Can be either tokenHash or tokenId, not both
+      },
+      waitForTransactionProcessed: false,
+    };
+
+    beforeEach(() => {
+      client = new CEP78Client('http://mock-rpc-url');
+      vi.spyOn(client as any, 'callEntrypoint').mockResolvedValue({
+        transactionInfo: { transactionHash: 'mockTransactionHash' },
+      });
+      vi.spyOn(client, 'waitForTransactionProcessed').mockResolvedValue({
+        transactionProcessedPayload: {
+          executionResult: { errorMessage: '' } as ExecutionResult,
+        } as unknown as TransactionProcessedPayload,
+      });
+    });
+
+    it('should successfully revoke', async () => {
+      const result = await client.revoke(mockParams);
+
+      // Verify callEntrypoint was called with correct parameters
+      expect(client['callEntrypoint']).toHaveBeenCalledWith(
+        'revoke',
+        expect.anything(),
+        mockParams.params.paymentAmount,
+        mockParams.params.sender,
+        mockParams.params.signingKeys,
+        mockParams.params.chainName,
+        mockParams.waitForTransactionProcessed
+      );
+
+      // Validate result
+      expect(result).toEqual({
+        transactionInfo: { transactionHash: 'mockTransactionHash' },
+      });
+    });
+
+    it('should call callEntrypoint with correct runtime arguments', async () => {
+      await client.revoke(mockParams);
+
+      const runtimeArgs = (client as any).callEntrypoint.mock.calls[0][1];
+
+      // Validate runtime arguments for revoke
+      expect(runtimeArgs).toEqual(
+        Args.fromMap({
+          operator: CLValue.newCLKey(
+            Key.newKey(operatorKey.publicKey.accountHash().toPrefixedString())
+          ),
+          token_hash: CLValue.newCLString('tokenHash'),
+        })
+      );
+    });
+
+    it('should successfully revoke when waitForTransactionProcessed is true', async () => {
+      const paramsWithWait = {
+        ...mockParams,
+        waitForTransactionProcessed: true,
+      };
+      vi.spyOn(client as any, 'callEntrypoint').mockResolvedValue({
+        transactionInfo: { transactionHash: 'mockTransactionHash' },
+        executionResult: { errorMessage: '' } as ExecutionResult,
+      });
+
+      const result = await client.revoke(paramsWithWait);
+
+      // Validate result
+      expect(result).toEqual({
+        transactionInfo: { transactionHash: 'mockTransactionHash' },
+        executionResult: { errorMessage: '' } as ExecutionResult,
+      });
+    });
+
+    it('should handle the case when waitForTransactionProcessed is true', async () => {
+      const paramsWithWait = {
+        ...mockParams,
+        waitForTransactionProcessed: true,
+      };
+      await client.revoke(paramsWithWait);
+
+      expect(client['callEntrypoint']).toHaveBeenCalledWith(
+        'revoke',
+        expect.anything(),
+        mockParams.params.paymentAmount,
+        mockParams.params.sender,
+        mockParams.params.signingKeys,
+        mockParams.params.chainName,
+        true
+      );
+    });
+
+    it('should handle errors during the revoke process', async () => {
+      const errorMessage = 'Error during revoke.';
+      vi.spyOn(client as any, 'callEntrypoint').mockRejectedValueOnce(
+        new Error(errorMessage)
+      );
+
+      await expect(client.revoke(mockParams)).rejects.toThrow(
+        'Error during revoke.'
+      );
+    });
+
+    it('should insert token_id if provided', async () => {
+      const mockParamsWithTokenId: ApproveParams = {
+        ...mockParams,
+        args: {
+          operator: operatorKey.publicKey,
+          tokenId: '12345', // Providing tokenId instead of tokenHash
+        },
+      };
+
+      await client.revoke(mockParamsWithTokenId);
+
+      const runtimeArgs = (client as any).callEntrypoint.mock.calls[0][1];
+
+      // Validate token_id is included in the runtime arguments
+      expect(runtimeArgs).toEqual(
+        Args.fromMap({
+          operator: CLValue.newCLKey(
+            Key.newKey(operatorKey.publicKey.accountHash().toPrefixedString())
+          ),
+          token_id: CLValue.newCLUint64(12345),
+        })
+      );
+    });
+
+    it('should insert token_hash if provided', async () => {
+      const mockParamsWithTokenHash: ApproveParams = {
+        ...mockParams,
+        args: {
+          operator: operatorKey.publicKey,
+          tokenHash: 'tokenHash', // Providing tokenHash
+        },
+      };
+
+      await client.revoke(mockParamsWithTokenHash);
+
+      const runtimeArgs = (client as any).callEntrypoint.mock.calls[0][1];
+
+      // Validate token_hash is included in the runtime arguments
+      expect(runtimeArgs).toEqual(
+        Args.fromMap({
+          operator: CLValue.newCLKey(
+            Key.newKey(operatorKey.publicKey.accountHash().toPrefixedString())
+          ),
+          token_hash: CLValue.newCLString('tokenHash'),
+        })
+      );
+    });
+  });
+
+  describe('CEP78Client - setApprovalForAll', () => {
+    let client: CEP78Client;
+    const key = PrivateKey.generate(KeyAlgorithm.ED25519);
+    const operatorKey = PrivateKey.generate(KeyAlgorithm.ED25519);
+    const mockParams: SetApprovallForAllParams = {
+      params: {
+        sender: key.publicKey,
+        paymentAmount: '1000',
+        signingKeys: [key],
+        chainName: 'testnet',
+      },
+      args: {
+        operator: operatorKey.publicKey,
+        approveAll: true,
+      },
+      waitForTransactionProcessed: false,
+    };
+
+    beforeEach(() => {
+      client = new CEP78Client('http://mock-rpc-url');
+      vi.spyOn(client as any, 'callEntrypoint').mockResolvedValue({
+        transactionInfo: { transactionHash: 'mockTransactionHash' },
+      });
+      vi.spyOn(client, 'waitForTransactionProcessed').mockResolvedValue({
+        transactionProcessedPayload: {
+          executionResult: { errorMessage: '' } as ExecutionResult,
+        } as unknown as TransactionProcessedPayload,
+      });
+    });
+
+    it('should successfully set approval for all', async () => {
+      const result = await client.setApprovalForAll(mockParams);
+
+      // Verify callEntrypoint was called with correct parameters
+      expect(client['callEntrypoint']).toHaveBeenCalledWith(
+        'set_approval_for_all',
+        expect.anything(),
+        mockParams.params.paymentAmount,
+        mockParams.params.sender,
+        mockParams.params.signingKeys,
+        mockParams.params.chainName,
+        mockParams.waitForTransactionProcessed
+      );
+
+      // Validate result
+      expect(result).toEqual({
+        transactionInfo: { transactionHash: 'mockTransactionHash' },
+      });
+    });
+
+    it('should call callEntrypoint with correct runtime arguments', async () => {
+      await client.setApprovalForAll(mockParams);
+
+      const runtimeArgs = (client as any).callEntrypoint.mock.calls[0][1];
+
+      // Validate runtime arguments for setApprovalForAll
+      expect(runtimeArgs).toEqual(
+        Args.fromMap({
+          approve_all: CLValue.newCLValueBool(true),
+          operator: CLValue.newCLKey(
+            Key.newKey(operatorKey.publicKey.accountHash().toPrefixedString())
+          ),
+        })
+      );
+    });
+
+    it('should successfully set approval for all when waitForTransactionProcessed is true', async () => {
+      const paramsWithWait = {
+        ...mockParams,
+        waitForTransactionProcessed: true,
+      };
+      vi.spyOn(client as any, 'callEntrypoint').mockResolvedValue({
+        transactionInfo: { transactionHash: 'mockTransactionHash' },
+        executionResult: { errorMessage: '' } as ExecutionResult,
+      });
+
+      const result = await client.setApprovalForAll(paramsWithWait);
+
+      // Validate result
+      expect(result).toEqual({
+        transactionInfo: { transactionHash: 'mockTransactionHash' },
+        executionResult: { errorMessage: '' } as ExecutionResult,
+      });
+    });
+
+    it('should handle the case when waitForTransactionProcessed is true', async () => {
+      const paramsWithWait = {
+        ...mockParams,
+        waitForTransactionProcessed: true,
+      };
+      await client.setApprovalForAll(paramsWithWait);
+
+      expect(client['callEntrypoint']).toHaveBeenCalledWith(
+        'set_approval_for_all',
+        expect.anything(),
+        mockParams.params.paymentAmount,
+        mockParams.params.sender,
+        mockParams.params.signingKeys,
+        mockParams.params.chainName,
+        true
+      );
+    });
+
+    it('should handle errors during the setApprovalForAll process', async () => {
+      const errorMessage = 'Error during set approval for all.';
+      vi.spyOn(client as any, 'callEntrypoint').mockRejectedValueOnce(
+        new Error(errorMessage)
+      );
+
+      await expect(client.setApprovalForAll(mockParams)).rejects.toThrow(
+        'Error during set approval for all.'
+      );
+    });
+
+    it('should handle approveAll as false correctly', async () => {
+      const mockParamsWithApproveAllFalse: SetApprovallForAllParams = {
+        ...mockParams,
+        args: {
+          operator: operatorKey.publicKey,
+          approveAll: false, // Setting approveAll to false
+        },
+      };
+
+      await client.setApprovalForAll(mockParamsWithApproveAllFalse);
+
+      const runtimeArgs = (client as any).callEntrypoint.mock.calls[0][1];
+
+      // Validate approve_all is set to false in the runtime arguments
+      expect(runtimeArgs).toEqual(
+        Args.fromMap({
+          approve_all: CLValue.newCLValueBool(false),
+          operator: CLValue.newCLKey(
+            Key.newKey(operatorKey.publicKey.accountHash().toPrefixedString())
+          ),
+        })
+      );
+    });
+  });
+
+  describe('CEP78Client - setTokenMetadata', () => {
+    let client: CEP78Client;
+    const key = PrivateKey.generate(KeyAlgorithm.ED25519);
+    const mockParams: TokenMetadataParams = {
+      params: {
+        sender: key.publicKey,
+        paymentAmount: '1000',
+        signingKeys: [key],
+        chainName: 'testnet',
+      },
+      args: {
+        tokenMetaData: {
+          name: 'Test Token',
+          description: 'A test token metadata',
+        },
+      },
+      waitForTransactionProcessed: false,
+    };
+
+    beforeEach(() => {
+      client = new CEP78Client('http://mock-rpc-url');
+      vi.spyOn(client as any, 'callEntrypoint').mockResolvedValue({
+        transactionInfo: { transactionHash: 'mockTransactionHash' },
+      });
+      vi.spyOn(client, 'waitForTransactionProcessed').mockResolvedValue({
+        transactionProcessedPayload: {
+          executionResult: { errorMessage: '' } as ExecutionResult,
+        } as unknown as TransactionProcessedPayload,
+      });
+    });
+
+    it('should successfully set token metadata', async () => {
+      const result = await client.setTokenMetadata(mockParams);
+
+      // Verify callEntrypoint was called with correct parameters
+      expect(client['callEntrypoint']).toHaveBeenCalledWith(
+        'set_token_metadata',
+        expect.anything(),
+        mockParams.params.paymentAmount,
+        mockParams.params.sender,
+        mockParams.params.signingKeys,
+        mockParams.params.chainName,
+        mockParams.waitForTransactionProcessed
+      );
+
+      // Validate result
+      expect(result).toEqual({
+        transactionInfo: { transactionHash: 'mockTransactionHash' },
+      });
+    });
+
+    it('should call callEntrypoint with correct runtime arguments', async () => {
+      await client.setTokenMetadata(mockParams);
+
+      const runtimeArgs = (client as any).callEntrypoint.mock.calls[0][1];
+
+      // Validate runtime arguments for setTokenMetadata
+      expect(runtimeArgs).toEqual(
+        Args.fromMap({
+          token_meta_data: CLValue.newCLString(
+            JSON.stringify(mockParams.args.tokenMetaData)
+          ),
+        })
+      );
+    });
+
+    it('should successfully set token metadata when waitForTransactionProcessed is true', async () => {
+      const paramsWithWait = {
+        ...mockParams,
+        waitForTransactionProcessed: true,
+      };
+      vi.spyOn(client as any, 'callEntrypoint').mockResolvedValue({
+        transactionInfo: { transactionHash: 'mockTransactionHash' },
+        executionResult: { errorMessage: '' } as ExecutionResult,
+      });
+
+      const result = await client.setTokenMetadata(paramsWithWait);
+
+      // Validate result
+      expect(result).toEqual({
+        transactionInfo: { transactionHash: 'mockTransactionHash' },
+        executionResult: { errorMessage: '' } as ExecutionResult,
+      });
+    });
+
+    it('should handle the case when waitForTransactionProcessed is true', async () => {
+      const paramsWithWait = {
+        ...mockParams,
+        waitForTransactionProcessed: true,
+      };
+      await client.setTokenMetadata(paramsWithWait);
+
+      expect(client['callEntrypoint']).toHaveBeenCalledWith(
+        'set_token_metadata',
+        expect.anything(),
+        mockParams.params.paymentAmount,
+        mockParams.params.sender,
+        mockParams.params.signingKeys,
+        mockParams.params.chainName,
+        true
+      );
+    });
+
+    it('should handle errors during the setTokenMetadata process', async () => {
+      const errorMessage = 'Error during setting token metadata.';
+      vi.spyOn(client as any, 'callEntrypoint').mockRejectedValueOnce(
+        new Error(errorMessage)
+      );
+
+      await expect(client.setTokenMetadata(mockParams)).rejects.toThrow(
+        'Error during setting token metadata.'
+      );
+    });
+
+    it('should handle empty tokenMetaData correctly', async () => {
+      const mockParamsWithEmptyMetaData: TokenMetadataParams = {
+        ...mockParams,
+        args: {
+          tokenMetaData: {}, // Empty metadata
+        },
+      };
+
+      await client.setTokenMetadata(mockParamsWithEmptyMetaData);
+
+      const runtimeArgs = (client as any).callEntrypoint.mock.calls[0][1];
+
+      // Validate that empty metadata is handled correctly
+      expect(runtimeArgs).toEqual(
+        Args.fromMap({
+          token_meta_data: CLValue.newCLString(
+            JSON.stringify(mockParamsWithEmptyMetaData.args.tokenMetaData)
+          ),
+        })
+      );
+    });
+  });
+
+  describe('CEP78Client - ownerOf', () => {
+    let client: CEP78Client;
+    let mockRpcClient: RpcClient;
+    const mockKey = PrivateKey.generate(KeyAlgorithm.ED25519);
+    const mockParams: OwnerOfParams = {
+      params: {
+        wasm: new Uint8Array(),
+        sender: mockKey.publicKey,
+        paymentAmount: '1000',
+        signingKeys: [mockKey],
+        chainName: 'testnet',
+      },
+      args: {
+        tokenId: '1',
+        keyName: 'mockKeyName',
+      },
+      waitForTransactionProcessed: false,
+    };
+
+    const contractHash =
+      'hash-a84b9f15e57097579cb651bc3eec5143972c8c9ea153bb26d07367f9d41a767b';
+
+    beforeEach(() => {
+      mockRpcClient = {
+        getDictionaryItemByIdentifier: vi.fn(),
+      } as unknown as RpcClient;
+      client = new CEP78Client('http://mock-rpc-url').setContractHash(
+        contractHash
+      );
+      client['_rpcClient'] = mockRpcClient;
+
+      vi.spyOn(client as any, 'callSession').mockResolvedValue({
+        transactionInfo: { transactionHash: 'mockTransactionHash' },
+      });
+      vi.spyOn(
+        mockRpcClient,
+        'getDictionaryItemByIdentifier'
+      ).mockResolvedValue({
+        storedValue: {
+          clValue: {
+            toString: () => 'mockOwnerAddress',
+          },
+        },
+      } as StateGetDictionaryResult);
+    });
+
+    // afterEach(() => {
+    //   vi.restoreAllMocks();
+    // });
+
+    it('should return the owner address when owner exists', async () => {
+      const result = await client.ownerOf('1');
+
+      // Verifying that the contract hash is used
+      const expectedKey = contractHash;
+      const contractNamedKey = new ParamDictionaryIdentifierContractNamedKey(
+        expectedKey,
+        'token_owners',
+        '1'
+      );
+
+      // Check that the dictionary state was retrieved correctly
+      expect(mockRpcClient.getDictionaryItemByIdentifier).toHaveBeenCalledWith(
+        null,
+        expect.objectContaining({
+          contractNamedKey,
+        })
+      );
+
+      // Check if the correct owner address is returned
+      expect(result).toBe('mockOwnerAddress');
+    });
+
+    it('should call callSession with correct arguments when keyName is provided', async () => {
+      await client.ownerOf(mockParams);
+
+      expect(client['callSession']).toHaveBeenCalledWith(
+        new Uint8Array(),
+        expect.anything(),
+        mockParams.params.paymentAmount,
+        mockParams.params.sender,
+        mockParams.params.signingKeys,
+        mockParams.params.chainName,
+        mockParams.waitForTransactionProcessed
+      );
+    });
+
+    it('should throw error when contract hash is not set', async () => {
+      (client as any)['_contractHash'] = undefined;
+
+      await expect(client.ownerOf(mockParams)).rejects.toThrowError(
+        'Contract hash is not set.'
+      );
+    });
+
+    it('should return undefined if no owner found in dictionary', async () => {
+      const consoleWarnSpy = vi
+        .spyOn(console, 'warn')
+        .mockImplementation(() => {});
+      vi.spyOn(
+        mockRpcClient,
+        'getDictionaryItemByIdentifier'
+      ).mockRejectedValueOnce(new Error('Query failed'));
+
+      const result = await client.ownerOf('mockTokenId');
+      expect(result).toBeUndefined();
+      expect(consoleWarnSpy).toHaveBeenCalledWith(
+        'No owner found for mockTokenId'
+      );
+    });
+
+    it('should return undefined if the identifier is not found', async () => {
+      vi.spyOn(
+        mockRpcClient,
+        'getDictionaryItemByIdentifier'
+      ).mockResolvedValueOnce({
+        storedValue: { clValue: undefined },
+      } as StateGetDictionaryResult);
+
+      const result = await client.ownerOf('mockTokenId');
+      expect(result).toBeUndefined();
+    });
+
+    it('should handle error in getDictionaryItemByIdentifier gracefully', async () => {
+      vi.spyOn(
+        mockRpcClient,
+        'getDictionaryItemByIdentifier'
+      ).mockRejectedValueOnce(new Error('Other error'));
+
+      await expect(client.ownerOf('mockTokenId')).rejects.toThrowError(
+        'Other error'
+      );
+    });
+  });
+
   describe('CEP78Client - balanceOf', () => {
     let client: CEP78Client;
     let mockRpcClient: RpcClient;
@@ -815,22 +1510,61 @@ describe('CEP78Client Unit', () => {
       } as unknown as RpcClient;
 
       client = new CEP78Client('http://mock-rpc-url');
-      client['_rpcClient'] = mockRpcClient;
       client.setContractHash(contractHash);
+      client['_rpcClient'] = mockRpcClient;
 
       vi.spyOn(
         mockRpcClient,
         'getDictionaryItemByIdentifier'
       ).mockResolvedValue({
         storedValue: {
-          clValue: CLValue.newCLUInt512(mockBalance),
+          clValue: {
+            toString: () => mockBalance,
+          },
         },
       } as StateGetDictionaryResult);
+    });
+
+    afterEach(() => {
+      vi.restoreAllMocks();
     });
 
     it('should return the balance as a string when found', async () => {
       const balance = await client.balanceOf(key.publicKey);
       expect(balance).toBe(mockBalance);
+    });
+
+    it('should call callSession with correct arguments when keyName is provided', async () => {
+      const mockParams: StoreBalanceOfParams = {
+        params: {
+          wasm: new Uint8Array(),
+          sender: key.publicKey,
+          paymentAmount: '1000',
+          signingKeys: [key],
+          chainName: 'testnet',
+        },
+        args: {
+          tokenOwner: key.publicKey,
+          keyName: 'mockKeyName',
+        },
+        waitForTransactionProcessed: false,
+      };
+
+      vi.spyOn(client as any, 'callSession').mockResolvedValue({
+        transactionInfo: { transactionHash: 'mockTransactionHash' },
+      });
+
+      await client.balanceOf(mockParams);
+
+      expect(client['callSession']).toHaveBeenCalledWith(
+        new Uint8Array(),
+        expect.anything(),
+        mockParams.params.paymentAmount,
+        mockParams.params.sender,
+        mockParams.params.signingKeys,
+        mockParams.params.chainName,
+        mockParams.waitForTransactionProcessed
+      );
     });
 
     it('should return "0" when balance is not found', async () => {
@@ -911,6 +1645,7 @@ describe('CEP78Client Unit', () => {
     const mockNftKind = NFT_KIND.Physical;
     const mockMetadataKind = NFT_METADATA_KIND.Raw;
     const mockOwnershipMode = NFT_OWNERSHIP_MODE.Transferable;
+    const mockeventsMode = EVENTS_MODE.CES;
     const mockJsonSchema = '{"type": "object"}';
 
     beforeEach(() => {
@@ -1035,6 +1770,14 @@ describe('CEP78Client Unit', () => {
       );
       const result = await client.ownershipMode();
       expect(result).toBe(NFT_OWNERSHIP_MODE[mockOwnershipMode]);
+    });
+
+    it('should return the correct events mode', async () => {
+      vi.spyOn(client as any, 'queryContractData').mockResolvedValue(
+        mockeventsMode
+      );
+      const result = await client.eventsMode();
+      expect(result).toBe(EVENTS_MODE[mockeventsMode]);
     });
 
     it('should return the correct JSON schema', async () => {

@@ -715,13 +715,12 @@ export default class CEP78Client extends Client {
     // ! TODO toPrefixedString() ?
     const key = `hash-${this.contractHash?.hash?.toHex()}`;
 
-    if (this.isBalanceOfArgs(params)) {
+    if (this.isStoreBalanceOfParams(params)) {
       const {
         params: { wasm, sender, paymentAmount, signingKeys, chainName },
         args: { tokenOwner, keyName },
         waitForTransactionProcessed,
       } = params as StoreBalanceOfParams;
-
       const runtimeArgs = RuntimeArgs.fromMap({
         token_owner: CLValue.newCLKey(this.getPrefixedString(tokenOwner)),
       });
@@ -749,7 +748,6 @@ export default class CEP78Client extends Client {
         );
       }
     }
-
     let tokenOwnerKey: Key = this.getPrefixedString(params as Entity);
 
     const dictionaryItemKey = tokenOwnerKey
@@ -1276,15 +1274,21 @@ export default class CEP78Client extends Client {
     );
   }
 
-  private isBalanceOfArgs(obj: unknown): obj is BalanceOfArgs {
-    return typeof obj === 'object' && obj !== null && 'tokenOwner' in obj;
+  private isStoreBalanceOfParams(obj: unknown): obj is StoreBalanceOfParams {
+    // We need to check if 'params' is an object and has the 'args' inside.
+    return (
+      typeof obj === 'object' &&
+      obj !== null &&
+      'args' in obj && // Ensure that 'args' is present
+      typeof (obj as any).args === 'object' &&
+      'tokenOwner' in (obj as any).args // Ensure 'tokenOwner' is present inside 'args'
+    );
   }
 
   private getPrefixedString(entity: Entity): Key {
     if (entity instanceof PublicKey) {
       return Key.newKey(entity.accountHash().toPrefixedString());
     }
-
     return Key.newKey(entity.toPrefixedString());
   }
 }

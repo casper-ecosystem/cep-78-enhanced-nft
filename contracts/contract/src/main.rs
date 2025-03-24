@@ -1301,7 +1301,7 @@ pub extern "C" fn transfer() {
     .unwrap_or_revert();
 
     if source_owner_key != owner {
-        runtime::revert(NFTCoreError::InvalidAccount);
+        runtime::revert(NFTCoreError::InvalidTokenOwner);
     }
 
     let (caller, contract_package): (Key, Option<Key>) = utils::get_immediate_caller();
@@ -1401,22 +1401,11 @@ pub extern "C" fn transfer() {
     let target_owner_item_key = utils::encode_dictionary_item_key(target_owner_key);
 
     // Updated token_owners dictionary. Revert if token_owner not found.
-    match utils::get_dictionary_value_from_key::<Key>(
+    utils::upsert_dictionary_value_from_key(
         TOKEN_OWNERS,
         &token_identifier.get_dictionary_item_key(),
-    ) {
-        Some(token_actual_owner) => {
-            if token_actual_owner != source_owner_key {
-                runtime::revert(NFTCoreError::InvalidTokenOwner)
-            }
-            utils::upsert_dictionary_value_from_key(
-                TOKEN_OWNERS,
-                &token_identifier.get_dictionary_item_key(),
-                target_owner_key,
-            );
-        }
-        None => runtime::revert(NFTCoreError::MissingOwnerTokenIdentifierKey),
-    }
+        target_owner_key,
+    );
 
     let source_owner_item_key = utils::encode_dictionary_item_key(source_owner_key);
 
