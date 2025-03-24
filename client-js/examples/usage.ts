@@ -113,6 +113,12 @@ const usage = async () => {
 
   mintArgs.tokenMetaData['ucid'] = tokenIdentifier;
 
+  const ownerIsWhiteListed = await cep78.isAclWhitelisted(owner.publicKey);
+
+  if (!ownerIsWhiteListed) {
+    throw new Error('Owner is not whitelisted');
+  }
+
   console.info(`Mint token ${tokenIdentifier}`);
 
   let params = {

@@ -45,6 +45,9 @@ import {
   StoreBalanceOfParams,
   MINTING_MODE,
   OperatorArgs,
+  Entity,
+  BalanceOfArgs,
+  isAclWhitelistedParams,
 } from './types';
 import BalanceOfWASM from './wasm/balance_of_session';
 import ContractWASM from './wasm/cep78';
@@ -373,9 +376,7 @@ export default class CEP78Client extends Client {
     } = params;
 
     const runtimeArgs = RuntimeArgs.fromMap({
-      token_owner: CLValue.newCLKey(
-        Key.newKey(tokenOwner.accountHash().toPrefixedString())
-      ),
+      token_owner: CLValue.newCLKey(this.getPrefixedString(tokenOwner)),
       token_meta_data: CLValue.newCLString(JSON.stringify(tokenMetaData)),
     });
 
@@ -456,12 +457,8 @@ export default class CEP78Client extends Client {
     } = params;
 
     const runtimeArgs = RuntimeArgs.fromMap({
-      target_key: CLValue.newCLKey(
-        Key.newKey(target.accountHash().toPrefixedString())
-      ),
-      source_key: CLValue.newCLKey(
-        Key.newKey(source.accountHash().toPrefixedString())
-      ),
+      target_key: CLValue.newCLKey(this.getPrefixedString(target)),
+      source_key: CLValue.newCLKey(this.getPrefixedString(source)),
     });
 
     if (tokenId) {
@@ -514,9 +511,7 @@ export default class CEP78Client extends Client {
     } = params;
 
     const runtimeArgs = RuntimeArgs.fromMap({
-      token_owner: CLValue.newCLKey(
-        Key.newKey(tokenOwner.accountHash().toPrefixedString())
-      ),
+      token_owner: CLValue.newCLKey(this.getPrefixedString(tokenOwner)),
     });
 
     return this.callEntrypoint(
@@ -538,9 +533,7 @@ export default class CEP78Client extends Client {
     } = params;
 
     const runtimeArgs = RuntimeArgs.fromMap({
-      operator: CLValue.newCLKey(
-        Key.newKey(operator.accountHash().toPrefixedString())
-      ),
+      operator: CLValue.newCLKey(this.getPrefixedString(operator)),
     });
 
     if (tokenId) {
@@ -568,9 +561,7 @@ export default class CEP78Client extends Client {
     } = params;
 
     const runtimeArgs = RuntimeArgs.fromMap({
-      operator: CLValue.newCLKey(
-        Key.newKey(operator.accountHash().toPrefixedString())
-      ),
+      operator: CLValue.newCLKey(this.getPrefixedString(operator)),
     });
 
     if (tokenId) {
@@ -601,9 +592,7 @@ export default class CEP78Client extends Client {
 
     const runtimeArgs = RuntimeArgs.fromMap({
       approve_all: CLValue.newCLValueBool(approveAll),
-      operator: CLValue.newCLKey(
-        Key.newKey(operator.accountHash().toPrefixedString())
-      ),
+      operator: CLValue.newCLKey(this.getPrefixedString(operator)),
     });
 
     return this.callEntrypoint(
@@ -710,7 +699,7 @@ export default class CEP78Client extends Client {
       return stateGetDictionaryResult.storedValue.clValue?.toString();
     } catch (error) {
       if (error instanceof Error && error.toString().includes('Query failed')) {
-        console.warn(`No owner found for ${dictionaryItemKey}`);
+        console.warn(`No owner found for ${tokenIdentifier}`);
         return undefined;
       } else throw error;
     }
@@ -726,7 +715,7 @@ export default class CEP78Client extends Client {
     // ! TODO toPrefixedString() ?
     const key = `hash-${this.contractHash?.hash?.toHex()}`;
 
-    if (!(params instanceof PublicKey)) {
+    if (this.isBalanceOfArgs(params)) {
       const {
         params: { wasm, sender, paymentAmount, signingKeys, chainName },
         args: { tokenOwner, keyName },
@@ -734,9 +723,7 @@ export default class CEP78Client extends Client {
       } = params as StoreBalanceOfParams;
 
       const runtimeArgs = RuntimeArgs.fromMap({
-        token_owner: CLValue.newCLKey(
-          Key.newKey(tokenOwner.accountHash().toPrefixedString())
-        ),
+        token_owner: CLValue.newCLKey(this.getPrefixedString(tokenOwner)),
       });
 
       if (keyName) {
@@ -763,11 +750,7 @@ export default class CEP78Client extends Client {
       }
     }
 
-    const tokenOwner = params as PublicKey;
-
-    const tokenOwnerKey = Key.newKey(
-      tokenOwner.accountHash().toPrefixedString()
-    );
+    let tokenOwnerKey: Key = this.getPrefixedString(params as Entity);
 
     const dictionaryItemKey = tokenOwnerKey
       .toPrefixedString()
@@ -793,7 +776,9 @@ export default class CEP78Client extends Client {
         ).storedValue.clValue?.toString() || balance;
     } catch (error) {
       if (error instanceof Error && error.toString().includes('Query failed')) {
-        console.warn(`Not balance found for ${tokenOwner.toHex()}`);
+        console.warn(
+          `No balance found for ${tokenOwnerKey.toPrefixedString()}`
+        );
       } else throw error;
     }
     return balance;
@@ -898,12 +883,8 @@ export default class CEP78Client extends Client {
 
         const runtimeArgs = RuntimeArgs.fromMap({
           nft_contract_hash: CLValue.newCLKey(Key.newKey(key)),
-          token_owner: CLValue.newCLKey(
-            Key.newKey(tokenOwner.accountHash().toPrefixedString())
-          ),
-          operator: CLValue.newCLKey(
-            Key.newKey(operator.accountHash().toPrefixedString())
-          ),
+          token_owner: CLValue.newCLKey(this.getPrefixedString(tokenOwner)),
+          operator: CLValue.newCLKey(this.getPrefixedString(operator)),
           key_name: CLValue.newCLString(keyName),
         });
 
@@ -919,12 +900,8 @@ export default class CEP78Client extends Client {
       }
     }
     const { tokenOwner, operator } = params as OperatorArgs;
-    const keyOwner = Key.newKey(
-      tokenOwner.accountHash().toPrefixedString()
-    ).bytes();
-    const keySpender = Key.newKey(
-      operator.accountHash().toPrefixedString()
-    ).bytes();
+    const keyOwner = this.getPrefixedString(tokenOwner).bytes();
+    const keySpender = this.getPrefixedString(operator).bytes();
 
     const finalBytes = new Uint8Array(keyOwner.length + keySpender.length);
     finalBytes.set(keyOwner);
@@ -954,7 +931,49 @@ export default class CEP78Client extends Client {
       );
     } catch (error) {
       if (error instanceof Error && error.toString().includes('Query failed')) {
-        console.warn(`No approval found for ${tokenOwner} and ${operator}`);
+        console.warn(`No approval found for ${keyOwner} and ${keySpender}`);
+        return false;
+      } else throw error;
+    }
+  }
+
+  public async isAclWhitelisted(
+    params: isAclWhitelistedParams
+  ): Promise<boolean | TransactionResult> {
+    if (!this.contractHash) {
+      throw new Error('Contract hash is not set.');
+    }
+    // ! TODO toPrefixedString() ?
+    const key = `hash-${this.contractHash?.hash?.toHex()}`;
+
+    const entity = this.getPrefixedString(params);
+
+    const dictionaryItemKey = this.getPrefixedString(params)
+      .toPrefixedString()
+      .replace(prefixRegex, '');
+    const contractNamedKey: ParamDictionaryIdentifierContractNamedKey =
+      new ParamDictionaryIdentifierContractNamedKey(
+        key,
+        'acl_whitelist',
+        dictionaryItemKey!
+      );
+
+    const identifier = new ParamDictionaryIdentifier(
+      undefined,
+      contractNamedKey,
+      undefined,
+      undefined
+    );
+
+    try {
+      return (
+        (
+          await this.rpcClient.getDictionaryItemByIdentifier(null, identifier)
+        ).storedValue.clValue?.toString() === 'true'
+      );
+    } catch (error) {
+      if (error instanceof Error && error.toString().includes('Query failed')) {
+        console.warn(`No whiteListing for ${entity}`);
         return false;
       } else throw error;
     }
@@ -996,9 +1015,7 @@ export default class CEP78Client extends Client {
     if (aclWhitelist !== undefined) {
       const list = CLValue.newCLList(
         CLTypeKey,
-        aclWhitelist.map((key) =>
-          CLValue.newCLKey(Key.newKey(key.accountHash().toPrefixedString()))
-        )
+        aclWhitelist.map((key) => CLValue.newCLKey(this.getPrefixedString(key)))
       );
       runtimeArgs.insert('acl_whitelist', list);
     }
@@ -1146,11 +1163,6 @@ export default class CEP78Client extends Client {
     return MINTING_MODE[internalValue] as keyof typeof MINTING_MODE;
   }
 
-  // ! TODO GR FIX
-  public async aclWhitelist() {
-    return this.queryContractData(['acl_whitelist']);
-  }
-
   public async whitelistMode() {
     const internalValue = (await this.queryContractData([
       'whitelist_mode',
@@ -1262,5 +1274,17 @@ export default class CEP78Client extends Client {
       'tokenOwner' in obj &&
       'operator' in obj
     );
+  }
+
+  private isBalanceOfArgs(obj: unknown): obj is BalanceOfArgs {
+    return typeof obj === 'object' && obj !== null && 'tokenOwner' in obj;
+  }
+
+  private getPrefixedString(entity: Entity): Key {
+    if (entity instanceof PublicKey) {
+      return Key.newKey(entity.accountHash().toPrefixedString());
+    }
+
+    return Key.newKey(entity.toPrefixedString());
   }
 }

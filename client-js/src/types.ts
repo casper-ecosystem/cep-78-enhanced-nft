@@ -1,4 +1,8 @@
 import {
+  AccountHash,
+  AddressableEntityHash,
+  ContractHash,
+  ContractPackageHash,
   ExecutionResult,
   PrivateKey,
   PublicKey,
@@ -127,8 +131,15 @@ export interface JSONSchemaObject {
   properties: Record<string, JSONSchemaEntry>;
 }
 
+export type Entity =
+  | PublicKey
+  | AccountHash
+  | ContractHash
+  | ContractPackageHash
+  | AddressableEntityHash;
+
 export interface TokenOwnerArg {
-  tokenOwner: PublicKey;
+  tokenOwner: Entity;
 }
 
 export interface MintArgs extends TokenOwnerArg {
@@ -144,30 +155,30 @@ export interface TokenArgs {
 }
 
 export type tokenOwnerArg = {
-  tokenOwner: PublicKey;
+  tokenOwner: Entity;
 };
 
 export type OperatorArg = {
-  operator: PublicKey;
+  operator: Entity;
 };
 
 export type OperatorArgs = tokenOwnerArg & OperatorArg;
 
 export type BurnArgs = TokenArgs;
 
-export type TransferArgs = { target: PublicKey; source: PublicKey } & TokenArgs;
+export type TransferArgs = { target: Entity; source: Entity } & TokenArgs;
 
 export type TokenMetadataArgs = { tokenMetaData: Record<string, string> };
 
-export type BalanceOfArgs = { tokenOwner: PublicKey; keyName: string };
+export type BalanceOfArgs = { tokenOwner: Entity; keyName: string };
 
 export type GetApprovedArgs = { keyName: string } & TokenArgs;
 
 export type OwnerOfArgs = { keyName: string } & TokenArgs;
 
-export type ApproveArgs = { operator: PublicKey } & TokenArgs;
+export type ApproveArgs = { operator: Entity } & TokenArgs;
 
-export type RevokeArgs = { operator: PublicKey } & TokenArgs;
+export type RevokeArgs = { operator: Entity } & TokenArgs;
 
 export type SetApprovallForAllArgs = {
   approveAll: boolean;
@@ -179,7 +190,7 @@ export type IsApprovedForAllArgs = {
 
 export type SetVariablesArgs = {
   allowMinting?: boolean;
-  aclWhitelist?: PublicKey[];
+  aclWhitelist?: Entity[];
   aclPackageMode?: boolean;
   packageOperatorMode?: boolean;
   operatorBurnMode?: boolean;
@@ -234,7 +245,7 @@ export interface StoreBalanceOfParams extends BaseParams {
   args: BalanceOfArgs;
 }
 
-export type BalanceOfParams = PublicKey | StoreBalanceOfParams;
+export type BalanceOfParams = Entity | StoreBalanceOfParams;
 
 export interface StoreOwnerOfParams extends BaseParams {
   args: OwnerOfArgs;
@@ -259,5 +270,7 @@ export type IsApprovedForAlldParams =
 export interface SetVariablesParams extends BaseParams {
   args: SetVariablesArgs;
 }
+
+export type isAclWhitelistedParams = Entity;
 
 export interface updatedReceiptsParams extends BaseParams {}

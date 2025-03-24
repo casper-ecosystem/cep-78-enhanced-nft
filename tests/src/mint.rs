@@ -1027,7 +1027,7 @@ fn should_mint_with_compactified_metadata() {
 }
 
 #[test]
-fn should_mint_with_valid_cep99_metadata() {
+fn should_mint_with_valid_cep78_metadata() {
     let mut builder = genesis();
 
     let install_request = InstallerRequestBuilder::new(*DEFAULT_ACCOUNT_ADDR, NFT_CONTRACT_WASM)
