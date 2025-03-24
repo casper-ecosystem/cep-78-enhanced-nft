@@ -7,9 +7,10 @@ import {
 
 export enum EVENTS_MODE {
   NoEvents = 0,
-  CES = 1,
-  Native = 2,
-  NativeBytes = 3,
+  CEP47 = 1,
+  CES = 2,
+  Native = 3,
+  NativeBytes = 4,
 }
 
 export type InstallArgs = {
@@ -126,21 +127,31 @@ export interface JSONSchemaObject {
   properties: Record<string, JSONSchemaEntry>;
 }
 
-export interface MintArgs {
+export interface TokenOwnerArg {
   tokenOwner: PublicKey;
-  tokenMetaData: Record<string, string>;
-  tokenHash?: string;
-  collectionName?: string;
 }
 
-export interface RegisterArgs {
-  tokenOwner: PublicKey;
+export interface MintArgs extends TokenOwnerArg {
+  tokenMetaData: Record<string, string>;
+  tokenHash?: string;
 }
+
+export interface RegisterArgs extends TokenOwnerArg {}
 
 export interface TokenArgs {
   tokenId?: string;
   tokenHash?: string;
 }
+
+export type tokenOwnerArg = {
+  tokenOwner: PublicKey;
+};
+
+export type OperatorArg = {
+  operator: PublicKey;
+};
+
+export type OperatorArgs = tokenOwnerArg & OperatorArg;
 
 export type BurnArgs = TokenArgs;
 
@@ -159,16 +170,12 @@ export type ApproveArgs = { operator: PublicKey } & TokenArgs;
 export type RevokeArgs = { operator: PublicKey } & TokenArgs;
 
 export type SetApprovallForAllArgs = {
-  tokenOwner: PublicKey;
-  operator: PublicKey;
   approveAll: boolean;
-};
+} & OperatorArg;
 
 export type IsApprovedForAllArgs = {
-  tokenOwner: PublicKey;
-  operator: PublicKey;
   keyName: string;
-};
+} & OperatorArgs;
 
 export type SetVariablesArgs = {
   allowMinting?: boolean;
@@ -235,13 +242,19 @@ export interface StoreOwnerOfParams extends BaseParams {
 
 export type OwnerOfParams = string | StoreOwnerOfParams;
 
-export interface GetApprovedParams extends BaseParams {
+export interface StoreGetApprovedParams extends BaseParams {
   args: GetApprovedArgs;
 }
 
-export interface IsApprovedForAlldParams extends BaseParams {
+export type GetApprovedParams = string | StoreOwnerOfParams;
+
+export interface StoreIsApprovedForAlldParams extends BaseParams {
   args: IsApprovedForAllArgs;
 }
+
+export type IsApprovedForAlldParams =
+  | OperatorArgs
+  | StoreIsApprovedForAlldParams;
 
 export interface SetVariablesParams extends BaseParams {
   args: SetVariablesArgs;

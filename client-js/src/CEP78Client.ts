@@ -44,6 +44,7 @@ import {
   StoreOwnerOfParams,
   StoreBalanceOfParams,
   MINTING_MODE,
+  OperatorArgs,
 } from './types';
 import BalanceOfWASM from './wasm/balance_of_session';
 import ContractWASM from './wasm/cep78';
@@ -594,14 +595,11 @@ export default class CEP78Client extends Client {
   ): Promise<TransactionResult> {
     const {
       params: { paymentAmount, sender, chainName, signingKeys },
-      args: { tokenOwner, operator, approveAll },
+      args: { operator, approveAll },
       waitForTransactionProcessed,
     } = params;
 
     const runtimeArgs = RuntimeArgs.fromMap({
-      token_owner: CLValue.newCLKey(
-        Key.newKey(tokenOwner.accountHash().toPrefixedString())
-      ),
       approve_all: CLValue.newCLValueBool(approveAll),
       operator: CLValue.newCLKey(
         Key.newKey(operator.accountHash().toPrefixedString())
@@ -801,48 +799,55 @@ export default class CEP78Client extends Client {
     return balance;
   }
 
-  public async getApproved(params: GetApprovedParams) {
+  public async getApproved(
+    params: GetApprovedParams
+  ): Promise<string | TransactionResult | undefined> {
     if (!this.contractHash) {
       throw new Error('Contract hash is not set.');
     }
     // ! TODO toPrefixedString() ?
     const key = `hash-${this.contractHash?.hash?.toHex()}`;
 
-    const {
-      params: { wasm, sender, paymentAmount, signingKeys, chainName },
-      args: { tokenId, tokenHash, keyName },
-      waitForTransactionProcessed,
-    } = params;
+    if (typeof params === 'object') {
+      const {
+        params: { wasm, sender, paymentAmount, signingKeys, chainName },
+        args: { tokenId, tokenHash, keyName },
+        waitForTransactionProcessed,
+      } = params;
 
-    if (keyName) {
-      const wasmBytes = wasm || GetApprovedWASM;
-      if (!wasmBytes) {
-        throw new Error('Wasm file is missing.');
+      if (keyName) {
+        const wasmBytes = wasm || GetApprovedWASM;
+        if (!wasmBytes) {
+          throw new Error('Wasm file is missing.');
+        }
+
+        const runtimeArgs = RuntimeArgs.fromMap({
+          nft_contract_hash: CLValue.newCLKey(Key.newKey(key)),
+          key_name: CLValue.newCLString(keyName),
+        });
+
+        if (tokenId) {
+          runtimeArgs.insert('token_id', CLValue.newCLUint64(tokenId));
+        } else if (tokenHash) {
+          runtimeArgs.insert('token_hash', CLValue.newCLString(tokenHash));
+        }
+
+        return this.callSession(
+          wasmBytes,
+          runtimeArgs,
+          paymentAmount,
+          sender,
+          signingKeys,
+          chainName,
+          waitForTransactionProcessed
+        );
       }
-
-      const runtimeArgs = RuntimeArgs.fromMap({
-        nft_contract_hash: CLValue.newCLKey(Key.newKey(key)),
-        key_name: CLValue.newCLString(keyName),
-      });
-
-      if (tokenId) {
-        runtimeArgs.insert('token_id', CLValue.newCLUint64(tokenId));
-      } else if (tokenHash) {
-        runtimeArgs.insert('token_hash', CLValue.newCLString(tokenHash));
-      }
-
-      return this.callSession(
-        wasmBytes,
-        runtimeArgs,
-        paymentAmount,
-        sender,
-        signingKeys,
-        chainName,
-        waitForTransactionProcessed
-      );
     }
 
-    const dictionaryItemKey = tokenId || tokenHash;
+    const tokenIdentifier = params as string;
+
+    const dictionaryItemKey = tokenIdentifier;
+
     const contractNamedKey: ParamDictionaryIdentifierContractNamedKey =
       new ParamDictionaryIdentifierContractNamedKey(
         key,
@@ -863,53 +868,57 @@ export default class CEP78Client extends Client {
       ).storedValue.clValue?.toString();
     } catch (error) {
       if (error instanceof Error && error.toString().includes('Query failed')) {
-        console.warn(`No approval found for ${tokenId || tokenHash}`);
+        console.warn(`No approval found for ${tokenIdentifier}`);
         return '';
       } else throw error;
     }
   }
 
-  public async isApprovedForAll(params: IsApprovedForAlldParams) {
+  public async isApprovedForAll(
+    params: IsApprovedForAlldParams
+  ): Promise<boolean | TransactionResult> {
     if (!this.contractHash) {
       throw new Error('Contract hash is not set.');
     }
     // ! TODO toPrefixedString() ?
     const key = `hash-${this.contractHash?.hash?.toHex()}`;
 
-    const {
-      params: { wasm, sender, paymentAmount, signingKeys, chainName },
-      args: { tokenOwner, operator, keyName },
-      waitForTransactionProcessed,
-    } = params;
+    if (!this.isOperatorArgs(params)) {
+      const {
+        params: { wasm, sender, paymentAmount, signingKeys, chainName },
+        args: { tokenOwner, operator, keyName },
+        waitForTransactionProcessed,
+      } = params;
 
-    if (keyName) {
-      const wasmBytes = wasm || isApprovedForAllWASM;
-      if (!wasmBytes) {
-        throw new Error('Wasm file is missing.');
+      if (keyName) {
+        const wasmBytes = wasm || isApprovedForAllWASM;
+        if (!wasmBytes) {
+          throw new Error('Wasm file is missing.');
+        }
+
+        const runtimeArgs = RuntimeArgs.fromMap({
+          nft_contract_hash: CLValue.newCLKey(Key.newKey(key)),
+          token_owner: CLValue.newCLKey(
+            Key.newKey(tokenOwner.accountHash().toPrefixedString())
+          ),
+          operator: CLValue.newCLKey(
+            Key.newKey(operator.accountHash().toPrefixedString())
+          ),
+          key_name: CLValue.newCLString(keyName),
+        });
+
+        return this.callSession(
+          wasmBytes,
+          runtimeArgs,
+          paymentAmount,
+          sender,
+          signingKeys,
+          chainName,
+          waitForTransactionProcessed
+        );
       }
-
-      const runtimeArgs = RuntimeArgs.fromMap({
-        nft_contract_hash: CLValue.newCLKey(Key.newKey(key)),
-        token_owner: CLValue.newCLKey(
-          Key.newKey(tokenOwner.accountHash().toPrefixedString())
-        ),
-        operator: CLValue.newCLKey(
-          Key.newKey(operator.accountHash().toPrefixedString())
-        ),
-        key_name: CLValue.newCLString(keyName),
-      });
-
-      return this.callSession(
-        wasmBytes,
-        runtimeArgs,
-        paymentAmount,
-        sender,
-        signingKeys,
-        chainName,
-        waitForTransactionProcessed
-      );
     }
-
+    const { tokenOwner, operator } = params as OperatorArgs;
     const keyOwner = Key.newKey(
       tokenOwner.accountHash().toPrefixedString()
     ).bytes();
@@ -939,12 +948,14 @@ export default class CEP78Client extends Client {
 
     try {
       return (
-        await this.rpcClient.getDictionaryItemByIdentifier(null, identifier)
-      ).storedValue.clValue?.toString();
+        (
+          await this.rpcClient.getDictionaryItemByIdentifier(null, identifier)
+        ).storedValue.clValue?.toString() === 'true'
+      );
     } catch (error) {
       if (error instanceof Error && error.toString().includes('Query failed')) {
         console.warn(`No approval found for ${tokenOwner} and ${operator}`);
-        return '';
+        return false;
       } else throw error;
     }
   }
@@ -1242,5 +1253,9 @@ export default class CEP78Client extends Client {
       runtimeArgs.insert('token_hash', CLValue.newCLString(tokenHash));
     }
     return runtimeArgs;
+  }
+
+  private isOperatorArgs(obj: any): obj is OperatorArgs {
+    return obj && 'tokenOwner' in obj && 'operator' in obj;
   }
 }

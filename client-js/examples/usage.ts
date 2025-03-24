@@ -10,7 +10,6 @@ import {
   PRIVATE_KEY_FAUCET,
   SSE_URL,
   PRIVATE_KEY_USER_1,
-  PRIVATE_KEY_USER_2,
   CHAIN_NAME,
   RPC_URL,
 } from '../config';
@@ -47,9 +46,9 @@ const testCollectionName = 'TEST_CEP78',
   waitForTransactionProcessed = true;
 
 const usage = async () => {
-  const accountInfo = await getAccountInfo(RPC_URL, owner.publicKey),
+  const account = await getAccountInfo(RPC_URL, owner.publicKey),
     contractHash = findKeyFromAccountNamedKeys(
-      accountInfo,
+      account,
       `cep78_contract_hash_${testCollectionName}`
     );
 
@@ -90,7 +89,6 @@ const usage = async () => {
     OWNER_REVERSE_LOOKUP_MODE[OWNER_REVERSE_LOOKUP_MODE.Complete];
 
   const mintArgs: MintArgs = {
-    collectionName: 'my-collection',
     tokenOwner: owner.publicKey,
     tokenMetaData: {
       ipfs_cid: 'QmbWqxBEKC3P8tqsKc98xmWNzrzDtRLMiMPL8wBuTGsMnR',
@@ -207,7 +205,7 @@ const usage = async () => {
     keyName
   );
 
-  console.info(`Stored OwnerOf value at URef: ${storedOwnerOfValue}`);
+  console.info(`Stored '${keyName}' value at URef: ${storedOwnerOfValue}`);
 
   console.info('Burn');
   params = {

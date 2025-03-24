@@ -49,52 +49,45 @@ export type CEP78EventResult = WithTransactionInfo<CEP78Event>;
 export type CEP78Event = Event<
   | Mint
   | Burn
-  | SetAllowance
-  | IncreaseAllowance
-  | DecreaseAllowance
+  | Approval
+  | ApprovalRevoked
+  | ApprovalForAll
+  | RevokedForAll
   | Transfer
-  | TransferFrom
+  | MetadataUpdated
+  | VariablesSet
+  | Migration
 >;
 
 export type EventsMap = {
   Mint: WithTransactionInfo<Event<Mint>>;
   Burn: WithTransactionInfo<Event<Burn>>;
-  SetAllowance: WithTransactionInfo<Event<SetAllowance>>;
-  IncreaseAllowance: WithTransactionInfo<Event<IncreaseAllowance>>;
-  DecreaseAllowance: WithTransactionInfo<Event<DecreaseAllowance>>;
+  Approval: WithTransactionInfo<Event<Approval>>;
+  ApprovalRevoked: WithTransactionInfo<Event<ApprovalRevoked>>;
+  ApprovalForAll: WithTransactionInfo<Event<ApprovalForAll>>;
+  RevokedForAll: WithTransactionInfo<Event<RevokedForAll>>;
   Transfer: WithTransactionInfo<Event<Transfer>>;
-  TransferFrom: WithTransactionInfo<Event<TransferFrom>>;
+  MetadataUpdated: WithTransactionInfo<Event<MetadataUpdated>>;
+  VariablesSet: WithTransactionInfo<Event<VariablesSet>>;
+  Migration: WithTransactionInfo<Event<Migration>>;
 };
 
-export type Mint = { recipient: CLValue; amount: CLValue };
+export type Mint = { recipient: CLValue; token_id: CLValue; data: CLValue };
 
 export type Burn = { owner: CLValue; amount: CLValue };
 
-export type SetAllowance = {
-  owner: CLValue;
-  spender: CLValue;
-  allowance: CLValue;
-};
+export type Approval = { owner: CLValue; spender: CLValue; token_id: CLValue };
 
-export type IncreaseAllowance = {
-  owner: CLValue;
-  spender: CLValue;
-  allowance: CLValue;
-  inc_by: CLValue;
-};
+export type ApprovalRevoked = { owner: CLValue; token_id: CLValue };
 
-export type DecreaseAllowance = {
-  owner: CLValue;
-  spender: CLValue;
-  allowance: CLValue;
-  decr_by: CLValue;
-};
+export type ApprovalForAll = { owner: CLValue; operator: CLValue };
+
+export type RevokedForAll = { owner: CLValue; operator: CLValue };
 
 export type Transfer = { sender: CLValue; recipient: CLValue; amount: CLValue };
 
-export type TransferFrom = {
-  spender: CLValue;
-  owner: CLValue;
-  recipient: CLValue;
-  amount: CLValue;
-};
+export type MetadataUpdated = { token_id: CLValue; data: CLValue };
+
+export type VariablesSet = {};
+
+export type Migration = {};

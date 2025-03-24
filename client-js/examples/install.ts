@@ -56,7 +56,7 @@ const collectionName = 'TEST_CEP78',
   },
   identifierMode = NFT_IDENTIFIER_MODE.Hash,
   metadataMutability = METADATA_MUTABILITY.Immutable,
-  ownerReverseLookupMode = OWNER_REVERSE_LOOKUP_MODE.Complete,
+  ownerReverseLookupMode = OWNER_REVERSE_LOOKUP_MODE.NoLookup,
   paymentAmount = String(600_000_000_000),
   waitForTransactionProcessed = true;
 
