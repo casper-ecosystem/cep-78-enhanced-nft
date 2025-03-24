@@ -23,7 +23,7 @@ use alloc::{
 };
 use casper_contract::{
     contract_api::{
-        runtime::{self, call_contract, get_key, revert},
+        runtime::{self, call_contract, revert},
         storage::{self, read},
     },
     unwrap_or_revert::UnwrapOrRevert,
@@ -79,7 +79,7 @@ use modalities::{
     NFTKind, NFTMetadataKind, NamedKeyConventionMode, OwnerReverseLookupMode, OwnershipMode,
     Requirement, TokenIdentifier, TransferFilterContractResult, WhitelistMode,
 };
-use utils::{get_contract_version_key, get_holder_mode, get_uref};
+use utils::{get_contract_version_key, get_holder_mode, get_uref, init_events};
 
 #[no_mangle]
 pub extern "C" fn init() {
@@ -415,11 +415,9 @@ pub extern "C" fn init() {
     .try_into()
     .unwrap_or_revert();
 
-    // Initialize events structures for CES.
-    if [EventsMode::CES, EventsMode::NativeBytes].contains(&events_mode) {
-        utils::init_events();
-    }
     runtime::put_key(EVENTS_MODE, storage::new_uref(events_mode as u8).into());
+
+    init_events();
 
     // Initialize contract with variables which must be present but maybe set to
     // different values after initialization.
@@ -1878,15 +1876,13 @@ pub extern "C" fn migrate() {
 
     let optional_events_mode: Option<u8> = runtime::get_named_arg::<Option<u8>>(ARG_EVENTS_MODE);
 
-    if let Some(optional_events_mode) = optional_events_mode {
-        if EventsMode::try_from(optional_events_mode).is_ok() {
-            runtime::put_key(EVENTS_MODE, storage::new_uref(optional_events_mode).into());
+    if let Some(events_mode) = optional_events_mode {
+        if EventsMode::try_from(events_mode).is_ok() {
+            runtime::put_key(EVENTS_MODE, storage::new_uref(events_mode).into());
         }
     }
 
-    if get_key(casper_event_standard::EVENTS_DICT).is_none() {
-        utils::init_events();
-    }
+    init_events();
 
     emit_event(Event::Migration(Migration::new()));
 
