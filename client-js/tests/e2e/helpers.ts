@@ -1,4 +1,10 @@
 import {
+  PRIVATE_KEY_FAUCET,
+  PRIVATE_KEY_USER_1,
+  PRIVATE_KEY_USER_2,
+} from '../../config';
+import {
+  EVENTS_MODE,
   CEP78Client,
   METADATA_MUTABILITY,
   NFT_HOLDER_MODE,
@@ -7,13 +13,7 @@ import {
   NFT_OWNERSHIP_MODE,
   TransactionParams,
   TransactionResult,
-} from 'dist';
-import {
-  PRIVATE_KEY_FAUCET,
-  PRIVATE_KEY_USER_1,
-  PRIVATE_KEY_USER_2,
-} from '../../config';
-import { EVENTS_MODE } from '../../src';
+} from '../../src';
 import { getSigningKey } from '../utils';
 
 if (!PRIVATE_KEY_FAUCET) {
