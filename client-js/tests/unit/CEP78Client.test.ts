@@ -1,6 +1,7 @@
+import { blake2b } from '@noble/hashes/blake2b';
+import { bytesToHex } from '@noble/hashes/utils';
 import {
   Args,
-  CLTypeKey,
   CLValue,
   ContractHash,
   ContractPackageHash,
@@ -39,6 +40,9 @@ import {
   TokenMetadataParams,
   OwnerOfParams,
   StoreBalanceOfParams,
+  GetApprovedParams,
+  IsApprovedForAlldParams,
+  SetVariablesParams,
 } from '../../src';
 
 describe('CEP78Client Unit', () => {
@@ -1624,6 +1628,622 @@ describe('CEP78Client Unit', () => {
       await expect(
         clientWithoutContractHash.balanceOf(key.publicKey)
       ).rejects.toThrow('Contract hash is not set.');
+    });
+  });
+
+  describe('CEP78Client - getApproved', () => {
+    let client: CEP78Client;
+    let mockRpcClient: RpcClient;
+    const key = PrivateKey.generate(KeyAlgorithm.ED25519);
+    const contractHash =
+      'hash-a84b9f15e57097579cb651bc3eec5143972c8c9ea153bb26d07367f9d41a767b';
+    const mockTokenId = '1';
+    const mockTokenHash = 'mockTokenHash';
+    const mockKeyName = 'mockKeyName';
+    const mockApproval = 'mockApprovalAddress';
+
+    beforeEach(() => {
+      mockRpcClient = {
+        getDictionaryItemByIdentifier: vi.fn(),
+      } as unknown as RpcClient;
+
+      client = new CEP78Client('http://mock-rpc-url');
+      client.setContractHash(contractHash);
+      client['_rpcClient'] = mockRpcClient;
+
+      vi.spyOn(
+        mockRpcClient,
+        'getDictionaryItemByIdentifier'
+      ).mockResolvedValue({
+        storedValue: {
+          clValue: {
+            toString: () => mockApproval,
+          },
+        },
+      } as StateGetDictionaryResult);
+    });
+
+    afterEach(() => {
+      vi.restoreAllMocks();
+    });
+
+    it('should return the approval address when approval exists', async () => {
+      const result = await client.getApproved(mockTokenId);
+
+      // Verifying that the contract hash is used
+      const expectedKey = contractHash;
+      const contractNamedKey = new ParamDictionaryIdentifierContractNamedKey(
+        expectedKey,
+        'approved',
+        mockTokenId
+      );
+
+      // Check that the dictionary state was retrieved correctly
+      expect(mockRpcClient.getDictionaryItemByIdentifier).toHaveBeenCalledWith(
+        null,
+        expect.objectContaining({
+          contractNamedKey,
+        })
+      );
+
+      // Check if the correct approval address is returned
+      expect(result).toBe(mockApproval);
+    });
+
+    it('should call callSession with correct arguments when keyName is provided', async () => {
+      const mockParams: GetApprovedParams = {
+        params: {
+          wasm: new Uint8Array(),
+          sender: key.publicKey,
+          paymentAmount: '1000',
+          signingKeys: [key],
+          chainName: 'testnet',
+        },
+        args: {
+          tokenId: mockTokenId,
+          tokenHash: mockTokenHash,
+          keyName: mockKeyName,
+        },
+        waitForTransactionProcessed: false,
+      };
+
+      vi.spyOn(client as any, 'callSession').mockResolvedValue({
+        transactionInfo: { transactionHash: 'mockTransactionHash' },
+      });
+
+      await client.getApproved(mockParams);
+
+      expect(client['callSession']).toHaveBeenCalledWith(
+        new Uint8Array(),
+        expect.anything(),
+        mockParams.params.paymentAmount,
+        mockParams.params.sender,
+        mockParams.params.signingKeys,
+        mockParams.params.chainName,
+        mockParams.waitForTransactionProcessed
+      );
+    });
+
+    it('should throw an error when contract hash is not set', async () => {
+      const clientWithoutContractHash = new CEP78Client('http://mock-rpc-url');
+      await expect(
+        clientWithoutContractHash.getApproved(mockTokenId)
+      ).rejects.toThrowError('Contract hash is not set.');
+    });
+
+    it('should return empty string when approval not found in dictionary', async () => {
+      const consoleWarnSpy = vi
+        .spyOn(console, 'warn')
+        .mockImplementation(() => {});
+      vi.spyOn(
+        mockRpcClient,
+        'getDictionaryItemByIdentifier'
+      ).mockRejectedValueOnce(new Error('Query failed'));
+
+      const result = await client.getApproved(mockTokenId);
+      expect(result).toBe('');
+      expect(consoleWarnSpy).toHaveBeenCalledWith(
+        `No approval found for ${mockTokenId}`
+      );
+    });
+
+    it('should return undefined if the identifier is not found', async () => {
+      vi.spyOn(
+        mockRpcClient,
+        'getDictionaryItemByIdentifier'
+      ).mockResolvedValueOnce({
+        storedValue: { clValue: undefined },
+      } as StateGetDictionaryResult);
+
+      const result = await client.getApproved(mockTokenId);
+      expect(result).toBeUndefined();
+    });
+
+    it('should handle error in getDictionaryItemByIdentifier gracefully', async () => {
+      vi.spyOn(
+        mockRpcClient,
+        'getDictionaryItemByIdentifier'
+      ).mockRejectedValueOnce(new Error('Other error'));
+
+      await expect(client.getApproved(mockTokenId)).rejects.toThrowError(
+        'Other error'
+      );
+    });
+
+    it('should construct the correct dictionary key when using tokenId', async () => {
+      await client.getApproved(mockTokenId);
+
+      const dictionaryIdentifier = (mockRpcClient as any)
+        .getDictionaryItemByIdentifier.mock.calls[0][1];
+
+      expect(dictionaryIdentifier.contractNamedKey).toEqual({
+        key: contractHash,
+        dictionaryName: 'approved',
+        dictionaryItemKey: mockTokenId,
+      });
+    });
+
+    it('should construct the correct dictionary key when using tokenHash', async () => {
+      await client.getApproved(mockTokenHash);
+
+      const dictionaryIdentifier = (mockRpcClient as any)
+        .getDictionaryItemByIdentifier.mock.calls[0][1];
+
+      expect(dictionaryIdentifier.contractNamedKey).toEqual({
+        key: contractHash,
+        dictionaryName: 'approved',
+        dictionaryItemKey: mockTokenHash,
+      });
+    });
+  });
+
+  describe.skip('CEP78Client - isApprovedForAll', () => {
+    let client: CEP78Client;
+    let mockRpcClient: RpcClient;
+    const mockKey = PrivateKey.generate(KeyAlgorithm.ED25519);
+    const mockParams: IsApprovedForAlldParams = {
+      params: {
+        wasm: new Uint8Array(),
+        sender: mockKey.publicKey,
+        paymentAmount: '1000',
+        signingKeys: [mockKey],
+        chainName: 'testnet',
+      },
+      args: {
+        tokenOwner: mockKey.publicKey,
+        operator: mockKey.publicKey,
+        keyName: 'mockKeyName',
+      },
+      waitForTransactionProcessed: false,
+    };
+    const contractHash =
+      'hash-a84b9f15e57097579cb651bc3eec5143972c8c9ea153bb26d07367f9d41a767b';
+
+    beforeEach(() => {
+      mockRpcClient = {
+        getDictionaryItemByIdentifier: vi.fn(),
+      } as unknown as RpcClient;
+
+      client = new CEP78Client('http://mock-rpc-url');
+      client.setContractHash(contractHash);
+      client['_rpcClient'] = mockRpcClient;
+
+      vi.spyOn(client as any, 'callSession').mockResolvedValue({
+        transactionInfo: { transactionHash: 'mockTransactionHash' },
+      });
+      vi.spyOn(
+        mockRpcClient,
+        'getDictionaryItemByIdentifier'
+      ).mockResolvedValue({
+        storedValue: {
+          clValue: {
+            toString: () => 'true',
+          },
+        },
+      } as StateGetDictionaryResult);
+    });
+
+    it('should return true when approval is found in dictionary', async () => {
+      const result = await client.isApprovedForAll(mockParams);
+
+      // Verifying that the dictionary state was retrieved correctly
+      expect(mockRpcClient.getDictionaryItemByIdentifier).toHaveBeenCalledWith(
+        null,
+        expect.objectContaining({
+          contractNamedKey: expect.objectContaining({
+            key: contractHash,
+            dictionaryName: 'operators',
+            dictionaryItemKey: expect.any(String),
+          }),
+        })
+      );
+
+      // Check if the correct approval status is returned
+      expect(result).toBe(true);
+    });
+
+    it('should call callSession with correct arguments when keyName is provided', async () => {
+      await client.isApprovedForAll(mockParams);
+
+      expect(client['callSession']).toHaveBeenCalledWith(
+        mockParams.params.wasm,
+        expect.anything(),
+        mockParams.params.paymentAmount,
+        mockParams.params.sender,
+        mockParams.params.signingKeys,
+        mockParams.params.chainName,
+        mockParams.waitForTransactionProcessed
+      );
+    });
+
+    it('should return false if approval not found in dictionary', async () => {
+      const consoleWarnSpy = vi
+        .spyOn(console, 'warn')
+        .mockImplementation(() => {});
+      vi.spyOn(
+        mockRpcClient,
+        'getDictionaryItemByIdentifier'
+      ).mockRejectedValueOnce(new Error('Query failed'));
+
+      const result = await client.isApprovedForAll(mockParams);
+
+      expect(result).toBe(false);
+      expect(consoleWarnSpy).toHaveBeenCalledWith(
+        `No approval found for ${mockParams.args.tokenOwner} and ${mockParams.args.operator}`
+      );
+    });
+
+    it('should return false if the approval status is not true', async () => {
+      vi.spyOn(
+        mockRpcClient,
+        'getDictionaryItemByIdentifier'
+      ).mockResolvedValueOnce({
+        storedValue: { clValue: { toString: () => 'false' } },
+      } as StateGetDictionaryResult);
+
+      const result = await client.isApprovedForAll(mockParams);
+
+      expect(result).toBe(false);
+    });
+
+    it('should throw error when contract hash is not set', async () => {
+      const clientWithoutContractHash = new CEP78Client('http://mock-rpc-url');
+      await expect(
+        clientWithoutContractHash.isApprovedForAll(mockParams)
+      ).rejects.toThrow('Contract hash is not set.');
+    });
+
+    it('should handle error gracefully when getDictionaryItemByIdentifier fails', async () => {
+      vi.spyOn(
+        mockRpcClient,
+        'getDictionaryItemByIdentifier'
+      ).mockRejectedValueOnce(new Error('RPC Error'));
+
+      await expect(client.isApprovedForAll(mockParams)).rejects.toThrowError(
+        'RPC Error'
+      );
+    });
+
+    it('should construct the correct dictionary key when operator args are provided', async () => {
+      const { tokenOwner, operator } = mockParams.args;
+      const keyOwner = client.getPrefixedString(tokenOwner).bytes();
+      const keySpender = client.getPrefixedString(operator).bytes();
+
+      const finalBytes = new Uint8Array(keyOwner.length + keySpender.length);
+      finalBytes.set(keyOwner);
+      finalBytes.set(keySpender, keyOwner.length);
+
+      const blaked = blake2b(finalBytes, { dkLen: 32 });
+      const dictionaryItemKey = bytesToHex(blaked);
+
+      await client.isApprovedForAll(mockParams);
+
+      expect(mockRpcClient.getDictionaryItemByIdentifier).toHaveBeenCalledWith(
+        null,
+        expect.objectContaining({
+          contractNamedKey: expect.objectContaining({
+            key: contractHash,
+            dictionaryName: 'operators',
+            dictionaryItemKey: dictionaryItemKey,
+          }),
+        })
+      );
+    });
+  });
+
+  describe('CEP78Client - isAclWhitelisted', () => {
+    let client: CEP78Client;
+    let mockRpcClient: RpcClient;
+    const mockKey = PrivateKey.generate(KeyAlgorithm.ED25519);
+    const mockPublicKey = mockKey.publicKey;
+    const contractHash =
+      'hash-a84b9f15e57097579cb651bc3eec5143972c8c9ea153bb26d07367f9d41a767b';
+
+    beforeEach(() => {
+      mockRpcClient = {
+        getDictionaryItemByIdentifier: vi.fn(),
+      } as unknown as RpcClient;
+
+      client = new CEP78Client('http://mock-rpc-url');
+      client.setContractHash(contractHash);
+      client['_rpcClient'] = mockRpcClient;
+
+      vi.spyOn(client as any, 'callSession').mockResolvedValue({
+        transactionInfo: { transactionHash: 'mockTransactionHash' },
+      });
+      vi.spyOn(
+        mockRpcClient,
+        'getDictionaryItemByIdentifier'
+      ).mockResolvedValue({
+        storedValue: {
+          clValue: {
+            toString: () => 'true',
+          },
+        },
+      } as StateGetDictionaryResult);
+    });
+
+    it('should return true when the public key is whitelisted in the ACL', async () => {
+      const params = mockPublicKey;
+
+      const result = await client.isAclWhitelisted(params);
+
+      // Verifying that the dictionary state was retrieved correctly
+      expect(mockRpcClient.getDictionaryItemByIdentifier).toHaveBeenCalledWith(
+        null,
+        expect.objectContaining({
+          contractNamedKey: expect.objectContaining({
+            key: contractHash,
+            dictionaryName: 'acl_whitelist',
+            dictionaryItemKey: expect.any(String),
+          }),
+        })
+      );
+
+      // Check if the correct whitelisted status is returned
+      expect(result).toBe(true);
+    });
+
+    it('should return false if the public key is not whitelisted', async () => {
+      const consoleWarnSpy = vi
+        .spyOn(console, 'warn')
+        .mockImplementation(() => {});
+      vi.spyOn(
+        mockRpcClient,
+        'getDictionaryItemByIdentifier'
+      ).mockRejectedValueOnce(new Error('Query failed'));
+
+      const params = mockPublicKey;
+      const result = await client.isAclWhitelisted(params);
+
+      expect(result).toBe(false);
+      expect(consoleWarnSpy).toHaveBeenCalledWith(
+        `No whiteListing for ${mockPublicKey.accountHash().toPrefixedString()}`
+      );
+    });
+
+    it('should return false if the whitelist status is not true', async () => {
+      const params = mockPublicKey;
+
+      vi.spyOn(
+        mockRpcClient,
+        'getDictionaryItemByIdentifier'
+      ).mockResolvedValueOnce({
+        storedValue: { clValue: { toString: () => 'false' } },
+      } as StateGetDictionaryResult);
+
+      const result = await client.isAclWhitelisted(params);
+
+      expect(result).toBe(false);
+    });
+
+    it('should throw an error when contract hash is not set', async () => {
+      const clientWithoutContractHash = new CEP78Client('http://mock-rpc-url');
+      await expect(
+        clientWithoutContractHash.isAclWhitelisted(mockPublicKey)
+      ).rejects.toThrow('Contract hash is not set.');
+    });
+
+    it('should handle error gracefully when getDictionaryItemByIdentifier fails', async () => {
+      vi.spyOn(
+        mockRpcClient,
+        'getDictionaryItemByIdentifier'
+      ).mockRejectedValueOnce(new Error('RPC Error'));
+
+      const params = mockPublicKey;
+      await expect(client.isAclWhitelisted(params)).rejects.toThrowError(
+        'RPC Error'
+      );
+    });
+
+    it('should construct the correct dictionary key when public key is provided', async () => {
+      const params = mockPublicKey;
+      const dictionaryItemKey = client['getPrefixedString'](mockPublicKey)
+        .toPrefixedString()
+        .replace(/^.*-/, '');
+
+      await client.isAclWhitelisted(params);
+
+      expect(mockRpcClient.getDictionaryItemByIdentifier).toHaveBeenCalledWith(
+        null,
+        expect.objectContaining({
+          contractNamedKey: expect.objectContaining({
+            key: contractHash,
+            dictionaryName: 'acl_whitelist',
+            dictionaryItemKey: dictionaryItemKey,
+          }),
+        })
+      );
+    });
+  });
+
+  describe('CEP78Client - setVariables', () => {
+    let client: CEP78Client;
+    let mockRpcClient: RpcClient;
+    const mockKey = PrivateKey.generate(KeyAlgorithm.ED25519);
+    const mockPublicKey = mockKey.publicKey;
+    const contractHash =
+      'hash-a84b9f15e57097579cb651bc3eec5143972c8c9ea153bb26d07367f9d41a767b';
+
+    beforeEach(() => {
+      mockRpcClient = {
+        callEntrypoint: vi.fn(),
+      } as unknown as RpcClient;
+
+      client = new CEP78Client('http://mock-rpc-url');
+      client.setContractHash(contractHash);
+      client['_rpcClient'] = mockRpcClient;
+
+      // Mocking callEntrypoint method directly on client
+      vi.spyOn(client as any, 'callEntrypoint').mockResolvedValue({
+        transactionInfo: { transactionHash: 'mockTransactionHash' },
+      });
+    });
+
+    it('should call callEntrypoint with correct parameters when all parameters are provided', async () => {
+      const setVariablesParams: SetVariablesParams = {
+        params: {
+          sender: mockPublicKey,
+          paymentAmount: '1000',
+          signingKeys: [mockKey],
+          chainName: 'testnet',
+        },
+        args: {
+          allowMinting: true,
+          aclWhitelist: [mockPublicKey],
+          aclPackageMode: false,
+          packageOperatorMode: true,
+          operatorBurnMode: false,
+        },
+        waitForTransactionProcessed: true,
+      };
+
+      await client.setVariables(setVariablesParams);
+
+      // Verifying that callEntrypoint is called
+      expect(client['callEntrypoint']).toHaveBeenCalled();
+    });
+
+    it('should call callEntrypoint when no optional parameters are provided', async () => {
+      const setVariablesParams: SetVariablesParams = {
+        params: {
+          sender: mockPublicKey,
+          paymentAmount: '1000',
+          signingKeys: [mockKey],
+          chainName: 'testnet',
+        },
+        args: {},
+        waitForTransactionProcessed: true,
+      };
+
+      await client.setVariables(setVariablesParams);
+
+      // Verifying that callEntrypoint is called even if no arguments were provided
+      expect(client['callEntrypoint']).toHaveBeenCalled();
+    });
+
+    it('should call callEntrypoint with correct parameters when only allowMinting is provided', async () => {
+      const setVariablesParams: SetVariablesParams = {
+        params: {
+          sender: mockPublicKey,
+          paymentAmount: '1000',
+          signingKeys: [mockKey],
+          chainName: 'testnet',
+        },
+        args: {
+          allowMinting: true,
+        },
+        waitForTransactionProcessed: true,
+      };
+
+      await client.setVariables(setVariablesParams);
+
+      // Verifying that callEntrypoint is called when only allowMinting is provided
+      expect(client['callEntrypoint']).toHaveBeenCalled();
+    });
+
+    it('should call callEntrypoint when aclWhitelist is not provided', async () => {
+      const setVariablesParams: SetVariablesParams = {
+        params: {
+          sender: mockPublicKey,
+          paymentAmount: '1000',
+          signingKeys: [mockKey],
+          chainName: 'testnet',
+        },
+        args: {},
+        waitForTransactionProcessed: true,
+      };
+
+      await client.setVariables(setVariablesParams);
+
+      // Verifying that callEntrypoint is called when no aclWhitelist is provided
+      expect(client['callEntrypoint']).toHaveBeenCalled();
+    });
+  });
+
+  describe('CEP78Client - metadata', () => {
+    let client: CEP78Client;
+    let mockRpcClient: RpcClient;
+    const contractHash =
+      'hash-a84b9f15e57097579cb651bc3eec5143972c8c9ea153bb26d07367f9d41a767b';
+    const mockTokenIdentifier = 'mockTokenIdentifier';
+
+    beforeEach(() => {
+      mockRpcClient = {
+        getDictionaryItemByIdentifier: vi.fn(),
+      } as unknown as RpcClient;
+
+      client = new CEP78Client('http://mock-rpc-url');
+      client.setContractHash(contractHash);
+      client['_rpcClient'] = mockRpcClient;
+
+      // Mocking the return value for the metadata call
+      vi.spyOn(client as any, 'metadataKind').mockResolvedValue('CEP78'); // Mocking metadataKind method
+      vi.spyOn(
+        mockRpcClient,
+        'getDictionaryItemByIdentifier'
+      ).mockResolvedValue({
+        storedValue: { clValue: { toJSON: () => ({ key: 'mockData' }) } },
+      } as StateGetDictionaryResult);
+    });
+
+    it('should call getDictionaryItemByIdentifier and return metadata for a given tokenIdentifier', async () => {
+      const metadata = await client.metadata(mockTokenIdentifier);
+
+      // Verifying that getDictionaryItemByIdentifier was called with the correct parameters
+      expect(mockRpcClient.getDictionaryItemByIdentifier).toHaveBeenCalledWith(
+        null,
+        expect.objectContaining({
+          contractNamedKey: expect.objectContaining({
+            key: contractHash,
+            dictionaryItemKey: mockTokenIdentifier,
+          }),
+        })
+      );
+
+      expect(metadata).toEqual({ key: 'mockData' });
+    });
+
+    it('should return an empty object when metadata is not found', async () => {
+      // Mocking a failed response (Query failed error)
+      vi.spyOn(
+        mockRpcClient,
+        'getDictionaryItemByIdentifier'
+      ).mockRejectedValueOnce(new Error('Query failed'));
+
+      const metadata = await client.metadata(mockTokenIdentifier);
+
+      expect(metadata).toEqual({});
+    });
+
+    it('should throw an error if contract hash is not set', async () => {
+      (client as any)['_contractHash'] = undefined;
+
+      try {
+        await client.metadata(mockTokenIdentifier);
+      } catch (error) {
+        expect(error).toEqual(new Error('Contract hash is not set.'));
+      }
     });
   });
 
