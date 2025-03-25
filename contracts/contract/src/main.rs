@@ -24,7 +24,7 @@ use alloc::{
 use casper_contract::{
     contract_api::{
         runtime::{self, call_contract, get_key, get_named_arg, revert},
-        storage::{self},
+        storage::{self, read},
     },
     unwrap_or_revert::UnwrapOrRevert,
 };
@@ -79,7 +79,7 @@ use modalities::{
     NFTKind, NFTMetadataKind, NamedKeyConventionMode, OwnerReverseLookupMode, OwnershipMode,
     Requirement, TokenIdentifier, TransferFilterContractResult, WhitelistMode,
 };
-use utils::{get_contract_version_key, get_holder_mode};
+use utils::{get_contract_version_key, get_holder_mode, get_uref};
 
 #[no_mangle]
 pub extern "C" fn init() {
@@ -2596,8 +2596,8 @@ fn install_contract() {
     };
 
     let hash_key_name = format!("{PREFIX_HASH_KEY_NAME}_{collection_name}");
-    let mut message_topics = BTreeMap::new();
-    message_topics.insert(EVENTS.to_string(), MessageTopicOperation::Add);
+    let message_topics = BTreeMap::from([(EVENTS.to_string(), MessageTopicOperation::Add)]);
+
     let (contract_hash, contract_version) = storage::new_contract(
         entry_points,
         Some(named_keys),
@@ -2695,8 +2695,23 @@ fn migrate_contract(access_key_name: String, package_key_name: String) {
         )
     }
 
-    let mut message_topics = BTreeMap::new();
-    message_topics.insert(EVENTS.to_string(), MessageTopicOperation::Add);
+    let version_value_uref = get_uref(
+        &format!("{PREFIX_CONTRACT_VERSION}_{collection_name}"),
+        NFTCoreError::MissingVersionContractKey,
+        NFTCoreError::InvalidVersionContractKey,
+    );
+
+    let version_value: String = read(version_value_uref)
+        .unwrap_or_default()
+        .unwrap_or_default();
+
+    // If stored version is a non empty string (and not a u32), it means it is already a Condor
+    // version, do not add message topics then, as already set when installed
+    let message_topics: BTreeMap<String, MessageTopicOperation> = if !version_value.is_empty() {
+        BTreeMap::new()
+    } else {
+        BTreeMap::from([(EVENTS.to_string(), MessageTopicOperation::Add)])
+    };
 
     let (contract_hash, contract_version) = storage::add_contract_version(
         nft_contract_package_hash.into(),

@@ -3,22 +3,28 @@ use casper_engine_test_support::{
 };
 use casper_fixtures::LmdbFixtureState;
 use casper_types::{
-    runtime_args, system::MINT, AddressableEntityHash, EraId, Key, ProtocolVersion,
+    runtime_args, system::MINT, AddressableEntityHash, EntityAddr, EraId, Key, ProtocolVersion,
 };
 use cep78::{
     constants::{
         ARG_COLLECTION_NAME, ARG_EVENTS_MODE, ARG_NAMED_KEY_CONVENTION, ARG_TOKEN_META_DATA,
         ARG_TOKEN_OWNER,
     },
+    events::events_ces::Migration,
     modalities::{EventsMode, NamedKeyConventionMode},
 };
 
 use crate::utility::{
     constants::{
         ARG_NFT_CONTRACT_HASH, ARG_NFT_CONTRACT_PACKAGE_HASH, CONTRACT_NAME, CONTRACT_VERSION,
-        DEFAULT_ACCOUNT_KEY, NFT_CONTRACT_WASM, NFT_TEST_COLLECTION,
+        DEFAULT_ACCOUNT_KEY, NFT_CONTRACT_WASM, NFT_TEST_COLLECTION, NFT_TEST_SYMBOL,
     },
-    support::{get_nft_contract_package_hash_cep78, query_stored_value},
+    installer_request_builder::{InstallerRequestBuilder, OwnerReverseLookupMode},
+    message_handlers::{message_summary, message_topic},
+    support::{
+        genesis, get_event, get_nft_contract_hash, get_nft_contract_hash_key,
+        get_nft_contract_package_hash_cep78, query_stored_value,
+    },
 };
 
 pub fn upgrade_v1_5_6_fixture_to_v2_0_0_ee(
@@ -111,7 +117,7 @@ fn should_be_able_to_call_1x_contract_in_2x_execution_engine() {
 }
 
 #[test]
-fn should_migrate_1_5_6_to_feat_2_0() {
+fn should_migrate_1_5_6_to_2_0() {
     // load fixture
     let (mut builder, lmdb_fixture_state, _temp_dir) =
         casper_fixtures::builder_from_global_state_fixture("cep78_1.5.1-ee1.5.6-minted");
@@ -176,4 +182,110 @@ fn should_migrate_1_5_6_to_feat_2_0() {
     .build();
 
     builder.exec(mint_request).expect_success().commit();
+}
+
+#[test]
+fn should_upgrade_contract_from_ces_to_native() {
+    let mut builder = genesis();
+
+    let install_request = InstallerRequestBuilder::new(*DEFAULT_ACCOUNT_ADDR, NFT_CONTRACT_WASM)
+        .with_collection_name(NFT_TEST_COLLECTION.to_string())
+        .with_collection_symbol(NFT_TEST_SYMBOL.to_string())
+        .with_reporting_mode(OwnerReverseLookupMode::NoLookUp)
+        .with_total_token_supply(1u64)
+        .with_events_mode(EventsMode::CES)
+        .build();
+
+    builder.exec(install_request).expect_success().commit();
+
+    let nft_contract_key: Key = get_nft_contract_hash_key(&builder);
+
+    let query_result: String = query_stored_value(&builder, nft_contract_key, ARG_COLLECTION_NAME);
+
+    assert_eq!(
+        query_result,
+        NFT_TEST_COLLECTION.to_string(),
+        "collection_name initialized at installation should exist"
+    );
+
+    let contract_package_hash = get_nft_contract_package_hash_cep78(&builder);
+
+    let upgrade_request = ExecuteRequestBuilder::standard(
+        *DEFAULT_ACCOUNT_ADDR,
+        NFT_CONTRACT_WASM,
+        runtime_args! {
+            ARG_NFT_CONTRACT_PACKAGE_HASH => contract_package_hash,
+            ARG_EVENTS_MODE => EventsMode::Native as u8,
+            ARG_NAMED_KEY_CONVENTION => NamedKeyConventionMode::DerivedFromCollectionName as u8,
+            ARG_COLLECTION_NAME => NFT_TEST_COLLECTION,
+        },
+    )
+    .build();
+
+    builder.exec(upgrade_request).expect_success().commit();
+
+    let nft_contract_hash: AddressableEntityHash = get_nft_contract_hash(&builder);
+
+    let entity_addr = EntityAddr::SmartContract(nft_contract_hash.value());
+    let binding = builder.message_topics(None, entity_addr).unwrap();
+    let (_, message_topic_hash) = binding
+        .iter()
+        .last()
+        .expect("should have at least one topic");
+
+    assert_eq!(
+        message_topic(&builder, &nft_contract_hash, *message_topic_hash).message_count(),
+        1
+    );
+
+    message_summary(&builder, &nft_contract_hash, message_topic_hash, 0, None).unwrap();
+}
+
+#[test]
+fn should_upgrade_contract_from_native_to_ces() {
+    let mut builder = genesis();
+
+    let install_request = InstallerRequestBuilder::new(*DEFAULT_ACCOUNT_ADDR, NFT_CONTRACT_WASM)
+        .with_collection_name(NFT_TEST_COLLECTION.to_string())
+        .with_collection_symbol(NFT_TEST_SYMBOL.to_string())
+        .with_reporting_mode(OwnerReverseLookupMode::NoLookUp)
+        .with_total_token_supply(1u64)
+        .with_events_mode(EventsMode::Native)
+        .build();
+
+    builder.exec(install_request).expect_success().commit();
+
+    let nft_contract_key: Key = get_nft_contract_hash_key(&builder);
+
+    let query_result: String = query_stored_value(&builder, nft_contract_key, ARG_COLLECTION_NAME);
+
+    assert_eq!(
+        query_result,
+        NFT_TEST_COLLECTION.to_string(),
+        "collection_name initialized at installation should exist"
+    );
+
+    let contract_package_hash = get_nft_contract_package_hash_cep78(&builder);
+
+    let upgrade_request = ExecuteRequestBuilder::standard(
+        *DEFAULT_ACCOUNT_ADDR,
+        NFT_CONTRACT_WASM,
+        runtime_args! {
+            ARG_NFT_CONTRACT_PACKAGE_HASH => contract_package_hash,
+            ARG_EVENTS_MODE => EventsMode::CES as u8,
+            ARG_NAMED_KEY_CONVENTION => NamedKeyConventionMode::DerivedFromCollectionName as u8,
+            ARG_COLLECTION_NAME => NFT_TEST_COLLECTION,
+        },
+    )
+    .build();
+
+    builder.exec(upgrade_request).expect_success().commit();
+
+    let expected_event = Migration::new();
+    let event_index = 0;
+    // Contract key was updated by upgrade
+    let nft_contract_key: Key = get_nft_contract_hash_key(&builder);
+
+    let actual_event: Migration = get_event(&builder, &nft_contract_key, event_index).unwrap();
+    assert_eq!(actual_event, expected_event, "Expected Migration event.");
 }

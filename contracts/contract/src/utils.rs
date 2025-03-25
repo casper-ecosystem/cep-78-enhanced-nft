@@ -32,10 +32,7 @@ use casper_contract::{
         },
         storage::{dictionary_get, dictionary_put, new_dictionary, new_uref, read, write},
     },
-    ext_ffi::{
-        casper_get_key, casper_get_named_arg, casper_get_named_arg_size, casper_read_host_buffer,
-        casper_read_value,
-    },
+    ext_ffi::{casper_get_key, casper_get_named_arg, casper_get_named_arg_size},
     unwrap_or_revert::UnwrapOrRevert,
 };
 use casper_event_standard::Schemas;
@@ -47,7 +44,7 @@ use casper_types::{
     contracts::{ContractHash, ContractPackageHash, ContractVersionKey},
     AddressableEntityHash, ApiError, CLTyped, EntityAddr, Key, PackageHash, URef,
 };
-use core::{convert::TryInto, mem::MaybeUninit};
+use core::convert::TryInto;
 use hex::encode;
 
 // The size of a given page, it is currently set to 1000
@@ -138,7 +135,9 @@ pub fn get_stored_value_with_user_errors<T: CLTyped + FromBytes>(
     invalid: NFTCoreError,
 ) -> T {
     let uref = get_uref(name, missing, invalid);
-    read_with_user_errors(uref, missing, invalid)
+    read::<T>(uref)
+        .unwrap_or_revert_with(missing)
+        .unwrap_or_revert_with(invalid)
 }
 
 pub fn get_named_arg_size(name: &str) -> Option<usize> {
@@ -238,7 +237,7 @@ pub fn named_uref_exists(name: &str) -> bool {
     result_from(ret).is_ok()
 }
 
-pub fn get_key_with_user_errors(name: &str, missing: NFTCoreError, invalid: NFTCoreError) -> Key {
+fn get_key_with_user_errors(name: &str, missing: NFTCoreError, invalid: NFTCoreError) -> Key {
     let (name_ptr, name_size, _bytes) = to_ptr(name);
     let mut key_bytes = vec![0u8; Key::max_serialized_length()];
     let mut total_bytes: usize = 0;
@@ -259,50 +258,6 @@ pub fn get_key_with_user_errors(name: &str, missing: NFTCoreError, invalid: NFTC
     key_bytes.truncate(total_bytes);
 
     deserialize(key_bytes).unwrap_or_revert_with(invalid)
-}
-
-fn read_with_user_errors<T: CLTyped + FromBytes>(
-    uref: URef,
-    missing: NFTCoreError,
-    invalid: NFTCoreError,
-) -> T {
-    let key: Key = uref.into();
-    let (key_ptr, key_size, _bytes) = to_ptr(key);
-
-    // Get the size of the value
-    let value_size = {
-        let mut value_size = MaybeUninit::uninit();
-        let ret = unsafe { casper_read_value(key_ptr, key_size, value_size.as_mut_ptr()) };
-        match result_from(ret) {
-            Ok(_) => unsafe { value_size.assume_init() },
-            Err(ApiError::ValueNotFound) => revert(missing),
-            Err(e) => revert(e),
-        }
-    };
-
-    // Allocate a buffer to store the value
-    let mut buffer = vec![0u8; value_size];
-    let mut bytes_written = 0usize;
-
-    let ret = unsafe {
-        casper_read_host_buffer(
-            buffer.as_mut_ptr(),
-            value_size,
-            &mut bytes_written as *mut usize,
-        )
-    };
-
-    // Check for errors
-    match result_from(ret) {
-        Ok(_) => {}
-        Err(e) => revert(e),
-    }
-
-    if bytes_written != value_size {
-        revert(ApiError::UnexpectedKeyVariant);
-    }
-
-    deserialize(buffer).unwrap_or_revert_with(invalid)
 }
 
 pub fn get_immediate_caller() -> (Key, Option<Key>) {

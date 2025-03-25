@@ -181,6 +181,8 @@ pub enum NFTCoreError {
     FailedToConvertToEntityHash = 176,
     InvalidMinterEntity = 177,
     FailedToConvertEventToJson = 178,
+    MissingVersionContractKey = 179,
+    InvalidVersionContractKey = 180,
 }
 
 impl From<NFTCoreError> for ApiError {
