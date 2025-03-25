@@ -74,3 +74,27 @@ export const install = async (
     waitForTransactionProcessed: true,
   });
 };
+
+export const mint = async (
+  client: CEP78Client,
+  mintAmount: bigint,
+  waitForTransactionProcessed: boolean = true
+): Promise<TransactionResult> => {
+  return client.mint({
+    params: {
+      sender: owner.publicKey,
+      paymentAmount: String(5_000_000_000),
+      signingKeys: [owner],
+    },
+    args: {
+      tokenOwner: owner.publicKey,
+      tokenMetaData: {
+        ucid: 'custom_hash',
+        ipfs_cid: 'QmbWqxBEKC3P8tqsKc98xmWNzrzDtRLMiMPL8wBuTGsMnR',
+        color: 'Blue',
+      },
+      tokenHash: 'tokenHash',
+    },
+    waitForTransactionProcessed,
+  });
+};
