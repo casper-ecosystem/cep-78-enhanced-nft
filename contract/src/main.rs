@@ -1826,38 +1826,55 @@ pub extern "C" fn set_token_metadata() {
         if required == Requirement::Unneeded {
             continue;
         }
+        // Validate the provided metadata according to the specified metadata kind.
         let token_metadata_validation =
             metadata::validate_metadata(&metadata_kind, updated_token_metadata.clone());
+
         match token_metadata_validation {
             Ok(validated_token_metadata) => {
+                // Get the dictionary key associated with the token identifier.
                 let dictionary_item_key = token_identifier.get_dictionary_item_key();
+
+                // If the identifier mode is set to "Hash", additional validation and potential
+                // updates are required.
                 if identifier_mode == NFTIdentifierMode::Hash {
+                    // Retrieve the current token owner, ensuring it exists.
                     let token_owner = token_owner
                         .unwrap_or_revert_with(NFTCoreError::MissingOwnerTokenIdentifierKey);
 
+                    // Retrieve the current metadata associated with the token.
                     let curent_metadata = utils::get_dictionary_value_from_key::<String>(
                         &metadata::get_metadata_dictionary_name(&metadata_kind),
                         &dictionary_item_key,
                     )
                     .unwrap_or_revert_with(NFTCoreError::InvalidTokenIdentifier);
 
+                    // Compute the hashed identifier of the current metadata.
                     let stored_token_identifier =
                         base16::encode_lower(&runtime::blake2b(curent_metadata));
 
                     // Token identifier as hash can be either a blake2b or a custom string, check
-                    // if current identifier is as blake2b by comparing old (curent_metadata) and
-                    // new computed value validated_token_metadata to eventually update a blake2b,
-                    // but not a custom token_identifier string
+                    // if current identifier is as blake2b by comparing old (curent_metadata) to
+                    // given token_identifier to eventually update a blake2b
+                    // but not a custom token_identifier string.
+
+                    // If the token identifier stored in the contract matches the computed hash,
+                    // it means the identifier is based on a blake2b hash of the metadata.
                     if stored_token_identifier == token_identifier.to_string() {
+                        // Generate a new token identifier using a hash of the validated metadata.
                         let new_token_identifier = TokenIdentifier::new_hash(base16::encode_lower(
                             &runtime::blake2b(validated_token_metadata.clone()),
                         ));
+
+                        // Retrieve the issuer of the token.
                         let token_issuer = utils::get_dictionary_value_from_key::<Key>(
                             TOKEN_ISSUERS,
                             &token_identifier.get_dictionary_item_key(),
                         )
                         .unwrap_or_revert_with(NFTCoreError::MissingTokenIssuerIdentifierKey);
 
+                        // Delete the old token data (ownership, issuer, metadata) from the contract
+                        // storage.
                         utils::delete_dictionary_entry::<Key>(TOKEN_OWNERS, &dictionary_item_key);
                         utils::delete_dictionary_entry::<Key>(TOKEN_ISSUERS, &dictionary_item_key);
                         utils::delete_dictionary_entry::<String>(
@@ -1865,8 +1882,11 @@ pub extern "C" fn set_token_metadata() {
                             &dictionary_item_key,
                         );
 
+                        // Compute the new dictionary key based on the new token identifier.
                         let dictionary_item_key = new_token_identifier.get_dictionary_item_key();
 
+                        // Update the contract storage with the new token identifier, owner, issuer,
+                        // and metadata.
                         utils::upsert_dictionary_value_from_key(
                             TOKEN_OWNERS,
                             &dictionary_item_key,
@@ -1884,9 +1904,14 @@ pub extern "C" fn set_token_metadata() {
                             &dictionary_item_key,
                             validated_token_metadata,
                         );
+
+                        // Replace the old token identifier with the new one for events emits.
                         token_identifier = new_token_identifier;
                     } else {
-                        // This is a custom token_identifier as hash, do not update it
+                        // If the token identifier does not match the computed hash, it means it is
+                        // a custom identifier. In this case, only the
+                        // metadata is updated while keeping the token identifier unchanged.
+                        // This is a custom token_identifier as hash, do not update it.
                         utils::upsert_dictionary_value_from_key(
                             &metadata::get_metadata_dictionary_name(&metadata_kind),
                             &dictionary_item_key,
@@ -1894,7 +1919,9 @@ pub extern "C" fn set_token_metadata() {
                         );
                     }
                 } else {
-                    // This is a custom token_identifier as ordinal, do not update it
+                    // If the identifier mode is not "Hash" (meaning it's an ordinal identifier),
+                    // only update the metadata without modifying the token identifier.
+                    // This is a custom token_identifier as ordinal, do not update it.
                     utils::upsert_dictionary_value_from_key(
                         &metadata::get_metadata_dictionary_name(&metadata_kind),
                         &dictionary_item_key,
