@@ -29,8 +29,7 @@ describe('CEP78Client - Event Streaming', () => {
     let mintEventReceived = false;
 
     // Mint tokens and listen for the Mint event
-    const mintAmount = BigInt(10_000_000_000);
-    await mint(client, mintAmount, waitForTransactionProcessed);
+    await mint(client, waitForTransactionProcessed);
 
     // Listen for Mint event in a promise awaited
     await new Promise<CEP78EventResult>((resolve) => {
@@ -46,7 +45,7 @@ describe('CEP78Client - Event Streaming', () => {
     client.stopEventStream();
 
     // Try to mint tokens again, but event listener shouldn't trigger
-    await mint(client, mintAmount, waitForTransactionProcessed);
+    await mint(client, waitForTransactionProcessed);
 
     let eventFired = false;
     client.on(mintEvent, () => {
@@ -71,7 +70,7 @@ describe('CEP78Client - Event Streaming', () => {
     client.on(mintEvent, listener);
     client.off(mintEvent, listener); // Remove the listener
 
-    await mint(client, BigInt(10_000_000_000), waitForTransactionProcessed);
+    await mint(client, waitForTransactionProcessed);
 
     setTimeout(() => {
       expect(eventTriggered).toBe(false);
@@ -96,7 +95,7 @@ describe('CEP78Client - Event Streaming', () => {
 
     client.removeListenersForEvent(mintEvent); // Remove all listeners for Mint
 
-    await mint(client, BigInt(10_000_000_000), waitForTransactionProcessed);
+    await mint(client, waitForTransactionProcessed);
 
     setTimeout(() => {
       expect(firstListenerTriggered).toBe(false);
@@ -121,7 +120,7 @@ describe('CEP78Client - Event Streaming', () => {
 
     client.removeAllListeners(); // Remove all event listeners
 
-    await mint(client, BigInt(10_000_000_000), waitForTransactionProcessed);
+    await mint(client, waitForTransactionProcessed);
 
     setTimeout(() => {
       expect(mintTriggered).toBe(false);

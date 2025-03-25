@@ -13,6 +13,7 @@ import {
   NFT_OWNERSHIP_MODE,
   TransactionParams,
   TransactionResult,
+  ApproveArgs,
 } from '../../src';
 import { getSigningKey } from '../utils';
 
@@ -77,7 +78,7 @@ export const install = async (
 
 export const mint = async (
   client: CEP78Client,
-  mintAmount: bigint,
+  tokenHash = 'tokenHash',
   waitForTransactionProcessed: boolean = true
 ): Promise<TransactionResult> => {
   return client.mint({
@@ -93,8 +94,30 @@ export const mint = async (
         ipfs_cid: 'QmbWqxBEKC3P8tqsKc98xmWNzrzDtRLMiMPL8wBuTGsMnR',
         color: 'Blue',
       },
-      tokenHash: 'tokenHash',
+      tokenHash,
     },
     waitForTransactionProcessed,
+  });
+};
+
+export const approve = async (
+  client: CEP78Client,
+  tokenHash = 'tokenHash'
+): Promise<TransactionResult> => {
+  const approveArgs: ApproveArgs = {
+    operator: bob.publicKey,
+    tokenHash,
+  };
+
+  const params: TransactionParams = {
+    sender: ali.publicKey,
+    paymentAmount: String(5_000_000_000),
+    signingKeys: [ali],
+  };
+
+  return client.approve({
+    params,
+    args: approveArgs,
+    waitForTransactionProcessed: true,
   });
 };
