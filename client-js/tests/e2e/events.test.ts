@@ -5,17 +5,17 @@ import { getAccountInfo, findKeyFromAccountNamedKeys } from '../utils';
 import { owner, install, mint } from './helpers';
 
 let client: CEP78Client;
-const name = `TEST_CEP78_E2E_${Math.floor(Math.random() * 1000000)}`,
+const collectionName = `TEST_CEP78_E2E_${Math.floor(Math.random() * 1000000)}`,
   waitForTransactionProcessed = false; // Do not wait for transactions execution, avoid duplicate listener of event
 
 describe('CEP78Client - Event Streaming', () => {
   beforeEach(async () => {
     client = new CEP78Client(RPC_URL, SSE_URL, CHAIN_NAME);
-    await install(client, name);
+    await install(client, collectionName);
     const account = await getAccountInfo(RPC_URL, owner.publicKey),
       contractHash = findKeyFromAccountNamedKeys(
         account,
-        `cep78_contract_hash_${name}`
+        `cep78_contract_hash_${collectionName}`
       );
     expect(contractHash).toBeDefined();
     client.setContractHash(contractHash);
@@ -29,7 +29,7 @@ describe('CEP78Client - Event Streaming', () => {
     let mintEventReceived = false;
 
     // Mint tokens and listen for the Mint event
-    await mint(client, waitForTransactionProcessed);
+    await mint(client, undefined, waitForTransactionProcessed);
 
     // Listen for Mint event in a promise awaited
     await new Promise<CEP78EventResult>((resolve) => {
@@ -45,7 +45,7 @@ describe('CEP78Client - Event Streaming', () => {
     client.stopEventStream();
 
     // Try to mint tokens again, but event listener shouldn't trigger
-    await mint(client, waitForTransactionProcessed);
+    await mint(client, undefined, waitForTransactionProcessed);
 
     let eventFired = false;
     client.on(mintEvent, () => {
@@ -70,7 +70,7 @@ describe('CEP78Client - Event Streaming', () => {
     client.on(mintEvent, listener);
     client.off(mintEvent, listener); // Remove the listener
 
-    await mint(client, waitForTransactionProcessed);
+    await mint(client, undefined, waitForTransactionProcessed);
 
     setTimeout(() => {
       expect(eventTriggered).toBe(false);
@@ -95,7 +95,7 @@ describe('CEP78Client - Event Streaming', () => {
 
     client.removeListenersForEvent(mintEvent); // Remove all listeners for Mint
 
-    await mint(client, waitForTransactionProcessed);
+    await mint(client, undefined, waitForTransactionProcessed);
 
     setTimeout(() => {
       expect(firstListenerTriggered).toBe(false);
@@ -120,7 +120,7 @@ describe('CEP78Client - Event Streaming', () => {
 
     client.removeAllListeners(); // Remove all event listeners
 
-    await mint(client, waitForTransactionProcessed);
+    await mint(client, undefined, waitForTransactionProcessed);
 
     setTimeout(() => {
       expect(mintTriggered).toBe(false);

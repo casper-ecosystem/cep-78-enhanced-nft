@@ -41,6 +41,7 @@ export const jsonSchema = {
     color: { name: 'color', description: '', required: false },
   },
 };
+export const defaultTokenHash = 'tokenHash';
 export const metadataMutability = METADATA_MUTABILITY.Immutable;
 export const paymentAmount = String(600_000_000_000);
 export const owner = getSigningKey(PRIVATE_KEY_FAUCET);
@@ -78,7 +79,7 @@ export const install = async (
 
 export const mint = async (
   client: CEP78Client,
-  tokenHash = 'tokenHash',
+  tokenHash = defaultTokenHash,
   waitForTransactionProcessed: boolean = true
 ): Promise<TransactionResult> => {
   return client.mint({
@@ -102,7 +103,7 @@ export const mint = async (
 
 export const approve = async (
   client: CEP78Client,
-  tokenHash = 'tokenHash'
+  tokenHash = defaultTokenHash
 ): Promise<TransactionResult> => {
   const approveArgs: ApproveArgs = {
     operator: bob.publicKey,

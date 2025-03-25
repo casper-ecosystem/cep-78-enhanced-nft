@@ -2,20 +2,26 @@ import { expect, describe, it, beforeEach } from 'vitest';
 import { RPC_URL, SSE_URL, CHAIN_NAME } from '../../config';
 import { CEP78Client, TransactionParams, TransferArgs } from '../../src';
 import { getAccountInfo, findKeyFromAccountNamedKeys } from '../utils';
-import { install, owner, ali, mint, approve } from './helpers';
+import {
+  install,
+  owner,
+  ali,
+  mint,
+  approve,
+  defaultTokenHash,
+} from './helpers';
 
 let client: CEP78Client;
-const name = `TEST_CEP78_E2E_${Math.floor(Math.random() * 1000000)}`,
-  tokenHash = 'tokenHash';
+const collectionName = `TEST_CEP78_E2E_${Math.floor(Math.random() * 1000000)}`;
 
 describe('CEP78Client - E2E Usage', () => {
   beforeEach(async () => {
     client = new CEP78Client(RPC_URL, SSE_URL, CHAIN_NAME);
-    await install(client, name);
+    await install(client, collectionName);
     const account = await getAccountInfo(RPC_URL, owner.publicKey),
       contractHash = findKeyFromAccountNamedKeys(
         account,
-        `cep78_contract_hash_${name}`
+        `cep78_contract_hash_${collectionName}`
       );
     expect(contractHash).toBeDefined();
     client.setContractHash(contractHash);
@@ -33,7 +39,7 @@ describe('CEP78Client - E2E Usage', () => {
       transferArgs: TransferArgs = {
         target: ali.publicKey,
         source: owner.publicKey,
-        tokenHash,
+        tokenHash: defaultTokenHash,
       },
       transferResult = await client.transfer({
         params,
@@ -57,7 +63,7 @@ describe('CEP78Client - E2E Usage', () => {
     expect(approveResult.transactionInfo.transactionHash).toBeDefined();
     expect(approveResult.executionResult?.errorMessage).toBeFalsy();
 
-    const approved = await client.getApproved(tokenHash);
+    const approved = await client.getApproved(defaultTokenHash);
     expect(approved).toBeDefined();
   }, 60000);
 

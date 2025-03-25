@@ -39,7 +39,7 @@ if (!PRIVATE_KEY_USER_2) {
   throw new Error('PRIVATE_KEY_USER_2 environment variable is not set.');
 }
 
-const name = 'TEST_CEP78',
+const collectionName = 'TEST_CEP78',
   owner = getSigningKey(PRIVATE_KEY_FAUCET),
   ali = getSigningKey(PRIVATE_KEY_USER_1),
   bob = getSigningKey(PRIVATE_KEY_USER_2);
@@ -48,7 +48,7 @@ const usage = async () => {
   const account = await getAccountInfo(RPC_URL, owner.publicKey),
     contractHash = findKeyFromAccountNamedKeys(
       account,
-      `cep78_contract_hash_${name}`
+      `cep78_contract_hash_${collectionName}`
     );
 
   const cep78 = new CEP78Client(RPC_URL, SSE_URL, CHAIN_NAME)

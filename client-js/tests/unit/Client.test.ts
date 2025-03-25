@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import {
   CLValue,
   EventSubscription,
@@ -112,7 +113,8 @@ describe('Client Class', () => {
             'account-hash-1470f2fe74dee714d7075015e928b837afcfc689c3e0c40c84dd041c7fa1fd0d'
           )
         ),
-        amount: CLValue.newCLString(''),
+        token_id: CLValue.newCLString('token_id'),
+        data: CLValue.newCLString('data'),
       },
     };
 
