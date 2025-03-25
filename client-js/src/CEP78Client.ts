@@ -1,6 +1,7 @@
 import { blake2b } from '@noble/hashes/blake2b';
 import { bytesToHex } from '@noble/hashes/utils';
 import {
+  AddressableEntityHash,
   Args as RuntimeArgs,
   CLTypeKey,
   CLValue,
@@ -9,20 +10,35 @@ import {
   Key,
   ParamDictionaryIdentifier,
   ParamDictionaryIdentifierContractNamedKey,
-  SessionBuilder,
   PublicKey,
+  SessionBuilder,
 } from 'casper-js-sdk';
 import Client from './client';
 import {
   type SetApprovallForAllParams,
   type ApproveParams,
-  type BalanceOfParams,
-  BURN_MODE,
-  type BurnParams,
-  EVENTS_MODE,
   type GetApprovedParams,
-  METADATA_MUTABILITY,
+  type IsApprovedForAlldParams,
+  type OwnerOfParams,
+  type TransferParams,
+  type BalanceOfParams,
+  type StoreOwnerOfParams,
+  type StoreBalanceOfParams,
   type MintParams,
+  type BurnParams,
+  type TokenMetadataParams,
+  type RegisterParams,
+  type InstallParams,
+  type UpgradeParams,
+  type SetVariablesParams,
+  type updatedReceiptsParams,
+  type TransactionResult,
+  type OperatorArgs,
+  type Entity,
+  type isAclWhitelistedParams,
+  BURN_MODE,
+  EVENTS_MODE,
+  METADATA_MUTABILITY,
   NAMED_KEY_CONVENTION_MODE,
   NFT_HOLDER_MODE,
   NFT_IDENTIFIER_MODE,
@@ -30,25 +46,10 @@ import {
   NFT_METADATA_KIND,
   NFT_OWNERSHIP_MODE,
   OWNER_REVERSE_LOOKUP_MODE,
-  type OwnerOfParams,
-  type TokenMetadataParams,
-  type UpgradeParams,
   WHITELIST_MODE,
-  type InstallParams,
-  type TransactionResult,
-  type TransferParams,
-  type IsApprovedForAlldParams,
-  updatedReceiptsParams,
-  RegisterParams,
-  SetVariablesParams,
-  StoreOwnerOfParams,
-  StoreBalanceOfParams,
   MINTING_MODE,
-  OperatorArgs,
-  Entity,
-  BalanceOfArgs,
-  isAclWhitelistedParams,
 } from './types';
+
 import BalanceOfWASM from './wasm/balance_of_session';
 import ContractWASM from './wasm/cep78';
 import GetApprovedWASM from './wasm/get_approved_session';
@@ -140,6 +141,54 @@ export default class CEP78Client extends Client {
     return super.stopEventStream() as unknown as CEP78Client;
   }
 
+  /**
+   * Installs the CEP-78 NFT contract on the Casper network.
+   *
+   * @param params - The installation parameters, including:
+   *   - `wasm`: The compiled contract in `Uint8Array` format.
+   *   - `paymentAmount`: The amount of payment required for contract installation.
+   *   - `sender`: The public key of the account deploying the contract.
+   *   - `chainName`: (Optional) The name of the network where the contract will be deployed.
+   *   - `signingKeys`: (Optional) An array of private keys used for signing the transaction.
+   *   - `args`: Contract-specific arguments, including:
+   *     - `collectionName`: The name of the NFT collection.
+   *     - `collectionSymbol`: The symbol representing the NFT collection.
+   *     - `totalTokenSupply`: The total supply of NFTs in the collection.
+   *     - `eventsMode`: (Optional) The mode in which events are emitted.
+   *     - `ownershipMode`: The ownership model of the NFTs (Minter, Assigned, Transferable).
+   *     - `nftKind`: (Optional) The kind of NFTs (Physical, Digital, Virtual).
+   *     - `jsonSchema`: (Optional) The JSON schema defining metadata structure.
+   *     - `nftMetadataKind`: The metadata standard used (CEP78, NFT721, Raw, CustomValidated).
+   *     - `identifierMode`: The identifier mode for tokens (Ordinal, Hash).
+   *     - `metadataMutability`: Specifies whether metadata is mutable or immutable.
+   *     - `allowMinting`: (Optional) A boolean indicating whether minting is allowed.
+   *     - `mintingMode`: (Optional) Specifies who can mint NFTs (Installer, Public, ACL).
+   *     - `holderMode`: (Optional) Determines who can hold NFTs (Accounts, Contracts, Mixed).
+   *     - `burnMode`: (Optional) Determines if NFTs can be burned (Burnable, NonBurnable).
+   *     - `operatorBurnMode`: (Optional) Whether operators can burn NFTs.
+   *     - `ownerReverseLookupMode`: (Optional) Mode for reverse lookup of ownership.
+   *     - `packageOperatorMode`: (Optional) Whether package operators are enabled.
+   *     - `aclWhitelist`: (Optional) A list of accounts/contracts allowed to interact.
+   *     - `aclPackageMode`: (Optional) Whether ACL applies at the package level.
+   *     - `whitelistMode`: (Optional) Whether the contract uses a whitelist (Unlocked, Locked).
+   *     - `namedKeyConventionMode`: (Optional) The naming convention for contract keys.
+   *     - `accessKeyName`: (Optional) The name for the access key (if using custom convention).
+   *     - `hashKeyName`: (Optional) The name for the hash key (if using custom convention).
+   *     - `transferFilterContract`: (Optional) A contract hash for filtering transfers.
+   *   - `waitForTransactionProcessed`: (Optional) If `true`, waits for the transaction to be processed.
+   *
+   * @returns A `Promise` resolving to `TransactionResult`, containing the transaction details.
+   *
+   * @throws Will throw an error if the Wasm file is missing, required arguments are not provided,
+   * or if an error occurs during installation.
+   *
+   * @remarks
+   * This method installs a new CEP-78 NFT contract on the Casper network. It requires a compiled Wasm contract file
+   * and includes necessary arguments such as the collection name, symbol, supply, ownership mode, metadata type,
+   * and other configurations.
+   * If `waitForTransactionProcessed` is `true`, it waits for the transaction to be processed and returns the execution result.
+   * Ensure that the Wasm file is valid and the required arguments are properly provided before invoking the method.
+   */
   public async install(params: InstallParams): Promise<TransactionResult> {
     const {
       params: { wasm, paymentAmount, sender, chainName, signingKeys },
@@ -161,12 +210,13 @@ export default class CEP78Client extends Client {
         operatorBurnMode,
         ownerReverseLookupMode,
         packageOperatorMode,
+        whitelistMode,
         aclWhitelist,
         aclPackageMode,
-        whitelistMode,
         namedKeyConventionMode,
         accessKeyName,
         hashKeyName,
+        transferFilterContract,
       },
     } = params;
 
@@ -174,9 +224,9 @@ export default class CEP78Client extends Client {
       collection_name: CLValue.newCLString(collectionName),
       collection_symbol: CLValue.newCLString(collectionSymbol),
       total_token_supply: CLValue.newCLUint64(totalTokenSupply),
+      identifier_mode: CLValue.newCLUint8(identifierMode),
       ownership_mode: CLValue.newCLUint8(ownershipMode),
       nft_metadata_kind: CLValue.newCLUint8(nftMetadataKind),
-      identifier_mode: CLValue.newCLUint8(identifierMode),
       metadata_mutability: CLValue.newCLUint8(metadataMutability),
     });
 
@@ -231,9 +281,7 @@ export default class CEP78Client extends Client {
     if (aclWhitelist !== undefined) {
       const list = CLValue.newCLList(
         CLTypeKey,
-        aclWhitelist.map((key) =>
-          CLValue.newCLKey(Key.newKey(key.accountHash().toPrefixedString()))
-        )
+        aclWhitelist.map((key) => CLValue.newCLKey(this.getPrefixedString(key)))
       );
       runtimeArgs.insert('acl_whitelist', list);
     }
@@ -268,6 +316,13 @@ export default class CEP78Client extends Client {
 
     if (eventsMode !== undefined) {
       runtimeArgs.insert('events_mode', CLValue.newCLUint8(eventsMode));
+    }
+
+    if (transferFilterContract !== undefined) {
+      runtimeArgs.insert(
+        'transfer_filter_contract',
+        CLValue.newCLKey(this.getPrefixedString(transferFilterContract))
+      );
     }
 
     const wasmBytes = wasm || ContractWASM;
@@ -310,18 +365,81 @@ export default class CEP78Client extends Client {
     }
   }
 
+  /**
+   * Upgrades an existing NFT contract on the Casper network.
+   *
+   * @param params - The upgrade parameters, including:
+   *   - `wasm`: The compiled contract in `Uint8Array` format for the new version.
+   *   - `paymentAmount`: The amount of payment required for the contract upgrade.
+   *   - `sender`: The public key of the account initiating the upgrade.
+   *   - `chainName`: (Optional) The name of the network where the contract is deployed.
+   *   - `signingKeys`: (Optional) An array of private keys used for signing the transaction.
+   *   - `args`: Contract-specific arguments, including:
+   *     - `collectionName`: The name of the NFT collection.
+   *     - `totalTokenSupply`: (Optional) The total supply of tokens for the collection.
+   *     - `eventsMode`: (Optional) The mode in which events are emitted.
+   *     - `aclPackageMode`: (Optional) Enables or disables Access Control List package mode.
+   *     - `packageOperatorMode`: (Optional) Enables or disables package operator mode.
+   *     - `operatorBurnMode`: (Optional) Enables or disables operator burn mode.
+   *   - `waitForTransactionProcessed`: (Optional) If `true`, waits for the transaction to be processed.
+   *
+   * @returns A `Promise` resolving to `TransactionResult`, containing the transaction details.
+   *
+   * @throws Will throw an error if the Wasm file is missing or if an error occurs during the upgrade process.
+   *
+   * @remarks
+   * This method upgrades an existing NFT contract by deploying a new Wasm file while retaining existing data.
+   * The `wasm` argument must be the compiled contract in `Uint8Array` format. If `eventsMode`, `aclPackageMode`,
+   * `packageOperatorMode`, or `operatorBurnMode` are provided, they update the contract's behavior accordingly.
+   * If `waitForTransactionProcessed` is `true`, the method waits for the transaction to be processed and returns the execution result.
+   */
   public async upgrade(params: UpgradeParams): Promise<TransactionResult> {
     const {
       params: { wasm, paymentAmount, sender, chainName, signingKeys },
-      args: { collectionName, eventsMode },
+      args: {
+        collectionName,
+        totalTokenSupply,
+        eventsMode,
+        aclPackageMode,
+        packageOperatorMode,
+        operatorBurnMode,
+      },
     } = params;
 
     const runtimeArgs = RuntimeArgs.fromMap({
       collection_name: CLValue.newCLString(collectionName),
     });
 
+    if (totalTokenSupply !== undefined) {
+      runtimeArgs.insert(
+        'total_token_supply',
+        CLValue.newCLUint64(totalTokenSupply)
+      );
+    }
+
     if (eventsMode !== undefined) {
       runtimeArgs.insert('events_mode', CLValue.newCLUint8(eventsMode));
+    }
+
+    if (aclPackageMode !== undefined) {
+      runtimeArgs.insert(
+        'acl_package_mode',
+        CLValue.newCLValueBool(aclPackageMode)
+      );
+    }
+
+    if (packageOperatorMode !== undefined) {
+      runtimeArgs.insert(
+        'package_operator_mode',
+        CLValue.newCLValueBool(packageOperatorMode)
+      );
+    }
+
+    if (operatorBurnMode !== undefined) {
+      runtimeArgs.insert(
+        'operator_burn_mode',
+        CLValue.newCLValueBool(operatorBurnMode)
+      );
     }
 
     const wasmBytes = wasm || ContractWASM;
@@ -365,6 +483,32 @@ export default class CEP78Client extends Client {
     }
   }
 
+  /**
+   * Mints a new NFT token and assigns it to the specified owner.
+   *
+   * @param params - The minting parameters, including:
+   *   - `wasm`: (Optional) The compiled contract in `Uint8Array` format for minting via a session call.
+   *   - `paymentAmount`: The payment amount required for executing the minting transaction.
+   *   - `sender`: The public key of the account initiating the mint operation.
+   *   - `chainName`: (Optional) The name of the network where the transaction will be executed.
+   *   - `signingKeys`: (Optional) An array of private keys used for signing the transaction.
+   *   - `args`: Minting-specific arguments, including:
+   *     - `tokenOwner`: The public key or account address of the owner who will receive the newly minted token.
+   *     - `tokenMetaData`: Metadata associated with the token (e.g., attributes, properties) as a JSON object.
+   *     - `tokenHash`: (Optional) A unique hash identifier for the token.
+   *   - `waitForTransactionProcessed`: (Optional) If `true`, waits for the transaction to be processed before resolving.
+   * @param callSessionWasm - (Optional) If `true`, uses a session contract for minting instead of calling the contract entry point.
+   *
+   * @returns A `Promise` that resolves to a `TransactionResult` containing the transaction details.
+   *
+   * @throws Will throw an error if the contract hash is not set, the Wasm file is missing (when `callSessionWasm` is `true`),
+   *         or if the transaction execution fails.
+   *
+   * @remarks
+   * This method allows minting a new NFT token and assigning it to a specified owner. If `callSessionWasm` is set to `true`,
+   * the minting process will use a session contract, requiring a Wasm file. Otherwise, the mint function will call the contract’s
+   * `mint` entry point directly. If `tokenHash` is provided, it will be included in the runtime arguments.
+   */
   public mint(params: MintParams, callSessionWasm = false) {
     if (!this.contractHash) {
       throw Error('Contract hash is not set.');
@@ -420,6 +564,28 @@ export default class CEP78Client extends Client {
     );
   }
 
+  /**
+   * Burns (destroys) an existing NFT token, removing it from circulation.
+   *
+   * @param params - The parameters for burning a token, including:
+   *   - `paymentAmount`: The payment amount required for executing the burn transaction.
+   *   - `sender`: The public key of the account initiating the burn operation.
+   *   - `chainName`: (Optional) The name of the network where the transaction will be executed.
+   *   - `signingKeys`: (Optional) An array of private keys used for signing the transaction.
+   *   - `args`: Burn-specific arguments, including:
+   *     - `tokenId`: (Optional) The unique identifier of the token to be burned.
+   *     - `tokenHash`: (Optional) The hash identifier of the token to be burned (used if `tokenId` is not provided).
+   *   - `waitForTransactionProcessed`: (Optional) If `true`, waits for the transaction to be processed before resolving.
+   *
+   * @returns A `Promise` that resolves to a `TransactionResult` containing the transaction details.
+   *
+   * @throws Will throw an error if both `tokenId` and `tokenHash` are missing or if the transaction execution fails.
+   *
+   * @remarks
+   * This method allows an account to permanently remove an NFT token from circulation. The token can be identified
+   * either by its numeric `tokenId` or its unique `tokenHash`. If both values are provided, only `tokenId` is used.
+   * Once burned, the token cannot be recovered.
+   */
   public burn(params: BurnParams) {
     const {
       params: { paymentAmount, sender, chainName, signingKeys },
@@ -446,6 +612,31 @@ export default class CEP78Client extends Client {
     );
   }
 
+  /**
+   * Transfers an NFT token from one account to another.
+   *
+   * @param params - The parameters for the transfer operation, including:
+   *   - `paymentAmount`: The amount of payment required for executing the transfer transaction.
+   *   - `sender`: The public key of the sender initiating the transfer.
+   *   - `chainName`: (Optional) The name of the network where the transaction will be executed.
+   *   - `signingKeys`: (Optional) An array of private keys used for signing the transaction.
+   *   - `args`: Transfer-specific arguments, including:
+   *     - `target`: The public key or account address of the recipient.
+   *     - `source`: The public key or account address of the current owner of the token.
+   *     - `tokenId`: (Optional) The unique identifier of the token to be transferred.
+   *     - `tokenHash`: (Optional) The hash identifier of the token to be transferred (used if `tokenId` is not provided).
+   *   - `waitForTransactionProcessed`: (Optional) If `true`, waits for the transaction to be processed before resolving.
+   *   - `callSessionWasm`: (Optional) If `true`, executes the transfer using a session contract instead of an entrypoint call.
+   *
+   * @returns A `Promise` that resolves to a `TransactionResult` containing the transaction details.
+   *
+   * @throws Will throw an error if both `tokenId` and `tokenHash` are missing, if the WASM file is missing when using session mode, or if the transaction execution fails.
+   *
+   * @remarks
+   * This method facilitates the transfer of NFT tokens from one account to another. The token can be identified
+   * either by its numeric `tokenId` or its unique `tokenHash`. If both values are provided, only `tokenId` is used.
+   * The function supports both direct entrypoint calls and session-based execution, allowing flexibility in contract interaction.
+   */
   public async transfer(
     params: TransferParams,
     callSessionWasm = false
@@ -503,6 +694,27 @@ export default class CEP78Client extends Client {
     );
   }
 
+  /**
+   * Registers a new token owner in the NFT contract.
+   *
+   * @param params - The parameters for the registration operation, including:
+   *   - `paymentAmount`: The amount of payment required for executing the transaction.
+   *   - `sender`: The public key of the sender initiating the registration.
+   *   - `chainName`: (Optional) The name of the network where the transaction will be executed.
+   *   - `signingKeys`: (Optional) An array of private keys used for signing the transaction.
+   *   - `args`: Registration-specific arguments, including:
+   *     - `tokenOwner`: The public key or account address of the user to be registered as an NFT owner.
+   *   - `waitForTransactionProcessed`: (Optional) If `true`, waits for the transaction to be processed before resolving.
+   *
+   * @returns A `Promise` that resolves to a `TransactionResult` containing the transaction details.
+   *
+   * @throws Will throw an error if the transaction execution fails or if any required parameters are missing.
+   *
+   * @remarks
+   * This method is used to register an account as an NFT owner within the contract. Registering an owner may be a prerequisite
+   * for minting or receiving NFTs, depending on the contract's rules. The transaction includes the specified `tokenOwner` as
+   * a runtime argument, ensuring that the contract acknowledges the new owner.
+   */
   public register(params: RegisterParams): Promise<TransactionResult> {
     const {
       params: { paymentAmount, sender, chainName, signingKeys },
@@ -525,6 +737,28 @@ export default class CEP78Client extends Client {
     );
   }
 
+  /**
+   * Grants approval to an operator to manage a specific NFT on behalf of the owner.
+   *
+   * @param params - The parameters for the approval operation, including:
+   *   - `paymentAmount`: The amount of payment required for executing the transaction.
+   *   - `sender`: The public key of the sender (token owner) granting approval.
+   *   - `chainName`: (Optional) The name of the network where the transaction will be executed.
+   *   - `signingKeys`: (Optional) An array of private keys used for signing the transaction.
+   *   - `args`: Approval-specific arguments, including:
+   *     - `operator`: The public key or account address of the operator receiving approval.
+   *     - `tokenId`: (Optional) The ID of the token being approved.
+   *     - `tokenHash`: (Optional) The hash of the token being approved (used if `tokenId` is not provided).
+   *   - `waitForTransactionProcessed`: (Optional) If `true`, waits for the transaction to be processed before resolving.
+   *
+   * @returns A `Promise` that resolves to a `TransactionResult` containing the transaction details.
+   *
+   * @throws Will throw an error if the transaction execution fails or if any required parameters are missing.
+   *
+   * @remarks
+   * This method allows the owner of an NFT to grant approval to another account (operator) to transfer or manage
+   * the specified NFT on their behalf. Either `tokenId` or `tokenHash` must be provided to specify the NFT being approved.
+   */
   public approve(params: ApproveParams): Promise<TransactionResult> {
     const {
       params: { sender, paymentAmount, signingKeys, chainName },
@@ -553,6 +787,29 @@ export default class CEP78Client extends Client {
     );
   }
 
+  /**
+   * Revokes approval from an operator, removing their ability to manage a specific NFT on behalf of the owner.
+   *
+   * @param params - The parameters for the revoke operation, including:
+   *   - `paymentAmount`: The amount of payment required for executing the transaction.
+   *   - `sender`: The public key of the sender (token owner) revoking the approval.
+   *   - `chainName`: (Optional) The name of the network where the transaction will be executed.
+   *   - `signingKeys`: (Optional) An array of private keys used for signing the transaction.
+   *   - `args`: Revoke-specific arguments, including:
+   *     - `operator`: The public key or account address of the operator whose approval is being revoked.
+   *     - `tokenId`: (Optional) The ID of the token for which approval is being revoked.
+   *     - `tokenHash`: (Optional) The hash of the token for which approval is being revoked (used if `tokenId` is not provided).
+   *   - `waitForTransactionProcessed`: (Optional) If `true`, waits for the transaction to be processed before resolving.
+   *
+   * @returns A `Promise` that resolves to a `TransactionResult` containing the transaction details.
+   *
+   * @throws Will throw an error if the transaction execution fails or if any required parameters are missing.
+   *
+   * @remarks
+   * This method allows the owner of an NFT to revoke a previously granted approval, ensuring that the specified operator
+   * can no longer transfer or manage the NFT on behalf of the owner. Either `tokenId` or `tokenHash` must be provided
+   * to specify the NFT for which approval is being revoked.
+   */
   public revoke(params: ApproveParams): Promise<TransactionResult> {
     const {
       params: { sender, paymentAmount, signingKeys, chainName },
@@ -581,6 +838,28 @@ export default class CEP78Client extends Client {
     );
   }
 
+  /**
+   * Grants or revokes approval for an operator to manage all of the sender's NFTs.
+   *
+   * @param params - The parameters for setting approval, including:
+   *   - `paymentAmount`: The amount of payment required for executing the transaction.
+   *   - `sender`: The public key of the sender (token owner) granting or revoking approval.
+   *   - `chainName`: (Optional) The name of the network where the transaction will be executed.
+   *   - `signingKeys`: (Optional) An array of private keys used for signing the transaction.
+   *   - `args`: Approval-specific arguments, including:
+   *     - `operator`: The public key or account address of the operator receiving or losing approval.
+   *     - `approveAll`: A boolean indicating whether to grant (`true`) or revoke (`false`) approval for all tokens.
+   *   - `waitForTransactionProcessed`: (Optional) If `true`, waits for the transaction to be processed before resolving.
+   *
+   * @returns A `Promise` that resolves to a `TransactionResult` containing the transaction details.
+   *
+   * @throws Will throw an error if the transaction execution fails or if any required parameters are missing.
+   *
+   * @remarks
+   * This method allows an NFT owner to approve or revoke an operator's ability to manage all NFTs owned by the sender.
+   * When `approveAll` is `true`, the operator is given permission to transfer and manage all NFTs on behalf of the sender.
+   * When `approveAll` is `false`, any previously granted permissions are revoked.
+   */
   public setApprovalForAll(
     params: SetApprovallForAllParams
   ): Promise<TransactionResult> {
@@ -606,6 +885,27 @@ export default class CEP78Client extends Client {
     );
   }
 
+  /**
+   * Sets or updates the metadata associated with a specific token.
+   *
+   * @param params - The parameters for setting the token metadata, including:
+   *   - `paymentAmount`: The amount of payment required for executing the transaction.
+   *   - `sender`: The public key of the sender (token owner) who is setting the metadata.
+   *   - `chainName`: (Optional) The name of the network where the transaction will be executed.
+   *   - `signingKeys`: (Optional) An array of private keys used for signing the transaction.
+   *   - `args`: Metadata-specific arguments, including:
+   *     - `tokenMetaData`: A JSON object containing the metadata to be associated with the token.
+   *   - `waitForTransactionProcessed`: (Optional) If `true`, waits for the transaction to be processed before resolving.
+   *
+   * @returns A `Promise` that resolves to a `TransactionResult` containing the transaction details.
+   *
+   * @throws Will throw an error if the transaction execution fails or if any required parameters are missing.
+   *
+   * @remarks
+   * This method allows the owner of a token to set or update its metadata. The metadata is provided as a JSON object,
+   * and it can be used to store additional information about the token such as its properties, attributes, or description.
+   * The metadata will be stored on the blockchain and can be accessed later by other applications interacting with the token.
+   */
   public setTokenMetadata(
     params: TokenMetadataParams
   ): Promise<TransactionResult> {
@@ -630,6 +930,39 @@ export default class CEP78Client extends Client {
     );
   }
 
+  /**
+   * Retrieves the owner of a specific token by its identifier (token ID or hash).
+   * This method can be used to query the owner of a token either by interacting with a smart contract session or directly through a query.
+   *
+   * @param params - The parameters for retrieving the token owner, which can be either an object containing mint parameters
+   *   or a direct token identifier string:
+   *   - `params`:
+   *     - `wasm`: (Optional) The WASM file to interact with, if calling a session.
+   *     - `sender`: (Optional) The public key of the sender (if calling a session).
+   *     - `paymentAmount`: (Optional) The amount to be paid for executing the transaction.
+   *     - `signingKeys`: (Optional) An array of signing keys.
+   *     - `chainName`: (Optional) The name of the blockchain network.
+   *     - `args`: Contains the token details:
+   *       - `tokenId`: (Optional) The token ID for which the owner is being queried.
+   *       - `tokenHash`: (Optional) The token hash for the queried token.
+   *       - `keyName`: (Optional) The key name for querying the token owner.
+   *     - `waitForTransactionProcessed`: (Optional) If `true`, waits for the transaction to be processed before resolving.
+   *   - `tokenIdentifier`: (Optional) A string directly representing the token ID or token hash.
+   *
+   * @returns A `Promise` that resolves to:
+   *   - A `TransactionResult` object containing the transaction details if a session-based call is made.
+   *   - A string containing the owner's address if the owner is successfully retrieved.
+   *   - `undefined` if the owner cannot be found.
+   *
+   * @throws Will throw an error if the smart contract session fails or if the RPC client encounters an issue during the query.
+   *
+   * @remarks
+   * This method can operate in two modes:
+   * 1. **Session Mode**: When provided with the `wasm` and `keyName`, it will execute a session transaction to query the token owner.
+   * 2. **Query Mode**: When given a direct `tokenIdentifier` (ID or hash), it will query the blockchain state to find the owner from the `token_owners` dictionary.
+   *
+   * If no owner is found, it will return `undefined` and log a warning message.
+   */
   public async ownerOf(
     params: OwnerOfParams
   ): Promise<string | TransactionResult | undefined> {
@@ -705,6 +1038,37 @@ export default class CEP78Client extends Client {
     }
   }
 
+  /**
+   * Retrieves the balance of a specific token owner.
+   * This method can be used to either execute a session transaction to query the balance or directly query the blockchain state for the balance.
+   *
+   * @param params - The parameters for retrieving the token owner's balance, which can be either an object containing balance parameters
+   *   or a direct token owner entity:
+   *   - `params`:
+   *     - `wasm`: (Optional) The WASM file to interact with, if calling a session.
+   *     - `sender`: (Optional) The public key of the sender (if calling a session).
+   *     - `paymentAmount`: (Optional) The amount to be paid for executing the transaction.
+   *     - `signingKeys`: (Optional) An array of signing keys.
+   *     - `chainName`: (Optional) The name of the blockchain network.
+   *     - `args`: Contains the balance query details:
+   *       - `tokenOwner`: The public key or account address of the token owner whose balance is being queried.
+   *       - `keyName`: (Optional) The key name for querying the balance.
+   *     - `waitForTransactionProcessed`: (Optional) If `true`, waits for the transaction to be processed before resolving.
+   *   - `tokenOwner`: (Optional) A direct token owner entity, used to query the balance.
+   *
+   * @returns A `Promise` that resolves to:
+   *   - A `TransactionResult` object containing the transaction details if a session-based call is made.
+   *   - A string representing the balance of the token owner if the balance is successfully retrieved.
+   *
+   * @throws Will throw an error if the smart contract session fails or if the RPC client encounters an issue during the query.
+   *
+   * @remarks
+   * This method can operate in two modes:
+   * 1. **Session Mode**: When provided with the `wasm` and `keyName`, it will execute a session transaction to query the token balance.
+   * 2. **Query Mode**: When given a direct `tokenOwner`, it will query the blockchain state to find the balance from the `balances` dictionary.
+   *
+   * If no balance is found for the given owner, it will return `'0'` and log a warning message.
+   */
   public async balanceOf(
     params: BalanceOfParams
   ): Promise<TransactionResult | string> {
@@ -782,6 +1146,38 @@ export default class CEP78Client extends Client {
     return balance;
   }
 
+  /**
+   * Retrieves the approved address for a specific token or token hash.
+   * This method can be used to either execute a session transaction to query the approval or directly query the blockchain state for the approval information.
+   *
+   * @param params - The parameters for retrieving the approval, which can be either an object containing approval parameters or a direct token identifier:
+   *   - `params`:
+   *     - `wasm`: (Optional) The WASM file to interact with, if calling a session.
+   *     - `sender`: (Optional) The public key of the sender (if calling a session).
+   *     - `paymentAmount`: (Optional) The amount to be paid for executing the transaction.
+   *     - `signingKeys`: (Optional) An array of signing keys.
+   *     - `chainName`: (Optional) The name of the blockchain network.
+   *     - `args`: Contains the approval query details:
+   *       - `tokenId`: (Optional) The unique identifier of the token to check approval for.
+   *       - `tokenHash`: (Optional) The hash of the token to check approval for.
+   *       - `keyName`: (Optional) The key name for querying the approval.
+   *     - `waitForTransactionProcessed`: (Optional) If `true`, waits for the transaction to be processed before resolving.
+   *   - `tokenIdentifier`: (Optional) A string representing the token identifier, used to query the approval.
+   *
+   * @returns A `Promise` that resolves to:
+   *   - A `TransactionResult` object containing the transaction details if a session-based call is made.
+   *   - A string representing the approved address if successfully retrieved.
+   *   - `undefined` if no approval is found for the given token identifier.
+   *
+   * @throws Will throw an error if the smart contract session fails or if the RPC client encounters an issue during the query.
+   *
+   * @remarks
+   * This method can operate in two modes:
+   * 1. **Session Mode**: When provided with the `wasm` and `keyName`, it will execute a session transaction to query the token's approval information.
+   * 2. **Query Mode**: When given a direct `tokenIdentifier`, it will query the blockchain state to find the approved address from the `approved` dictionary.
+   *
+   * If no approval is found for the given token, it will return an empty string and log a warning message.
+   */
   public async getApproved(
     params: GetApprovedParams
   ): Promise<string | TransactionResult | undefined> {
@@ -857,6 +1253,40 @@ export default class CEP78Client extends Client {
     }
   }
 
+  /**
+   * Checks whether an operator is approved to manage all tokens of a specific owner.
+   * This method can be used to either execute a session transaction to query the approval or directly query the blockchain state for the approval information.
+   *
+   * @param params - The parameters for checking if the operator is approved for all tokens of the owner:
+   *   - `params`:
+   *     - `wasm`: (Optional) The WASM file to interact with, if calling a session.
+   *     - `sender`: (Optional) The public key of the sender (if calling a session).
+   *     - `paymentAmount`: (Optional) The amount to be paid for executing the transaction.
+   *     - `signingKeys`: (Optional) An array of signing keys.
+   *     - `chainName`: (Optional) The name of the blockchain network.
+   *     - `args`: Contains the approval query details:
+   *       - `tokenOwner`: The owner of the tokens to check for operator approval.
+   *       - `operator`: The operator who is being checked for approval.
+   *       - `keyName`: (Optional) The key name for querying the approval.
+   *     - `waitForTransactionProcessed`: (Optional) If `true`, waits for the transaction to be processed before resolving.
+   *   - `operatorArgs`:
+   *     - `tokenOwner`: The owner's address to check approval for.
+   *     - `operator`: The operator address to check if they have approval.
+   *
+   * @returns A `Promise` that resolves to:
+   *   - `true` if the operator is approved to manage all tokens of the owner.
+   *   - `false` if the operator is not approved.
+   *   - A `TransactionResult` if a session-based call is made.
+   *
+   * @throws Will throw an error if the smart contract session fails or if the RPC client encounters an issue during the query.
+   *
+   * @remarks
+   * This method can operate in two modes:
+   * 1. **Session Mode**: When provided with the `wasm` and `keyName`, it will execute a session transaction to query the operator's approval for managing all tokens of the owner.
+   * 2. **Query Mode**: When provided with `tokenOwner` and `operator`, it will query the blockchain state to check if the operator has approval to manage all tokens of the owner by querying the `operators` dictionary.
+   *
+   * If no approval is found, it will return `false` and log a warning message.
+   */
   public async isApprovedForAll(
     params: IsApprovedForAlldParams
   ): Promise<boolean | TransactionResult> {
@@ -935,6 +1365,24 @@ export default class CEP78Client extends Client {
     }
   }
 
+  /**
+   * Checks if an entity is whitelisted in the Access Control List (ACL) of the smart contract.
+   * This method queries the blockchain state to determine whether a specific entity (e.g., address or account) is part of the ACL whitelist.
+   *
+   * @param params - The parameters for checking if an entity is whitelisted in the ACL:
+   *   - `params`: The entity whose whitelisting status needs to be checked. Typically, this is the address or key of the entity.
+   *
+   * @returns A `Promise` that resolves to:
+   *   - `true` if the entity is whitelisted in the ACL.
+   *   - `false` if the entity is not whitelisted in the ACL.
+   *   - A `TransactionResult` if a session-based call is made.
+   *
+   * @throws Will throw an error if there is an issue with querying the blockchain state or if the contract hash is not set.
+   *
+   * @remarks
+   * This method queries the `acl_whitelist` dictionary in the smart contract's storage to check if the provided entity is whitelisted.
+   * If no whitelisting entry is found for the entity, it will return `false` and log a warning message.
+   */
   public async isAclWhitelisted(
     params: isAclWhitelistedParams
   ): Promise<boolean | TransactionResult> {
@@ -977,6 +1425,31 @@ export default class CEP78Client extends Client {
     }
   }
 
+  /**
+   * Sets various variables or configuration settings within the smart contract.
+   * This function allows updating key parameters related to minting permissions, ACL (Access Control List), and package operation modes.
+   *
+   * @param params - The parameters for setting the contract variables:
+   *   - `params`: Contains the details of the contract update operation:
+   *     - `allowMinting`: A boolean value to enable or disable minting functionality within the contract.
+   *     - `aclWhitelist`: An array of keys representing entities to be added to the whitelist for access control.
+   *     - `aclPackageMode`: A boolean indicating whether the ACL package mode is enabled.
+   *     - `packageOperatorMode`: A boolean indicating whether the package operator mode is enabled.
+   *     - `operatorBurnMode`: A boolean indicating whether the operator can burn tokens.
+   *   - `paymentAmount`: The amount of payment required for executing the transaction.
+   *   - `sender`: The public key of the sender (the user initiating the operation).
+   *   - `signingKeys`: (Optional) An array of private keys used to sign the transaction.
+   *   - `chainName`: (Optional) The name of the network where the transaction will be deployed.
+   *   - `waitForTransactionProcessed`: (Optional) If `true`, waits for the transaction to be processed before resolving.
+   *
+   * @returns A `Promise` that resolves to a `TransactionResult` containing the details of the transaction.
+   *
+   * @throws Will throw an error if any of the parameters are invalid or if the transaction execution fails.
+   *
+   * @remarks
+   * This method allows contract administrators or authorized parties to modify the operational settings of the smart contract.
+   * It manages minting permissions, access control lists (ACL), and various operational modes related to the package and operator functionality.
+   */
   public setVariables(params: SetVariablesParams) {
     const {
       params: { sender, paymentAmount, signingKeys, chainName },
@@ -1036,6 +1509,21 @@ export default class CEP78Client extends Client {
     );
   }
 
+  /**
+   * Retrieves the metadata associated with a specific token identifier from the smart contract.
+   * Depending on the metadata kind, it fetches the appropriate metadata type from the contract's storage.
+   *
+   * @param tokenIdentifier - A string representing the unique identifier of the token whose metadata is being queried.
+   *
+   * @returns A `Promise` that resolves to the metadata object of the token, or an empty object if no metadata is found.
+   *
+   * @throws Will throw an error if the contract hash is not set or if fetching the metadata fails.
+   *
+   * @remarks
+   * This function first checks the kind of metadata associated with the contract (e.g., CEP78, NFT721, Raw, Custom Validated).
+   * It then uses the corresponding metadata type to retrieve the token's metadata from the contract's dictionary.
+   * If no metadata is found for the specified token identifier, an empty object is returned.
+   */
   public async metadata(tokenIdentifier: string) {
     if (!this.contractHash) {
       throw Error('Contract hash is not set.');
@@ -1133,27 +1621,69 @@ export default class CEP78Client extends Client {
     );
   }
 
+  /**
+   * Returns the collection name of the token.
+   *
+   * @returns A `Promise` that resolves to the collection name of the token.
+   *
+   * @remarks This method queries the `collection_name` field from the contract.
+   */
   public async collectionName() {
     return this.queryContractData(['collection_name']);
   }
 
+  /**
+   * Returns the collection symbol of the token.
+   *
+   * @returns A `Promise` that resolves to the collection symbol of the token.
+   *
+   * @remarks This method queries the `collection_symbol` field from the contract.
+   */
   public async collectionSymbol() {
     return this.queryContractData(['collection_symbol']);
   }
 
+  /**
+   * Returns the total supply of the token.
+   *
+   * @returns A `Promise` that resolves to the total supply of the token.
+   *
+   * @remarks This method queries the `total_token_supply` field from the contract.
+   */
   public async tokenTotalSupply() {
     return this.queryContractData(['total_token_supply']);
   }
 
+  /**
+   * Returns the number of minted tokens.
+   *
+   * @returns A `Promise` that resolves to the number of minted tokens.
+   *
+   * @remarks This method queries the `number_of_minted_tokens` field from the contract.
+   */
   public async numOfMintedTokens() {
     return this.queryContractData(['number_of_minted_tokens']);
   }
 
+  /**
+   * Returns whether minting is allowed for the token.
+   *
+   * @returns A `Promise` that resolves to a boolean indicating whether minting is allowed.
+   *
+   * @remarks This method queries the `allow_minting` field from the contract and returns a boolean value.
+   */
   public async allowMinting(): Promise<boolean> {
     const result = await this.queryContractData(['allow_minting']);
     return result === 'true';
   }
 
+  /**
+   * Returns the minting mode of the token.
+   *
+   * @returns A `Promise` that resolves to a key of the `MINTING_MODE` enum, indicating the minting mode of the token.
+   *
+   * @remarks This method queries the `minting_mode` field from the contract and returns the corresponding key from the `MINTING_MODE` enum.
+   */
   public async mintingMode() {
     const internalValue = (await this.queryContractData([
       'minting_mode',
@@ -1161,6 +1691,13 @@ export default class CEP78Client extends Client {
     return MINTING_MODE[internalValue] as keyof typeof MINTING_MODE;
   }
 
+  /**
+   * Returns the whitelist mode of the token.
+   *
+   * @returns A `Promise` that resolves to a key of the `WHITELIST_MODE` enum, indicating the whitelist mode of the token.
+   *
+   * @remarks This method queries the `whitelist_mode` field from the contract and returns the corresponding key from the `WHITELIST_MODE` enum.
+   */
   public async whitelistMode() {
     const internalValue = (await this.queryContractData([
       'whitelist_mode',
@@ -1168,6 +1705,13 @@ export default class CEP78Client extends Client {
     return WHITELIST_MODE[internalValue] as keyof typeof WHITELIST_MODE;
   }
 
+  /**
+   * Returns the reporting mode of the token.
+   *
+   * @returns A `Promise` that resolves to a key of the `OWNER_REVERSE_LOOKUP_MODE` enum, indicating the reporting mode of the token.
+   *
+   * @remarks This method queries the `reporting_mode` field from the contract and returns the corresponding key from the `OWNER_REVERSE_LOOKUP_MODE` enum.
+   */
   public async reportingMode() {
     const internalValue = (await this.queryContractData([
       'reporting_mode',
@@ -1177,6 +1721,13 @@ export default class CEP78Client extends Client {
     ] as keyof typeof OWNER_REVERSE_LOOKUP_MODE;
   }
 
+  /**
+   * Returns the burn mode of the token.
+   *
+   * @returns A `Promise` that resolves to a key of the `BURN_MODE` enum, indicating the burn mode of the token.
+   *
+   * @remarks This method queries the `burn_mode` field from the contract and returns the corresponding key from the `BURN_MODE` enum.
+   */
   public async burnMode() {
     const internalValue = (await this.queryContractData([
       'burn_mode',
@@ -1184,6 +1735,13 @@ export default class CEP78Client extends Client {
     return BURN_MODE[internalValue] as keyof typeof BURN_MODE;
   }
 
+  /**
+   * Returns the holder mode of the token.
+   *
+   * @returns A `Promise` that resolves to a key of the `NFT_HOLDER_MODE` enum, indicating the holder mode of the token.
+   *
+   * @remarks This method queries the `holder_mode` field from the contract and returns the corresponding key from the `NFT_HOLDER_MODE` enum.
+   */
   public async holderMode() {
     const internalValue = (await this.queryContractData([
       'holder_mode',
@@ -1191,6 +1749,13 @@ export default class CEP78Client extends Client {
     return NFT_HOLDER_MODE[internalValue] as keyof typeof NFT_HOLDER_MODE;
   }
 
+  /**
+   * Returns the identifier mode of the token.
+   *
+   * @returns A `Promise` that resolves to a key of the `NFT_IDENTIFIER_MODE` enum, indicating the identifier mode of the token.
+   *
+   * @remarks This method queries the `identifier_mode` field from the contract and returns the corresponding key from the `NFT_IDENTIFIER_MODE` enum.
+   */
   public async identifierMode() {
     const internalValue = (await this.queryContractData([
       'identifier_mode',
@@ -1200,6 +1765,13 @@ export default class CEP78Client extends Client {
     ] as keyof typeof NFT_IDENTIFIER_MODE;
   }
 
+  /**
+   * Returns the metadata mutability mode of the token.
+   *
+   * @returns A `Promise` that resolves to a key of the `METADATA_MUTABILITY` enum, indicating the metadata mutability mode of the token.
+   *
+   * @remarks This method queries the `metadata_mutability` field from the contract and returns the corresponding key from the `METADATA_MUTABILITY` enum.
+   */
   public async metadataMutability() {
     const internalValue = (await this.queryContractData([
       'metadata_mutability',
@@ -1209,6 +1781,13 @@ export default class CEP78Client extends Client {
     ] as keyof typeof METADATA_MUTABILITY;
   }
 
+  /**
+   * Returns the kind of the NFT.
+   *
+   * @returns A `Promise` that resolves to a key of the `NFT_KIND` enum, indicating the NFT kind.
+   *
+   * @remarks This method queries the `nft_kind` field from the contract and returns the corresponding key from the `NFT_KIND` enum.
+   */
   public async nftKind() {
     const internalValue = (await this.queryContractData([
       'nft_kind',
@@ -1216,6 +1795,13 @@ export default class CEP78Client extends Client {
     return NFT_KIND[internalValue] as keyof typeof NFT_KIND;
   }
 
+  /**
+   * Returns the metadata kind of the token.
+   *
+   * @returns A `Promise` that resolves to a key of the `NFT_METADATA_KIND` enum, indicating the metadata kind of the token.
+   *
+   * @remarks This method queries the `nft_metadata_kind` field from the contract and returns the corresponding key from the `NFT_METADATA_KIND` enum.
+   */
   public async metadataKind() {
     const internalValue = (await this.queryContractData([
       'nft_metadata_kind',
@@ -1223,6 +1809,13 @@ export default class CEP78Client extends Client {
     return NFT_METADATA_KIND[internalValue] as keyof typeof NFT_METADATA_KIND;
   }
 
+  /**
+   * Returns the ownership mode of the token.
+   *
+   * @returns A `Promise` that resolves to a key of the `NFT_OWNERSHIP_MODE` enum, indicating the ownership mode of the token.
+   *
+   * @remarks This method queries the `ownership_mode` field from the contract and returns the corresponding key from the `NFT_OWNERSHIP_MODE` enum.
+   */
   public async ownershipMode() {
     const internalValue = (await this.queryContractData([
       'ownership_mode',
@@ -1230,6 +1823,13 @@ export default class CEP78Client extends Client {
     return NFT_OWNERSHIP_MODE[internalValue] as keyof typeof NFT_OWNERSHIP_MODE;
   }
 
+  /**
+   * Returns the JSON schema of the contract.
+   *
+   * @returns A `Promise` that resolves to the JSON schema of the contract.
+   *
+   * @remarks This method queries the `json_schema` field from the contract and returns the schema as a string.
+   */
   public async jsonSchema() {
     const internalValue = (await this.queryContractData([
       'json_schema',
@@ -1285,10 +1885,18 @@ export default class CEP78Client extends Client {
     );
   }
 
+  // ! TODO toPrefixedString() ?
+  // Error: prefix is not found, source: contract-0x, see Key.newKey()
   private getPrefixedString(entity: Entity): Key {
     if (entity instanceof PublicKey) {
       return Key.newKey(entity.accountHash().toPrefixedString());
     }
-    return Key.newKey(entity.toPrefixedString());
+    if (
+      entity instanceof ContractHash ||
+      entity instanceof ContractPackageHash
+    ) {
+      return Key.newKey(`hash-${entity.hash.toHex()}`);
+    }
+    return Key.newKey((entity as AddressableEntityHash).toPrefixedString());
   }
 }

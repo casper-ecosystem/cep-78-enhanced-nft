@@ -35,15 +35,23 @@ export type InstallArgs = {
   operatorBurnMode?: boolean;
   ownerReverseLookupMode?: OWNER_REVERSE_LOOKUP_MODE;
   packageOperatorMode?: boolean;
-  aclWhitelist?: PublicKey[];
+  aclWhitelist?: Entity[];
   aclPackageMode?: boolean;
   whitelistMode?: WHITELIST_MODE;
   namedKeyConventionMode?: NAMED_KEY_CONVENTION_MODE;
   accessKeyName?: string;
   hashKeyName?: string;
+  transferFilterContract?: ContractHash;
 };
 
-export type UpgradeArgs = { collectionName: string; eventsMode?: EVENTS_MODE };
+export type UpgradeArgs = {
+  collectionName: string;
+  totalTokenSupply?: string;
+  eventsMode?: EVENTS_MODE;
+  aclPackageMode?: boolean;
+  packageOperatorMode?: boolean;
+  operatorBurnMode?: boolean;
+};
 
 export enum NAMED_KEY_CONVENTION_MODE {
   DerivedFromCollectionName,

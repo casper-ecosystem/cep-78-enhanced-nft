@@ -1,3 +1,4 @@
+import { ContractHash } from 'casper-js-sdk';
 import {
   CHAIN_NAME,
   PRIVATE_KEY_FAUCET,
@@ -85,6 +86,11 @@ const install = async () => {
     ownerReverseLookupMode,
     whitelistMode,
     aclWhitelist,
+
+    // A transfer Filter Contract(cep-82) can be set that way
+    // transferFilterContract: ContractHash.newContract(
+    //   'hash-5eab221b01c32145051f47fa8c778b5a9ac5e01502d48dd13e5caa4973106906'
+    // ),
   };
 
   const transactionResult: TransactionResult = await cep78.install({

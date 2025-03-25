@@ -5,7 +5,7 @@ import {
   NamedKeys,
   type PublicKey,
   PrivateKey,
-  RpcClient
+  RpcClient,
 } from 'casper-js-sdk';
 import fs from 'fs';
 import { SECRET_KEY_ALGO, SECRET_KEY_NAME } from '../config';
@@ -36,6 +36,7 @@ export const findKeyFromAccountNamedKeys = (
     namedKeysInstance = new NamedKeys(Object.values(account.namedKeys));
   }
   // Find the key from the NamedKeys instance
+  // ! TODO toPrefixedString() ?
   // TODO toPrefixedString does not work here as not an instance but a string ?
   const key = namedKeysInstance!.find(name).toString();
   if (!key) throw new Error(`NamedKey not found: ${name}`);

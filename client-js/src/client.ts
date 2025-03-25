@@ -508,7 +508,7 @@ export default class Client {
     const contractData: QueryGlobalStateResult =
       await this.rpcClient.queryGlobalStateByStateHash(
         null,
-        // TODO Fix that with toPrefixedString ?
+        // ! TODO toPrefixedString() ?
         `hash-${this.contractHash.hash.toHex()}`,
         path
       );
