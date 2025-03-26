@@ -22,15 +22,15 @@ export type InstallArgs = {
   collectionSymbol: string;
   totalTokenSupply: string;
   eventsMode?: EVENTS_MODE;
-  ownershipMode: NFT_OWNERSHIP_MODE;
+  ownershipMode: OWNERSHIP_MODE;
   nftKind?: NFT_KIND;
   jsonSchema?: JSONSchemaObject;
   nftMetadataKind: NFT_METADATA_KIND;
-  identifierMode: NFT_IDENTIFIER_MODE;
+  identifierMode: IDENTIFIER_MODE;
   metadataMutability: METADATA_MUTABILITY;
   allowMinting?: boolean;
   mintingMode?: MINTING_MODE;
-  holderMode?: NFT_HOLDER_MODE;
+  holderMode?: HOLDER_MODE;
   burnMode?: BURN_MODE;
   operatorBurnMode?: boolean;
   ownerReverseLookupMode?: OWNER_REVERSE_LOOKUP_MODE;
@@ -59,7 +59,7 @@ export enum NAMED_KEY_CONVENTION_MODE {
   V1_0Custom,
 }
 
-export enum NFT_OWNERSHIP_MODE {
+export enum OWNERSHIP_MODE {
   Minter,
   Assigned,
   Transferable,
@@ -71,7 +71,7 @@ export enum NFT_KIND {
   Virtual,
 }
 
-export enum NFT_HOLDER_MODE {
+export enum HOLDER_MODE {
   Accounts,
   Contracts,
   Mixed,
@@ -84,7 +84,7 @@ export enum NFT_METADATA_KIND {
   CustomValidated,
 }
 
-export enum NFT_IDENTIFIER_MODE {
+export enum IDENTIFIER_MODE {
   Ordinal,
   Hash,
 }
@@ -176,7 +176,9 @@ export type BurnArgs = TokenArgs;
 
 export type TransferArgs = { target: Entity; source: Entity } & TokenArgs;
 
-export type TokenMetadataArgs = { tokenMetaData: Record<string, string> };
+export type TokenMetadataArgs = {
+  tokenMetaData: Record<string, string>;
+} & TokenArgs;
 
 export type BalanceOfArgs = { tokenOwner: Entity; keyName: string };
 

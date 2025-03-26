@@ -18,7 +18,7 @@ import {
   MintArgs,
   OWNER_REVERSE_LOOKUP_MODE,
   TransactionParams,
-  NFT_IDENTIFIER_MODE,
+  IDENTIFIER_MODE,
   RegisterArgs,
   TransferArgs,
   BurnArgs,
@@ -97,7 +97,7 @@ const usage = async () => {
   };
 
   let tokenIdentifier: string;
-  if (identifierMode === NFT_IDENTIFIER_MODE[NFT_IDENTIFIER_MODE.Hash]) {
+  if (identifierMode === IDENTIFIER_MODE[IDENTIFIER_MODE.Hash]) {
     tokenIdentifier = bytesToHex(
       sha256(
         new TextEncoder().encode(
@@ -162,7 +162,7 @@ const usage = async () => {
   const transferArgs = {
     source: owner.publicKey,
     target: ali.publicKey,
-    ...(identifierMode === NFT_IDENTIFIER_MODE[NFT_IDENTIFIER_MODE.Hash]
+    ...(identifierMode === IDENTIFIER_MODE[IDENTIFIER_MODE.Hash]
       ? { tokenHash: tokenIdentifier }
       : { tokenId: tokenIdentifier }),
   };
@@ -191,7 +191,7 @@ const usage = async () => {
 
   const ownerOfArgs: OwnerOfArgs = {
     keyName,
-    ...(identifierMode === NFT_IDENTIFIER_MODE[NFT_IDENTIFIER_MODE.Hash]
+    ...(identifierMode === IDENTIFIER_MODE[IDENTIFIER_MODE.Hash]
       ? { tokenHash: tokenIdentifier }
       : { tokenId: tokenIdentifier }),
   };
@@ -222,7 +222,7 @@ const usage = async () => {
   };
 
   const burnArgs: { tokenHash?: string; tokenId?: string } =
-    identifierMode === NFT_IDENTIFIER_MODE[NFT_IDENTIFIER_MODE.Hash]
+    identifierMode === IDENTIFIER_MODE[IDENTIFIER_MODE.Hash]
       ? { tokenHash: tokenIdentifier }
       : { tokenId: tokenIdentifier };
 

@@ -7,12 +7,12 @@ import {
   CEP78EventResult,
   InfoGetTransactionResult,
   OWNER_REVERSE_LOOKUP_MODE,
-  NFT_IDENTIFIER_MODE,
+  IDENTIFIER_MODE,
   ApproveArgs,
   SetApprovallForAllArgs,
   IsApprovedForAllArgs,
   IsApprovedForAlldParams,
-} from 'dist';
+} from '../dist';
 import { TextEncoder } from 'node:util';
 import {
   PRIVATE_KEY_FAUCET,
@@ -82,7 +82,7 @@ const usage = async () => {
 
   const identifierMode = await cep78.identifierMode();
   let tokenIdentifier: string;
-  if (identifierMode === NFT_IDENTIFIER_MODE[NFT_IDENTIFIER_MODE.Hash]) {
+  if (identifierMode === IDENTIFIER_MODE[IDENTIFIER_MODE.Hash]) {
     tokenIdentifier = bytesToHex(
       sha256(
         new TextEncoder().encode(
@@ -137,7 +137,7 @@ const usage = async () => {
 
   const approveArgs: ApproveArgs = {
     operator: bob.publicKey,
-    ...(identifierMode === NFT_IDENTIFIER_MODE[NFT_IDENTIFIER_MODE.Hash]
+    ...(identifierMode === IDENTIFIER_MODE[IDENTIFIER_MODE.Hash]
       ? { tokenHash: tokenIdentifier }
       : { tokenId: tokenIdentifier }),
   };
@@ -177,7 +177,7 @@ const usage = async () => {
   const transferArgs = {
     source: ali.publicKey,
     target: bob.publicKey,
-    ...(identifierMode === NFT_IDENTIFIER_MODE[NFT_IDENTIFIER_MODE.Hash]
+    ...(identifierMode === IDENTIFIER_MODE[IDENTIFIER_MODE.Hash]
       ? { tokenHash: tokenIdentifier }
       : { tokenId: tokenIdentifier }),
   };

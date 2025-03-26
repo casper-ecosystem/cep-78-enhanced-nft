@@ -25,12 +25,12 @@ import {
   MintParams,
   BurnParams,
   METADATA_MUTABILITY,
-  NFT_IDENTIFIER_MODE,
+  IDENTIFIER_MODE,
   NFT_METADATA_KIND,
-  NFT_OWNERSHIP_MODE,
+  OWNERSHIP_MODE,
   BURN_MODE,
   MINTING_MODE,
-  NFT_HOLDER_MODE,
+  HOLDER_MODE,
   NFT_KIND,
   OWNER_REVERSE_LOOKUP_MODE,
   WHITELIST_MODE,
@@ -188,9 +188,9 @@ describe('CEP78Client Unit', () => {
         collectionSymbol: 'CEP78',
         totalTokenSupply: String(1000000),
         eventsMode: EVENTS_MODE.CES,
-        ownershipMode: NFT_OWNERSHIP_MODE.Minter,
+        ownershipMode: OWNERSHIP_MODE.Minter,
         nftMetadataKind: NFT_METADATA_KIND.CEP78,
-        identifierMode: NFT_IDENTIFIER_MODE.Ordinal,
+        identifierMode: IDENTIFIER_MODE.Ordinal,
         metadataMutability: METADATA_MUTABILITY.Immutable,
         transferFilterContract: ContractHash.newContract(
           'hash-5eab221b01c32145051f47fa8c778b5a9ac5e01502d48dd13e5caa4973106906'
@@ -2258,12 +2258,12 @@ describe('CEP78Client Unit', () => {
     const mockWhitelistMode = WHITELIST_MODE.Unlocked;
     const mockReportingMode = OWNER_REVERSE_LOOKUP_MODE.Complete;
     const mockBurnMode = BURN_MODE.Burnable;
-    const mockHolderMode = NFT_HOLDER_MODE.Mixed;
-    const mockIdentifierMode = NFT_IDENTIFIER_MODE.Hash;
+    const mockHolderMode = HOLDER_MODE.Mixed;
+    const mockIdentifierMode = IDENTIFIER_MODE.Hash;
     const mockMetadataMutability = METADATA_MUTABILITY.Immutable;
     const mockNftKind = NFT_KIND.Physical;
     const mockMetadataKind = NFT_METADATA_KIND.Raw;
-    const mockOwnershipMode = NFT_OWNERSHIP_MODE.Transferable;
+    const mockOwnershipMode = OWNERSHIP_MODE.Transferable;
     const mockeventsMode = EVENTS_MODE.CES;
     const mockJsonSchema = '{"type": "object"}';
 
@@ -2348,7 +2348,7 @@ describe('CEP78Client Unit', () => {
         mockHolderMode
       );
       const result = await client.holderMode();
-      expect(result).toBe(NFT_HOLDER_MODE[mockHolderMode]);
+      expect(result).toBe(HOLDER_MODE[mockHolderMode]);
     });
 
     it('should return the correct identifier mode', async () => {
@@ -2356,7 +2356,7 @@ describe('CEP78Client Unit', () => {
         mockIdentifierMode
       );
       const result = await client.identifierMode();
-      expect(result).toBe(NFT_IDENTIFIER_MODE[mockIdentifierMode]);
+      expect(result).toBe(IDENTIFIER_MODE[mockIdentifierMode]);
     });
 
     it('should return the correct metadata mutability', async () => {
@@ -2388,7 +2388,7 @@ describe('CEP78Client Unit', () => {
         mockOwnershipMode
       );
       const result = await client.ownershipMode();
-      expect(result).toBe(NFT_OWNERSHIP_MODE[mockOwnershipMode]);
+      expect(result).toBe(OWNERSHIP_MODE[mockOwnershipMode]);
     });
 
     it('should return the correct events mode', async () => {

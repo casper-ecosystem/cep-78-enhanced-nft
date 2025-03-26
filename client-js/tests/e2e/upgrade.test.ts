@@ -1,5 +1,5 @@
 import { expect, describe, it, beforeEach } from 'vitest';
-import { owner, paymentAmount, install } from './helpers';
+import { owner, collectionConfig, install } from './helpers';
 import { RPC_URL, SSE_URL, CHAIN_NAME, PRIVATE_KEY_FAUCET } from '../../config';
 import {
   CEP78Client,
@@ -27,7 +27,7 @@ describe('CEP78Client - E2E Upgrade', () => {
     const params: TransactionParams = {
         wasm,
         sender: owner.publicKey,
-        paymentAmount,
+        paymentAmount: collectionConfig.paymentAmount,
         signingKeys: [owner],
       },
       args = {
@@ -49,7 +49,7 @@ describe('CEP78Client - E2E Upgrade', () => {
     const params: TransactionParams = {
         wasm,
         sender: owner.publicKey,
-        paymentAmount,
+        paymentAmount: collectionConfig.paymentAmount,
         signingKeys: [owner],
       },
       args = {

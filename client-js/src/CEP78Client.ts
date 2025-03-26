@@ -40,11 +40,11 @@ import {
   EVENTS_MODE,
   METADATA_MUTABILITY,
   NAMED_KEY_CONVENTION_MODE,
-  NFT_HOLDER_MODE,
-  NFT_IDENTIFIER_MODE,
+  HOLDER_MODE,
+  IDENTIFIER_MODE,
   NFT_KIND,
   NFT_METADATA_KIND,
-  NFT_OWNERSHIP_MODE,
+  OWNERSHIP_MODE,
   OWNER_REVERSE_LOOKUP_MODE,
   WHITELIST_MODE,
   MINTING_MODE,
@@ -712,8 +712,8 @@ export default class CEP78Client extends Client {
    *
    * @remarks
    * This method is used to register an account as an NFT owner within the contract. Registering an owner may be a prerequisite
-   * for minting or receiving NFTs, depending on the contract's rules. The transaction includes the specified `tokenOwner` as
-   * a runtime argument, ensuring that the contract acknowledges the new owner.
+   * for minting or receiving NFTs, depending on the contract's rules for OwnerReverseLookupMode (Complete/TransfersOnly).
+   * The transaction includes the specified `tokenOwner` as a runtime argument, ensuring that the contract acknowledges the new owner.
    */
   public register(params: RegisterParams): Promise<TransactionResult> {
     const {
@@ -911,13 +911,19 @@ export default class CEP78Client extends Client {
   ): Promise<TransactionResult> {
     const {
       params: { sender, paymentAmount, signingKeys, chainName },
-      args: { tokenMetaData },
+      args: { tokenMetaData, tokenId, tokenHash },
       waitForTransactionProcessed,
     } = params;
 
     const runtimeArgs = RuntimeArgs.fromMap({
       token_meta_data: CLValue.newCLString(JSON.stringify(tokenMetaData)),
     });
+
+    if (tokenId) {
+      runtimeArgs.insert('token_id', CLValue.newCLUint64(tokenId));
+    } else if (tokenHash) {
+      runtimeArgs.insert('token_hash', CLValue.newCLString(tokenHash));
+    }
 
     return this.callEntrypoint(
       'set_token_metadata',
@@ -1533,7 +1539,7 @@ export default class CEP78Client extends Client {
     const key = `hash-${this.contractHash?.hash?.toHex()}`;
 
     const metadataToCheck: NFT_METADATA_KIND =
-      NFT_METADATA_KIND[await this.metadataKind()];
+      NFT_METADATA_KIND[await this.nftMetadataKind()];
 
     const mapMetadata = {
       [NFT_METADATA_KIND.CEP78]: 'metadata_cep78',
@@ -1736,33 +1742,46 @@ export default class CEP78Client extends Client {
   }
 
   /**
+   * Retrieves the `operatorBurnMode` status from the contract.
+   * This mode indicates whether the operator can burn tokens in the contract.
+   *
+   * @returns A `Promise` that resolves to a boolean:
+   *   - `true` if the `operatorBurnMode` is enabled, meaning the operator can burn tokens.
+   *   - `false` if the `operatorBurnMode` is disabled, meaning the operator cannot burn tokens.
+   *
+   * @throws Will throw an error if there is an issue querying the contract data.
+   */
+  public async operatorBurnMode(): Promise<boolean> {
+    const result = await this.queryContractData(['operator_burn_mode']);
+    return result === 'true';
+  }
+
+  /**
    * Returns the holder mode of the token.
    *
-   * @returns A `Promise` that resolves to a key of the `NFT_HOLDER_MODE` enum, indicating the holder mode of the token.
+   * @returns A `Promise` that resolves to a key of the `HOLDER_MODE` enum, indicating the holder mode of the token.
    *
-   * @remarks This method queries the `holder_mode` field from the contract and returns the corresponding key from the `NFT_HOLDER_MODE` enum.
+   * @remarks This method queries the `holder_mode` field from the contract and returns the corresponding key from the `HOLDER_MODE` enum.
    */
   public async holderMode() {
     const internalValue = (await this.queryContractData([
       'holder_mode',
     ])) as unknown as number;
-    return NFT_HOLDER_MODE[internalValue] as keyof typeof NFT_HOLDER_MODE;
+    return HOLDER_MODE[internalValue] as keyof typeof HOLDER_MODE;
   }
 
   /**
    * Returns the identifier mode of the token.
    *
-   * @returns A `Promise` that resolves to a key of the `NFT_IDENTIFIER_MODE` enum, indicating the identifier mode of the token.
+   * @returns A `Promise` that resolves to a key of the `IDENTIFIER_MODE` enum, indicating the identifier mode of the token.
    *
-   * @remarks This method queries the `identifier_mode` field from the contract and returns the corresponding key from the `NFT_IDENTIFIER_MODE` enum.
+   * @remarks This method queries the `identifier_mode` field from the contract and returns the corresponding key from the `IDENTIFIER_MODE` enum.
    */
   public async identifierMode() {
     const internalValue = (await this.queryContractData([
       'identifier_mode',
     ])) as unknown as number;
-    return NFT_IDENTIFIER_MODE[
-      internalValue
-    ] as keyof typeof NFT_IDENTIFIER_MODE;
+    return IDENTIFIER_MODE[internalValue] as keyof typeof IDENTIFIER_MODE;
   }
 
   /**
@@ -1802,7 +1821,7 @@ export default class CEP78Client extends Client {
    *
    * @remarks This method queries the `nft_metadata_kind` field from the contract and returns the corresponding key from the `NFT_METADATA_KIND` enum.
    */
-  public async metadataKind() {
+  public async nftMetadataKind() {
     const internalValue = (await this.queryContractData([
       'nft_metadata_kind',
     ])) as unknown as number;
@@ -1812,15 +1831,45 @@ export default class CEP78Client extends Client {
   /**
    * Returns the ownership mode of the token.
    *
-   * @returns A `Promise` that resolves to a key of the `NFT_OWNERSHIP_MODE` enum, indicating the ownership mode of the token.
+   * @returns A `Promise` that resolves to a key of the `OWNERSHIP_MODE` enum, indicating the ownership mode of the token.
    *
-   * @remarks This method queries the `ownership_mode` field from the contract and returns the corresponding key from the `NFT_OWNERSHIP_MODE` enum.
+   * @remarks This method queries the `ownership_mode` field from the contract and returns the corresponding key from the `OWNERSHIP_MODE` enum.
    */
   public async ownershipMode() {
     const internalValue = (await this.queryContractData([
       'ownership_mode',
     ])) as unknown as number;
-    return NFT_OWNERSHIP_MODE[internalValue] as keyof typeof NFT_OWNERSHIP_MODE;
+    return OWNERSHIP_MODE[internalValue] as keyof typeof OWNERSHIP_MODE;
+  }
+
+  /**
+   * Retrieves the `packageOperatorMode` status from the contract.
+   * This mode indicates whether the package operator mode is enabled in the contract.
+   *
+   * @returns A `Promise` that resolves to a boolean:
+   *   - `true` if the `packageOperatorMode` is enabled in the contract.
+   *   - `false` if the `packageOperatorMode` is disabled in the contract.
+   *
+   * @throws Will throw an error if there is an issue querying the contract data.
+   */
+  public async packageOperatorMode(): Promise<boolean> {
+    const result = await this.queryContractData(['package_operator_mode']);
+    return result === 'true';
+  }
+
+  /**
+   * Retrieves the `aclPackageMode` status from the contract.
+   * This mode indicates whether the ACL (Access Control List) package is enabled or not in the contract.
+   *
+   * @returns A `Promise` that resolves to a boolean:
+   *   - `true` if the `aclPackageMode` is enabled in the contract.
+   *   - `false` if the `aclPackageMode` is disabled in the contract.
+   *
+   * @throws Will throw an error if there is an issue querying the contract data.
+   */
+  public async aclPackageMode(): Promise<boolean> {
+    const result = await this.queryContractData(['acl_package_mode']);
+    return result === 'true';
   }
 
   /**

@@ -3,20 +3,7 @@ import { RPC_URL, SSE_URL, CHAIN_NAME } from '../../config';
 import { CEP78Client, TransactionParams, TransactionResult } from '../../src';
 import wasm from '../../src/wasm/cep78';
 import { getAccountInfo, findKeyFromAccountNamedKeys } from '../utils';
-import {
-  owner,
-  paymentAmount,
-  eventsMode,
-  install,
-  collectionSymbol,
-  totalTokenSupply,
-  holderMode,
-  identifierMode,
-  ownershipMode,
-  nftMetadataKind,
-  metadataMutability,
-  jsonSchema,
-} from './helpers';
+import { owner, install, collectionConfig } from './helpers';
 
 let client: CEP78Client;
 
@@ -30,20 +17,12 @@ describe('CEP78Client - E2E Install', () => {
       params: TransactionParams = {
         wasm,
         sender: owner.publicKey,
-        paymentAmount,
+        paymentAmount: collectionConfig.paymentAmount,
         signingKeys: [owner],
       },
       args = {
         collectionName,
-        collectionSymbol,
-        totalTokenSupply,
-        eventsMode,
-        holderMode,
-        identifierMode,
-        ownershipMode,
-        nftMetadataKind,
-        jsonSchema,
-        metadataMutability,
+        ...collectionConfig,
       },
       transactionResult: TransactionResult = await client.install({
         params,
