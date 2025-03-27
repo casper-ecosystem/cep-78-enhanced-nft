@@ -228,7 +228,7 @@ This example directly queries the balance of a token owner by passing the owner'
 
 ```ts
 const tokenOwnerBalance = await cep78.balanceOf(ali.publicKey);
-console.log(tokenOwnerBalance); // Should return a string representing the balance (e.g., '1')
+console.info(tokenOwnerBalance); // Should return a string representing the balance (e.g., '1')
 ```
 
 ### **Session Mode Example**
@@ -462,7 +462,7 @@ Retrieves the metadata associated with a specific token identifier (e.g., token 
 ```ts
 const tokenIdentifier = '0'; // Token ID or hash
 const metadata = await client.metadata(tokenIdentifier);
-console.log(metadata); // Log the metadata or an empty object if not found
+console.info(metadata); // Log the metadata or an empty object if not found
 ```
 
 ## **More**
@@ -736,8 +736,8 @@ You can subscribe to token events by attaching event listeners:
 
 ```ts
 const listener = (event) => {
-  console.log(event.name); // Example: 'Burn'
-  console.log(event.data); // Event-specific data
+  console.info(event.name); // Example: 'Burn'
+  console.info(event.data); // Event-specific data
 };
 
 cep78.on('Burn', listener);
@@ -846,7 +846,7 @@ If the transaction was not successful, this method throws:
 // Example of using getTransactionResult:
 try {
   const result = await client.getTransactionResult(transactionHash);
-  console.log('Transaction result:', result);
+  console.info('Transaction result:', result);
 } catch (error) {
   console.error('Error fetching transaction result:', error);
 }
@@ -855,12 +855,12 @@ try {
 client
   .waitForTransactionProcessed(transactionHash, 5000)
   .then((event) => {
-    console.log('Transaction processed:', event);
+    console.info('Transaction processed:', event);
     // Optionally fetch the transaction result after processing the event
     return client.getTransactionResult(transactionHash);
   })
   .then((result) => {
-    console.log('Transaction result after event:', result);
+    console.info('Transaction result after event:', result);
   })
   .catch((error) => {
     console.error('Error processing transaction:', error);

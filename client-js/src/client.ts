@@ -483,7 +483,6 @@ export default class Client {
 
       return { transactionInfo };
     } catch (error) {
-      console.log(JSON.stringify(transaction));
       throw new Error(
         `Error during transaction execution.\n${transaction.hash.toHex()}\n${error}`
       );
