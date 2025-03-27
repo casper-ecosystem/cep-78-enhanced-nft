@@ -1,4 +1,3 @@
-import { ContractHash } from 'casper-js-sdk';
 import {
   CHAIN_NAME,
   PRIVATE_KEY_FAUCET,
