@@ -2197,7 +2197,7 @@ describe('CEP78Client Unit', () => {
       client['_rpcClient'] = mockRpcClient;
 
       // Mocking the return value for the metadata call
-      vi.spyOn(client as any, 'metadataKind').mockResolvedValue('CEP78'); // Mocking metadataKind method
+      vi.spyOn(client as any, 'nftMetadataKind').mockResolvedValue('CEP78'); // Mocking metadataKind method
       vi.spyOn(
         mockRpcClient,
         'getDictionaryItemByIdentifier'
@@ -2262,7 +2262,7 @@ describe('CEP78Client Unit', () => {
     const mockIdentifierMode = IDENTIFIER_MODE.Hash;
     const mockMetadataMutability = METADATA_MUTABILITY.Immutable;
     const mockNftKind = NFT_KIND.Physical;
-    const mockMetadataKind = NFT_METADATA_KIND.Raw;
+    const mockNftMetadataKind = NFT_METADATA_KIND.Raw;
     const mockOwnershipMode = OWNERSHIP_MODE.Transferable;
     const mockeventsMode = EVENTS_MODE.CES;
     const mockJsonSchema = '{"type": "object"}';
@@ -2377,10 +2377,10 @@ describe('CEP78Client Unit', () => {
 
     it('should return the correct metadata kind', async () => {
       vi.spyOn(client as any, 'queryContractData').mockResolvedValue(
-        mockMetadataKind
+        mockNftMetadataKind
       );
-      const result = await client.metadataKind();
-      expect(result).toBe(NFT_METADATA_KIND[mockMetadataKind]);
+      const result = await client.nftMetadataKind();
+      expect(result).toBe(NFT_METADATA_KIND[mockNftMetadataKind]);
     });
 
     it('should return the correct ownership mode', async () => {

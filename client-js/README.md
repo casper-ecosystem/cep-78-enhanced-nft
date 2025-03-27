@@ -12,7 +12,7 @@ Users can treat this package as a Transaction sender for all of these possible i
 - token burning
 - approvals
 - changing configurations after installation
-- setting token metadata
+- getting or setting token metadata
 - storing some of the contract-related data in an Account's `NamedKeys`
 
 ## Installation
@@ -37,13 +37,11 @@ Before installing the node modules, make sure the contract Wasm files are all ge
 make build-all-contracts
 ```
 
-After generating the Wasm file, you can install the client, and the Wasm will be automatically bundled.
+After generating the Wasm files, you can install the client, and the Wasm will be automatically bundled.
 
 ```bash
 npm install && npm run generate:wasm
 ```
-
----
 
 > The `casper-cep78-js-client` requires `casper-js-sdk` and `@make-software/ces-js-parser` as a peer dependency.
 
