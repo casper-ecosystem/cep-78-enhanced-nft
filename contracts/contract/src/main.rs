@@ -2675,7 +2675,7 @@ fn migrate_contract(access_key_name: String, package_key_name: String) {
         .unwrap_or_default()
         .unwrap_or_default();
 
-    // If stored version is a non empty string (and not a u32), it means it is already a Condor
+    // If stored version is a non empty string (and not a u32), it means it is already a 2.0 version
     // version, do not add message topics then, as already set when installed
     let message_topics: BTreeMap<String, MessageTopicOperation> = if !version_value.is_empty() {
         BTreeMap::new()
