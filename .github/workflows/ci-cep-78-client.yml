@@ -13,6 +13,13 @@ jobs:
       matrix:
         os: [ubuntu-20.04, ubuntu-22.04]
     runs-on: ${{ matrix.os }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+      - name: Set up environment
+        run: sudo apt update && sudo apt install -y build-essential wabt
+      - name: Run build
+        run: echo "Running build on ${{ matrix.os }}"
 
   ci-js-client:
     strategy:
