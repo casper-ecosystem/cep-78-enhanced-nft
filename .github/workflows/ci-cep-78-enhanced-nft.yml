@@ -11,6 +11,7 @@ env:
   CARGO_TERM_COLOR: always
 
 jobs:
+  # This build step shall be removed, only for PR passing previous CI/CD checks
   build:
     strategy:
       matrix:
