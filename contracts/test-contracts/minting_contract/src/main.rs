@@ -47,7 +47,6 @@ const ARG_SPENDER: &str = "spender";
 const ARG_TOKEN_ID: &str = "token_id";
 const ARG_TOKEN_HASH: &str = "token_hash";
 const ARG_REVERSE_LOOKUP: &str = "reverse_lookup";
-const ARG_IS_HASH_IDENTIFIER_MODE: &str = "is_hash_identifier_mode";
 
 #[no_mangle]
 pub extern "C" fn mint() {
@@ -186,7 +185,14 @@ pub extern "C" fn metadata() {
             .into_entity_hash()
             .unwrap_or_revert_with(ApiError::User(1006));
 
-    let metadata: String = if runtime::get_named_arg::<bool>(ARG_IS_HASH_IDENTIFIER_MODE) {
+    let mut token_hash: String = String::new();
+    if let Some(arg_size) = get_named_arg_size(ARG_TOKEN_HASH) {
+        if arg_size > 0 {
+            token_hash = runtime::get_named_arg::<String>(ARG_TOKEN_HASH);
+        }
+    }
+
+    let metadata: String = if !token_hash.is_empty() {
         let token_hash = runtime::get_named_arg::<String>(ARG_TOKEN_HASH);
         runtime::call_contract::<String>(
             nft_contract_hash.into(),

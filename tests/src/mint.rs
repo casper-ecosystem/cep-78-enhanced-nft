@@ -19,12 +19,12 @@ use casper_types::{account::AccountHash, runtime_args, CLValue, Key};
 
 use crate::utility::{
     constants::{
-        ACCOUNT_1_ADDR, ACCOUNT_1_KEY, ACCOUNT_2_ADDR, ACCOUNT_3_ADDR, ACCOUNT_3_KEY,
-        ARG_IS_HASH_IDENTIFIER_MODE, ARG_KEY_NAME, ARG_NFT_CONTRACT_HASH, BALANCE_OF_SESSION_WASM,
-        CONTRACT_NAME, DEFAULT_ACCOUNT_KEY, GET_APPROVED_WASM, IS_APPROVED_FOR_ALL_WASM,
-        MALFORMED_META_DATA, MINT_SESSION_WASM, NFT_CONTRACT_WASM, NFT_TEST_COLLECTION,
-        OWNER_OF_SESSION_WASM, PAGE_SIZE, TEST_COMPACT_META_DATA, TEST_PRETTY_721_META_DATA,
-        TEST_PRETTY_CEP78_METADATA, TEST_PRETTY_UPDATED_CEP78_METADATA, TRANSFER_SESSION_WASM,
+        ACCOUNT_1_ADDR, ACCOUNT_1_KEY, ACCOUNT_2_ADDR, ACCOUNT_3_ADDR, ACCOUNT_3_KEY, ARG_KEY_NAME,
+        ARG_NFT_CONTRACT_HASH, BALANCE_OF_SESSION_WASM, CONTRACT_NAME, DEFAULT_ACCOUNT_KEY,
+        GET_APPROVED_WASM, IS_APPROVED_FOR_ALL_WASM, MALFORMED_META_DATA, MINT_SESSION_WASM,
+        NFT_CONTRACT_WASM, NFT_TEST_COLLECTION, OWNER_OF_SESSION_WASM, PAGE_SIZE,
+        TEST_COMPACT_META_DATA, TEST_PRETTY_721_META_DATA, TEST_PRETTY_CEP78_METADATA,
+        TEST_PRETTY_UPDATED_CEP78_METADATA, TRANSFER_SESSION_WASM,
     },
     installer_request_builder::{
         InstallerRequestBuilder, MetadataMutability, MintingMode, NFTHolderMode, NFTIdentifierMode,
@@ -147,7 +147,6 @@ fn entry_points_with_ret_should_return_correct_value() {
         account_hash,
         nft_contract_key,
         runtime_args! {
-            ARG_IS_HASH_IDENTIFIER_MODE => false,
             ARG_TOKEN_ID => token_id,
         },
         OWNER_OF_SESSION_WASM,
@@ -177,7 +176,6 @@ fn entry_points_with_ret_should_return_correct_value() {
         account_hash,
         nft_contract_key,
         runtime_args! {
-            ARG_IS_HASH_IDENTIFIER_MODE => false,
             ARG_TOKEN_ID => token_id,
         },
         GET_APPROVED_WASM,
@@ -780,7 +778,6 @@ fn should_set_approval_for_all() {
         runtime_args! {
             ARG_NFT_CONTRACT_HASH => nft_contract_key,
             ARG_TOKEN_ID => token_id,
-            ARG_IS_HASH_IDENTIFIER_MODE => false,
             ARG_SOURCE_KEY => owner_key,
             ARG_TARGET_KEY => token_receiver_key,
         },
@@ -822,7 +819,6 @@ fn should_set_approval_for_all() {
         runtime_args! {
             ARG_NFT_CONTRACT_HASH => nft_contract_key,
             ARG_TOKEN_ID => token_id,
-            ARG_IS_HASH_IDENTIFIER_MODE => false,
             ARG_SOURCE_KEY => owner_key,
             ARG_TARGET_KEY => token_receiver_key,
         },
@@ -1031,7 +1027,7 @@ fn should_mint_with_compactified_metadata() {
 }
 
 #[test]
-fn should_mint_with_valid_cep99_metadata() {
+fn should_mint_with_valid_cep78_metadata() {
     let mut builder = genesis();
 
     let install_request = InstallerRequestBuilder::new(*DEFAULT_ACCOUNT_ADDR, NFT_CONTRACT_WASM)

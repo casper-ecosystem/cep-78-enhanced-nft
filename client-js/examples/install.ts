@@ -1,91 +1,141 @@
-// eslint-disable-next-line eslint-comments/disable-enable-pair
-/* eslint-disable no-console */
+import {
+  CHAIN_NAME,
+  PRIVATE_KEY_FAUCET,
+  PRIVATE_KEY_USER_1,
+  RPC_URL,
+  SSE_URL,
+} from '../config';
 import {
   CEP78Client,
-  NFTOwnershipMode,
-  NFTKind,
-  NFTMetadataKind,
-  NFTIdentifierMode,
-  MetadataMutability,
-  OwnerReverseLookupMode,
-  MintingMode,
-  EventsMode
-} from "../src/index";
-
+  EVENTS_MODE,
+  type InstallArgs,
+  type TransactionParams,
+  type TransactionResult,
+  NFT_METADATA_KIND,
+  IDENTIFIER_MODE,
+  METADATA_MUTABILITY,
+  MINTING_MODE,
+  OWNER_REVERSE_LOOKUP_MODE,
+  OWNERSHIP_MODE,
+  NFT_KIND,
+  HOLDER_MODE,
+  WHITELIST_MODE,
+} from '../dist';
 import {
-  FAUCET_KEYS,
-  getDeploy,
+  findKeyFromAccountNamedKeys,
   getAccountInfo,
-  getAccountNamedKeyValue,
-} from "./common";
+  getSigningKey,
+} from '../tests/utils';
+
+if (!PRIVATE_KEY_FAUCET) {
+  throw new Error('FAUCET_SECRET_KEY environment variable is not set.');
+}
+if (!PRIVATE_KEY_USER_1) {
+  throw new Error('PRIVATE_KEY_USER_1 environment variable is not set.');
+}
+
+const collectionName = 'TEST_CEP78',
+  collectionSymbol = 'CEP78',
+  totalTokenSupply = String(1000),
+  eventsMode = EVENTS_MODE.CES,
+  sender = getSigningKey(PRIVATE_KEY_FAUCET),
+  ali = getSigningKey(PRIVATE_KEY_USER_1),
+  holderMode = HOLDER_MODE.Mixed,
+  mintingMode = MINTING_MODE.Acl,
+  aclWhitelist = [sender.publicKey, ali.publicKey],
+  whitelistMode = WHITELIST_MODE.Unlocked,
+  ownershipMode = OWNERSHIP_MODE.Transferable,
+  nftKind = NFT_KIND.Virtual,
+  nftMetadataKind = NFT_METADATA_KIND.CustomValidated,
+  jsonSchema = {
+    properties: {
+      ucid: { name: 'ucid', description: '', required: true },
+      ipfs_cid: { name: 'ipfs_cid', description: '', required: true },
+      color: { name: 'color', description: '', required: false },
+    },
+  },
+  identifierMode = IDENTIFIER_MODE.Hash,
+  metadataMutability = METADATA_MUTABILITY.Immutable,
+  ownerReverseLookupMode = OWNER_REVERSE_LOOKUP_MODE.NoLookup,
+  paymentAmount = String(600_000_000_000),
+  waitForTransactionProcessed = true;
 
 const install = async () => {
-  const cc = new CEP78Client(process.env.NODE_URL, process.env.NETWORK_NAME);
+  const cep78 = new CEP78Client(RPC_URL, SSE_URL, CHAIN_NAME);
 
-  const collectionName = "my-collection";
+  const params: TransactionParams = {
+    sender: sender.publicKey,
+    paymentAmount,
+    signingKeys: [sender],
+  };
 
-  const installDeploy = cc.install(
-    {
-      collectionName,
-      collectionSymbol: "MY-NFTS",
-      totalTokenSupply: "1000",
-      ownershipMode: NFTOwnershipMode.Transferable,
-      nftKind: NFTKind.Physical,
-      jsonSchema: {
-        properties: {
-          color: { name: "color", description: "", required: true },
-          size: { name: "size", description: "", required: true },
-          material: { name: "material", description: "", required: true },
-          condition: { name: "condition", description: "", required: false },
-        },
-      },
-      nftMetadataKind: NFTMetadataKind.CustomValidated,
-      identifierMode: NFTIdentifierMode.Ordinal,
-      metadataMutability: MetadataMutability.Immutable,
-      mintingMode: MintingMode.Installer,
-      ownerReverseLookupMode: OwnerReverseLookupMode.Complete,
-      eventsMode: EventsMode.CES
-    },
-    "250000000000",
-    FAUCET_KEYS.publicKey,
-    [FAUCET_KEYS]
-  );
+  const args: InstallArgs = {
+    collectionName,
+    collectionSymbol,
+    totalTokenSupply,
+    nftKind,
+    holderMode,
+    eventsMode,
+    ownershipMode,
+    jsonSchema,
+    nftMetadataKind,
+    identifierMode,
+    metadataMutability,
+    mintingMode,
+    ownerReverseLookupMode,
+    whitelistMode,
+    aclWhitelist,
 
-  const hash = await installDeploy.send(process.env.NODE_URL);
+    // A transfer Filter Contract(cep-82) can be set that way
+    // transferFilterContract: ContractHash.newContract(
+    //   'hash-5eab221b01c32145051f47fa8c778b5a9ac5e01502d48dd13e5caa4973106906'
+    // ),
+  };
 
-  console.log(`... Contract installation deployHash: ${hash}`);
+  const transactionResult: TransactionResult = await cep78.install({
+    params,
+    args,
+    waitForTransactionProcessed,
+  });
 
-  await getDeploy(process.env.NODE_URL, hash);
-
-  console.log(`... Contract installed successfully.`);
-
-  // eslint-disable-next-line @typescript-eslint/no-unsafe-call
-  const accountInfo = await getAccountInfo(
-    process.env.NODE_URL,
-    FAUCET_KEYS.publicKey
-  );
-
-  console.log(`... Account Info: `);
-  console.log(JSON.stringify(accountInfo, null, 2));
-
-  const contractHash = getAccountNamedKeyValue(
-    accountInfo,
-    `cep78_contract_hash_${collectionName}`
-  ) as string;
-
-  const contractPackageHash = getAccountNamedKeyValue(
-    accountInfo,
-    `cep78_contract_package_${collectionName}`
-  ) as string;;
-
-  console.log(`... Contract Hash: ${contractHash}`);
-  console.log(`... Contract Package Hash: ${contractPackageHash}`);
+  if (!transactionResult.transactionInfo.transactionHash) {
+    throw Error('Invalid transaction hash');
+  }
+  return transactionResult;
 };
 
 install()
-  .then(() => {
-    console.log("Installation completed successfully.");
+  .then(async (transactionResult) => {
+    const { transactionInfo, executionResult } = transactionResult;
+    console.info(
+      `Contract installation transaction hash: ${transactionInfo.transactionHash}`
+    );
+
+    if (executionResult) {
+      if (executionResult?.errorMessage) {
+        throw new Error(
+          `Error during installation.\n${executionResult?.errorMessage.toString()}`
+        );
+      } else {
+        console.info(
+          `Contract installation cost consumed: ${executionResult?.consumed}`
+        );
+      }
+    }
+
+    const account = await getAccountInfo(RPC_URL, sender.publicKey),
+      contractHash = findKeyFromAccountNamedKeys(
+        account,
+        `cep78_contract_hash_${collectionName}`
+      ),
+      contractPackageHash = findKeyFromAccountNamedKeys(
+        account,
+        `cep78_contract_package_${collectionName}`
+      );
+
+    console.info(`Contract Hash: ${contractHash}`);
+    console.info(`Contract Package Hash: ${contractPackageHash}`);
   })
   .catch((error) => {
-    console.error("Installation failed:", error);
+    console.error(error);
   });

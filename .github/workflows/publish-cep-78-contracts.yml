@@ -4,14 +4,17 @@ name: publish-cep-78-contracts
 on:
   push:
     tags:
-      - "v*"
+      - 'v*'
 
 jobs:
   publish-contract-tarball:
-    runs-on: ubuntu-22.04
+    strategy:
+      matrix:
+        os: [ubuntu-latest]
+    runs-on: ${{ matrix.os }}
     steps:
-      - uses: actions/checkout@2541b1294d2704b0964813337f33b291d3f8596b #v3.0.2
-      - uses: Swatinem/rust-cache@cb2cf0cc7c5198d3364b9630e2c3d457f160790c #v1.4.0
+      - uses: actions/checkout@v4
+      - uses: Swatinem/rust-cache@v1
 
       - name: Install dependencies
         run: sudo apt update && sudo apt install -y build-essential wabt
@@ -20,7 +23,7 @@ jobs:
         run: make prepare
 
       - name: Build wasm contracts
-        run: make build-contract
+        run: make build-all-contracts
 
       - name: Create tarball
         run: ./ci/package_wasm.sh

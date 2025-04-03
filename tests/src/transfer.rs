@@ -18,10 +18,10 @@ use cep78::{
 use crate::utility::{
     constants::{
         ACCOUNT_1_ADDR, ACCOUNT_1_KEY, ACCOUNT_2_ADDR, ACCOUNT_2_KEY, ACCOUNT_3_ADDR,
-        ACCOUNT_3_KEY, ARG_FILTER_CONTRACT_RETURN_VALUE, ARG_IS_HASH_IDENTIFIER_MODE,
-        ARG_NFT_CONTRACT_HASH, ARG_REVERSE_LOOKUP, DEFAULT_ACCOUNT_KEY, MINTING_CONTRACT_WASM,
-        MINT_SESSION_WASM, NFT_CONTRACT_WASM, NFT_TEST_COLLECTION, NFT_TEST_SYMBOL,
-        TEST_PRETTY_721_META_DATA, TRANSFER_FILTER_CONTRACT_WASM, TRANSFER_SESSION_WASM,
+        ACCOUNT_3_KEY, ARG_FILTER_CONTRACT_RETURN_VALUE, ARG_NFT_CONTRACT_HASH, ARG_REVERSE_LOOKUP,
+        DEFAULT_ACCOUNT_KEY, MINTING_CONTRACT_WASM, MINT_SESSION_WASM, NFT_CONTRACT_WASM,
+        NFT_TEST_COLLECTION, NFT_TEST_SYMBOL, TEST_PRETTY_721_META_DATA,
+        TRANSFER_FILTER_CONTRACT_WASM, TRANSFER_SESSION_WASM,
     },
     installer_request_builder::{
         InstallerRequestBuilder, MetadataMutability, MintingMode, NFTHolderMode, NFTIdentifierMode,
@@ -100,7 +100,6 @@ fn should_dissallow_transfer_with_minter_or_assigned_ownership_mode() {
         runtime_args! {
             ARG_SOURCE_KEY => *DEFAULT_ACCOUNT_KEY,
             ARG_TARGET_KEY =>  token_receiver_key,
-            ARG_IS_HASH_IDENTIFIER_MODE => false,
             ARG_TOKEN_ID => token_id,
         },
     )
@@ -182,7 +181,6 @@ fn should_transfer_token_from_sender_to_receiver() {
         runtime_args! {
             ARG_NFT_CONTRACT_HASH => nft_contract_key,
             ARG_TOKEN_ID => token_id,
-            ARG_IS_HASH_IDENTIFIER_MODE => false,
             ARG_SOURCE_KEY => token_owner_key,
             ARG_TARGET_KEY => token_receiver_key,
         },
@@ -610,7 +608,6 @@ fn should_be_able_to_transfer_token(
             ARG_NFT_CONTRACT_HASH => nft_contract_key,
             ARG_SOURCE_KEY =>  token_owner,
             ARG_TARGET_KEY => to_account,
-            ARG_IS_HASH_IDENTIFIER_MODE => false,
             ARG_TOKEN_ID => token_id,
         },
     )
@@ -723,7 +720,7 @@ fn should_dissallow_same_approved_account_to_transfer_token_twice() {
         runtime_args! {
             ARG_NFT_CONTRACT_HASH => nft_contract_key,
             ARG_TOKEN_ID => token_id,
-            ARG_IS_HASH_IDENTIFIER_MODE => false,
+
             ARG_SOURCE_KEY =>  token_owner,
             ARG_TARGET_KEY => to_account,
         },
@@ -752,7 +749,6 @@ fn should_dissallow_same_approved_account_to_transfer_token_twice() {
         runtime_args! {
             ARG_NFT_CONTRACT_HASH => nft_contract_key,
             ARG_TOKEN_ID => token_id,
-            ARG_IS_HASH_IDENTIFIER_MODE => false,
             ARG_SOURCE_KEY =>  to_account, // token owner is now ACCOUNT_USER_2
             ARG_TARGET_KEY => to_other_account,
         },
@@ -882,7 +878,6 @@ fn should_disallow_to_transfer_token_using_revoked_hash(
             ARG_NFT_CONTRACT_HASH => nft_contract_key,
             ARG_SOURCE_KEY =>  token_owner,
             ARG_TARGET_KEY => *ACCOUNT_2_KEY,
-            ARG_IS_HASH_IDENTIFIER_MODE => false,
             ARG_TOKEN_ID => token_id,
         },
     )
@@ -1142,7 +1137,6 @@ fn should_prevent_transfer_when_caller_is_not_owner() {
         runtime_args! {
             ARG_NFT_CONTRACT_HASH => nft_contract_key,
             ARG_TOKEN_ID => token_id,
-            ARG_IS_HASH_IDENTIFIER_MODE => false,
             ARG_SOURCE_KEY => *DEFAULT_ACCOUNT_KEY,
             ARG_TARGET_KEY => *ACCOUNT_3_KEY
         },
@@ -1212,7 +1206,6 @@ fn should_transfer_token_in_hash_identifier_mode() {
         TRANSFER_SESSION_WASM,
         runtime_args! {
             ARG_NFT_CONTRACT_HASH => nft_contract_key,
-            ARG_IS_HASH_IDENTIFIER_MODE => true,
             ARG_TOKEN_HASH => token_hash,
             ARG_SOURCE_KEY => *DEFAULT_ACCOUNT_KEY,
             ARG_TARGET_KEY =>  Key::Account(AccountHash::new([3u8;32])),
@@ -1385,7 +1378,6 @@ fn transfer_should_correctly_track_page_table_entries() {
         runtime_args! {
             ARG_NFT_CONTRACT_HASH => nft_contract_key,
             ARG_TOKEN_ID => 11u64,
-            ARG_IS_HASH_IDENTIFIER_MODE => false,
             ARG_SOURCE_KEY => *DEFAULT_ACCOUNT_KEY,
             ARG_TARGET_KEY =>  *ACCOUNT_1_KEY,
         },
@@ -1446,7 +1438,6 @@ fn should_prevent_transfer_to_unregistered_owner() {
             ARG_TOKEN_ID => token_id,
             ARG_SOURCE_KEY => *DEFAULT_ACCOUNT_KEY,
             ARG_TARGET_KEY => token_receiver_key,
-            ARG_IS_HASH_IDENTIFIER_MODE => false
         },
     )
     .build();
@@ -1534,7 +1525,6 @@ fn should_transfer_token_from_sender_to_receiver_with_transfer_only_reporting() 
         runtime_args! {
             ARG_NFT_CONTRACT_HASH => nft_contract_key,
             ARG_TOKEN_ID => 0u64,
-            ARG_IS_HASH_IDENTIFIER_MODE => false,
             ARG_SOURCE_KEY => token_owner_key,
             ARG_TARGET_KEY =>  token_receiver_key,
         },
@@ -1838,7 +1828,6 @@ fn check_transfers_with_transfer_filter_contract_modes() {
         runtime_args! {
             ARG_NFT_CONTRACT_HASH => nft_contract_key,
             ARG_TOKEN_ID => token_id,
-            ARG_IS_HASH_IDENTIFIER_MODE => false,
             ARG_SOURCE_KEY => token_owner_key,
             ARG_TARGET_KEY => token_receiver_key,
         },
@@ -1876,7 +1865,6 @@ fn check_transfers_with_transfer_filter_contract_modes() {
         runtime_args! {
             ARG_NFT_CONTRACT_HASH => nft_contract_key,
             ARG_TOKEN_ID => token_id,
-            ARG_IS_HASH_IDENTIFIER_MODE => false,
             ARG_SOURCE_KEY => token_owner_key,
             ARG_TARGET_KEY => token_receiver_key,
         },
@@ -1891,7 +1879,6 @@ fn check_transfers_with_transfer_filter_contract_modes() {
         runtime_args! {
             ARG_NFT_CONTRACT_HASH => nft_contract_key,
             ARG_TOKEN_ID => token_id,
-            ARG_IS_HASH_IDENTIFIER_MODE => false,
             // NB: token_receiver and token_owner are swapped
             ARG_SOURCE_KEY => token_receiver_key,
             ARG_TARGET_KEY => token_owner_key,
@@ -1912,7 +1899,7 @@ fn check_transfers_with_transfer_filter_contract_modes() {
         runtime_args! {
             ARG_NFT_CONTRACT_HASH => nft_contract_key,
             ARG_TOKEN_ID => token_id,
-            ARG_IS_HASH_IDENTIFIER_MODE => false,
+
             ARG_SOURCE_KEY => token_owner_key,
             ARG_TARGET_KEY => token_receiver_key,
         },

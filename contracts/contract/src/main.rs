@@ -23,7 +23,7 @@ use alloc::{
 };
 use casper_contract::{
     contract_api::{
-        runtime::{self, call_contract, get_key, get_named_arg, revert},
+        runtime::{self, call_contract, revert},
         storage::{self, read},
     },
     unwrap_or_revert::UnwrapOrRevert,
@@ -79,7 +79,7 @@ use modalities::{
     NFTKind, NFTMetadataKind, NamedKeyConventionMode, OwnerReverseLookupMode, OwnershipMode,
     Requirement, TokenIdentifier, TransferFilterContractResult, WhitelistMode,
 };
-use utils::{get_contract_version_key, get_holder_mode, get_uref};
+use utils::{get_contract_version_key, get_holder_mode, get_uref, init_events};
 
 #[no_mangle]
 pub extern "C" fn init() {
@@ -415,11 +415,9 @@ pub extern "C" fn init() {
     .try_into()
     .unwrap_or_revert();
 
-    // Initialize events structures for CES.
-    if [EventsMode::CES, EventsMode::NativeBytes].contains(&events_mode) {
-        utils::init_events();
-    }
     runtime::put_key(EVENTS_MODE, storage::new_uref(events_mode as u8).into());
+
+    init_events();
 
     // Initialize contract with variables which must be present but maybe set to
     // different values after initialization.
@@ -1303,7 +1301,7 @@ pub extern "C" fn transfer() {
     .unwrap_or_revert();
 
     if source_owner_key != owner {
-        runtime::revert(NFTCoreError::InvalidAccount);
+        runtime::revert(NFTCoreError::InvalidTokenOwner);
     }
 
     let (caller, contract_package): (Key, Option<Key>) = utils::get_immediate_caller();
@@ -1403,22 +1401,11 @@ pub extern "C" fn transfer() {
     let target_owner_item_key = utils::encode_dictionary_item_key(target_owner_key);
 
     // Updated token_owners dictionary. Revert if token_owner not found.
-    match utils::get_dictionary_value_from_key::<Key>(
+    utils::upsert_dictionary_value_from_key(
         TOKEN_OWNERS,
         &token_identifier.get_dictionary_item_key(),
-    ) {
-        Some(token_actual_owner) => {
-            if token_actual_owner != source_owner_key {
-                runtime::revert(NFTCoreError::InvalidTokenOwner)
-            }
-            utils::upsert_dictionary_value_from_key(
-                TOKEN_OWNERS,
-                &token_identifier.get_dictionary_item_key(),
-                target_owner_key,
-            );
-        }
-        None => runtime::revert(NFTCoreError::MissingOwnerTokenIdentifierKey),
-    }
+        target_owner_key,
+    );
 
     let source_owner_item_key = utils::encode_dictionary_item_key(source_owner_key);
 
@@ -1878,15 +1865,13 @@ pub extern "C" fn migrate() {
 
     let optional_events_mode: Option<u8> = runtime::get_named_arg::<Option<u8>>(ARG_EVENTS_MODE);
 
-    if let Some(optional_events_mode) = optional_events_mode {
-        if EventsMode::try_from(optional_events_mode).is_ok() {
-            runtime::put_key(EVENTS_MODE, storage::new_uref(optional_events_mode).into());
+    if let Some(events_mode) = optional_events_mode {
+        if EventsMode::try_from(events_mode).is_ok() {
+            runtime::put_key(EVENTS_MODE, storage::new_uref(events_mode).into());
         }
     }
 
-    if get_key(casper_event_standard::EVENTS_DICT).is_none() {
-        utils::init_events();
-    }
+    init_events();
 
     emit_event(Event::Migration(Migration::new()));
 
@@ -2304,7 +2289,6 @@ fn generate_entry_points() -> EntryPoints {
     let migrate = EntryPoint::new(
         ENTRY_POINT_MIGRATE,
         vec![
-            Parameter::new(ARG_NFT_PACKAGE_KEY, CLType::String),
             Parameter::new(ARG_EVENTS_MODE, CLType::U8),
             Parameter::new(ARG_ACL_PACKAGE_MODE, CLType::Bool),
             Parameter::new(ARG_PACKAGE_OPERATOR_MODE, CLType::Bool),
@@ -2340,7 +2324,7 @@ fn generate_entry_points() -> EntryPoints {
     // in order to own NFTs.
     let register_owner = EntryPoint::new(
         ENTRY_POINT_REGISTER_OWNER,
-        vec![],
+        vec![Parameter::new(ARG_TOKEN_OWNER, CLType::Key)],
         CLType::Tuple2([Box::new(CLType::String), Box::new(CLType::URef)]),
         EntryPointAccess::Public,
         EntryPointType::Called,
@@ -2377,7 +2361,6 @@ fn install_contract() {
     )
     .unwrap_or_revert();
 
-    // TODO: figure out examples of collection_symbol
     // The symbol for the NFT collection.
     // This value cannot be changed after installation.
     let collection_symbol: String = utils::get_named_arg_with_user_errors(
@@ -2668,25 +2651,12 @@ fn install_contract() {
 }
 
 fn migrate_contract(access_key_name: String, package_key_name: String) {
-    let nft_contract_package_hash = match runtime::get_key(&package_key_name)
-        .unwrap_or_revert_with(NFTCoreError::MissingPackageHashForUpgrade)
-    {
-        Key::Hash(hash_addr) => PackageHash::new(hash_addr),
-        Key::SmartContract(package_addr) => PackageHash::new(package_addr),
-        _ => revert(NFTCoreError::InvalidPackageHash),
-    };
-
     let collection_name: String = utils::get_named_arg_with_user_errors(
         ARG_COLLECTION_NAME,
         NFTCoreError::MissingCollectionName,
         NFTCoreError::InvalidCollectionName,
     )
     .unwrap_or_revert();
-
-    runtime::put_key(
-        &format!("{PREFIX_HASH_KEY_NAME}_{collection_name}"),
-        nft_contract_package_hash.into(),
-    );
 
     if let Some(access_key) = runtime::get_key(&access_key_name) {
         runtime::put_key(
@@ -2705,12 +2675,20 @@ fn migrate_contract(access_key_name: String, package_key_name: String) {
         .unwrap_or_default()
         .unwrap_or_default();
 
-    // If stored version is a non empty string (and not a u32), it means it is already a Condor
+    // If stored version is a non empty string (and not a u32), it means it is already a 2.0 version
     // version, do not add message topics then, as already set when installed
     let message_topics: BTreeMap<String, MessageTopicOperation> = if !version_value.is_empty() {
         BTreeMap::new()
     } else {
         BTreeMap::from([(EVENTS.to_string(), MessageTopicOperation::Add)])
+    };
+
+    let nft_contract_package_hash = match runtime::get_key(&package_key_name)
+        .unwrap_or_revert_with(NFTCoreError::MissingPackageHashForUpgrade)
+    {
+        Key::Hash(hash_addr) => PackageHash::new(hash_addr),
+        Key::SmartContract(package_addr) => PackageHash::new(package_addr),
+        _ => revert(NFTCoreError::InvalidPackageHash),
     };
 
     let (contract_hash, contract_version) = storage::add_contract_version(
@@ -2754,7 +2732,6 @@ fn migrate_contract(access_key_name: String, package_key_name: String) {
     .unwrap_or_default();
 
     let mut runtime_args = runtime_args! {
-        ARG_NFT_PACKAGE_KEY => nft_contract_package_hash,
         ARG_EVENTS_MODE => events_mode,
         ARG_ACL_PACKAGE_MODE => acl_package_mode,
         ARG_PACKAGE_OPERATOR_MODE => package_operator_mode,
@@ -2786,24 +2763,18 @@ pub extern "C" fn call() {
 
     match convention_mode {
         NamedKeyConventionMode::DerivedFromCollectionName => {
-            let collection_symbol = utils::get_named_arg_with_user_errors::<String>(
-                ARG_COLLECTION_SYMBOL,
-                NFTCoreError::MissingCollectionSymbol,
-                NFTCoreError::InvalidCollectionSymbol,
-            );
-            match collection_symbol {
-                Ok(_) => install_contract(),
-                Err(e) => {
-                    if e as u8 == NFTCoreError::MissingCollectionSymbol as u8 {
-                        let collection_name = get_named_arg::<String>(ARG_COLLECTION_NAME);
-                        migrate_contract(
-                            format!("{PREFIX_ACCESS_KEY_NAME}_{collection_name}"),
-                            format!("{PREFIX_HASH_KEY_NAME}_{collection_name}"),
-                        );
-                    } else {
-                        revert(e)
-                    }
-                }
+            let collection_name: String = utils::get_named_arg_with_user_errors(
+                ARG_COLLECTION_NAME,
+                NFTCoreError::MissingCollectionName,
+                NFTCoreError::InvalidCollectionName,
+            )
+            .unwrap_or_revert();
+            match runtime::get_key(&format!("{PREFIX_ACCESS_KEY_NAME}_{collection_name}")) {
+                None => install_contract(),
+                Some(_) => migrate_contract(
+                    format!("{PREFIX_ACCESS_KEY_NAME}_{collection_name}"),
+                    format!("{PREFIX_HASH_KEY_NAME}_{collection_name}"),
+                ),
             }
         }
         NamedKeyConventionMode::V1_0Standard => migrate_contract(

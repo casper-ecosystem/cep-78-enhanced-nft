@@ -1,10 +1,10 @@
 #![allow(deprecated)]
 use crate::{
     constants::{
-        ACL_WHITELIST, ARG_TOKEN_HASH, ARG_TOKEN_ID, BURNT_TOKENS, BURN_MODE, CONTRACT_WHITELIST,
-        HASH_BY_INDEX, HOLDER_MODE, INDEX_BY_HASH, MIGRATION_FLAG, MINTING_MODE,
-        NUMBER_OF_MINTED_TOKENS, OWNED_TOKENS, OWNERSHIP_MODE, PAGE_LIMIT, PAGE_TABLE,
-        PREFIX_PAGE_DICTIONARY, RECEIPT_NAME, REPORTING_MODE, RLO_MFLAG, TOKEN_OWNERS,
+        ACL_WHITELIST, ARG_EVENTS_MODE, ARG_TOKEN_HASH, ARG_TOKEN_ID, BURNT_TOKENS, BURN_MODE,
+        CONTRACT_WHITELIST, HASH_BY_INDEX, HOLDER_MODE, INDEX_BY_HASH, MIGRATION_FLAG,
+        MINTING_MODE, NUMBER_OF_MINTED_TOKENS, OWNED_TOKENS, OWNERSHIP_MODE, PAGE_LIMIT,
+        PAGE_TABLE, PREFIX_PAGE_DICTIONARY, RECEIPT_NAME, REPORTING_MODE, RLO_MFLAG, TOKEN_OWNERS,
         TRANSFER_FILTER_CONTRACT, UNMATCHED_HASH_COUNT,
     },
     error::NFTCoreError,
@@ -13,7 +13,7 @@ use crate::{
         Transfer, VariablesSet,
     },
     modalities::{
-        BurnMode, MetadataRequirement, MintingMode, NFTHolderMode, NFTIdentifierMode,
+        BurnMode, EventsMode, MetadataRequirement, MintingMode, NFTHolderMode, NFTIdentifierMode,
         NFTMetadataKind, OwnerReverseLookupMode, OwnershipMode, Requirement, TokenIdentifier,
     },
 };
@@ -35,7 +35,7 @@ use casper_contract::{
     ext_ffi::{casper_get_key, casper_get_named_arg, casper_get_named_arg_size},
     unwrap_or_revert::UnwrapOrRevert,
 };
-use casper_event_standard::Schemas;
+use casper_event_standard::{Schemas, EVENTS_DICT};
 use casper_types::{
     self,
     account::AccountHash,
@@ -834,17 +834,27 @@ pub fn create_metadata_requirements(
 
 // Initializes events-releated named keys and records all event schemas.
 pub fn init_events() {
-    let schemas = Schemas::new()
-        .with::<Mint>()
-        .with::<Burn>()
-        .with::<Approval>()
-        .with::<ApprovalRevoked>()
-        .with::<ApprovalForAll>()
-        .with::<Transfer>()
-        .with::<MetadataUpdated>()
-        .with::<VariablesSet>()
-        .with::<Migration>();
-    casper_event_standard::init(schemas);
+    let events_mode: EventsMode = get_stored_value_with_user_errors::<u8>(
+        ARG_EVENTS_MODE,
+        NFTCoreError::MissingEventsMode,
+        NFTCoreError::InvalidEventsMode,
+    )
+    .try_into()
+    .unwrap_or_revert();
+
+    if EventsMode::CES == events_mode && get_key(EVENTS_DICT).is_none() {
+        let schemas = Schemas::new()
+            .with::<Mint>()
+            .with::<Burn>()
+            .with::<Approval>()
+            .with::<ApprovalRevoked>()
+            .with::<ApprovalForAll>()
+            .with::<Transfer>()
+            .with::<MetadataUpdated>()
+            .with::<VariablesSet>()
+            .with::<Migration>();
+        casper_event_standard::init(schemas);
+    }
 }
 
 pub fn requires_rlo_migration() -> bool {
