@@ -8,6 +8,12 @@ on:
     branches: [dev, feat-*, release-*]
 
 jobs:
+  build:
+    strategy:
+      matrix:
+        os: [ubuntu-20.04, ubuntu-22.04]
+    runs-on: ${{ matrix.os }}
+
   ci-js-client:
     strategy:
       matrix:
