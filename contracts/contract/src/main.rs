@@ -47,21 +47,22 @@ use constants::{
     ARG_OPTIONAL_METADATA, ARG_OWNERSHIP_MODE, ARG_OWNER_LOOKUP_MODE, ARG_PACKAGE_OPERATOR_MODE,
     ARG_RECEIPT_NAME, ARG_SOURCE_KEY, ARG_SPENDER, ARG_TARGET_KEY, ARG_TOKEN_HASH, ARG_TOKEN_ID,
     ARG_TOKEN_META_DATA, ARG_TOKEN_OWNER, ARG_TOTAL_TOKEN_SUPPLY, ARG_TRANSFER_FILTER_CONTRACT,
-    ARG_WHITELIST_MODE, BURNT_TOKENS, BURN_MODE, COLLECTION_NAME, COLLECTION_SYMBOL, CONDOR,
-    ENTRY_POINT_APPROVE, ENTRY_POINT_BALANCE_OF, ENTRY_POINT_BURN, ENTRY_POINT_GET_APPROVED,
-    ENTRY_POINT_INIT, ENTRY_POINT_IS_APPROVED_FOR_ALL, ENTRY_POINT_METADATA, ENTRY_POINT_MIGRATE,
-    ENTRY_POINT_MINT, ENTRY_POINT_OWNER_OF, ENTRY_POINT_REGISTER_OWNER, ENTRY_POINT_REVOKE,
-    ENTRY_POINT_SET_APPROVALL_FOR_ALL, ENTRY_POINT_SET_TOKEN_METADATA, ENTRY_POINT_SET_VARIABLES,
-    ENTRY_POINT_TRANSFER, ENTRY_POINT_UPDATED_RECEIPTS, EVENTS, EVENTS_MODE, HASH_BY_INDEX,
-    HASH_KEY_NAME_1_0_0, HOLDER_MODE, IDENTIFIER_MODE, INDEX_BY_HASH, INSTALLER, JSON_SCHEMA,
-    MAX_TOTAL_TOKEN_SUPPLY, METADATA_CEP78, METADATA_CUSTOM_VALIDATED, METADATA_MUTABILITY,
-    METADATA_NFT721, METADATA_RAW, MINTING_MODE, NFT_KIND, NFT_METADATA_KIND, NFT_METADATA_KINDS,
-    NUMBER_OF_MINTED_TOKENS, OPERATOR, OPERATORS, OPERATOR_BURN_MODE, OWNED_TOKENS, OWNERSHIP_MODE,
-    PACKAGE_OPERATOR_MODE, PAGE_LIMIT, PAGE_TABLE, PREFIX_ACCESS_KEY_NAME, PREFIX_CEP78,
-    PREFIX_CONTRACT_NAME, PREFIX_CONTRACT_VERSION, PREFIX_HASH_KEY_NAME, PREFIX_PAGE_DICTIONARY,
-    RECEIPT_NAME, REPORTING_MODE, RLO_MFLAG, TOKEN_COUNT, TOKEN_ISSUERS, TOKEN_OWNERS,
-    TOTAL_TOKEN_SUPPLY, TRANSFER_FILTER_CONTRACT, TRANSFER_FILTER_CONTRACT_METHOD,
-    UNMATCHED_HASH_COUNT, WHITELIST_MODE,
+    ARG_WHITELIST_MODE, BALANCES, BURNT_TOKENS, BURN_MODE, COLLECTION_NAME, COLLECTION_SYMBOL,
+    CONDOR, ENTRY_POINT_APPROVE, ENTRY_POINT_BALANCE_OF, ENTRY_POINT_BURN,
+    ENTRY_POINT_GET_APPROVED, ENTRY_POINT_INIT, ENTRY_POINT_IS_APPROVED_FOR_ALL,
+    ENTRY_POINT_METADATA, ENTRY_POINT_MIGRATE, ENTRY_POINT_MINT, ENTRY_POINT_OWNER_OF,
+    ENTRY_POINT_REGISTER_OWNER, ENTRY_POINT_REVOKE, ENTRY_POINT_SET_APPROVALL_FOR_ALL,
+    ENTRY_POINT_SET_TOKEN_METADATA, ENTRY_POINT_SET_VARIABLES, ENTRY_POINT_TRANSFER,
+    ENTRY_POINT_UPDATED_RECEIPTS, EVENTS, EVENTS_MODE, HASH_BY_INDEX, HASH_KEY_NAME_1_0_0,
+    HOLDER_MODE, IDENTIFIER_MODE, INDEX_BY_HASH, INSTALLER, JSON_SCHEMA, MAX_TOTAL_TOKEN_SUPPLY,
+    METADATA_CEP78, METADATA_CUSTOM_VALIDATED, METADATA_MUTABILITY, METADATA_NFT721, METADATA_RAW,
+    MINTING_MODE, NFT_KIND, NFT_METADATA_KIND, NFT_METADATA_KINDS, NUMBER_OF_MINTED_TOKENS,
+    OPERATOR, OPERATORS, OPERATOR_BURN_MODE, OWNED_TOKENS, OWNERSHIP_MODE, PACKAGE_OPERATOR_MODE,
+    PAGE_LIMIT, PAGE_TABLE, PREFIX_ACCESS_KEY_NAME, PREFIX_CEP78, PREFIX_CONTRACT_NAME,
+    PREFIX_CONTRACT_VERSION, PREFIX_HASH_KEY_NAME, PREFIX_PAGE_DICTIONARY, RECEIPT_NAME,
+    REPORTING_MODE, RLO_MFLAG, TOKEN_ISSUERS, TOKEN_OWNERS, TOTAL_TOKEN_SUPPLY,
+    TRANSFER_FILTER_CONTRACT, TRANSFER_FILTER_CONTRACT_METHOD, UNMATCHED_HASH_COUNT,
+    WHITELIST_MODE,
 };
 use core::convert::TryInto;
 use error::NFTCoreError;
@@ -436,8 +437,7 @@ pub extern "C" fn init() {
         .unwrap_or_revert_with(NFTCoreError::FailedToCreateDictionary);
     storage::new_dictionary(BURNT_TOKENS)
         .unwrap_or_revert_with(NFTCoreError::FailedToCreateDictionary);
-    storage::new_dictionary(TOKEN_COUNT)
-        .unwrap_or_revert_with(NFTCoreError::FailedToCreateDictionary);
+    storage::new_dictionary(BALANCES).unwrap_or_revert_with(NFTCoreError::FailedToCreateDictionary);
     storage::new_dictionary(METADATA_CUSTOM_VALIDATED)
         .unwrap_or_revert_with(NFTCoreError::FailedToCreateDictionary);
     storage::new_dictionary(METADATA_CEP78)
@@ -811,15 +811,11 @@ pub extern "C" fn mint() {
 
     //Increment the count of owned tokens.
     let updated_token_count =
-        match utils::get_dictionary_value_from_key::<u64>(TOKEN_COUNT, &owned_tokens_item_key) {
+        match utils::get_dictionary_value_from_key::<u64>(BALANCES, &owned_tokens_item_key) {
             Some(balance) => balance + 1u64,
             None => 1u64,
         };
-    utils::upsert_dictionary_value_from_key(
-        TOKEN_COUNT,
-        &owned_tokens_item_key,
-        updated_token_count,
-    );
+    utils::upsert_dictionary_value_from_key(BALANCES, &owned_tokens_item_key, updated_token_count);
 
     // Increment number_of_minted_tokens by one
     let number_of_minted_tokens_uref = utils::get_uref(
@@ -944,7 +940,7 @@ pub extern "C" fn burn() {
     let owned_tokens_item_key = utils::encode_dictionary_item_key(token_owner);
 
     let updated_balance =
-        match utils::get_dictionary_value_from_key::<u64>(TOKEN_COUNT, &owned_tokens_item_key) {
+        match utils::get_dictionary_value_from_key::<u64>(BALANCES, &owned_tokens_item_key) {
             Some(balance) => {
                 if balance > 0u64 {
                     balance - 1u64
@@ -959,7 +955,7 @@ pub extern "C" fn burn() {
             }
         };
 
-    utils::upsert_dictionary_value_from_key(TOKEN_COUNT, &owned_tokens_item_key, updated_balance);
+    utils::upsert_dictionary_value_from_key(BALANCES, &owned_tokens_item_key, updated_balance);
 
     // Emit Burn event.
     emit_event(Event::Burn(Burn::new(
@@ -1411,7 +1407,7 @@ pub extern "C" fn transfer() {
 
     // Update the from_account balance
     let updated_from_account_balance =
-        match utils::get_dictionary_value_from_key::<u64>(TOKEN_COUNT, &source_owner_item_key) {
+        match utils::get_dictionary_value_from_key::<u64>(BALANCES, &source_owner_item_key) {
             Some(balance) => {
                 if balance > 0u64 {
                     balance - 1u64
@@ -1426,20 +1422,20 @@ pub extern "C" fn transfer() {
             }
         };
     utils::upsert_dictionary_value_from_key(
-        TOKEN_COUNT,
+        BALANCES,
         &source_owner_item_key,
         updated_from_account_balance,
     );
 
     // Update the to_account balance
     let updated_to_account_balance =
-        match utils::get_dictionary_value_from_key::<u64>(TOKEN_COUNT, &target_owner_item_key) {
+        match utils::get_dictionary_value_from_key::<u64>(BALANCES, &target_owner_item_key) {
             Some(balance) => balance + 1u64,
             None => 1u64,
         };
 
     utils::upsert_dictionary_value_from_key(
-        TOKEN_COUNT,
+        BALANCES,
         &target_owner_item_key,
         updated_to_account_balance,
     );
@@ -1497,7 +1493,7 @@ pub extern "C" fn balance_of() {
 
     let owner_key_item_string = utils::encode_dictionary_item_key(owner_key);
 
-    let balance = utils::get_dictionary_value_from_key::<u64>(TOKEN_COUNT, &owner_key_item_string)
+    let balance = utils::get_dictionary_value_from_key::<u64>(BALANCES, &owner_key_item_string)
         .unwrap_or(0u64);
 
     let balance_cl_value =

@@ -5,7 +5,7 @@ use cep78::{
         ARG_TOKEN_META_DATA, ARG_TOKEN_OWNER, ENTRY_POINT_APPROVE, ENTRY_POINT_MINT,
         ENTRY_POINT_REGISTER_OWNER, ENTRY_POINT_SET_APPROVALL_FOR_ALL, METADATA_CEP78,
         METADATA_CUSTOM_VALIDATED, METADATA_NFT721, METADATA_RAW, NUMBER_OF_MINTED_TOKENS,
-        PAGE_TABLE, RECEIPT_NAME, TOKEN_COUNT, TOKEN_ISSUERS, TOKEN_OWNERS,
+        PAGE_TABLE, RECEIPT_NAME, BALANCES, TOKEN_ISSUERS, TOKEN_OWNERS,
     },
     events::events_ces::{ApprovalForAll, Mint, RevokedForAll},
     modalities::TokenIdentifier,
@@ -536,7 +536,7 @@ fn should_track_token_balance_by_owner() {
     let actual_minter_balance = support::get_dictionary_value_from_key::<u64>(
         &builder,
         &nft_contract_key,
-        TOKEN_COUNT,
+        BALANCES,
         &token_owner,
     );
     let expected_minter_balance = 1u64;
@@ -1666,7 +1666,7 @@ fn should_mint_with_transfer_only_reporting() {
     let actual_balance_after_mint = support::get_dictionary_value_from_key::<u64>(
         &builder,
         &nft_contract_key,
-        TOKEN_COUNT,
+        BALANCES,
         &DEFAULT_ACCOUNT_ADDR.to_string(),
     );
 

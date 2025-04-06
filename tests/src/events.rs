@@ -11,7 +11,7 @@ use cep78::{
         BURNT_TOKENS, ENTRY_POINT_APPROVE, ENTRY_POINT_BURN, ENTRY_POINT_REGISTER_OWNER,
         ENTRY_POINT_SET_APPROVALL_FOR_ALL, ENTRY_POINT_SET_TOKEN_METADATA, EVENTS, EVENT_TYPE,
         METADATA_CEP78, METADATA_CUSTOM_VALIDATED, METADATA_NFT721, METADATA_RAW, OPERATOR, OWNER,
-        PREFIX_CEP78, PREFIX_HASH_KEY_NAME, RECIPIENT, SENDER, SPENDER, TOKEN_COUNT, TOKEN_ID,
+        PREFIX_CEP78, PREFIX_HASH_KEY_NAME, RECIPIENT, SENDER, SPENDER, BALANCES, TOKEN_ID,
     },
     modalities::EventsMode,
 };
@@ -381,7 +381,7 @@ fn should_cep47_dictionary_style_burn_event() {
     let actual_balance_before_burn = get_dictionary_value_from_key::<u64>(
         &builder,
         &nft_contract_key,
-        TOKEN_COUNT,
+        BALANCES,
         &DEFAULT_ACCOUNT_ADDR.clone().to_string(),
     );
 
@@ -411,7 +411,7 @@ fn should_cep47_dictionary_style_burn_event() {
     let actual_balance = get_dictionary_value_from_key::<u64>(
         &builder,
         &nft_contract_key,
-        TOKEN_COUNT,
+        BALANCES,
         &DEFAULT_ACCOUNT_ADDR.to_string(),
     );
 
@@ -792,7 +792,7 @@ fn should_not_record_events_in_no_events_mode() {
     let actual_balance = get_dictionary_value_from_key::<u64>(
         &builder,
         &nft_contract_key,
-        TOKEN_COUNT,
+        BALANCES,
         &DEFAULT_ACCOUNT_ADDR.clone().to_string(),
     );
 

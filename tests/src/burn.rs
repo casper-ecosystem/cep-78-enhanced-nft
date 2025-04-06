@@ -22,7 +22,7 @@ use cep78::{
     constants::{
         ARG_APPROVE_ALL, ARG_COLLECTION_NAME, ARG_OPERATOR, ARG_TOKEN_HASH, ARG_TOKEN_ID,
         ARG_TOKEN_META_DATA, ARG_TOKEN_OWNER, BURNT_TOKENS, BURN_MODE, ENTRY_POINT_BURN,
-        ENTRY_POINT_MINT, ENTRY_POINT_SET_APPROVALL_FOR_ALL, TOKEN_COUNT,
+        ENTRY_POINT_MINT, ENTRY_POINT_SET_APPROVALL_FOR_ALL, BALANCES,
     },
     events::events_ces::Burn,
     modalities::TokenIdentifier,
@@ -93,7 +93,7 @@ fn should_burn_minted_token(reporting: OwnerReverseLookupMode) {
     let actual_balance_before_burn = support::get_dictionary_value_from_key::<u64>(
         &builder,
         &nft_contract_key,
-        TOKEN_COUNT,
+        BALANCES,
         &DEFAULT_ACCOUNT_ADDR.clone().to_string(),
     );
 
@@ -123,7 +123,7 @@ fn should_burn_minted_token(reporting: OwnerReverseLookupMode) {
     let actual_balance = support::get_dictionary_value_from_key::<u64>(
         &builder,
         &nft_contract_key,
-        TOKEN_COUNT,
+        BALANCES,
         &DEFAULT_ACCOUNT_ADDR.clone().to_string(),
     );
 
@@ -364,7 +364,7 @@ fn should_allow_contract_to_burn_token() {
     let current_token_balance = get_dictionary_value_from_key::<u64>(
         &builder,
         &nft_contract_key,
-        TOKEN_COUNT,
+        BALANCES,
         &minting_contract_hash.to_string(),
     );
 
@@ -389,7 +389,7 @@ fn should_allow_contract_to_burn_token() {
     let updated_token_balance = get_dictionary_value_from_key::<u64>(
         &builder,
         &nft_contract_key,
-        TOKEN_COUNT,
+        BALANCES,
         &minting_contract_hash.to_string(),
     );
 
@@ -542,7 +542,7 @@ fn should_let_account_operator_burn_tokens_with_operator_burn_mode() {
     let actual_balance = support::get_dictionary_value_from_key::<u64>(
         &builder,
         &nft_contract_key,
-        TOKEN_COUNT,
+        BALANCES,
         &DEFAULT_ACCOUNT_ADDR.clone().to_string(),
     );
 
@@ -667,7 +667,7 @@ fn should_let_contract_operator_burn_tokens_with_operator_burn_mode() {
     let actual_balance = support::get_dictionary_value_from_key::<u64>(
         &builder,
         &nft_contract_key,
-        TOKEN_COUNT,
+        BALANCES,
         &DEFAULT_ACCOUNT_ADDR.clone().to_string(),
     );
 
@@ -794,7 +794,7 @@ fn should_let_package_operator_burn_tokens_with_contract_package_mode_and_operat
     let actual_balance = support::get_dictionary_value_from_key::<u64>(
         &builder,
         &nft_contract_key,
-        TOKEN_COUNT,
+        BALANCES,
         &DEFAULT_ACCOUNT_ADDR.clone().to_string(),
     );
 

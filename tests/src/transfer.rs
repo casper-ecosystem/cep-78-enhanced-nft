@@ -7,9 +7,9 @@ use cep78::{
     constants::{
         ACL_WHITELIST, APPROVED, ARG_APPROVE_ALL, ARG_COLLECTION_NAME, ARG_OPERATOR,
         ARG_SOURCE_KEY, ARG_SPENDER, ARG_TARGET_KEY, ARG_TOKEN_HASH, ARG_TOKEN_ID,
-        ARG_TOKEN_META_DATA, ARG_TOKEN_OWNER, ENTRY_POINT_APPROVE, ENTRY_POINT_MINT,
+        ARG_TOKEN_META_DATA, ARG_TOKEN_OWNER, BALANCES, ENTRY_POINT_APPROVE, ENTRY_POINT_MINT,
         ENTRY_POINT_REGISTER_OWNER, ENTRY_POINT_REVOKE, ENTRY_POINT_SET_APPROVALL_FOR_ALL,
-        ENTRY_POINT_TRANSFER, PAGE_TABLE, TOKEN_COUNT, TOKEN_OWNERS,
+        ENTRY_POINT_TRANSFER, PAGE_TABLE, TOKEN_OWNERS,
     },
     events::events_ces::{ApprovalRevoked, Transfer},
     modalities::{TokenIdentifier, TransferFilterContractResult}, // events::events_ces::{Approval, ApprovalRevoked, Transfer},
@@ -71,7 +71,7 @@ fn should_dissallow_transfer_with_minter_or_assigned_ownership_mode() {
     let actual_owner_balance: u64 = support::get_dictionary_value_from_key(
         &builder,
         &nft_contract_key,
-        TOKEN_COUNT,
+        BALANCES,
         &token_owner.to_string(),
     );
     let expected_owner_balance = 1u64;
@@ -152,7 +152,7 @@ fn should_transfer_token_from_sender_to_receiver() {
     let actual_owner_balance: u64 = support::get_dictionary_value_from_key(
         &builder,
         &nft_contract_key,
-        TOKEN_COUNT,
+        BALANCES,
         &token_owner.to_string(),
     );
     let expected_owner_balance = 1u64;
@@ -205,7 +205,7 @@ fn should_transfer_token_from_sender_to_receiver() {
     let actual_sender_balance: u64 = support::get_dictionary_value_from_key(
         &builder,
         &nft_contract_key,
-        TOKEN_COUNT,
+        BALANCES,
         &token_owner.to_string(),
     );
 
@@ -215,7 +215,7 @@ fn should_transfer_token_from_sender_to_receiver() {
     let actual_receiver_balance: u64 = support::get_dictionary_value_from_key(
         &builder,
         &nft_contract_key,
-        TOKEN_COUNT,
+        BALANCES,
         &token_receiver.to_string(),
     );
     let expected_receiver_balance = 1u64;
@@ -1499,7 +1499,7 @@ fn should_transfer_token_from_sender_to_receiver_with_transfer_only_reporting() 
     let actual_owner_balance: u64 = support::get_dictionary_value_from_key(
         &builder,
         &nft_contract_key,
-        TOKEN_COUNT,
+        BALANCES,
         &token_owner.to_string(),
     );
     let expected_owner_balance = 1u64;
@@ -1549,7 +1549,7 @@ fn should_transfer_token_from_sender_to_receiver_with_transfer_only_reporting() 
     let actual_sender_balance: u64 = support::get_dictionary_value_from_key(
         &builder,
         &nft_contract_key,
-        TOKEN_COUNT,
+        BALANCES,
         &token_owner.to_string(),
     );
     let expected_sender_balance = 0u64;
@@ -1558,7 +1558,7 @@ fn should_transfer_token_from_sender_to_receiver_with_transfer_only_reporting() 
     let actual_receiver_balance: u64 = support::get_dictionary_value_from_key(
         &builder,
         &nft_contract_key,
-        TOKEN_COUNT,
+        BALANCES,
         &ACCOUNT_1_ADDR.to_string(),
     );
     let expected_receiver_balance = 1u64;
