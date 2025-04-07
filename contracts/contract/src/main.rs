@@ -2588,7 +2588,7 @@ fn install_contract() {
     // Store contract_hash and contract_version under the keys CONTRACT_NAME and CONTRACT_VERSION
     runtime::put_key(
         &format!("{PREFIX_CONTRACT_NAME}_{collection_name}"),
-        Key::contract_entity_key(contract_hash.into()),
+        Key::Hash(contract_hash.value()),
     );
 
     runtime::put_key(
@@ -2697,7 +2697,7 @@ fn migrate_contract(access_key_name: String, package_key_name: String) {
     // Store contract_hash and contract_version under the keys CONTRACT_NAME and CONTRACT_VERSION
     runtime::put_key(
         &format!("{PREFIX_CONTRACT_NAME}_{collection_name}"),
-        Key::contract_entity_key(contract_hash.into()),
+        Key::Hash(contract_hash.value()),
     );
     runtime::put_key(
         &format!("{PREFIX_CONTRACT_VERSION}_{collection_name}"),

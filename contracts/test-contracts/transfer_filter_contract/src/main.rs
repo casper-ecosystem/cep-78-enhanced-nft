@@ -7,7 +7,6 @@ compile_error!("target arch should be wasm32: compile with '--target wasm32-unkn
 extern crate alloc;
 
 use alloc::{string::ToString, vec};
-
 use casper_contract::{
     contract_api::{
         runtime::{self, ret},
@@ -99,9 +98,6 @@ pub extern "C" fn can_transfer() {
 pub extern "C" fn call() {
     let (contract_hash, contract_version) = install_filter_contract();
 
-    runtime::put_key(
-        CONTRACT_NAME,
-        Key::contract_entity_key(contract_hash.into()),
-    );
+    runtime::put_key(CONTRACT_NAME, Key::Hash(contract_hash.value()));
     runtime::put_key(CONTRACT_VERSION, storage::new_uref(contract_version).into());
 }

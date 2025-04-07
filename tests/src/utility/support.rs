@@ -79,8 +79,7 @@ pub(crate) fn get_nft_contract_hash_key(builder: &LmdbWasmTestBuilder) -> Key {
     let nft_contract_hash: ContractHash = get_nft_contract_hash(builder).into();
     // With entities enabled
     //  let nft_contract_key: Key = Key::contract_entity_key(nft_contract_hash.into()); // As AddressableEntityHash
-    let nft_contract_key: Key = nft_contract_hash.into(); // As Key::Hash
-    nft_contract_key
+    Key::Hash(nft_contract_hash.value()) // As Key::Hash
 }
 
 pub(crate) fn get_nft_contract_package_hash(builder: &LmdbWasmTestBuilder) -> ContractPackageHash {
@@ -126,8 +125,7 @@ pub(crate) fn get_minting_contract_hash_key(builder: &LmdbWasmTestBuilder) -> Ke
     let minting_contract_hash: ContractHash = get_minting_contract_hash(builder).into();
     // With entities enabled
     // let minting_contract_key: Key = Key::contract_entity_key(minting_contract_hash.into());
-    let minting_contract_key: Key = minting_contract_hash.into();
-    minting_contract_key
+    Key::Hash(minting_contract_hash.value())
 }
 
 pub(crate) fn get_minting_contract_package_hash(builder: &LmdbWasmTestBuilder) -> PackageHash {

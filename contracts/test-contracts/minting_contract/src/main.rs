@@ -346,10 +346,7 @@ pub extern "C" fn call() {
         install_minting_contract()
     };
 
-    runtime::put_key(
-        CONTRACT_NAME,
-        Key::contract_entity_key(contract_hash.into()),
-    );
+    runtime::put_key(CONTRACT_NAME, Key::Hash(contract_hash.value()));
     runtime::put_key(CONTRACT_VERSION, storage::new_uref(contract_version).into());
 }
 

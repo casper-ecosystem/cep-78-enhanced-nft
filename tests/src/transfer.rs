@@ -1780,7 +1780,7 @@ fn check_transfers_with_transfer_filter_contract_modes() {
         .with_collection_symbol(NFT_TEST_SYMBOL.to_string())
         .with_total_token_supply(token_supply)
         .with_ownership_mode(OwnershipMode::Transferable)
-        .with_transfer_filter_contract(Key::contract_entity_key(transfer_filter_contract_hash))
+        .with_transfer_filter_contract(Key::Hash(transfer_filter_contract_hash.value()))
         .build();
 
     builder.exec(install_request).expect_success().commit();
