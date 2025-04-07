@@ -78,7 +78,7 @@ clean:
 	$(foreach crate, $(ALL_CRATES), cargo clean -p $(crate);)
 	cargo clean -p tests
 	rm -rf $(WASM_OUTPUT_DIR)
-	rm -rf ./*/Cargo.lock
+	rm -rf ./Cargo.lock
 
 .PHONY: cargo-update
 cargo-update:
