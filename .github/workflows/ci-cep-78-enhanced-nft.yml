@@ -11,16 +11,6 @@ env:
   CARGO_TERM_COLOR: always
 
 jobs:
-  # This build step shall be removed, only for PR passing previous CI/CD checks
-  build:
-    strategy:
-      matrix:
-        os: [ubuntu-20.04, ubuntu-22.04]
-    runs-on: ${{ matrix.os }}
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-
   ci-smart-contract:
     strategy:
       matrix:
