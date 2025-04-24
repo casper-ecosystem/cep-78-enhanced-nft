@@ -343,12 +343,17 @@ The modality provides three options:
 1. `NoEvents`: This modality will signal the contract to not record events at all. This is the default mode.
 2. `CEP47`: This modality will signal the contract to record events using the CEP47 event schema. Further information can be found [below](#cep47-mode).
 3. `CES`: This modality will signal the contract to record events using the [Casper Event Standard](#casper-event-standard).
+4. `Native`: This modality instructs the contract to emit events using Casper's native event mechanism. Events are emitted with structured data, allowing easy integration with off-chain indexers and tools that natively understand Casper's runtime types.
 
-| EventsMode | u8  |
-| ---------- | --- |
-| NoEvents   | 0   |
-| CEP47      | 1   |
-| CES        | 2   |
+5. `NativeBytes`: This modality signals the contract to emit events as raw serialized byte arrays. This provides flexibility for custom encoding schemes but requires client-side logic to decode the emitted events correctly.
+
+| EventsMode  | u8  |
+| ----------- | --- |
+| NoEvents    | 0   |
+| CEP47       | 1   |
+| CES         | 2   |
+| Native      | 3   |
+| NativeBytes | 4   |
 
 ### Transfer Filter Hook
 
