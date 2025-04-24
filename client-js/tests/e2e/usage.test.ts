@@ -285,7 +285,7 @@ describe('CEP78Client - E2E Usage', () => {
     const keyName = 'stored_owner_of_token'; // Define a key name to store the result
     const params = {
       sender: ali.publicKey,
-      paymentAmount: String(10_000_000_000), // 1 CSPR
+      paymentAmount: String(10_000_000_000), // 10 CSPR
       signingKeys: [ali],
     };
 
@@ -329,7 +329,7 @@ describe('CEP78Client - E2E Usage', () => {
     const keyName = 'stored_balance_of_token'; // Define a key name to store the result
     const params = {
       sender: ali.publicKey,
-      paymentAmount: String(10_000_000_000), // 1 CSPR
+      paymentAmount: String(10_000_000_000), // 10 CSPR
       signingKeys: [ali],
     };
 
@@ -390,7 +390,7 @@ describe('CEP78Client - E2E Usage', () => {
 
     const params = {
       sender: owner.publicKey,
-      paymentAmount: String(10_000_000_000), // 1 CSPR
+      paymentAmount: String(10_000_000_000), // 10 CSPR
       signingKeys: [owner],
     };
 

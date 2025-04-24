@@ -247,7 +247,7 @@ const balanceOfArgs = {
 const balanceResult = await cep78.balanceOf({
   params: {
     sender: ali.publicKey,
-    paymentAmount: String(10_000_000_000), // 1 CSPR
+    paymentAmount: String(2_500_000_000), // 2.5 CSPR
     signingKeys: [ali],
   },
   args: balanceOfArgs,
@@ -382,7 +382,7 @@ const ownerOfArgs = {
 const ownerResult = await cep78.ownerOf({
   params: {
     sender: ali.publicKey,
-    paymentAmount: String(10_000_000_000), // 1 CSPR
+    paymentAmount: String(2_500_000_000), // 2.5 CSPR
     signingKeys: [ali],
   },
   args: ownerOfArgs,

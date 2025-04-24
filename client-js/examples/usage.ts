@@ -140,7 +140,7 @@ const usage = async () => {
   console.info('Register');
   params = {
     sender: ali.publicKey,
-    paymentAmount: String(500_000_000), // 0.5 CSPR
+    paymentAmount: String(2_500_000_000), // 0.5 CSPR
     signingKeys: [ali],
   };
 
@@ -182,7 +182,7 @@ const usage = async () => {
 
   params = {
     sender: ali.publicKey,
-    paymentAmount: String(1_000_000_000), // 1 CSPR
+    paymentAmount: String(2_500_000_000), // 2.5 CSPR
     signingKeys: [ali],
   };
 
@@ -217,7 +217,7 @@ const usage = async () => {
   console.info('Burn');
   params = {
     sender: ali.publicKey,
-    paymentAmount: String(1_000_000_000), // 1 CSPR
+    paymentAmount: String(2_500_000_000), // 2.5 CSPR
     signingKeys: [ali],
   };
 

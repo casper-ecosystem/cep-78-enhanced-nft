@@ -131,7 +131,7 @@ const usage = async () => {
 
   params = {
     sender: ali.publicKey,
-    paymentAmount: String(1_000_000_000), // 1 CSPR
+    paymentAmount: String(2_500_000_000), // 2.5 CSPR
     signingKeys: [ali],
   };
 
@@ -201,7 +201,7 @@ const usage = async () => {
   // SetApprovallForAll
   params = {
     sender: bob.publicKey,
-    paymentAmount: String(1_000_000_000), // 1 CSPR
+    paymentAmount: String(2_500_000_000), // 2.5 CSPR
     signingKeys: [bob],
   };
 
@@ -244,7 +244,7 @@ const usage = async () => {
 
   params = {
     sender: owner.publicKey,
-    paymentAmount: String(1_000_000_000), // 1 CSPR
+    paymentAmount: String(2_500_000_000), // 2.5 CSPR
     signingKeys: [owner],
   };
 
