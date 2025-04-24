@@ -2585,7 +2585,7 @@ fn install_contract() {
         Some(message_topics),
     );
 
-    // Store contract_hash and contract_version under the keys CONTRACT_NAME and CONTRACT_VERSION
+    // Store contract_hash and contract_version under account keys
     runtime::put_key(
         &format!("{PREFIX_CONTRACT_NAME}_{collection_name}"),
         Key::Hash(contract_hash.value()),
