@@ -460,8 +460,9 @@ export default class Client {
         errorMessage.substring(contractErrorMessagePrefix.length),
         10
       );
+      const contractError = new ContractError(errorCode);
       console.error(
-        `Error: ${new ContractError(errorCode).message}\nError code: ${new ContractError(errorCode).code}`
+        `Error: ${contractError.message}\nError code: ${contractError.code}`
       );
     } else {
       console.error(`Error: ${new Error(errorMessage).message}`);
@@ -489,7 +490,7 @@ export default class Client {
       return { transactionInfo };
     } catch (error) {
       throw new Error(
-        `Error during transaction execution.\n${transaction.hash.toHex()}\n${error}`
+        `error during transaction execution.\n${transaction.hash.toHex()}\n${error}\n${(error as any)?.sourceErr?.data}`
       );
     }
   }
