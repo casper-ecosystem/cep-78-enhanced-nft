@@ -2596,9 +2596,10 @@ fn install_contract() {
         storage::new_uref(get_contract_version_key(contract_version).to_string()).into(),
     );
 
-    let nft_contract_package_hash: PackageHash = runtime::get_key(&hash_key_name)
+    let nft_contract_package_hash: ContractPackageHash = runtime::get_key(&hash_key_name)
         .unwrap_or_revert_with(ApiError::User(297))
-        .into_package_hash()
+        .into_hash_addr()
+        .map(ContractPackageHash::new)
         .unwrap_or_revert_with(NFTCoreError::InvalidPackageHash);
 
     let events_mode: u8 = utils::get_optional_named_arg_with_user_errors(
