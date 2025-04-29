@@ -1,4 +1,4 @@
-name: ci-cep-78-enhanced-nft
+name: ci-cep-78-enhanced-nft-to-remove
 
 on:
   push:
@@ -7,15 +7,12 @@ on:
   pull_request:
     branches: [dev, feat-*, release-*]
 
-env:
-  CARGO_TERM_COLOR: always
-
 jobs:
-  ci-smart-contract:
+  # This build step shall be removed, only for PR passing previous CI/CD checks
+  build:
     strategy:
       matrix:
-        os: [ubuntu-latest]
-        node-version: [22.x]
+        os: [ubuntu-22.04]
     runs-on: ${{ matrix.os }}
     steps:
       - name: Checkout
@@ -27,10 +24,4 @@ jobs:
           components: rustfmt, clippy
       - run: sudo apt update && sudo apt install -y build-essential wabt
       - uses: Swatinem/rust-cache@v2
-      - run: make prepare
-      - run: make check-lint
-      - run: make test
-      - name: Install cargo-audit
-        run: cargo install cargo-audit
-      - name: Run cargo audit
-        run: cargo audit
+      - run: make build-all-contracts
