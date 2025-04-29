@@ -24,4 +24,5 @@ jobs:
           components: rustfmt, clippy
       - run: sudo apt update && sudo apt install -y build-essential wabt
       - uses: Swatinem/rust-cache@v2
+      - run: make prepare
       - run: make build-all-contracts
