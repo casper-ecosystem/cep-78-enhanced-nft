@@ -11,7 +11,7 @@ repository.workspace = true
 [dependencies]
 casper-types.workspace = true
 casper-contract.workspace = true
-casper-event-standard = { workspace = true, default-features = false }
+casper-event-standard.workspace = true
 serde = { version = "*", default-features = false }
 serde_json = { version = "*", default-features = false }
 serde-json-wasm = { version = "*", default-features = false }
@@ -24,3 +24,6 @@ path = "src/main.rs"
 bench = false
 doctest = false
 test = false
+
+[features]
+default = ["casper-contract/no-std-helpers"]
