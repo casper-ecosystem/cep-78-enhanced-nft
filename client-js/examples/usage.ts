@@ -1,237 +1,330 @@
+import { sha256 } from '@noble/hashes/sha256';
+import { bytesToHex } from '@noble/hashes/utils';
+import {
+  ExecutionResult,
+  PublicKey,
+  PutTransactionResult,
+} from 'casper-js-sdk';
+import { TextEncoder } from 'node:util';
+import {
+  PRIVATE_KEY_FAUCET,
+  SSE_URL,
+  PRIVATE_KEY_USER_1,
+  CHAIN_NAME,
+  RPC_URL,
+} from '../config';
 import {
   CEP78Client,
-  OwnerReverseLookupMode,
-  CEP47EventParserFactory,
-  CESEventParserFactory,
-  CEP47Events,
-} from "../src/index";
-
+  MintArgs,
+  OWNER_REVERSE_LOOKUP_MODE,
+  TransactionParams,
+  IDENTIFIER_MODE,
+  RegisterArgs,
+  TransferArgs,
+  BurnArgs,
+  TransactionResult,
+  OwnerOfArgs,
+} from '../dist';
 import {
-  FAUCET_KEYS,
-  USER1_KEYS,
-  USER2_KEYS,
-  getDeploy,
+  findKeyFromAccountNamedKeys,
   getAccountInfo,
-  getAccountNamedKeyValue,
-  printHeader,
-} from "./common";
+  getSigningKey,
+} from '../tests/utils';
 
-import {
-  DeployUtil,
-  CLPublicKey,
-  EventStream,
-  EventName,
-  CLValueParsers,
-  CLTypeTag,
-  CLMap,
-  CLValue,
-  CLValueBuilder,
-  CasperServiceByJsonRPC
-} from "casper-js-sdk";
+// Here you can check examples how to check balance, approve tokens, transfer tokens, and transfer tokens by allowance
 
-const { NODE_URL, EVENT_STREAM_ADDRESS } = process.env;
+if (!PRIVATE_KEY_FAUCET) {
+  throw new Error('FAUCET_SECRET_KEY environment variable is not set.');
+}
+if (!PRIVATE_KEY_USER_1) {
+  throw new Error('PRIVATE_KEY_USER_1 environment variable is not set.');
+}
 
-const runDeployFlow = async (deploy: DeployUtil.Deploy) => {
-  const deployHash = await deploy.send(NODE_URL!);
+const testCollectionName = 'TEST_CEP78',
+  owner = getSigningKey(PRIVATE_KEY_FAUCET),
+  ali = getSigningKey(PRIVATE_KEY_USER_1),
+  waitForTransactionProcessed = true;
 
-  console.log("...... Deploy hash: ", deployHash);
-  console.log("...... Waiting for the deploy...");
-
-  await getDeploy(NODE_URL!, deployHash);
-
-  console.log(`...... Deploy ${deployHash} succedeed`);
-};
-
-const run = async () => {
-  const cc = new CEP78Client(process.env.NODE_URL!, process.env.NETWORK_NAME!);
-
-  const printTokenDetails = async (id: string, pk: CLPublicKey) => {
-    const ownerOfToken = await cc.getOwnerOf(id);
-    console.log(`> Owner of token ${id} is ${ownerOfToken}`);
-
-    const ownerBalance = await cc.getBalanceOf(pk);
-    console.log(`> Account ${pk.toAccountHashStr()} balance ${ownerBalance}`);
-
-    const metadataOfZero = await cc.getMetadataOf(id);
-    console.log(`> Token ${id} metadata`, metadataOfZero);
-  };
-
-  let accountInfo = await getAccountInfo(NODE_URL!, FAUCET_KEYS.publicKey);
-
-  console.log(`\n=====================================\n`);
-
-  console.log(`... Account Info: `);
-  console.log(JSON.stringify(accountInfo, null, 2));
-
-  const contractHash = await getAccountNamedKeyValue(
-    accountInfo,
-    `cep78_contract_hash_my-collection`
-  );
-
-  const contractPackageHash = await getAccountNamedKeyValue(
-    accountInfo,
-    `cep78_contract_package_my-collection`
-  );
-
-  console.log(`... Contract Hash: ${contractHash}`);
-  console.log(`... Contract Package Hash: ${contractPackageHash}`);
-
-  await cc.setContractHash(contractHash, undefined);
-
-  console.log(`\n=====================================\n`);
-
-  const allowMintingSetting = await cc.getAllowMintingConfig();
-  console.log(`AllowMintingSetting: ${allowMintingSetting}`);
-
-  const burnModeSetting = await cc.getBurnModeConfig();
-  console.log(`BurnModeSetting: ${burnModeSetting}`);
-
-  const holderModeSetting = await cc.getHolderModeConfig();
-  console.log(`HolderModeSetting: ${holderModeSetting}`);
-
-  const identifierModeSetting = await cc.getIdentifierModeConfig();
-  console.log(`IdentifierModeSetting: ${identifierModeSetting}`);
-
-  const whitelistModeSetting = await cc.getWhitelistModeConfig();
-  console.log(`WhitelistMode: ${whitelistModeSetting}`);
-
-  const ownerReverseLookupModeSetting = await cc.getReportingModeConfig();
-  console.log(`OwnerReverseLookupMode: ${ownerReverseLookupModeSetting}`);
-
-  const useSessionCode =
-    ownerReverseLookupModeSetting ===
-    OwnerReverseLookupMode[OwnerReverseLookupMode.Complete];
-
-  const JSONSetting = await cc.getJSONSchemaConfig();
-
-  const cep47EventParser = CEP47EventParserFactory({
-    contractPackageHash,
-    eventNames: [
-      CEP47Events.Mint,
-      CEP47Events.Transfer,
-      CEP47Events.Burn
-    ],
-  });
-
-  const casperClient = new CasperServiceByJsonRPC(NODE_URL);
-  const cesEventParser = CESEventParserFactory({
-    contractHashes: [contractHash],
-    casperClient,
-  });
-
-  const es = new EventStream(EVENT_STREAM_ADDRESS!);
-
-  es.subscribe(EventName.DeployProcessed, async (event) => {
-    const parsedEvents = await cesEventParser(event); //cep47EventParser(event);
-
-    if (parsedEvents?.success) {
-      console.log("*** EVENT ***");
-      console.log(parsedEvents.data);
-      console.log("*** ***");
-    } else {
-      console.log("*** EVENT NOT RELATED TO WATCHED CONTRACT ***");
-    }
-  });
-
-  es.start();
-
-  /* Mint */
-  printHeader("Mint");
-
-  const mintDeploy = cc.mint(
-    {
-      owner: FAUCET_KEYS.publicKey,
-      meta: {
-        color: "Blue",
-        size: "Medium",
-        material: "Aluminum",
-        condition: "Used",
-      },
-      collectionName: "my-collection",
-    },
-    { useSessionCode },
-    "2000000000",
-    FAUCET_KEYS.publicKey,
-    [FAUCET_KEYS]
-  );
-
-  await runDeployFlow(mintDeploy);
-
-  /* Token details */
-  await printTokenDetails("0", FAUCET_KEYS.publicKey);
-
-  if (useSessionCode) {
-    /* Register */
-    printHeader("Register");
-
-    const registerDeployTwo = cc.register(
-      {
-        tokenOwner: USER1_KEYS.publicKey,
-      },
-      "1000000000",
-      USER1_KEYS.publicKey,
-      [USER1_KEYS]
+const usage = async () => {
+  const account = await getAccountInfo(RPC_URL, owner.publicKey),
+    contractHash = findKeyFromAccountNamedKeys(
+      account,
+      `cep78_contract_hash_${testCollectionName}`
     );
 
-    await runDeployFlow(registerDeployTwo);
+  const cep78 = new CEP78Client(RPC_URL, SSE_URL, CHAIN_NAME).setContractHash(
+    contractHash
+  );
+  console.info(`Contract Hash: ${cep78.contractHash.toPrefixedString()}`);
+
+  // Fetch some token info
+  const collectionName = await cep78.collectionName(),
+    symbol = await cep78.collectionSymbol(),
+    tokenTotalSupply = await cep78.tokenTotalSupply(),
+    allowMinting = await cep78.allowMinting(),
+    mintingMode = await cep78.mintingMode(),
+    burnMode = await cep78.burnMode(),
+    holderMode = await cep78.holderMode(),
+    identifierMode = await cep78.identifierMode(),
+    whitelistMode = await cep78.whitelistMode(),
+    ownerReverseLookupMode = await cep78.reportingMode(),
+    metadataMutability = await cep78.metadataMutability();
+
+  console.info('Collection info:', {
+    collectionName,
+    symbol,
+    tokenTotalSupply: tokenTotalSupply.toString(),
+    holderMode,
+    allowMinting,
+    mintingMode,
+    whitelistMode,
+    burnMode,
+    identifierMode,
+    metadataMutability,
+    ownerReverseLookupMode,
+  });
+
+  const callSessionWasm =
+    ownerReverseLookupMode ===
+    OWNER_REVERSE_LOOKUP_MODE[OWNER_REVERSE_LOOKUP_MODE.Complete];
+
+  const mintArgs: MintArgs = {
+    tokenOwner: owner.publicKey,
+    tokenMetaData: {
+      ipfs_cid: 'QmbWqxBEKC3P8tqsKc98xmWNzrzDtRLMiMPL8wBuTGsMnR',
+      color: 'Blue',
+    },
+  };
+
+  let tokenIdentifier: string;
+  if (identifierMode === IDENTIFIER_MODE[IDENTIFIER_MODE.Hash]) {
+    tokenIdentifier = bytesToHex(
+      sha256(
+        new TextEncoder().encode(
+          `my_custom_token_hash_${Math.floor(Math.random() * 1000000)}`
+        )
+      )
+    );
+    mintArgs.tokenHash = tokenIdentifier;
+  } else {
+    // If token identifier is not a custom hash or given token id, assume token id is owner current balance
+    tokenIdentifier = `${+(await cep78.numOfMintedTokens())}`;
   }
 
-  /* Transfer */
-  printHeader("Transfer");
+  mintArgs.tokenMetaData['ucid'] = tokenIdentifier;
 
-  const transferDeploy = cc.transfer(
-    {
-      tokenId: "0",
-      source: FAUCET_KEYS.publicKey,
-      target: USER1_KEYS.publicKey,
-    },
-    { useSessionCode },
-    "13000000000",
-    FAUCET_KEYS.publicKey,
-    [FAUCET_KEYS]
+  const ownerIsWhiteListed = await cep78.isAclWhitelisted(owner.publicKey);
+
+  if (!ownerIsWhiteListed) {
+    throw new Error('Owner is not whitelisted');
+  }
+
+  console.info(`Mint token ${tokenIdentifier}`);
+
+  let params = {
+    sender: owner.publicKey,
+    paymentAmount: String(5_000_000_000), // 5 CSPR
+    signingKeys: [owner],
+  };
+
+  await executeTransaction(
+    'mint',
+    cep78,
+    params,
+    mintArgs,
+    waitForTransactionProcessed,
+    callSessionWasm
+  );
+  await printTokenDetails(cep78, owner.publicKey, tokenIdentifier);
+
+  console.info('Register');
+  params = {
+    sender: ali.publicKey,
+    paymentAmount: String(2_500_000_000), // 2.5 CSPR
+    signingKeys: [ali],
+  };
+
+  await executeTransaction(
+    'register',
+    cep78,
+    params,
+    { tokenOwner: ali.publicKey },
+    waitForTransactionProcessed
   );
 
-  await runDeployFlow(transferDeploy);
+  console.info('Transfer');
+  params = {
+    sender: owner.publicKey,
+    paymentAmount: String(5_000_000_000), // 5 CSPR
+    signingKeys: [owner],
+  };
 
-  /* Token details */
-  await printTokenDetails("0", USER1_KEYS.publicKey);
+  const transferArgs = {
+    source: owner.publicKey,
+    target: ali.publicKey,
+    ...(identifierMode === IDENTIFIER_MODE[IDENTIFIER_MODE.Hash]
+      ? { tokenHash: tokenIdentifier }
+      : { tokenId: tokenIdentifier }),
+  };
 
-  /* Store owner of at account named key */
-  printHeader("Store owner of");
+  await executeTransaction(
+    'transfer',
+    cep78,
+    params,
+    transferArgs,
+    waitForTransactionProcessed,
+    callSessionWasm
+  );
+  await printTokenDetails(cep78, ali.publicKey, tokenIdentifier);
 
-  const storeOwnerOfDeploy = cc.storeOwnerOf(
-    {
-      keyName: "stored_owner_of_token",
-      tokenId: "0",
-    },
-    "13000000000",
-    FAUCET_KEYS.publicKey,
-    [FAUCET_KEYS]
+  // Store owner of at account named key
+  console.info(`Store owner of token ${tokenIdentifier}`);
+
+  params = {
+    sender: ali.publicKey,
+    paymentAmount: String(2_500_000_000), // 2.5 CSPR
+    signingKeys: [ali],
+  };
+
+  // Store ownerOfArgs, call session client contract and store to keyName
+  const keyName = 'stored_owner_of_token';
+
+  const ownerOfArgs: OwnerOfArgs = {
+    keyName,
+    ...(identifierMode === IDENTIFIER_MODE[IDENTIFIER_MODE.Hash]
+      ? { tokenHash: tokenIdentifier }
+      : { tokenId: tokenIdentifier }),
+  };
+
+  await executeTransaction(
+    'ownerOf',
+    cep78,
+    params,
+    ownerOfArgs,
+    waitForTransactionProcessed
   );
 
-  await runDeployFlow(storeOwnerOfDeploy);
-
-  // Getting new account info to update namedKeys
-  accountInfo = await getAccountInfo(NODE_URL!, FAUCET_KEYS.publicKey);
-
-  const storedOwnerValue = await getAccountNamedKeyValue(
-    accountInfo,
-    `stored_owner_of_token`
+  // Getting ali's account namedKeys, value was stored as temp data and may not reflect actual global state,
+  // specially after next burn action
+  const aliAccountInfo = await getAccountInfo(RPC_URL, ali.publicKey);
+  const storedOwnerOfValue = findKeyFromAccountNamedKeys(
+    aliAccountInfo,
+    keyName
   );
 
-  console.log(".. storedOwnerValue UREF: ", storedOwnerValue);
+  console.info(`Stored '${keyName}' value at URef: ${storedOwnerOfValue}`);
 
-  /* Burn */
-  printHeader("Burn");
+  console.info('Burn');
+  params = {
+    sender: ali.publicKey,
+    paymentAmount: String(2_500_000_000), // 2.5 CSPR
+    signingKeys: [ali],
+  };
 
-  const burnDeploy = cc.burn(
-    { tokenId: "0" },
-    "13000000000",
-    USER1_KEYS.publicKey,
-    [USER1_KEYS]
+  const burnArgs: { tokenHash?: string; tokenId?: string } =
+    identifierMode === IDENTIFIER_MODE[IDENTIFIER_MODE.Hash]
+      ? { tokenHash: tokenIdentifier }
+      : { tokenId: tokenIdentifier };
+
+  await executeTransaction(
+    'burn',
+    cep78,
+    params,
+    burnArgs,
+    waitForTransactionProcessed
   );
-
-  await runDeployFlow(burnDeploy);
 };
 
-run();
+async function executeTransaction(
+  action: 'mint' | 'register' | 'transfer' | 'burn' | 'ownerOf',
+  cep78: CEP78Client,
+  params: TransactionParams,
+  args: MintArgs | RegisterArgs | TransferArgs | BurnArgs | OwnerOfArgs,
+  waitForTransactionProcessed?: boolean,
+  callSessionWasm?: boolean
+): Promise<void> {
+  let transactionInfo: PutTransactionResult,
+    executionResult: ExecutionResult | undefined;
+
+  switch (action) {
+    case 'mint':
+      ({ transactionInfo, executionResult } = await cep78.mint(
+        {
+          params,
+          args: args as MintArgs,
+          waitForTransactionProcessed,
+        },
+        callSessionWasm
+      ));
+      break;
+    case 'register':
+      ({ transactionInfo, executionResult } = await cep78.register({
+        params,
+        args: args as RegisterArgs,
+        waitForTransactionProcessed,
+      }));
+      break;
+    case 'transfer':
+      ({ transactionInfo, executionResult } = await cep78.transfer(
+        {
+          params,
+          args: args as TransferArgs,
+          waitForTransactionProcessed,
+        },
+        callSessionWasm
+      ));
+      break;
+    case 'burn':
+      ({ transactionInfo, executionResult } = await cep78.burn({
+        params,
+        args: args as BurnArgs,
+        waitForTransactionProcessed,
+      }));
+      break;
+    case 'ownerOf':
+      ({ transactionInfo, executionResult } = (await cep78.ownerOf({
+        params,
+        args: args as OwnerOfArgs,
+        waitForTransactionProcessed,
+      })) as TransactionResult);
+      break;
+    default:
+      throw new Error(`Unknown action: ${action}`);
+  }
+
+  if (executionResult?.errorMessage) {
+    throw new Error(
+      `Error during ${action}.\n${executionResult?.errorMessage.toString()}`
+    );
+  } else {
+    console.info(
+      `${action.charAt(0).toUpperCase() + action.slice(1)} transaction hash: ${transactionInfo.transactionHash}`
+    );
+    console.info(
+      `${action.charAt(0).toUpperCase() + action.slice(1)} cost consumed: ${executionResult?.consumed}`
+    );
+  }
+}
+
+const printTokenDetails = async (
+  cep78: CEP78Client,
+  account: PublicKey,
+  tokenIdentifier: string
+) => {
+  const ownerBalance = (await cep78.balanceOf(account)) as string;
+  console.info(`Account ${account} balance ${ownerBalance}`);
+
+  const tokenOwner = (await cep78.ownerOf(tokenIdentifier)) as string;
+  console.info(`Owner of token ${tokenIdentifier} is ${tokenOwner}`);
+
+  const metadata = (await cep78.metadata(tokenIdentifier)) as unknown;
+  console.info(`Metadata:`, metadata);
+};
+
+usage()
+  .then(() => {
+    console.info('Usage completed successfully.');
+  })
+  .catch((error) => {
+    console.error('Usage failed:', error);
+  });

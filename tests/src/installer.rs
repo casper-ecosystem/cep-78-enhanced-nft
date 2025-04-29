@@ -1,10 +1,7 @@
-use casper_engine_test_support::{
-    ExecuteRequestBuilder, InMemoryWasmTestBuilder, DEFAULT_ACCOUNT_ADDR,
-    PRODUCTION_RUN_GENESIS_REQUEST,
-};
-use casper_event_standard::Schemas;
-use casper_types::{runtime_args, CLValue, ContractHash, Key, RuntimeArgs};
-use contract::{
+use casper_engine_test_support::{ExecuteRequestBuilder, DEFAULT_ACCOUNT_ADDR};
+use casper_event_standard::{Schemas, EVENTS_SCHEMA};
+use casper_types::{contracts::ContractHash, runtime_args, CLValue, Key};
+use cep78::{
     constants::{
         ACL_WHITELIST, ARG_ALLOW_MINTING, ARG_COLLECTION_NAME, ARG_COLLECTION_SYMBOL,
         ARG_HOLDER_MODE, ARG_MINTING_MODE, ARG_TOTAL_TOKEN_SUPPLY, ARG_WHITELIST_MODE,
@@ -22,15 +19,15 @@ use crate::utility::{
         InstallerRequestBuilder, MintingMode, NFTHolderMode, NFTIdentifierMode, NFTMetadataKind,
         OwnerReverseLookupMode, OwnershipMode, WhitelistMode,
     },
-    support::{self, get_dictionary_value_from_key, get_nft_contract_hash},
+    support::{
+        self, genesis, get_dictionary_value_from_key, get_nft_contract_hash_key,
+        get_nft_contract_package_hash_cep78,
+    },
 };
 
 #[test]
 fn should_install_contract() {
-    let mut builder = InMemoryWasmTestBuilder::default();
-    builder
-        .run_genesis(&PRODUCTION_RUN_GENESIS_REQUEST)
-        .commit();
+    let mut builder = genesis();
 
     let install_request = InstallerRequestBuilder::new(*DEFAULT_ACCOUNT_ADDR, NFT_CONTRACT_WASM)
         .with_collection_name(NFT_TEST_COLLECTION.to_string())
@@ -41,13 +38,10 @@ fn should_install_contract() {
 
     builder.exec(install_request).expect_success().commit();
 
-    let nft_contract_key: Key = get_nft_contract_hash(&builder).into();
+    let nft_contract_key: Key = get_nft_contract_hash_key(&builder);
 
-    let query_result: String = support::query_stored_value(
-        &builder,
-        nft_contract_key,
-        vec![ARG_COLLECTION_NAME.to_string()],
-    );
+    let query_result: String =
+        support::query_stored_value(&builder, nft_contract_key, ARG_COLLECTION_NAME);
 
     assert_eq!(
         query_result,
@@ -55,11 +49,8 @@ fn should_install_contract() {
         "collection_name initialized at installation should exist"
     );
 
-    let query_result: String = support::query_stored_value(
-        &builder,
-        nft_contract_key,
-        vec![ARG_COLLECTION_SYMBOL.to_string()],
-    );
+    let query_result: String =
+        support::query_stored_value(&builder, nft_contract_key, ARG_COLLECTION_SYMBOL);
 
     assert_eq!(
         query_result,
@@ -67,41 +58,29 @@ fn should_install_contract() {
         "collection_symbol initialized at installation should exist"
     );
 
-    let query_result: u64 = support::query_stored_value(
-        &builder,
-        nft_contract_key,
-        vec![ARG_TOTAL_TOKEN_SUPPLY.to_string()],
-    );
+    let query_result: u64 =
+        support::query_stored_value(&builder, nft_contract_key, ARG_TOTAL_TOKEN_SUPPLY);
 
     assert_eq!(
         query_result, 1u64,
         "total_token_supply initialized at installation should exist"
     );
 
-    let query_result: bool = support::query_stored_value(
-        &builder,
-        nft_contract_key,
-        vec![ARG_ALLOW_MINTING.to_string()],
-    );
+    let query_result: bool =
+        support::query_stored_value(&builder, nft_contract_key, ARG_ALLOW_MINTING);
 
     assert!(query_result, "Allow minting should default to true");
 
-    let query_result: u8 = support::query_stored_value(
-        &builder,
-        nft_contract_key,
-        vec![ARG_MINTING_MODE.to_string()],
-    );
+    let query_result: u8 =
+        support::query_stored_value(&builder, nft_contract_key, ARG_MINTING_MODE);
 
     assert_eq!(
         query_result, 0u8,
         "minting mode should default to installer"
     );
 
-    let query_result: u64 = support::query_stored_value(
-        &builder,
-        nft_contract_key,
-        vec![NUMBER_OF_MINTED_TOKENS.to_string()],
-    );
+    let query_result: u64 =
+        support::query_stored_value(&builder, nft_contract_key, NUMBER_OF_MINTED_TOKENS);
 
     assert_eq!(
         query_result, 0u64,
@@ -119,20 +98,14 @@ fn should_install_contract() {
         .with::<MetadataUpdated>()
         .with::<VariablesSet>()
         .with::<Migration>();
-    let actual_schemas: Schemas = support::query_stored_value(
-        &builder,
-        nft_contract_key,
-        vec![casper_event_standard::EVENTS_SCHEMA.to_string()],
-    );
+    let actual_schemas: Schemas =
+        support::query_stored_value(&builder, nft_contract_key, EVENTS_SCHEMA);
     assert_eq!(actual_schemas, expected_schemas, "Schemas mismatch.");
 }
 
 #[test]
 fn should_only_allow_init_during_installation_session() {
-    let mut builder = InMemoryWasmTestBuilder::default();
-    builder
-        .run_genesis(&PRODUCTION_RUN_GENESIS_REQUEST)
-        .commit();
+    let mut builder = genesis();
 
     let install_request_builder =
         InstallerRequestBuilder::new(*DEFAULT_ACCOUNT_ADDR, NFT_CONTRACT_WASM)
@@ -169,10 +142,7 @@ fn should_only_allow_init_during_installation_session() {
 
 #[test]
 fn should_install_with_allow_minting_set_to_false() {
-    let mut builder = InMemoryWasmTestBuilder::default();
-    builder
-        .run_genesis(&PRODUCTION_RUN_GENESIS_REQUEST)
-        .commit();
+    let mut builder = genesis();
 
     let install_request = InstallerRequestBuilder::new(*DEFAULT_ACCOUNT_ADDR, NFT_CONTRACT_WASM)
         .with_collection_name(NFT_TEST_COLLECTION.to_string())
@@ -228,10 +198,7 @@ fn should_reject_non_numerical_total_token_supply_value() {
 
 #[test]
 fn should_install_with_contract_holder_mode() {
-    let mut builder = InMemoryWasmTestBuilder::default();
-    builder
-        .run_genesis(&PRODUCTION_RUN_GENESIS_REQUEST)
-        .commit();
+    let mut builder = genesis();
 
     let contract_whitelist = vec![Key::from(ContractHash::default())];
 
@@ -247,13 +214,10 @@ fn should_install_with_contract_holder_mode() {
         .expect_success()
         .commit();
 
-    let nft_contract_key: Key = get_nft_contract_hash(&builder).into();
+    let nft_contract_key: Key = get_nft_contract_hash_key(&builder);
 
-    let actual_holder_mode: u8 = support::query_stored_value(
-        &builder,
-        nft_contract_key,
-        vec![ARG_HOLDER_MODE.to_string()],
-    );
+    let actual_holder_mode: u8 =
+        support::query_stored_value(&builder, nft_contract_key, ARG_HOLDER_MODE);
 
     assert_eq!(
         actual_holder_mode,
@@ -261,11 +225,8 @@ fn should_install_with_contract_holder_mode() {
         "holder mode is not set to contracts"
     );
 
-    let actual_whitelist_mode: u8 = support::query_stored_value(
-        &builder,
-        nft_contract_key,
-        vec![ARG_WHITELIST_MODE.to_string()],
-    );
+    let actual_whitelist_mode: u8 =
+        support::query_stored_value(&builder, nft_contract_key, ARG_WHITELIST_MODE);
 
     assert_eq!(
         actual_whitelist_mode,
@@ -286,11 +247,6 @@ fn should_install_with_contract_holder_mode() {
 fn should_disallow_installation_of_contract_with_empty_locked_whitelist_with_holder_mode(
     nft_holder_mode: NFTHolderMode,
 ) {
-    let mut builder = InMemoryWasmTestBuilder::default();
-    builder
-        .run_genesis(&PRODUCTION_RUN_GENESIS_REQUEST)
-        .commit();
-
     let install_request_builder =
         InstallerRequestBuilder::new(*DEFAULT_ACCOUNT_ADDR, NFT_CONTRACT_WASM)
             .with_holder_mode(nft_holder_mode)
@@ -320,10 +276,7 @@ fn should_disallow_installation_of_contract_with_empty_locked_whitelist() {
 
 #[test]
 fn should_disallow_installation_with_zero_issuance() {
-    let mut builder = InMemoryWasmTestBuilder::default();
-    builder
-        .run_genesis(&PRODUCTION_RUN_GENESIS_REQUEST)
-        .commit();
+    let mut builder = genesis();
 
     let install_request = InstallerRequestBuilder::new(*DEFAULT_ACCOUNT_ADDR, NFT_CONTRACT_WASM)
         .with_collection_name(NFT_TEST_COLLECTION.to_string())
@@ -343,10 +296,7 @@ fn should_disallow_installation_with_zero_issuance() {
 
 #[test]
 fn should_disallow_installation_with_supply_exceeding_hard_cap() {
-    let mut builder = InMemoryWasmTestBuilder::default();
-    builder
-        .run_genesis(&PRODUCTION_RUN_GENESIS_REQUEST)
-        .commit();
+    let mut builder = genesis();
 
     let install_request = InstallerRequestBuilder::new(*DEFAULT_ACCOUNT_ADDR, NFT_CONTRACT_WASM)
         .with_collection_name(NFT_TEST_COLLECTION.to_string())
@@ -370,10 +320,7 @@ fn should_disallow_installation_with_supply_exceeding_hard_cap() {
 
 #[test]
 fn should_prevent_installation_with_ownership_and_minting_modality_conflict() {
-    let mut builder = InMemoryWasmTestBuilder::default();
-    builder
-        .run_genesis(&PRODUCTION_RUN_GENESIS_REQUEST)
-        .commit();
+    let mut builder = genesis();
 
     let install_request = InstallerRequestBuilder::new(*DEFAULT_ACCOUNT_ADDR, NFT_CONTRACT_WASM)
         .with_collection_name(NFT_TEST_COLLECTION.to_string())
@@ -397,10 +344,7 @@ fn should_prevent_installation_with_ownership_and_minting_modality_conflict() {
 
 #[test]
 fn should_prevent_installation_with_ownership_minter_and_owner_reverse_lookup_mode_transfer_only() {
-    let mut builder = InMemoryWasmTestBuilder::default();
-    builder
-        .run_genesis(&PRODUCTION_RUN_GENESIS_REQUEST)
-        .commit();
+    let mut builder = genesis();
 
     let install_request = InstallerRequestBuilder::new(*DEFAULT_ACCOUNT_ADDR, NFT_CONTRACT_WASM)
         .with_collection_name(NFT_TEST_COLLECTION.to_string())
@@ -425,10 +369,7 @@ fn should_prevent_installation_with_ownership_minter_and_owner_reverse_lookup_mo
 #[test]
 fn should_prevent_installation_with_ownership_assigned_and_owner_reverse_lookup_mode_transfer_only()
 {
-    let mut builder = InMemoryWasmTestBuilder::default();
-    builder
-        .run_genesis(&PRODUCTION_RUN_GENESIS_REQUEST)
-        .commit();
+    let mut builder = genesis();
 
     let install_request = InstallerRequestBuilder::new(*DEFAULT_ACCOUNT_ADDR, NFT_CONTRACT_WASM)
         .with_collection_name(NFT_TEST_COLLECTION.to_string())
@@ -453,10 +394,7 @@ fn should_prevent_installation_with_ownership_assigned_and_owner_reverse_lookup_
 #[test]
 fn should_allow_installation_with_ownership_transferable_and_owner_reverse_lookup_mode_transfer_only(
 ) {
-    let mut builder = InMemoryWasmTestBuilder::default();
-    builder
-        .run_genesis(&PRODUCTION_RUN_GENESIS_REQUEST)
-        .commit();
+    let mut builder = genesis();
 
     let install_request = InstallerRequestBuilder::new(*DEFAULT_ACCOUNT_ADDR, NFT_CONTRACT_WASM)
         .with_collection_name(NFT_TEST_COLLECTION.to_string())
@@ -468,4 +406,40 @@ fn should_allow_installation_with_ownership_transferable_and_owner_reverse_looku
         .build();
 
     builder.exec(install_request).expect_success().commit();
+}
+
+#[test]
+fn should_prevent_double_install_but_upgrade_instead() {
+    let mut builder = genesis();
+
+    let install_request = InstallerRequestBuilder::new(*DEFAULT_ACCOUNT_ADDR, NFT_CONTRACT_WASM)
+        .with_collection_name(NFT_TEST_COLLECTION.to_string())
+        .with_collection_symbol(NFT_TEST_SYMBOL.to_string())
+        .with_total_token_supply(1u64)
+        .with_reporting_mode(OwnerReverseLookupMode::NoLookUp)
+        .build();
+
+    builder.exec(install_request).expect_success().commit();
+
+    let first_nft_contract_package_hash = get_nft_contract_package_hash_cep78(&builder);
+
+    dbg!(first_nft_contract_package_hash);
+
+    let install_request = InstallerRequestBuilder::new(*DEFAULT_ACCOUNT_ADDR, NFT_CONTRACT_WASM)
+        .with_collection_name(NFT_TEST_COLLECTION.to_string())
+        .with_collection_symbol(NFT_TEST_SYMBOL.to_string())
+        .with_total_token_supply(1u64)
+        .with_reporting_mode(OwnerReverseLookupMode::NoLookUp)
+        .build();
+
+    builder.exec(install_request).expect_success().commit();
+
+    let last_nft_contract_package_hash = get_nft_contract_package_hash_cep78(&builder);
+
+    assert_eq!(
+        first_nft_contract_package_hash,
+        last_nft_contract_package_hash
+    );
+
+    dbg!(last_nft_contract_package_hash);
 }

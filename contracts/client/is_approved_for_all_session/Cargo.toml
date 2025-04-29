@@ -1,0 +1,15 @@
+[package]
+name = "is_approved_for_all_session"
+version.workspace = true
+edition.workspace = true
+
+[dependencies]
+casper-types.workspace = true
+casper-contract = { workspace = true, features = ["no-std-helpers"] }
+
+[[bin]]
+name = "is_approved_for_all_session"
+path = "src/main.rs"
+bench = false
+doctest = false
+test = false

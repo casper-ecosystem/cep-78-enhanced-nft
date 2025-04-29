@@ -1,98 +1,93 @@
-import {
-  CLValueParsers,
-  CLMap,
-  CLString,
-  CLValueBuilder,
-  CLTypeTag,
-  CLValue,
-  CasperServiceByJsonRPC,
-} from "casper-js-sdk";
+import { CLValue, Hash, Message } from 'casper-js-sdk';
 
-import { Parser } from "@make-software/ces-js-parser";
+export enum CEP47_EVENTS {
+  Mint = 'Mint',
+  Burn = 'Burn',
+  Approval = 'Approval',
+  ApprovalRevoked = 'ApprovalRevoked',
+  ApprovalForAll = 'ApprovalForAll',
+  RevokedForAll = 'RevokedForAll',
+  Transfer = 'Transfer',
+  MetadataUpdated = 'MetadataUpdated',
+  VariablesSet = 'VariablesSet',
+  Migration = 'Migration',
+}
 
-import { CEP78_CONTRACT_PACKAGE } from "./constants";
-import { EventItem, EventParsed, CEP47Events, Transform } from "./types";
+export enum CEP78_EVENTS {
+  Mint = 'Mint',
+  Burn = 'Burn',
+  Approval = 'Approval',
+  ApprovalRevoked = 'ApprovalRevoked',
+  ApprovalForAll = 'ApprovalForAll',
+  RevokedForAll = 'RevokedForAll',
+  Transfer = 'Transfer',
+  MetadataUpdated = 'MetadataUpdated',
+  VariablesSet = 'VariablesSet',
+  Migration = 'Migration',
+}
 
-export const CEP47EventParserFactory =
-  ({
-    contractPackageHash,
-    eventNames,
-  }: {
-    contractPackageHash: string;
-    eventNames: CEP47Events[];
-  }) =>
-  (value: EventItem) => {
-    if (!value.body.DeployProcessed.execution_result.Success) {
-      return null;
-    }
+type EventName = keyof typeof CEP78_EVENTS;
 
-    if (value.body.DeployProcessed.execution_result.Success) {
-      const { transforms } =
-        value.body.DeployProcessed.execution_result.Success.effect;
+export type Event<E extends Record<string, CLValue>> = {
+  name: EventName;
+  contractHash: Hash;
+  contractPackageHash: Hash;
+  eventId: number;
+  data: E;
+};
 
-      const cep47Events = transforms.reduce(
-        (acc: EventParsed[], val: Transform) => {
-          if (val.transform.WriteCLValue?.cl_type === "Any") {
-            const maybeCLValue = CLValueParsers.fromBytesWithType(
-              Buffer.from(val.transform.WriteCLValue?.bytes, "hex")
-            );
-            const clValue = maybeCLValue.unwrap();
+export interface TransactionInfo {
+  transactionHash: string;
+  timestamp: string;
+  messages: Message[];
+}
 
-            if (clValue?.clType().tag === CLTypeTag.Map) {
-              const hash = (clValue as CLMap<CLValue, CLValue>).get(
-                CLValueBuilder.string(CEP78_CONTRACT_PACKAGE)
-              );
+export type WithTransactionInfo<E> = E & { transactionInfo: TransactionInfo };
 
-              const hashToCompare = (hash as CLString).value().slice(21);
+export type CEP78EventResult = WithTransactionInfo<CEP78Event>;
 
-              const event = (clValue as CLMap<CLValue, CLValue>)
-                .get(CLValueBuilder.string("event_type"))
-                .value() as string;
+export type CEP78Event = Event<
+  | Mint
+  | Burn
+  | Approval
+  | ApprovalRevoked
+  | ApprovalForAll
+  | RevokedForAll
+  | Transfer
+  | MetadataUpdated
+  | VariablesSet
+  | Migration
+>;
 
-              if (
-                hash &&
-                hashToCompare === contractPackageHash.slice(5) &&
-                event &&
-                eventNames.includes(event as CEP47Events)
-              ) {
-                /* eslint-disable-next-line no-param-reassign */
-                acc = [...acc, { name: event, clValue }];
-              }
-            }
-          }
-          return acc;
-        },
-        []
-      );
+export type EventsMap = {
+  Mint: WithTransactionInfo<Event<Mint>>;
+  Burn: WithTransactionInfo<Event<Burn>>;
+  Approval: WithTransactionInfo<Event<Approval>>;
+  ApprovalRevoked: WithTransactionInfo<Event<ApprovalRevoked>>;
+  ApprovalForAll: WithTransactionInfo<Event<ApprovalForAll>>;
+  RevokedForAll: WithTransactionInfo<Event<RevokedForAll>>;
+  Transfer: WithTransactionInfo<Event<Transfer>>;
+  MetadataUpdated: WithTransactionInfo<Event<MetadataUpdated>>;
+  VariablesSet: WithTransactionInfo<Event<VariablesSet>>;
+  Migration: WithTransactionInfo<Event<Migration>>;
+};
 
-      // For now we're returning error: null because failed deploys doesn't contain contract-package-hash so we can't identify them.
-      // But as this is part of node-1.5 release I'm keeping this so we won't change interface here.
-      return { error: null, success: !!cep47Events.length, data: cep47Events };
-    }
+export type Mint = { recipient: CLValue; token_id: CLValue; data: CLValue };
 
-    return null;
-  };
+export type Burn = { owner: CLValue; amount: CLValue };
 
-export const CESEventParserFactory =
-  ({
-    contractHashes,
-    // TODO: IDEALLY in future I would love to have here a schema as an argument instead of casperClient. That way the whole thing can be initialized offline as the whole client.
-    casperClient,
-  }: {
-    contractHashes: string[];
-    casperClient: CasperServiceByJsonRPC;
-  }) =>
-  async (event: EventItem) => {
-    const validatedHashes = contractHashes.map((hash) =>
-      hash.startsWith("hash-") ? hash.slice(5) : hash
-    );
-    const parser = await Parser.create(casperClient, validatedHashes);
+export type Approval = { owner: CLValue; spender: CLValue; token_id: CLValue };
 
-    try {
-      const toParse = event.body.DeployProcessed.execution_result;
-      const events = parser.parseExecutionResult(toParse);
-      return { error: null, success: !!events.length, data: events };
-    } catch (error: unknown) {
-      return { error, success: false, data: null };
-    }
-  };
+export type ApprovalRevoked = { owner: CLValue; token_id: CLValue };
+
+export type ApprovalForAll = { owner: CLValue; operator: CLValue };
+
+export type RevokedForAll = { owner: CLValue; operator: CLValue };
+
+export type Transfer = { sender: CLValue; recipient: CLValue; amount: CLValue };
+
+export type MetadataUpdated = { token_id: CLValue; data: CLValue };
+
+export type VariablesSet = {};
+
+export type Migration = {};

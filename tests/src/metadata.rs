@@ -1,11 +1,8 @@
 use core::panic;
 
-use casper_engine_test_support::{
-    ExecuteRequestBuilder, InMemoryWasmTestBuilder, DEFAULT_ACCOUNT_ADDR,
-    PRODUCTION_RUN_GENESIS_REQUEST,
-};
-use casper_types::{account::AccountHash, runtime_args, Key, RuntimeArgs};
-use contract::{
+use casper_engine_test_support::{ExecuteRequestBuilder, DEFAULT_ACCOUNT_ADDR};
+use casper_types::{account::AccountHash, contracts::ContractHash, runtime_args, Key};
+use cep78::{
     constants::{
         ACL_WHITELIST, ARG_COLLECTION_NAME, ARG_TOKEN_HASH, ARG_TOKEN_ID, ARG_TOKEN_META_DATA,
         ARG_TOKEN_OWNER, ENTRY_POINT_METADATA, ENTRY_POINT_MINT, ENTRY_POINT_SET_TOKEN_METADATA,
@@ -17,26 +14,25 @@ use contract::{
 
 use crate::utility::{
     constants::{
-        ARG_IS_HASH_IDENTIFIER_MODE, ARG_NFT_CONTRACT_HASH, ARG_REVERSE_LOOKUP,
-        MALFORMED_META_DATA, MINTING_CONTRACT_WASM, MINT_SESSION_WASM, NFT_CONTRACT_WASM,
-        NFT_TEST_COLLECTION, TEST_PRETTY_721_META_DATA, TEST_PRETTY_CEP78_METADATA,
-        TEST_PRETTY_UPDATED_721_META_DATA, TEST_PRETTY_UPDATED_CEP78_METADATA, TOKEN_HASH,
+        ARG_NFT_CONTRACT_HASH, ARG_REVERSE_LOOKUP, DEFAULT_ACCOUNT_KEY, MALFORMED_META_DATA,
+        MINTING_CONTRACT_WASM, MINT_SESSION_WASM, NFT_CONTRACT_WASM, NFT_TEST_COLLECTION,
+        TEST_PRETTY_721_META_DATA, TEST_PRETTY_CEP78_METADATA, TEST_PRETTY_UPDATED_721_META_DATA,
+        TEST_PRETTY_UPDATED_CEP78_METADATA, TOKEN_HASH,
     },
     installer_request_builder::{
         InstallerRequestBuilder, MetadataMutability, MintingMode, NFTHolderMode, NFTIdentifierMode,
         NFTMetadataKind, OwnerReverseLookupMode, OwnershipMode, WhitelistMode,
         TEST_CUSTOM_METADATA, TEST_CUSTOM_METADATA_SCHEMA, TEST_CUSTOM_UPDATED_METADATA,
     },
-    support,
-    support::{assert_expected_error, get_minting_contract_hash, get_nft_contract_hash},
+    support::{
+        self, assert_expected_error, genesis, get_minting_contract_hash,
+        get_minting_contract_hash_key, get_nft_contract_hash_key,
+    },
 };
 
 #[test]
 fn should_prevent_update_in_immutable_mode() {
-    let mut builder = InMemoryWasmTestBuilder::default();
-    builder
-        .run_genesis(&PRODUCTION_RUN_GENESIS_REQUEST)
-        .commit();
+    let mut builder = genesis();
 
     let install_request = InstallerRequestBuilder::new(*DEFAULT_ACCOUNT_ADDR, NFT_CONTRACT_WASM)
         .with_total_token_supply(10u64)
@@ -48,14 +44,14 @@ fn should_prevent_update_in_immutable_mode() {
 
     builder.exec(install_request).expect_success().commit();
 
-    let nft_contract_key: Key = support::get_nft_contract_hash(&builder).into();
+    let nft_contract_key: Key = get_nft_contract_hash_key(&builder);
 
     let mint_token_request = ExecuteRequestBuilder::standard(
         *DEFAULT_ACCOUNT_ADDR,
         MINT_SESSION_WASM,
         runtime_args! {
             ARG_NFT_CONTRACT_HASH => nft_contract_key,
-            ARG_TOKEN_OWNER => Key::Account(*DEFAULT_ACCOUNT_ADDR),
+            ARG_TOKEN_OWNER => *DEFAULT_ACCOUNT_KEY,
             ARG_TOKEN_META_DATA => TEST_PRETTY_721_META_DATA,
             ARG_COLLECTION_NAME => NFT_TEST_COLLECTION.to_string()
         },
@@ -87,10 +83,7 @@ fn should_prevent_update_in_immutable_mode() {
 
 #[test]
 fn should_prevent_install_with_hash_identifier_in_mutable_mode() {
-    let mut builder = InMemoryWasmTestBuilder::default();
-    builder
-        .run_genesis(&PRODUCTION_RUN_GENESIS_REQUEST)
-        .commit();
+    let mut builder = genesis();
 
     let install_request = InstallerRequestBuilder::new(*DEFAULT_ACCOUNT_ADDR, NFT_CONTRACT_WASM)
         .with_total_token_supply(10u64)
@@ -108,10 +101,7 @@ fn should_prevent_install_with_hash_identifier_in_mutable_mode() {
 
 #[test]
 fn should_prevent_update_for_invalid_metadata() {
-    let mut builder = InMemoryWasmTestBuilder::default();
-    builder
-        .run_genesis(&PRODUCTION_RUN_GENESIS_REQUEST)
-        .commit();
+    let mut builder = genesis();
 
     let install_request = InstallerRequestBuilder::new(*DEFAULT_ACCOUNT_ADDR, NFT_CONTRACT_WASM)
         .with_total_token_supply(10u64)
@@ -123,14 +113,14 @@ fn should_prevent_update_for_invalid_metadata() {
 
     builder.exec(install_request).expect_success().commit();
 
-    let nft_contract_key: Key = support::get_nft_contract_hash(&builder).into();
+    let nft_contract_key: Key = get_nft_contract_hash_key(&builder);
 
     let mint_token_request = ExecuteRequestBuilder::standard(
         *DEFAULT_ACCOUNT_ADDR,
         MINT_SESSION_WASM,
         runtime_args! {
             ARG_NFT_CONTRACT_HASH => nft_contract_key,
-            ARG_TOKEN_OWNER => Key::Account(*DEFAULT_ACCOUNT_ADDR),
+            ARG_TOKEN_OWNER => *DEFAULT_ACCOUNT_KEY,
             ARG_TOKEN_META_DATA => TEST_PRETTY_721_META_DATA,
             ARG_COLLECTION_NAME => NFT_TEST_COLLECTION.to_string()
         },
@@ -164,10 +154,7 @@ fn should_prevent_update_for_invalid_metadata() {
 
 #[test]
 fn should_prevent_metadata_update_by_non_owner_key() {
-    let mut builder = InMemoryWasmTestBuilder::default();
-    builder
-        .run_genesis(&PRODUCTION_RUN_GENESIS_REQUEST)
-        .commit();
+    let mut builder = genesis();
 
     let install_request = InstallerRequestBuilder::new(*DEFAULT_ACCOUNT_ADDR, NFT_CONTRACT_WASM)
         .with_total_token_supply(10u64)
@@ -179,7 +166,7 @@ fn should_prevent_metadata_update_by_non_owner_key() {
 
     builder.exec(install_request).expect_success().commit();
 
-    let nft_contract_key: Key = support::get_nft_contract_hash(&builder).into();
+    let nft_contract_key: Key = get_nft_contract_hash_key(&builder);
 
     let nft_owner_account_key = Key::Account(AccountHash::new([4u8; 32]));
 
@@ -237,10 +224,7 @@ fn should_allow_update_for_valid_metadata_based_on_kind(
     nft_metadata_kind: NFTMetadataKind,
     identifier_mode: NFTIdentifierMode,
 ) {
-    let mut builder = InMemoryWasmTestBuilder::default();
-    builder
-        .run_genesis(&PRODUCTION_RUN_GENESIS_REQUEST)
-        .commit();
+    let mut builder = genesis();
 
     let install_request = InstallerRequestBuilder::new(*DEFAULT_ACCOUNT_ADDR, NFT_CONTRACT_WASM)
         .with_total_token_supply(10u64)
@@ -256,7 +240,7 @@ fn should_allow_update_for_valid_metadata_based_on_kind(
 
     builder.exec(install_request).expect_success().commit();
 
-    let nft_contract_key: Key = support::get_nft_contract_hash(&builder).into();
+    let nft_contract_key: Key = support::get_nft_contract_hash_key(&builder);
 
     let custom_metadata = serde_json::to_string_pretty(&*TEST_CUSTOM_METADATA)
         .expect("must convert to json metadata");
@@ -273,7 +257,7 @@ fn should_allow_update_for_valid_metadata_based_on_kind(
         MINT_SESSION_WASM,
         runtime_args! {
             ARG_NFT_CONTRACT_HASH => nft_contract_key,
-            ARG_TOKEN_OWNER => Key::Account(*DEFAULT_ACCOUNT_ADDR),
+            ARG_TOKEN_OWNER => *DEFAULT_ACCOUNT_KEY,
             ARG_TOKEN_META_DATA => original_metadata.to_string(),
             ARG_COLLECTION_NAME => NFT_TEST_COLLECTION.to_string()
         },
@@ -368,7 +352,7 @@ fn should_allow_update_for_valid_metadata_based_on_kind(
         NFTIdentifierMode::Ordinal => TokenIdentifier::Index(0),
         NFTIdentifierMode::Hash => TokenIdentifier::Hash(token_hash),
     };
-    let expected_event = MetadataUpdated::new(token_id, updated_metadata.to_string());
+    let expected_event = MetadataUpdated::new(&token_id, updated_metadata.to_string());
     let actual_event: MetadataUpdated = support::get_event(&builder, &nft_contract_key, 1).unwrap();
     assert_eq!(
         actual_event, expected_event,
@@ -402,10 +386,7 @@ fn should_update_metadata_for_custom_validated_using_token_id() {
 
 #[test]
 fn should_get_metadata_using_token_id() {
-    let mut builder = InMemoryWasmTestBuilder::default();
-    builder
-        .run_genesis(&PRODUCTION_RUN_GENESIS_REQUEST)
-        .commit();
+    let mut builder = genesis();
 
     let minting_contract_install_request = ExecuteRequestBuilder::standard(
         *DEFAULT_ACCOUNT_ADDR,
@@ -419,10 +400,11 @@ fn should_get_metadata_using_token_id() {
         .expect_success()
         .commit();
 
-    let minting_contract_hash = get_minting_contract_hash(&builder);
-    let minting_contract_key: Key = minting_contract_hash.into();
-
+    // TODO check
+    let minting_contract_hash: ContractHash = get_minting_contract_hash(&builder).into();
     let contract_whitelist = vec![Key::from(minting_contract_hash)];
+
+    let minting_contract_key: Key = get_minting_contract_hash_key(&builder);
 
     let install_request = InstallerRequestBuilder::new(*DEFAULT_ACCOUNT_ADDR, NFT_CONTRACT_WASM)
         .with_total_token_supply(100u64)
@@ -436,7 +418,7 @@ fn should_get_metadata_using_token_id() {
 
     builder.exec(install_request).expect_success().commit();
 
-    let nft_contract_key: Key = get_nft_contract_hash(&builder).into();
+    let nft_contract_key: Key = get_nft_contract_hash_key(&builder);
 
     let is_whitelisted_account = support::get_dictionary_value_from_key::<bool>(
         &builder,
@@ -456,7 +438,7 @@ fn should_get_metadata_using_token_id() {
 
     let minting_request = ExecuteRequestBuilder::contract_call_by_hash(
         *DEFAULT_ACCOUNT_ADDR,
-        minting_contract_hash,
+        minting_contract_hash.into(),
         ENTRY_POINT_MINT,
         mint_runtime_args,
     )
@@ -475,10 +457,9 @@ fn should_get_metadata_using_token_id() {
 
     let get_metadata_request = ExecuteRequestBuilder::contract_call_by_hash(
         *DEFAULT_ACCOUNT_ADDR,
-        minting_contract_hash,
+        minting_contract_hash.into(),
         ENTRY_POINT_METADATA,
         runtime_args! {
-            ARG_IS_HASH_IDENTIFIER_MODE => false,
             ARG_TOKEN_ID => 0u64,
             ARG_NFT_CONTRACT_HASH => nft_contract_key
         },
@@ -490,10 +471,7 @@ fn should_get_metadata_using_token_id() {
 
 #[test]
 fn should_get_metadata_using_token_metadata_hash() {
-    let mut builder = InMemoryWasmTestBuilder::default();
-    builder
-        .run_genesis(&PRODUCTION_RUN_GENESIS_REQUEST)
-        .commit();
+    let mut builder = genesis();
 
     let minting_contract_install_request = ExecuteRequestBuilder::standard(
         *DEFAULT_ACCOUNT_ADDR,
@@ -507,10 +485,11 @@ fn should_get_metadata_using_token_metadata_hash() {
         .expect_success()
         .commit();
 
-    let minting_contract_hash = get_minting_contract_hash(&builder);
-    let minting_contract_key: Key = minting_contract_hash.into();
-
+    // TODO check
+    let minting_contract_hash: ContractHash = get_minting_contract_hash(&builder).into();
     let contract_whitelist = vec![Key::from(minting_contract_hash)];
+
+    let minting_contract_key: Key = get_minting_contract_hash_key(&builder);
 
     let install_request = InstallerRequestBuilder::new(*DEFAULT_ACCOUNT_ADDR, NFT_CONTRACT_WASM)
         .with_total_token_supply(100u64)
@@ -526,7 +505,7 @@ fn should_get_metadata_using_token_metadata_hash() {
 
     builder.exec(install_request).expect_success().commit();
 
-    let nft_contract_key: Key = get_nft_contract_hash(&builder).into();
+    let nft_contract_key: Key = get_nft_contract_hash_key(&builder);
 
     let is_whitelisted_account = support::get_dictionary_value_from_key::<bool>(
         &builder,
@@ -546,7 +525,7 @@ fn should_get_metadata_using_token_metadata_hash() {
 
     let minting_request = ExecuteRequestBuilder::contract_call_by_hash(
         *DEFAULT_ACCOUNT_ADDR,
-        minting_contract_hash,
+        minting_contract_hash.into(),
         ENTRY_POINT_MINT,
         mint_runtime_args,
     )
@@ -567,10 +546,9 @@ fn should_get_metadata_using_token_metadata_hash() {
 
     let get_metadata_request = ExecuteRequestBuilder::contract_call_by_hash(
         *DEFAULT_ACCOUNT_ADDR,
-        minting_contract_hash,
+        minting_contract_hash.into(),
         ENTRY_POINT_METADATA,
         runtime_args! {
-            ARG_IS_HASH_IDENTIFIER_MODE => true,
             ARG_TOKEN_HASH => token_hash,
             ARG_NFT_CONTRACT_HASH => nft_contract_key
         },
@@ -582,10 +560,7 @@ fn should_get_metadata_using_token_metadata_hash() {
 
 #[test]
 fn should_revert_minting_token_metadata_hash_twice() {
-    let mut builder = InMemoryWasmTestBuilder::default();
-    builder
-        .run_genesis(&PRODUCTION_RUN_GENESIS_REQUEST)
-        .commit();
+    let mut builder = genesis();
 
     let minting_contract_install_request = ExecuteRequestBuilder::standard(
         *DEFAULT_ACCOUNT_ADDR,
@@ -599,10 +574,11 @@ fn should_revert_minting_token_metadata_hash_twice() {
         .expect_success()
         .commit();
 
-    let minting_contract_hash = get_minting_contract_hash(&builder);
-    let minting_contract_key: Key = minting_contract_hash.into();
-
+    // TODO check
+    let minting_contract_hash: ContractHash = get_minting_contract_hash(&builder).into();
     let contract_whitelist = vec![Key::from(minting_contract_hash)];
+
+    let minting_contract_key: Key = get_minting_contract_hash_key(&builder);
 
     let install_request = InstallerRequestBuilder::new(*DEFAULT_ACCOUNT_ADDR, NFT_CONTRACT_WASM)
         .with_total_token_supply(100u64)
@@ -618,7 +594,7 @@ fn should_revert_minting_token_metadata_hash_twice() {
 
     builder.exec(install_request).expect_success().commit();
 
-    let nft_contract_key: Key = get_nft_contract_hash(&builder).into();
+    let nft_contract_key: Key = get_nft_contract_hash_key(&builder);
 
     let is_whitelisted_account = support::get_dictionary_value_from_key::<bool>(
         &builder,
@@ -638,7 +614,7 @@ fn should_revert_minting_token_metadata_hash_twice() {
 
     let minting_request = ExecuteRequestBuilder::contract_call_by_hash(
         *DEFAULT_ACCOUNT_ADDR,
-        minting_contract_hash,
+        minting_contract_hash.into(),
         ENTRY_POINT_MINT,
         mint_runtime_args.clone(),
     )
@@ -659,10 +635,9 @@ fn should_revert_minting_token_metadata_hash_twice() {
 
     let get_metadata_request = ExecuteRequestBuilder::contract_call_by_hash(
         *DEFAULT_ACCOUNT_ADDR,
-        minting_contract_hash,
+        minting_contract_hash.into(),
         ENTRY_POINT_METADATA,
         runtime_args! {
-            ARG_IS_HASH_IDENTIFIER_MODE => true,
             ARG_TOKEN_HASH => token_hash,
             ARG_NFT_CONTRACT_HASH => nft_contract_key
         },
@@ -673,7 +648,7 @@ fn should_revert_minting_token_metadata_hash_twice() {
 
     let failing_minting_request = ExecuteRequestBuilder::contract_call_by_hash(
         *DEFAULT_ACCOUNT_ADDR,
-        minting_contract_hash,
+        minting_contract_hash.into(),
         ENTRY_POINT_MINT,
         mint_runtime_args,
     )
@@ -687,10 +662,7 @@ fn should_revert_minting_token_metadata_hash_twice() {
 
 #[test]
 fn should_get_metadata_using_custom_token_hash() {
-    let mut builder = InMemoryWasmTestBuilder::default();
-    builder
-        .run_genesis(&PRODUCTION_RUN_GENESIS_REQUEST)
-        .commit();
+    let mut builder = genesis();
 
     let minting_contract_install_request = ExecuteRequestBuilder::standard(
         *DEFAULT_ACCOUNT_ADDR,
@@ -704,10 +676,11 @@ fn should_get_metadata_using_custom_token_hash() {
         .expect_success()
         .commit();
 
-    let minting_contract_hash = get_minting_contract_hash(&builder);
-    let minting_contract_key: Key = minting_contract_hash.into();
-
+    // TODO check
+    let minting_contract_hash: ContractHash = get_minting_contract_hash(&builder).into();
     let contract_whitelist = vec![Key::from(minting_contract_hash)];
+
+    let minting_contract_key: Key = get_minting_contract_hash_key(&builder);
 
     let install_request = InstallerRequestBuilder::new(*DEFAULT_ACCOUNT_ADDR, NFT_CONTRACT_WASM)
         .with_total_token_supply(100u64)
@@ -723,7 +696,7 @@ fn should_get_metadata_using_custom_token_hash() {
 
     builder.exec(install_request).expect_success().commit();
 
-    let nft_contract_key: Key = get_nft_contract_hash(&builder).into();
+    let nft_contract_key: Key = get_nft_contract_hash_key(&builder);
 
     let is_whitelisted_account = support::get_dictionary_value_from_key::<bool>(
         &builder,
@@ -744,7 +717,7 @@ fn should_get_metadata_using_custom_token_hash() {
 
     let minting_request = ExecuteRequestBuilder::contract_call_by_hash(
         *DEFAULT_ACCOUNT_ADDR,
-        minting_contract_hash,
+        minting_contract_hash.into(),
         ENTRY_POINT_MINT,
         mint_runtime_args,
     )
@@ -762,10 +735,9 @@ fn should_get_metadata_using_custom_token_hash() {
 
     let get_metadata_request = ExecuteRequestBuilder::contract_call_by_hash(
         *DEFAULT_ACCOUNT_ADDR,
-        minting_contract_hash,
+        minting_contract_hash.into(),
         ENTRY_POINT_METADATA,
         runtime_args! {
-            ARG_IS_HASH_IDENTIFIER_MODE => true,
             ARG_TOKEN_HASH => TOKEN_HASH.to_string(),
             ARG_NFT_CONTRACT_HASH => nft_contract_key
         },
@@ -777,10 +749,7 @@ fn should_get_metadata_using_custom_token_hash() {
 
 #[test]
 fn should_revert_minting_custom_token_hash_identifier_twice() {
-    let mut builder = InMemoryWasmTestBuilder::default();
-    builder
-        .run_genesis(&PRODUCTION_RUN_GENESIS_REQUEST)
-        .commit();
+    let mut builder = genesis();
 
     let minting_contract_install_request = ExecuteRequestBuilder::standard(
         *DEFAULT_ACCOUNT_ADDR,
@@ -794,10 +763,11 @@ fn should_revert_minting_custom_token_hash_identifier_twice() {
         .expect_success()
         .commit();
 
-    let minting_contract_hash = get_minting_contract_hash(&builder);
-    let minting_contract_key: Key = minting_contract_hash.into();
-
+    // TODO check
+    let minting_contract_hash: ContractHash = get_minting_contract_hash(&builder).into();
     let contract_whitelist = vec![Key::from(minting_contract_hash)];
+
+    let minting_contract_key: Key = get_minting_contract_hash_key(&builder);
 
     let install_request = InstallerRequestBuilder::new(*DEFAULT_ACCOUNT_ADDR, NFT_CONTRACT_WASM)
         .with_total_token_supply(100u64)
@@ -813,7 +783,7 @@ fn should_revert_minting_custom_token_hash_identifier_twice() {
 
     builder.exec(install_request).expect_success().commit();
 
-    let nft_contract_key: Key = get_nft_contract_hash(&builder).into();
+    let nft_contract_key: Key = get_nft_contract_hash_key(&builder);
 
     let is_whitelisted_account = support::get_dictionary_value_from_key::<bool>(
         &builder,
@@ -834,7 +804,7 @@ fn should_revert_minting_custom_token_hash_identifier_twice() {
 
     let minting_request = ExecuteRequestBuilder::contract_call_by_hash(
         *DEFAULT_ACCOUNT_ADDR,
-        minting_contract_hash,
+        minting_contract_hash.into(),
         ENTRY_POINT_MINT,
         mint_runtime_args.clone(),
     )
@@ -852,10 +822,9 @@ fn should_revert_minting_custom_token_hash_identifier_twice() {
 
     let get_metadata_request = ExecuteRequestBuilder::contract_call_by_hash(
         *DEFAULT_ACCOUNT_ADDR,
-        minting_contract_hash,
+        minting_contract_hash.into(),
         ENTRY_POINT_METADATA,
         runtime_args! {
-            ARG_IS_HASH_IDENTIFIER_MODE => true,
             ARG_TOKEN_HASH => TOKEN_HASH.to_string(),
             ARG_NFT_CONTRACT_HASH => nft_contract_key
         },
@@ -866,7 +835,7 @@ fn should_revert_minting_custom_token_hash_identifier_twice() {
 
     let failing_minting_request = ExecuteRequestBuilder::contract_call_by_hash(
         *DEFAULT_ACCOUNT_ADDR,
-        minting_contract_hash,
+        minting_contract_hash.into(),
         ENTRY_POINT_MINT,
         mint_runtime_args,
     )
@@ -888,10 +857,7 @@ fn get_schema() {
 
 #[test]
 fn should_require_valid_json_schema_when_kind_is_custom_validated() {
-    let mut builder = InMemoryWasmTestBuilder::default();
-    builder
-        .run_genesis(&PRODUCTION_RUN_GENESIS_REQUEST)
-        .commit();
+    let mut builder = genesis();
 
     let nft_metadata_kind = NFTMetadataKind::CustomValidated;
 
@@ -911,10 +877,7 @@ fn should_require_valid_json_schema_when_kind_is_custom_validated() {
 
 #[test]
 fn should_require_json_schema_when_kind_is_custom_validated() {
-    let mut builder = InMemoryWasmTestBuilder::default();
-    builder
-        .run_genesis(&PRODUCTION_RUN_GENESIS_REQUEST)
-        .commit();
+    let mut builder = genesis();
 
     let nft_metadata_kind = NFTMetadataKind::CustomValidated;
 
@@ -934,10 +897,7 @@ fn should_require_json_schema_when_kind_is_custom_validated() {
 }
 
 fn should_not_require_json_schema_when_kind_is(nft_metadata_kind: NFTMetadataKind) {
-    let mut builder = InMemoryWasmTestBuilder::default();
-    builder
-        .run_genesis(&PRODUCTION_RUN_GENESIS_REQUEST)
-        .commit();
+    let mut builder = genesis();
 
     let install_request = InstallerRequestBuilder::new(*DEFAULT_ACCOUNT_ADDR, NFT_CONTRACT_WASM)
         .with_total_token_supply(10u64)
@@ -950,7 +910,7 @@ fn should_not_require_json_schema_when_kind_is(nft_metadata_kind: NFTMetadataKin
 
     builder.exec(install_request).expect_success().commit();
 
-    let nft_contract_key: Key = support::get_nft_contract_hash(&builder).into();
+    let nft_contract_key: Key = support::get_nft_contract_hash_key(&builder);
 
     let original_metadata = match &nft_metadata_kind {
         NFTMetadataKind::CEP78 => TEST_PRETTY_CEP78_METADATA,
@@ -967,7 +927,7 @@ fn should_not_require_json_schema_when_kind_is(nft_metadata_kind: NFTMetadataKin
         MINT_SESSION_WASM,
         runtime_args! {
             ARG_NFT_CONTRACT_HASH => nft_contract_key,
-            ARG_TOKEN_OWNER => Key::Account(*DEFAULT_ACCOUNT_ADDR),
+            ARG_TOKEN_OWNER => *DEFAULT_ACCOUNT_KEY,
             ARG_TOKEN_META_DATA => original_metadata.to_string(),
             ARG_COLLECTION_NAME => NFT_TEST_COLLECTION.to_string()
         },

@@ -1,0 +1,15 @@
+[package]
+name = "updated_receipts"
+version.workspace = true
+edition.workspace = true
+
+[dependencies]
+casper-types.workspace = true
+casper-contract = { workspace = true, features = ["no-std-helpers"] }
+
+[[bin]]
+name = "updated_receipts"
+path = "src/main.rs"
+bench = false
+doctest = false
+test = false

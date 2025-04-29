@@ -1,31 +1,28 @@
-use casper_engine_test_support::{
-    ExecuteRequestBuilder, InMemoryWasmTestBuilder, DEFAULT_ACCOUNT_ADDR,
-    PRODUCTION_RUN_GENESIS_REQUEST,
-};
-use casper_types::{account::AccountHash, runtime_args, Key, RuntimeArgs};
-use contract::constants::{
+use casper_engine_test_support::{ExecuteRequestBuilder, DEFAULT_ACCOUNT_ADDR};
+use casper_types::{account::AccountHash, runtime_args, Key};
+use cep78::constants::{
     ARG_COLLECTION_NAME, ARG_SOURCE_KEY, ARG_TARGET_KEY, ARG_TOKEN_ID, ARG_TOKEN_META_DATA,
     ARG_TOKEN_OWNER, ENTRY_POINT_REGISTER_OWNER,
 };
 
-use crate::utility::{
-    constants::{
-        ARG_IS_HASH_IDENTIFIER_MODE, ARG_NFT_CONTRACT_HASH, MINT_SESSION_WASM, NFT_CONTRACT_WASM,
-        NFT_TEST_COLLECTION, NFT_TEST_SYMBOL, TRANSFER_SESSION_WASM,
+use crate::{
+    costs::support::get_nft_contract_hash_key,
+    utility::{
+        constants::{
+            ARG_NFT_CONTRACT_HASH, DEFAULT_ACCOUNT_KEY, MINT_SESSION_WASM, NFT_CONTRACT_WASM,
+            NFT_TEST_COLLECTION, NFT_TEST_SYMBOL, TRANSFER_SESSION_WASM,
+        },
+        installer_request_builder::{
+            InstallerRequestBuilder, NFTIdentifierMode, NFTMetadataKind, OwnerReverseLookupMode,
+            OwnershipMode,
+        },
+        support::{self, genesis, get_nft_contract_hash},
     },
-    installer_request_builder::{
-        InstallerRequestBuilder, NFTIdentifierMode, NFTMetadataKind, OwnerReverseLookupMode,
-        OwnershipMode,
-    },
-    support,
 };
 
 #[test]
 fn mint_cost_should_remain_stable() {
-    let mut builder = InMemoryWasmTestBuilder::default();
-    builder
-        .run_genesis(&PRODUCTION_RUN_GENESIS_REQUEST)
-        .commit();
+    let mut builder = genesis();
 
     let install_request = InstallerRequestBuilder::new(*DEFAULT_ACCOUNT_ADDR, NFT_CONTRACT_WASM)
         .with_collection_name(NFT_TEST_COLLECTION.to_string())
@@ -38,14 +35,14 @@ fn mint_cost_should_remain_stable() {
 
     builder.exec(install_request).expect_success().commit();
 
-    let nft_contract_key: Key = support::get_nft_contract_hash(&builder).into();
+    let nft_contract_key: Key = support::get_nft_contract_hash_key(&builder);
 
     let first_mint_request = ExecuteRequestBuilder::standard(
         *DEFAULT_ACCOUNT_ADDR,
         MINT_SESSION_WASM,
         runtime_args! {
             ARG_NFT_CONTRACT_HASH => nft_contract_key,
-            ARG_TOKEN_OWNER => Key::Account(*DEFAULT_ACCOUNT_ADDR),
+            ARG_TOKEN_OWNER => *DEFAULT_ACCOUNT_KEY,
             ARG_TOKEN_META_DATA => "",
             ARG_COLLECTION_NAME => NFT_TEST_COLLECTION.to_string()
         },
@@ -59,7 +56,7 @@ fn mint_cost_should_remain_stable() {
         MINT_SESSION_WASM,
         runtime_args! {
             ARG_NFT_CONTRACT_HASH => nft_contract_key,
-            ARG_TOKEN_OWNER => Key::Account(*DEFAULT_ACCOUNT_ADDR),
+            ARG_TOKEN_OWNER => *DEFAULT_ACCOUNT_KEY,
             ARG_TOKEN_META_DATA => "",
             ARG_COLLECTION_NAME => NFT_TEST_COLLECTION.to_string()
         },
@@ -71,14 +68,14 @@ fn mint_cost_should_remain_stable() {
     // We check only the second and third gas costs as the first mint cost
     // has the additional gas of allocating a whole new page. Thus we ensure
     // that costs once a page has been allocated remain stable.
-    let second_mint_gas_costs = builder.last_exec_gas_cost();
+    let second_mint_gas_costs = builder.last_exec_gas_consumed();
 
     let third_mint_request = ExecuteRequestBuilder::standard(
         *DEFAULT_ACCOUNT_ADDR,
         MINT_SESSION_WASM,
         runtime_args! {
             ARG_NFT_CONTRACT_HASH => nft_contract_key,
-            ARG_TOKEN_OWNER => Key::Account(*DEFAULT_ACCOUNT_ADDR),
+            ARG_TOKEN_OWNER => *DEFAULT_ACCOUNT_KEY,
             ARG_TOKEN_META_DATA => "",
             ARG_COLLECTION_NAME => NFT_TEST_COLLECTION.to_string()
         },
@@ -87,17 +84,14 @@ fn mint_cost_should_remain_stable() {
 
     builder.exec(third_mint_request).expect_success().commit();
 
-    let third_mint_gas_costs = builder.last_exec_gas_cost();
+    let third_mint_gas_costs = builder.last_exec_gas_consumed();
 
     assert_eq!(second_mint_gas_costs, third_mint_gas_costs);
 }
 
 #[test]
 fn transfer_costs_should_remain_stable() {
-    let mut builder = InMemoryWasmTestBuilder::default();
-    builder
-        .run_genesis(&PRODUCTION_RUN_GENESIS_REQUEST)
-        .commit();
+    let mut builder = genesis();
 
     let install_request = InstallerRequestBuilder::new(*DEFAULT_ACCOUNT_ADDR, NFT_CONTRACT_WASM)
         .with_collection_name(NFT_TEST_COLLECTION.to_string())
@@ -110,8 +104,8 @@ fn transfer_costs_should_remain_stable() {
 
     builder.exec(install_request).expect_success().commit();
 
-    let nft_contract_hash = support::get_nft_contract_hash(&builder);
-    let nft_contract_key: Key = nft_contract_hash.into();
+    let nft_contract_hash = get_nft_contract_hash(&builder);
+    let nft_contract_key: Key = get_nft_contract_hash_key(&builder);
 
     for _ in 0..3 {
         let mint_request = ExecuteRequestBuilder::standard(
@@ -119,7 +113,7 @@ fn transfer_costs_should_remain_stable() {
             MINT_SESSION_WASM,
             runtime_args! {
                 ARG_NFT_CONTRACT_HASH => nft_contract_key,
-                ARG_TOKEN_OWNER => Key::Account(*DEFAULT_ACCOUNT_ADDR),
+                ARG_TOKEN_OWNER => *DEFAULT_ACCOUNT_KEY,
                 ARG_TOKEN_META_DATA => "",
                 ARG_COLLECTION_NAME => NFT_TEST_COLLECTION.to_string()
             },
@@ -146,8 +140,7 @@ fn transfer_costs_should_remain_stable() {
         TRANSFER_SESSION_WASM,
         runtime_args! {
             ARG_NFT_CONTRACT_HASH => nft_contract_key,
-            ARG_IS_HASH_IDENTIFIER_MODE => false,
-            ARG_SOURCE_KEY => Key::Account(*DEFAULT_ACCOUNT_ADDR),
+            ARG_SOURCE_KEY => *DEFAULT_ACCOUNT_KEY,
             ARG_TARGET_KEY => Key::Account(AccountHash::new([9u8; 32])),
             ARG_TOKEN_ID => 0u64,
         },
@@ -164,8 +157,7 @@ fn transfer_costs_should_remain_stable() {
         TRANSFER_SESSION_WASM,
         runtime_args! {
             ARG_NFT_CONTRACT_HASH => nft_contract_key,
-            ARG_IS_HASH_IDENTIFIER_MODE => false,
-            ARG_SOURCE_KEY => Key::Account(*DEFAULT_ACCOUNT_ADDR),
+            ARG_SOURCE_KEY => *DEFAULT_ACCOUNT_KEY,
             ARG_TARGET_KEY => Key::Account(AccountHash::new([9u8; 32])),
             ARG_TOKEN_ID => 1u64,
         },
@@ -180,15 +172,14 @@ fn transfer_costs_should_remain_stable() {
     // We check only the second and third gas costs as the first transfer cost
     // has the additional gas of allocating a whole new page. Thus we ensure
     // that costs once a page has been allocated remain stable.
-    let second_transfer_gas_cost = builder.last_exec_gas_cost();
+    let second_transfer_gas_cost = builder.last_exec_gas_consumed();
 
     let third_transfer_request = ExecuteRequestBuilder::standard(
         *DEFAULT_ACCOUNT_ADDR,
         TRANSFER_SESSION_WASM,
         runtime_args! {
             ARG_NFT_CONTRACT_HASH => nft_contract_key,
-            ARG_IS_HASH_IDENTIFIER_MODE => false,
-            ARG_SOURCE_KEY => Key::Account(*DEFAULT_ACCOUNT_ADDR),
+            ARG_SOURCE_KEY => *DEFAULT_ACCOUNT_KEY,
             ARG_TARGET_KEY => Key::Account(AccountHash::new([9u8; 32])),
             ARG_TOKEN_ID => 2u64,
         },
@@ -200,16 +191,13 @@ fn transfer_costs_should_remain_stable() {
         .expect_success()
         .commit();
 
-    let third_transfer_gas_cost = builder.last_exec_gas_cost();
+    let third_transfer_gas_cost = builder.last_exec_gas_consumed();
 
     assert_eq!(second_transfer_gas_cost, third_transfer_gas_cost);
 }
 
 fn should_cost_less_when_installing_without_reverse_lookup(reporting: OwnerReverseLookupMode) {
-    let mut builder = InMemoryWasmTestBuilder::default();
-    builder
-        .run_genesis(&PRODUCTION_RUN_GENESIS_REQUEST)
-        .commit();
+    let mut builder = genesis();
 
     let install_request = InstallerRequestBuilder::new(*DEFAULT_ACCOUNT_ADDR, NFT_CONTRACT_WASM)
         .with_collection_name(NFT_TEST_COLLECTION.to_string())
@@ -223,13 +211,15 @@ fn should_cost_less_when_installing_without_reverse_lookup(reporting: OwnerRever
 
     builder.exec(install_request).expect_success().commit();
 
-    let reverse_lookup_gas_cost = builder.last_exec_gas_cost();
+    let reverse_lookup_gas_cost = builder.last_exec_gas_consumed();
 
-    let reverse_lookup_hash: Key = support::get_nft_contract_hash(&builder).into();
+    let reverse_lookup_hash: Key = support::get_nft_contract_hash_key(&builder);
 
     let page_dictionary_lookup = builder.query(None, reverse_lookup_hash, &["page_0".to_string()]);
 
     assert!(page_dictionary_lookup.is_ok());
+
+    let mut builder = genesis();
 
     let install_request = InstallerRequestBuilder::new(*DEFAULT_ACCOUNT_ADDR, NFT_CONTRACT_WASM)
         .with_collection_name(NFT_TEST_COLLECTION.to_string())
@@ -243,9 +233,9 @@ fn should_cost_less_when_installing_without_reverse_lookup(reporting: OwnerRever
 
     builder.exec(install_request).expect_success().commit();
 
-    let no_lookup_gas_cost = builder.last_exec_gas_cost();
+    let no_lookup_gas_cost = builder.last_exec_gas_consumed();
 
-    let no_lookup_hash: Key = support::get_nft_contract_hash(&builder).into();
+    let no_lookup_hash: Key = support::get_nft_contract_hash_key(&builder);
 
     let page_dictionary_lookup = builder.query(None, no_lookup_hash, &["page_0".to_string()]);
 
