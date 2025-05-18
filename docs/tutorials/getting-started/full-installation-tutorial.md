@@ -96,7 +96,7 @@ Initializing the contract happens through the `call() -> install_contract() -> i
 
 ### Contract Entrypoints
 
-This section briefly explains the essential entrypoints used in the Casper NFT contract. To see their full implementation, refer to the [main.rs](../../../contract/src/main.rs) contract file. For further questions, contact the Casper support team via the [Discord channel](https://discord.com/invite/casperblockchain).
+This section briefly explains the essential entrypoints used in the Casper NFT contract. To see their full implementation, refer to the [main.rs](../../../contract/src/main.rs) contract file. For further questions, contact the Casper support team via the [Discord channel](https://discord.gg/caspernetwork).
 
 - [**approve**](https://github.com/casper-ecosystem/cep-78-enhanced-nft/blob/440bff44277ab5fd295f37229fe92278339d3753/contract/src/main.rs#L1002) - Allows a spender to transfer up to an amount of the owners’s tokens
 - [**balance_of**](https://github.com/casper-ecosystem/cep-78-enhanced-nft/blob/440bff44277ab5fd295f37229fe92278339d3753/contract/src/main.rs#L1616) - Returns the token balance of the owner
