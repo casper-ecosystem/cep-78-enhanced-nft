@@ -12,7 +12,7 @@ This tutorial uses the Casper command-line client to upgrade _and_ migrate from 
 
 ## Upgrading and Migrating Terminology
 
-An [upgrade](https://docs.casperlabs.io/dapp-dev-guide/writing-contracts/upgrading-contracts/) is the usual manner to release newer versions of a contract inside a contract package. When users install v1.1.\* of a CEP-78 contract, they perform an upgrade and a data migration to a new [page system](../reverse-lookup.md#the-cep-78-page-system) tracking token ownership. The [OwnerReverseLookupMode](../modalities.md#ownerreverselookupmode) modality introduced in version 1.1.0 allows users to list NFTs by owner. The [README](../README.md) states:
+An [upgrade](https://docs.casper.network/developers/writing-onchain-code/upgrading-contracts) is the usual manner to release newer versions of a contract inside a contract package. When users install v1.1.\* of a CEP-78 contract, they perform an upgrade and a data migration to a new [page system](../reverse-lookup.md#the-cep-78-page-system) tracking token ownership. The [OwnerReverseLookupMode](../modalities.md#ownerreverselookupmode) modality introduced in version 1.1.0 allows users to list NFTs by owner. The [README](../README.md) states:
 
 ```
 If you are upgrading a contract from CEP-78 version 1.0 to 1.1, `OwnerReverseLookupMode` will be set to `Complete`, as this was the standard behavior of CEP-78 1.0. In addition to being set to `Complete`, existing records will be migrated into the CEP-78 1.1 format, which will impose a one-time gas cost to cover the migration.
@@ -86,7 +86,7 @@ The following is an example of upgrading and migrating to version 1.1.1 of a pre
 
 ```bash
 casper-client put-deploy \
---node-addres https://rpc.testnet.casperlabs.io/ \
+--node-addres https://node.testnet.casper.network/rpc \
 --chain-name "casper-test" \
 --secret-key ~/KEYS/secret_key.pem \
 --payment-amount 300000000000 \

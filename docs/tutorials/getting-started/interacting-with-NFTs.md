@@ -255,7 +255,7 @@ To check an account's balance, get the latest state root hash and query the `bal
 <summary><b>Casper client commands without comments</b></summary>
 
 ```bash
-casper-client get-state-root-hash --node-address https://rpc.testnet.casperlabs.io/
+casper-client get-state-root-hash --node-address https://node.testnet.casper.network/rpc
 
 casper-client get-dictionary-item -n http://localhost:11101/rpc/ \
 --state-root-hash f22e8ecfb3d2700d5f902c83da456c32f130b73d0d35037fe89b2d4b4933673f \
