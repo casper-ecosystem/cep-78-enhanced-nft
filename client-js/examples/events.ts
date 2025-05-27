@@ -12,7 +12,7 @@ import {
   SetApprovallForAllArgs,
   IsApprovedForAllArgs,
   IsApprovedForAlldParams,
-} from '../dist';
+} from 'dist';
 import { TextEncoder } from 'node:util';
 import {
   PRIVATE_KEY_FAUCET,
@@ -189,7 +189,7 @@ const usage = async () => {
   });
 
   console.info(
-    `Contract  Transfer transaction hash: ${transactionInfo.transactionHash}`
+    `Contract  Transfer transaction hash: ${transactionInfo.transactionHash.toHex()}`
   );
 
   const bobBalance = await cep78.balanceOf(bob.publicKey);
@@ -217,7 +217,7 @@ const usage = async () => {
   }));
 
   console.info(
-    `Contract SetApprovalForAll transaction hash: ${transactionInfo.transactionHash}`
+    `Contract SetApprovalForAll transaction hash: ${transactionInfo.transactionHash.toHex()}`
   );
 
   // IsApprovedForAlldParams, query global state dictionary
@@ -266,14 +266,14 @@ const eventListener = async (
   eventResult: CEP78EventResult
 ) => {
   const { transactionInfo, executionResult } = await cep78
-    .getTransactionResult(eventResult.transactionInfo.transactionHash)
+    .getTransactionResult(eventResult.transactionInfo.transactionHash.toHex())
     .then((transactionResult: InfoGetTransactionResult) => ({
       transactionInfo: eventResult.transactionInfo,
       executionResult: transactionResult.executionInfo?.executionResult,
     }));
 
   console.info(
-    `Contract ${eventType} transaction hash: ${transactionInfo.transactionHash}`
+    `Contract ${eventType} transaction hash: ${transactionInfo.transactionHash.toHex()}`
   );
 
   if (executionResult) {

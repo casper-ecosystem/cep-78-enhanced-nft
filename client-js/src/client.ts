@@ -256,7 +256,7 @@ export default class Client {
         async (processEvent) => {
           if (
             processEvent.transactionProcessedPayload.transactionHash
-              .toString()
+              .toHex()
               .toLowerCase() === transactionHash.toLowerCase()
           ) {
             clearTimeout(timeoutId);
@@ -356,7 +356,7 @@ export default class Client {
               ({
                 ...result,
                 transactionInfo: {
-                  transactionHash: transactionHash.toString(),
+                  transactionHash: transactionHash,
                   timestamp,
                   messages,
                 },
@@ -478,7 +478,7 @@ export default class Client {
 
       if (waitForTransactionProcessed && transactionInfo.transactionHash) {
         const processedEvent = await this.waitForTransactionProcessed(
-          transactionInfo.transactionHash.toString()
+          transactionInfo.transactionHash.toHex()
         );
         return {
           transactionInfo,

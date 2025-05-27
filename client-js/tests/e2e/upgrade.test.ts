@@ -41,7 +41,7 @@ describe('CEP78Client - E2E Upgrade', () => {
       });
 
     expect(
-      transactionResult.transactionInfo.transactionHash.toString()
+      transactionResult.transactionInfo.transactionHash.toHex()
     ).toBeTruthy();
   });
 
@@ -63,7 +63,7 @@ describe('CEP78Client - E2E Upgrade', () => {
       });
 
     expect(
-      transactionResult.transactionInfo.transactionHash.toString()
+      transactionResult.transactionInfo.transactionHash.toHex()
     ).toBeTruthy();
     expect(transactionResult.executionResult?.consumed).toBeTruthy();
     expect(transactionResult.executionResult?.errorMessage).toBeFalsy();

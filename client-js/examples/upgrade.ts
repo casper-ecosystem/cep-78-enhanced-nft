@@ -17,7 +17,7 @@ if (!PRIVATE_KEY_FAUCET) {
 }
 
 const collectionName = 'TEST_CEP78',
-  eventsMode = EVENTS_MODE.NoEvents,
+  eventsMode = EVENTS_MODE.CES,
   waitForTransactionProcessed = true,
   sender = getSigningKey(PRIVATE_KEY_FAUCET),
   paymentAmount = String(600_000_000_000);
@@ -49,7 +49,7 @@ upgrade()
   .then(async (transactionResult) => {
     const { transactionInfo, executionResult } = transactionResult;
     console.info(
-      `Contract upgrade transaction hash: ${transactionInfo.transactionHash}`
+      `Contract upgrade transaction hash: ${transactionInfo.transactionHash.toHex()}`
     );
 
     if (executionResult) {
