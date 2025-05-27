@@ -192,7 +192,7 @@ describe('Client Class', () => {
       client['_sseClient'] = mockSseClient;
     });
 
-    it.only('should resolve when transaction is processed', async () => {
+    it('should resolve when transaction is processed', async () => {
       const mockProcessedEvent: TransactionProcessedEvent = {
         transactionProcessedPayload: {
           transactionHash: mockTransactionHash as TransactionHash,
