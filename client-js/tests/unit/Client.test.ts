@@ -6,6 +6,7 @@ import {
   InfoGetTransactionResult,
   Key,
   SseClient,
+  TransactionHash,
   TransactionProcessedEvent,
 } from 'casper-js-sdk';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
@@ -16,6 +17,8 @@ import {
   Mint,
   WithTransactionInfo,
 } from '../../src/events';
+
+const mockTransactionHash = { toHex: () => 'mockTransactionHash' };
 
 describe('Client Class', () => {
   let client: Client;
@@ -99,7 +102,7 @@ describe('Client Class', () => {
 
     const mockEvent: WithTransactionInfo<Event<Mint>> = {
       transactionInfo: {
-        transactionHash: 'transactionHash',
+        transactionHash: mockTransactionHash as TransactionHash,
         timestamp: 'timestamp',
         messages: [],
       },
@@ -176,7 +179,6 @@ describe('Client Class', () => {
   describe('Client - waitForTransactionProcessed', () => {
     let client: Client;
     let mockSseClient: SseClient;
-    const mockTransactionHash = 'mockTransactionHash';
 
     beforeEach(() => {
       // Mocking the SseClient's methods
@@ -193,7 +195,7 @@ describe('Client Class', () => {
     it('should resolve when transaction is processed', async () => {
       const mockProcessedEvent: TransactionProcessedEvent = {
         transactionProcessedPayload: {
-          transactionHash: mockTransactionHash,
+          transactionHash: mockTransactionHash as TransactionHash,
         },
       } as unknown as TransactionProcessedEvent;
 
@@ -211,7 +213,7 @@ describe('Client Class', () => {
 
       // Test the successful case where the transaction gets processed
       await expect(
-        client.waitForTransactionProcessed(mockTransactionHash)
+        client.waitForTransactionProcessed(mockTransactionHash.toHex())
       ).resolves.toEqual(mockProcessedEvent);
 
       // Ensure that the SSE client methods were called
@@ -223,7 +225,7 @@ describe('Client Class', () => {
     it('should use the provided sseUrl when calling waitForTransactionProcessed', async () => {
       const mockProcessedEvent: TransactionProcessedEvent = {
         transactionProcessedPayload: {
-          transactionHash: mockTransactionHash,
+          transactionHash: mockTransactionHash as TransactionHash,
         },
       } as unknown as TransactionProcessedEvent;
 
@@ -249,7 +251,7 @@ describe('Client Class', () => {
       // Test the case where sseUrl is passed to the method
       await expect(
         client.waitForTransactionProcessed(
-          mockTransactionHash,
+          mockTransactionHash.toHex(),
           timeout,
           mockSseUrl
         )
@@ -276,9 +278,9 @@ describe('Client Class', () => {
 
       // Test the timeout scenario
       await expect(
-        client.waitForTransactionProcessed(mockTransactionHash, timeout)
+        client.waitForTransactionProcessed(mockTransactionHash.toHex(), timeout)
       ).rejects.toThrow(
-        `Transaction ${mockTransactionHash} processing timed out.`
+        `Transaction ${mockTransactionHash.toHex()} processing timed out.`
       );
 
       // Check if SSE client methods were called
@@ -290,7 +292,7 @@ describe('Client Class', () => {
       client['_sseClient'] = undefined as any; // Make sure the SSE client is not set
 
       await expect(
-        client.waitForTransactionProcessed(mockTransactionHash)
+        client.waitForTransactionProcessed(mockTransactionHash.toHex())
       ).rejects.toThrow();
     });
 
@@ -311,7 +313,7 @@ describe('Client Class', () => {
 
       // Test the error scenario
       await expect(
-        client.waitForTransactionProcessed(mockTransactionHash)
+        client.waitForTransactionProcessed(mockTransactionHash.toHex())
       ).rejects.toThrow(mockError);
 
       // Check if SSE client methods were called

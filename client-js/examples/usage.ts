@@ -298,7 +298,7 @@ async function executeTransaction(
     );
   } else {
     console.info(
-      `${action.charAt(0).toUpperCase() + action.slice(1)} transaction hash: ${transactionInfo.transactionHash}`
+      `${action.charAt(0).toUpperCase() + action.slice(1)} transaction hash: ${transactionInfo.transactionHash.toHex()}`
     );
     console.info(
       `${action.charAt(0).toUpperCase() + action.slice(1)} cost consumed: ${executionResult?.consumed}`

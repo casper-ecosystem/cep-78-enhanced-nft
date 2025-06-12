@@ -7,8 +7,8 @@ edition.workspace = true
 cep78 = { path = "../contracts/contract", default-features = false }
 casper-types = { workspace = true, features = ["std"] }
 casper-event-standard.workspace = true
-casper-engine-test-support = { version = "8.0.0", default-features = false }
-casper-execution-engine = { version = "8.0.0", default-features = false }
+casper-engine-test-support = { version = "8.1.0", default-features = false }
+casper-execution-engine = { version = "8.1.0", default-features = false }
 casper-storage = { version = "2.0.0", default-features = false }
 casper-fixtures = { git = "https://github.com/casper-network/casper-fixtures", branch = "feat-2.0", default-features = false }
 serde = { version = "*", default-features = false }
