@@ -2,38 +2,34 @@ name: ci-cep-78-enhanced-nft
 
 on:
   push:
-    branches:
-      - "dev"
-      - "feat-*"
-      - "release-*"
+    branches: [dev, feat-*, release-*]
 
   pull_request:
-    branches:
-      - "dev"
-      - "feat-*"
-      - "release-*"
+    branches: [dev, feat-*, release-*]
 
 env:
   CARGO_TERM_COLOR: always
 
 jobs:
-  build:
+  ci-smart-contract:
     strategy:
       matrix:
-        os: [ubuntu-20.04, ubuntu-22.04]
+        os: [ubuntu-22.04, ubuntu-latest]
+        node-version: [22.x]
     runs-on: ${{ matrix.os }}
     steps:
-      - uses: actions/checkout@2541b1294d2704b0964813337f33b291d3f8596b #v3.0.2
-      - uses: Swatinem/rust-cache@cb2cf0cc7c5198d3364b9630e2c3d457f160790c #v1.4.0
-
-      - name: Install dependencies
-        run: sudo apt update && sudo apt install -y build-essential wabt
-
-      - name: Setup
-        run: make prepare
-
-      - name: Run clippy and fmt
-        run: make check-lint
-
-      - name: Run tests
-        run: make test
+      - name: Checkout
+        uses: actions/checkout@v4
+      - uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+          profile: minimal
+          components: rustfmt, clippy
+      - run: sudo apt update && sudo apt install -y build-essential wabt
+      - run: make prepare
+      - run: make check-lint
+      - run: make test
+      - name: Install cargo-audit
+        run: cargo install cargo-audit
+      - name: Run cargo audit
+        run: cargo audit

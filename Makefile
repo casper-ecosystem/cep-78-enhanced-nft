@@ -1,38 +1,44 @@
+# Variables
 PINNED_TOOLCHAIN := $(shell cat rust-toolchain)
+WASM_TARGET_DIR := ./target/wasm32-unknown-unknown/release
+WASM_OUTPUT_DIR := tests/wasm
+RUSTFLAGS := -C target-cpu=mvp
+CARGO_BUILD_FLAGS := -Z build-std=std,panic_abort
 
+# List of session and contract crates
+SESSION_CRATES := balance_of_session get_approved_session is_approved_for_all_session \
+                  mint_session owner_of_session transfer_session updated_receipts
+CONTRACT_CRATES := mangle_named_keys minting_contract transfer_filter_contract
+ALL_CRATES := cep78 $(SESSION_CRATES) $(CONTRACT_CRATES)
+VERSIONS :=
+
+# Helper macros
+define build_and_strip
+	RUSTFLAGS="$(RUSTFLAGS)" cargo +$(PINNED_TOOLCHAIN) build --release --target wasm32-unknown-unknown $(CARGO_BUILD_FLAGS) -p $1 ;
+	wasm-strip $(WASM_TARGET_DIR)/$1.wasm ;
+endef
+
+# Targets
 prepare:
+	rustup install $(PINNED_TOOLCHAIN)
 	rustup target add wasm32-unknown-unknown
-	rustup component add clippy --toolchain ${PINNED_TOOLCHAIN}
-	rustup component add rustfmt --toolchain ${PINNED_TOOLCHAIN}
-	rustup component add rust-src --toolchain ${PINNED_TOOLCHAIN}
+	rustup component add clippy --toolchain $(PINNED_TOOLCHAIN)
+	rustup component add rustfmt --toolchain $(PINNED_TOOLCHAIN)
+	rustup component add rust-src --toolchain $(PINNED_TOOLCHAIN)
 
+.PHONY: build-contract
 build-contract:
-	cd contract && RUSTFLAGS="-C target-cpu=mvp" cargo build --release --target wasm32-unknown-unknown -Z build-std=std,panic_abort
-	cd client/mint_session && RUSTFLAGS="-C target-cpu=mvp" cargo build --release --target wasm32-unknown-unknown -Z build-std=std,panic_abort
-	cd client/balance_of_session && RUSTFLAGS="-C target-cpu=mvp" cargo build --release --target wasm32-unknown-unknown -Z build-std=std,panic_abort
-	cd client/owner_of_session && RUSTFLAGS="-C target-cpu=mvp" cargo build --release --target wasm32-unknown-unknown -Z build-std=std,panic_abort
-	cd client/get_approved_session && RUSTFLAGS="-C target-cpu=mvp" cargo build --release --target wasm32-unknown-unknown -Z build-std=std,panic_abort
-	cd client/is_approved_for_all_session && RUSTFLAGS="-C target-cpu=mvp" cargo build --release --target wasm32-unknown-unknown -Z build-std=std,panic_abort
-	cd client/transfer_session && RUSTFLAGS="-C target-cpu=mvp" cargo build --release --target wasm32-unknown-unknown -Z build-std=std,panic_abort
-	cd client/updated_receipts && RUSTFLAGS="-C target-cpu=mvp" cargo build --release --target wasm32-unknown-unknown -Z build-std=std,panic_abort
-	cd test-contracts/minting_contract && RUSTFLAGS="-C target-cpu=mvp" cargo build --release --target wasm32-unknown-unknown -Z build-std=std,panic_abort
-	cd test-contracts/mangle_named_keys && RUSTFLAGS="-C target-cpu=mvp" cargo build --release --target wasm32-unknown-unknown -Z build-std=std,panic_abort
-	cd test-contracts/transfer_filter_contract && RUSTFLAGS="-C target-cpu=mvp" cargo build --release --target wasm32-unknown-unknown -Z build-std=std,panic_abort
-	wasm-strip contract/target/wasm32-unknown-unknown/release/contract.wasm
-	wasm-strip client/mint_session/target/wasm32-unknown-unknown/release/mint_call.wasm
-	wasm-strip client/balance_of_session/target/wasm32-unknown-unknown/release/balance_of_call.wasm
-	wasm-strip client/owner_of_session/target/wasm32-unknown-unknown/release/owner_of_call.wasm
-	wasm-strip client/get_approved_session/target/wasm32-unknown-unknown/release/get_approved_call.wasm
-	wasm-strip client/is_approved_for_all_session/target/wasm32-unknown-unknown/release/is_approved_for_all_call.wasm
-	wasm-strip client/transfer_session/target/wasm32-unknown-unknown/release/transfer_call.wasm
-	wasm-strip client/updated_receipts/target/wasm32-unknown-unknown/release/updated_receipts.wasm
-	wasm-strip test-contracts/minting_contract/target/wasm32-unknown-unknown/release/minting_contract.wasm
-	wasm-strip test-contracts/transfer_filter_contract/target/wasm32-unknown-unknown/release/transfer_filter_contract.wasm
+	$(call build_and_strip,cep78)
 
-VERSIONS := 1_0_0 1_1_0 1_2_0 1_3_0 1_4_0 1_5_0
+.PHONY: build-all-contracts
+build-all-contracts: build-contract
+	$(foreach crate, $(SESSION_CRATES), $(call build_and_strip,$(crate)))
+	$(foreach crate, $(CONTRACT_CRATES), $(call build_and_strip,$(crate)))
 
-setup-test: build-contract
-	mkdir -p tests/wasm
+.PHONY: setup-test
+setup-test: build-all-contracts
+	mkdir -p $(WASM_OUTPUT_DIR)
+
 	$(foreach version,$(VERSIONS), \
 		if [ ! -d "tests/wasm/$(version)" ]; then \
 			mkdir -p tests/wasm/$(version); \
@@ -40,71 +46,41 @@ setup-test: build-contract
 		fi; \
 	)
 
-	cp contract/target/wasm32-unknown-unknown/release/contract.wasm tests/wasm
-	cp client/mint_session/target/wasm32-unknown-unknown/release/mint_call.wasm tests/wasm
-	cp client/balance_of_session/target/wasm32-unknown-unknown/release/balance_of_call.wasm tests/wasm
-	cp client/owner_of_session/target/wasm32-unknown-unknown/release/owner_of_call.wasm tests/wasm
-	cp client/get_approved_session/target/wasm32-unknown-unknown/release/get_approved_call.wasm tests/wasm
-	cp client/is_approved_for_all_session/target/wasm32-unknown-unknown/release/is_approved_for_all_call.wasm tests/wasm
-	cp client/transfer_session/target/wasm32-unknown-unknown/release/transfer_call.wasm tests/wasm
-	cp client/updated_receipts/target/wasm32-unknown-unknown/release/updated_receipts.wasm tests/wasm
-	cp test-contracts/minting_contract/target/wasm32-unknown-unknown/release/minting_contract.wasm tests/wasm
-	cp test-contracts/mangle_named_keys/target/wasm32-unknown-unknown/release/mangle_named_keys.wasm tests/wasm
-	cp test-contracts/transfer_filter_contract/target/wasm32-unknown-unknown/release/transfer_filter_contract.wasm tests/wasm
+	cp $(WASM_TARGET_DIR)/*.wasm $(WASM_OUTPUT_DIR)
 
+.PHONY: test
 test: setup-test
-	cd tests && cargo test
+	cargo test -p tests --lib
 
+.PHONY: clippy
 clippy:
-	cd contract && cargo clippy --target wasm32-unknown-unknown --bins -- -D warnings
-	cd contract && cargo clippy --no-default-features --lib -- -D warnings
-	cd client/mint_session && cargo clippy --release --target wasm32-unknown-unknown -- -D warnings
-	cd client/balance_of_session && cargo clippy --release --target wasm32-unknown-unknown -- -D warnings
-	cd client/owner_of_session && cargo clippy --release --target wasm32-unknown-unknown -- -D warnings
-	cd client/get_approved_session && cargo clippy --release --target wasm32-unknown-unknown -- -D warnings
-	cd client/transfer_session && cargo clippy --release --target wasm32-unknown-unknown -- -D warnings
-	cd client/updated_receipts && cargo clippy --release --target wasm32-unknown-unknown -- -D warnings
-	cd test-contracts/minting_contract && cargo clippy --release --target wasm32-unknown-unknown -- -D warnings
-	cd test-contracts/mangle_named_keys && cargo clippy --release --target wasm32-unknown-unknown -- -D warnings
-	cd test-contracts/transfer_filter_contract && cargo clippy --release --target wasm32-unknown-unknown -- -D warnings
-	cd tests && cargo clippy --all-targets -- -D warnings
+	cargo +$(PINNED_TOOLCHAIN) clippy --release -p cep78 --lib --target wasm32-unknown-unknown $(CARGO_BUILD_FLAGS) -- -D warnings
+	$(foreach crate, $(ALL_CRATES), \
+		cargo +$(PINNED_TOOLCHAIN) clippy --release -p $(crate) --bins --target wasm32-unknown-unknown $(CARGO_BUILD_FLAGS) -- -D warnings; \
+	)
+	cargo +stable clippy -p tests --all-targets -- -D warnings
 
+.PHONY: check-lint
 check-lint: clippy
-	cd contract && cargo fmt -- --check
-	cd client/mint_session && cargo fmt -- --check
-	cd client/balance_of_session && cargo fmt -- --check
-	cd client/owner_of_session && cargo fmt -- --check
-	cd client/get_approved_session && cargo fmt -- --check
-	cd client/transfer_session && cargo fmt -- --check
-	cd client/updated_receipts && cargo fmt -- --check
-	cd test-contracts/minting_contract && cargo fmt -- --check
-	cd test-contracts/mangle_named_keys && cargo fmt -- --check
-	cd test-contracts/transfer_filter_contract && cargo fmt -- --check
-	cd tests && cargo fmt -- --check
+	$(foreach crate, $(ALL_CRATES), cargo +$(PINNED_TOOLCHAIN) fmt -p $(crate) -- --check;)
+	cargo +stable fmt -p tests -- --check
 
-lint: clippy
-	cd contract && cargo fmt
-	cd client/mint_session && cargo fmt
-	cd client/balance_of_session && cargo fmt
-	cd client/owner_of_session && cargo fmt
-	cd client/get_approved_session && cargo fmt
-	cd client/transfer_session && cargo fmt
-	cd client/updated_receipts && cargo fmt
-	cd test-contracts/minting_contract
-	cd test-contracts/mangle_named_keys
-	cd test-contracts/transfer_filter_contract
-	cd tests && cargo fmt
+.PHONY: lint
+lint: clippy format
 
+.PHONY: format
+format:
+	$(foreach crate, $(ALL_CRATES), cargo +$(PINNED_TOOLCHAIN) fmt -p $(crate);)
+	cargo +stable fmt -p tests
+
+.PHONY: clean
 clean:
-	cd contract && cargo clean
-	cd client/mint_session && cargo clean
-	cd client/balance_of_session && cargo clean
-	cd client/owner_of_session && cargo clean
-	cd client/get_approved_session && cargo clean
-	cd client/transfer_session && cargo clean
-	cd client/updated_receipts && cargo clean
-	cd test-contracts/minting_contract && cargo clean
-	cd test-contracts/mangle_named_keys && cargo clean
-	cd test-contracts/transfer_filter_contract && cargo clean
-	cd tests && cargo clean
-	rm -rf tests/wasm
+	$(foreach crate, $(ALL_CRATES), cargo clean -p $(crate);)
+	cargo clean -p tests
+	rm -rf $(WASM_OUTPUT_DIR)
+	rm -rf ./Cargo.lock
+
+.PHONY: cargo-update
+cargo-update:
+	$(foreach crate, $(ALL_CRATES), cargo update -p $(crate);)
+	cargo update -p tests

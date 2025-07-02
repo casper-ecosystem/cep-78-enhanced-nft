@@ -12,7 +12,7 @@ This tutorial uses the Casper command-line client to upgrade *and* migrate from 
 
 ## Upgrading and Migrating Terminology
 
-The upgrade to version 1.1.1 involves a data migration to a new [page system](../reverse-lookup.md#the-cep-78-page-system) tracking token ownership. The usual [upgrade](https://docs.casperlabs.io/dapp-dev-guide/writing-contracts/upgrading-contracts/) process triggers the data migration. For more information, see [Standard Migration Tutorial](standard-migration-tutorial.md#upgrading-and-migrating-terminology).
+The upgrade to version 1.1.1 involves a data migration to a new [page system](../reverse-lookup.md#the-cep-78-page-system) tracking token ownership. The usual [upgrade](https://docs.casper.network/developers/writing-onchain-code/upgrading-contracts) process triggers the data migration. For more information, see [Standard Migration Tutorial](standard-migration-tutorial.md#upgrading-and-migrating-terminology).
 
 ## Steps to Upgrade to Version 1.1.1
 
@@ -85,7 +85,7 @@ The following is an example of upgrading and migrating to version 1.1.1 of a pre
 
 ```bash
 casper-client put-deploy \
---node-addres https://rpc.testnet.casperlabs.io/ \
+--node-addres https://node.testnet.casper.network/rpc \
 --chain-name "casper-test" \
 --secret-key ~/KEYS/secret_key.pem \
 --payment-amount 300000000000 \

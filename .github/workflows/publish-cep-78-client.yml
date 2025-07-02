@@ -9,43 +9,51 @@ on:
 
 jobs:
   publish:
-    runs-on: ubuntu-22.04
     strategy:
       matrix:
-        # See supported Node.js release schedule at https://nodejs.org/en/about/releases/
-        node-version: [18.x]
+        os: [ubuntu-latest]
+        node-version: [22.x]
+    runs-on: ${{ matrix.os }}
 
     steps:
       - name: Checkout
-        uses: actions/checkout@2541b1294d2704b0964813337f33b291d3f8596b #v3.0.2
+        uses: actions/checkout@v4
 
-      - uses: Swatinem/rust-cache@cb2cf0cc7c5198d3364b9630e2c3d457f160790c #v1.4.0
+      - name: Setup Rust
+        uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+          profile: minimal
+          components: rustfmt, clippy
+      # Needed for gcc install
+      - run: sudo apt update && sudo apt install -y build-essential wabt
+      - run: make prepare
+      - run: make build-all-contracts
 
-      - name: Install dependencies
-        run: sudo apt update && sudo apt install -y build-essential wabt
-
-      - name: Setup
-        run: make prepare
-
-      - name: Prepare WASMs 
-        run: make setup-test
-
-      - name: Use Node.js ${{ matrix.node-version }}
-        uses: actions/setup-node@5b949b50c3461bbcd5a540b150c368278160234a #v3.4.0
+      - name: Use Node.js
+        uses: actions/setup-node@v4
         with:
           node-version: ${{ matrix.node-version }}
           registry-url: 'https://registry.npmjs.org'
 
-      - name: Install
+      - name: Install Dependencies
         working-directory: ./client-js
         run: npm install
 
-      - name: Copy & convert WASMs
+      - name: Generate WASMS
         working-directory: ./client-js
-        run: npm run wasms:convert
+        run: npm run generate:wasm
+
+      - name: build
+        working-directory: ./client-js
+        run: npm run build
+
+      - name: test
+        working-directory: ./client-js
+        run: npm run test:unit
 
       - name: Publish to NPM
         working-directory: ./client-js
         run: npm publish --access public
         env:
-            NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}

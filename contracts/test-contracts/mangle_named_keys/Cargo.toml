@@ -1,0 +1,15 @@
+[package]
+name = "mangle_named_keys"
+version.workspace = true
+edition.workspace = true
+
+[dependencies]
+casper-types.workspace = true
+casper-contract = { workspace = true, features = ["no-std-helpers"] }
+
+[[bin]]
+name = "mangle_named_keys"
+path = "src/main.rs"
+bench = false
+doctest = false
+test = false

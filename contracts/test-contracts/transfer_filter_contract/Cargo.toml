@@ -1,0 +1,15 @@
+[package]
+name = "transfer_filter_contract"
+version.workspace = true
+edition.workspace = true
+
+[dependencies]
+casper-types.workspace = true
+casper-contract = { workspace = true, features = ["no-std-helpers"] }
+
+[[bin]]
+name = "transfer_filter_contract"
+path = "src/main.rs"
+bench = false
+doctest = false
+test = false
