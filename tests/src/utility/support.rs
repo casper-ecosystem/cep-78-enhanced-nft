@@ -390,7 +390,7 @@ pub fn get_event<T: FromBytes + CLTyped + Debug>(
         }
         Err(err) => {
             let error = err.to_string();
-            return Err(format!("Error Failed to decode event {}", error));
+            return Err(format!("Error Failed to decode event {error}"));
         }
         _ => unimplemented!(),
     };
