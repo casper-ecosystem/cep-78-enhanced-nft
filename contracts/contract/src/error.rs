@@ -183,6 +183,7 @@ pub enum NFTCoreError {
     FailedToConvertEventToJson = 178,
     MissingVersionContractKey = 179,
     InvalidVersionContractKey = 180,
+    MissingTokenIssuerIdentifierKey = 181,
 }
 
 impl From<NFTCoreError> for ApiError {

@@ -296,3 +296,14 @@ by using the provided `Makefile` and running the `make test` command.
 | 168  | MissingOperatorBurnMode                     |
 | 169  | InvalidIdentifier                           |
 | 170  | DuplicateIdentifier                         |
+| 171  | CannotInsertArg                             |
+| 172  | InvalidPackageHash                          |
+| 173  | InvalidUrefMigrationKey                     |
+| 174  | InvalidRloKey                               |
+| 175  | UnlistedEntity                              |
+| 176  | FailedToConvertToEntityHash                 |
+| 177  | InvalidMinterEntity                         |
+| 178  | FailedToConvertEventToJson                  |
+| 179  | MissingVersionContractKey                   |
+| 180  | InvalidVersionContractKey                   |
+| 181  | MissingTokenIssuerIdentifierKey             |

@@ -1667,7 +1667,7 @@ pub extern "C" fn set_token_metadata() {
     .try_into()
     .unwrap_or_revert();
 
-    let token_identifier = utils::get_token_identifier_from_runtime_args(&identifier_mode);
+    let mut token_identifier = utils::get_token_identifier_from_runtime_args(&identifier_mode);
 
     let token_owner = utils::get_dictionary_value_from_key::<Key>(
         TOKEN_OWNERS,
@@ -1701,15 +1701,173 @@ pub extern "C" fn set_token_metadata() {
         if required == Requirement::Unneeded {
             continue;
         }
+        // Validate the provided metadata according to the specified metadata kind.
         let token_metadata_validation =
             metadata::validate_metadata(&metadata_kind, updated_token_metadata.clone());
+
         match token_metadata_validation {
             Ok(validated_token_metadata) => {
-                utils::upsert_dictionary_value_from_key(
-                    &metadata::get_metadata_dictionary_name(&metadata_kind),
-                    &token_identifier.get_dictionary_item_key(),
-                    validated_token_metadata,
-                );
+                // Get the dictionary key associated with the token identifier.
+                let dictionary_item_key = token_identifier.get_dictionary_item_key();
+
+                // If the identifier mode is set to "Hash", additional validation and potential
+                // updates are required.
+                if identifier_mode == NFTIdentifierMode::Hash {
+                    // Retrieve the current token owner, ensuring it exists.
+                    let token_owner = token_owner
+                        .unwrap_or_revert_with(NFTCoreError::MissingOwnerTokenIdentifierKey);
+
+                    // Retrieve the current metadata associated with the token.
+                    let curent_metadata = utils::get_dictionary_value_from_key::<String>(
+                        &metadata::get_metadata_dictionary_name(&metadata_kind),
+                        &dictionary_item_key,
+                    )
+                    .unwrap_or_revert_with(NFTCoreError::InvalidTokenIdentifier);
+
+                    // Compute the hashed identifier of the current metadata.
+                    let stored_token_identifier =
+                        base16::encode_lower(&runtime::blake2b(curent_metadata));
+
+                    // Token identifier as hash can be either a blake2b or a custom string, check
+                    // if current identifier is as blake2b by comparing old (curent_metadata) to
+                    // given token_identifier to eventually update a blake2b
+                    // but not a custom token_identifier string.
+
+                    // If the token identifier stored in the contract matches the computed hash,
+                    // it means the identifier is based on a blake2b hash of the metadata.
+                    if stored_token_identifier == token_identifier.to_string() {
+                        // Mark the token as burnt by adding the token_id to the burnt tokens
+                        utils::upsert_dictionary_value_from_key::<()>(
+                            BURNT_TOKENS,
+                            &token_identifier.get_dictionary_item_key(),
+                            (),
+                        );
+
+                        emit_event(Event::Burn(Burn::new(
+                            token_owner,
+                            &token_identifier,
+                            token_owner,
+                        )));
+
+                        // Mint a new token
+
+                        let total_token_supply = utils::get_stored_value_with_user_errors::<u64>(
+                            TOTAL_TOKEN_SUPPLY,
+                            NFTCoreError::MissingTotalTokenSupply,
+                            NFTCoreError::InvalidTotalTokenSupply,
+                        );
+
+                        // The minted_tokens_count is the number of minted tokens so far.
+                        let minted_tokens_count = utils::get_stored_value_with_user_errors::<u64>(
+                            NUMBER_OF_MINTED_TOKENS,
+                            NFTCoreError::MissingNumberOfMintedTokens,
+                            NFTCoreError::InvalidNumberOfMintedTokens,
+                        );
+
+                        // Revert if the token supply has been exhausted.
+                        if minted_tokens_count >= total_token_supply {
+                            runtime::revert(NFTCoreError::TokenSupplyDepleted);
+                        }
+
+                        // Generate a new token with identifier using a hash of the validated
+                        // metadata.
+                        let new_token_identifier = TokenIdentifier::new_hash(base16::encode_lower(
+                            &runtime::blake2b(validated_token_metadata.clone()),
+                        ));
+
+                        // Retrieve the issuer of the burned token and set same issuer to new token.
+                        let token_issuer = utils::get_dictionary_value_from_key::<Key>(
+                            TOKEN_ISSUERS,
+                            &token_identifier.get_dictionary_item_key(),
+                        )
+                        .unwrap_or_revert_with(NFTCoreError::MissingTokenIssuerIdentifierKey);
+
+                        // Compute the new dictionary key based on the new token identifier.
+                        let dictionary_item_key = new_token_identifier.get_dictionary_item_key();
+
+                        // Update the contract storage with the new token identifier, owner, issuer,
+                        // and metadata.
+                        utils::upsert_dictionary_value_from_key(
+                            TOKEN_OWNERS,
+                            &dictionary_item_key,
+                            token_owner,
+                        );
+
+                        utils::upsert_dictionary_value_from_key(
+                            TOKEN_ISSUERS,
+                            &dictionary_item_key,
+                            token_issuer,
+                        );
+
+                        utils::upsert_dictionary_value_from_key(
+                            &metadata::get_metadata_dictionary_name(&metadata_kind),
+                            &dictionary_item_key,
+                            validated_token_metadata.clone(),
+                        );
+
+                        // Update the forward and reverse trackers
+                        utils::insert_hash_id_lookups(
+                            minted_tokens_count,
+                            new_token_identifier.clone(),
+                        );
+
+                        //Increment the count of owned tokens.
+                        let owned_tokens_item_key = utils::encode_dictionary_item_key(token_owner);
+
+                        let updated_token_count = match utils::get_dictionary_value_from_key::<u64>(
+                            BALANCES,
+                            &owned_tokens_item_key,
+                        ) {
+                            Some(balance) => balance + 1u64,
+                            // token_owner should at least own one burnt token, revert if not the
+                            // case
+                            None => revert(NFTCoreError::InvalidRequirement),
+                        };
+
+                        utils::upsert_dictionary_value_from_key(
+                            BALANCES,
+                            &owned_tokens_item_key,
+                            updated_token_count,
+                        );
+
+                        // Increment number_of_minted_tokens by one
+                        let number_of_minted_tokens_uref = utils::get_uref(
+                            NUMBER_OF_MINTED_TOKENS,
+                            NFTCoreError::MissingTotalTokenSupply,
+                            NFTCoreError::InvalidTotalTokenSupply,
+                        );
+                        storage::write(number_of_minted_tokens_uref, minted_tokens_count + 1u64);
+
+                        // Emit Mint event.
+                        emit_event(Event::Mint(Mint::new(
+                            token_owner,
+                            &new_token_identifier,
+                            validated_token_metadata.clone(),
+                        )));
+
+                        // Replace the old token identifier with the new one for events emits.
+                        token_identifier = new_token_identifier;
+                    } else {
+                        // If the token identifier does not match the computed hash, it means it is
+                        // a custom identifier. In this case, only the
+                        // metadata is updated while keeping the token identifier unchanged.
+                        // This is a custom token_identifier as hash, do not update it.
+                        utils::upsert_dictionary_value_from_key(
+                            &metadata::get_metadata_dictionary_name(&metadata_kind),
+                            &dictionary_item_key,
+                            validated_token_metadata.clone(),
+                        );
+                    }
+                } else {
+                    // This is a token_identifier as ordinal, do not update token_identifier.
+                    // If the identifier mode is not "Hash" (meaning it's an ordinal identifier),
+                    // only update the metadata without modifying the token identifier.
+                    utils::upsert_dictionary_value_from_key(
+                        &metadata::get_metadata_dictionary_name(&metadata_kind),
+                        &dictionary_item_key,
+                        validated_token_metadata,
+                    );
+                }
             }
             Err(err) => {
                 if required == Requirement::Required {
@@ -2131,6 +2289,7 @@ fn generate_entry_points() -> EntryPoints {
         vec![
             Parameter::new(ARG_TOKEN_OWNER, CLType::Key),
             Parameter::new(ARG_TOKEN_META_DATA, CLType::String),
+            Parameter::new(ARG_TOKEN_HASH, CLType::String), // optional, custom HASH on mint
         ],
         CLType::Tuple3([
             Box::new(CLType::String),
@@ -2150,7 +2309,10 @@ fn generate_entry_points() -> EntryPoints {
     // error PreviouslyBurntTOken. If not the token is then registered as burnt.
     let burn = EntryPoint::new(
         ENTRY_POINT_BURN,
-        vec![],
+        vec![
+            Parameter::new(ARG_TOKEN_ID, CLType::U64), // optional either ID or HASH
+            Parameter::new(ARG_TOKEN_HASH, CLType::String), // optional either ID or HASH
+        ],
         CLType::Unit,
         EntryPointAccess::Public,
         EntryPointType::Called,
@@ -2166,6 +2328,8 @@ fn generate_entry_points() -> EntryPoints {
         vec![
             Parameter::new(ARG_SOURCE_KEY, CLType::Key),
             Parameter::new(ARG_TARGET_KEY, CLType::Key),
+            Parameter::new(ARG_TOKEN_ID, CLType::U64), // optional either ID or HASH
+            Parameter::new(ARG_TOKEN_HASH, CLType::String), // optional either ID or HASH
         ],
         CLType::Tuple2([Box::new(CLType::String), Box::new(CLType::Key)]),
         EntryPointAccess::Public,
@@ -2178,7 +2342,11 @@ fn generate_entry_points() -> EntryPoints {
     // been burnt, or if caller tries to approve themselves as an approved account.
     let approve = EntryPoint::new(
         ENTRY_POINT_APPROVE,
-        vec![Parameter::new(ARG_SPENDER, CLType::Key)],
+        vec![
+            Parameter::new(ARG_SPENDER, CLType::Key),
+            Parameter::new(ARG_TOKEN_ID, CLType::U64), // optional either ID or HASH
+            Parameter::new(ARG_TOKEN_HASH, CLType::String), // optional either ID or HASH
+        ],
         CLType::Unit,
         EntryPointAccess::Public,
         EntryPointType::Called,
@@ -2190,7 +2358,10 @@ fn generate_entry_points() -> EntryPoints {
     // been burnt, if caller tries to approve itself.
     let revoke = EntryPoint::new(
         ENTRY_POINT_REVOKE,
-        vec![],
+        vec![
+            Parameter::new(ARG_TOKEN_ID, CLType::U64), // optional either ID or HASH
+            Parameter::new(ARG_TOKEN_HASH, CLType::String), // optional either ID or HASH
+        ],
         CLType::Unit,
         EntryPointAccess::Public,
         EntryPointType::Called,
@@ -2229,7 +2400,10 @@ fn generate_entry_points() -> EntryPoints {
     // is invalid. A burnt token still has an associated owner.
     let owner_of = EntryPoint::new(
         ENTRY_POINT_OWNER_OF,
-        vec![], // <- either HASH or INDEX
+        vec![
+            Parameter::new(ARG_TOKEN_ID, CLType::U64), // optional either ID or HASH
+            Parameter::new(ARG_TOKEN_HASH, CLType::String), // optional either ID or HASH
+        ],
         CLType::Key,
         EntryPointAccess::Public,
         EntryPointType::Called,
@@ -2240,7 +2414,10 @@ fn generate_entry_points() -> EntryPoints {
     // Reverts if token has been burnt.
     let get_approved = EntryPoint::new(
         ENTRY_POINT_GET_APPROVED,
-        vec![], // <- either HASH or INDEX
+        vec![
+            Parameter::new(ARG_TOKEN_ID, CLType::U64), // optional either ID or HASH
+            Parameter::new(ARG_TOKEN_HASH, CLType::String), // optional either ID or HASH
+        ],
         CLType::Option(Box::new(CLType::Key)),
         EntryPointAccess::Public,
         EntryPointType::Called,
@@ -2260,7 +2437,10 @@ fn generate_entry_points() -> EntryPoints {
     // This entrypoint returns the metadata associated with the provided token_id
     let metadata = EntryPoint::new(
         ENTRY_POINT_METADATA,
-        vec![], // <- either HASH or INDEX
+        vec![
+            Parameter::new(ARG_TOKEN_ID, CLType::U64), // optional either ID or HASH
+            Parameter::new(ARG_TOKEN_HASH, CLType::String), // optional either ID or HASH
+        ],
         CLType::String,
         EntryPointAccess::Public,
         EntryPointType::Called,
@@ -2270,7 +2450,11 @@ fn generate_entry_points() -> EntryPoints {
     // This entrypoint updates the metadata if valid.
     let set_token_metadata = EntryPoint::new(
         ENTRY_POINT_SET_TOKEN_METADATA,
-        vec![Parameter::new(ARG_TOKEN_META_DATA, CLType::String)],
+        vec![
+            Parameter::new(ARG_TOKEN_META_DATA, CLType::String),
+            Parameter::new(ARG_TOKEN_ID, CLType::U64), // optional either ID or HASH
+            Parameter::new(ARG_TOKEN_HASH, CLType::String), // optional either ID or HASH
+        ],
         CLType::Unit,
         EntryPointAccess::Public,
         EntryPointType::Called,
@@ -2523,10 +2707,6 @@ fn install_contract() {
         NFTCoreError::InvalidMetadataMutability,
     )
     .unwrap_or_revert();
-
-    if identifier_mode == 1 && metadata_mutability == 1 {
-        runtime::revert(NFTCoreError::InvalidMetadataMutability)
-    }
 
     // Represents whether the minted tokens can be burnt.
     // This value cannot be changed post installation. Refer to `BurnMode` in
