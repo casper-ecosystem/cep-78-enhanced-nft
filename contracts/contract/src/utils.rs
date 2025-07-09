@@ -68,15 +68,6 @@ pub fn upsert_dictionary_value_from_key<T: CLTyped + FromBytes + ToBytes>(
     }
 }
 
-pub fn delete_dictionary_entry<T: CLTyped + FromBytes + ToBytes>(dictionary_name: &str, key: &str) {
-    let seed_uref = get_uref(
-        dictionary_name,
-        NFTCoreError::MissingStorageUref,
-        NFTCoreError::InvalidStorageUref,
-    );
-    dictionary_put::<Option<T>>(seed_uref, key, None);
-}
-
 pub fn get_ownership_mode() -> Result<OwnershipMode, NFTCoreError> {
     get_stored_value_with_user_errors::<u8>(
         OWNERSHIP_MODE,

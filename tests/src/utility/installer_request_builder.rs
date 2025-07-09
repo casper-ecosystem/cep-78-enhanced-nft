@@ -87,7 +87,7 @@ pub enum NFTMetadataKind {
 }
 
 #[repr(u8)]
-#[derive(Copy, Clone)]
+#[derive(Copy, Clone, PartialEq)]
 pub enum NFTIdentifierMode {
     Ordinal = 0,
     Hash = 1,

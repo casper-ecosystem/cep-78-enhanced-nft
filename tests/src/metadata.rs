@@ -5,10 +5,11 @@ use casper_types::{account::AccountHash, contracts::ContractHash, runtime_args, 
 use cep78::{
     constants::{
         ACL_WHITELIST, ARG_COLLECTION_NAME, ARG_TOKEN_HASH, ARG_TOKEN_ID, ARG_TOKEN_META_DATA,
-        ARG_TOKEN_OWNER, ENTRY_POINT_METADATA, ENTRY_POINT_MINT, ENTRY_POINT_SET_TOKEN_METADATA,
-        METADATA_CEP78, METADATA_CUSTOM_VALIDATED, METADATA_NFT721, METADATA_RAW, TOKEN_OWNERS,
+        ARG_TOKEN_OWNER, BALANCES, ENTRY_POINT_METADATA, ENTRY_POINT_MINT,
+        ENTRY_POINT_SET_TOKEN_METADATA, METADATA_CEP78, METADATA_CUSTOM_VALIDATED, METADATA_NFT721,
+        METADATA_RAW, NUMBER_OF_MINTED_TOKENS, TOKEN_ISSUERS, TOKEN_OWNERS,
     },
-    events::events_ces::MetadataUpdated,
+    events::events_ces::{Burn, MetadataUpdated, Mint},
     modalities::TokenIdentifier,
 };
 
@@ -257,6 +258,11 @@ fn should_allow_update_for_valid_metadata_based_on_kind(
 
     let token_hash = base16::encode_lower(&support::create_blake2b_hash(original_metadata));
 
+    let previous_token_id = match identifier_mode {
+        NFTIdentifierMode::Ordinal => TokenIdentifier::Index(0),
+        NFTIdentifierMode::Hash => TokenIdentifier::Hash(token_hash.clone()),
+    };
+
     let actual_metadata = match identifier_mode {
         NFTIdentifierMode::Ordinal => support::get_dictionary_value_from_key::<String>(
             &builder,
@@ -273,6 +279,14 @@ fn should_allow_update_for_valid_metadata_based_on_kind(
     };
 
     assert_eq!(actual_metadata, original_metadata.to_string());
+
+    let query_result: u64 =
+        support::query_stored_value(&builder, nft_contract_key, NUMBER_OF_MINTED_TOKENS);
+
+    assert_eq!(
+        query_result, 1u64,
+        "number_of_minted_tokens after at mint should be 1"
+    );
 
     let custom_updated_metadata = serde_json::to_string_pretty(&*TEST_CUSTOM_UPDATED_METADATA)
         .expect("must convert to json metadata");
@@ -334,12 +348,99 @@ fn should_allow_update_for_valid_metadata_based_on_kind(
         NFTIdentifierMode::Ordinal => TokenIdentifier::Index(0),
         NFTIdentifierMode::Hash => TokenIdentifier::Hash(token_hash),
     };
-    let expected_event = MetadataUpdated::new(&token_id, updated_metadata.to_string());
-    let actual_event: MetadataUpdated = support::get_event(&builder, &nft_contract_key, 1).unwrap();
-    assert_eq!(
-        actual_event, expected_event,
-        "Expected MetadataUpdated event."
-    );
+
+    if identifier_mode == NFTIdentifierMode::Ordinal {
+        let expected_event = MetadataUpdated::new(&token_id, updated_metadata.to_string());
+        let actual_event: MetadataUpdated =
+            support::get_event(&builder, &nft_contract_key, 1).unwrap();
+        assert_eq!(
+            actual_event, expected_event,
+            "Expected MetadataUpdated event."
+        );
+
+        let query_result: u64 =
+            support::query_stored_value(&builder, nft_contract_key, NUMBER_OF_MINTED_TOKENS);
+
+        assert_eq!(
+            query_result, 1u64,
+            "number_of_minted_tokens after at mint should be 1"
+        );
+
+        let actual_balance = support::get_dictionary_value_from_key::<u64>(
+            &builder,
+            &nft_contract_key,
+            BALANCES,
+            &DEFAULT_ACCOUNT_ADDR.clone().to_string(),
+        );
+
+        let expected_balance = 1u64;
+        assert_eq!(actual_balance, expected_balance);
+    } else {
+        let expected_event = Burn::new(
+            *DEFAULT_ACCOUNT_KEY,
+            &previous_token_id,
+            *DEFAULT_ACCOUNT_KEY,
+        );
+        let actual_event: Burn = support::get_event(&builder, &nft_contract_key, 1).unwrap();
+        assert_eq!(actual_event, expected_event, "Expected Burn event.");
+
+        let expected_event = Mint::new(
+            *DEFAULT_ACCOUNT_KEY,
+            &token_id,
+            updated_metadata.to_string(),
+        );
+        let actual_event: Mint = support::get_event(&builder, &nft_contract_key, 2).unwrap();
+        assert_eq!(actual_event, expected_event, "Expected Mint event.");
+
+        let expected_event = MetadataUpdated::new(&token_id, updated_metadata.to_string());
+        let actual_event: MetadataUpdated =
+            support::get_event(&builder, &nft_contract_key, 3).unwrap();
+        assert_eq!(
+            actual_event, expected_event,
+            "Expected MetadataUpdated event."
+        );
+
+        let query_result: u64 =
+            support::query_stored_value(&builder, nft_contract_key, NUMBER_OF_MINTED_TOKENS);
+
+        // Token burned + new minted token
+        assert_eq!(
+            query_result, 2u64,
+            "number_of_minted_tokens after at mint should be 1"
+        );
+
+        let actual_token_issuer = support::get_dictionary_value_from_key::<Key>(
+            &builder,
+            &nft_contract_key,
+            TOKEN_ISSUERS,
+            &token_id.to_string(),
+        )
+        .into_account()
+        .unwrap();
+
+        assert_eq!(actual_token_issuer, *DEFAULT_ACCOUNT_ADDR);
+
+        let actual_token_owner = support::get_dictionary_value_from_key::<Key>(
+            &builder,
+            &nft_contract_key,
+            TOKEN_OWNERS,
+            &token_id.to_string(),
+        )
+        .into_account()
+        .unwrap();
+
+        assert_eq!(actual_token_owner, *DEFAULT_ACCOUNT_ADDR);
+
+        let actual_balance = support::get_dictionary_value_from_key::<u64>(
+            &builder,
+            &nft_contract_key,
+            BALANCES,
+            &DEFAULT_ACCOUNT_ADDR.clone().to_string(),
+        );
+
+        let expected_balance = 2u64;
+        assert_eq!(actual_balance, expected_balance);
+    }
 }
 
 #[test]
@@ -382,7 +483,6 @@ fn should_get_metadata_using_token_id() {
         .expect_success()
         .commit();
 
-    // TODO check
     let minting_contract_hash: ContractHash = get_minting_contract_hash(&builder).into();
     let contract_whitelist = vec![Key::from(minting_contract_hash)];
 
@@ -467,7 +567,6 @@ fn should_get_metadata_using_token_metadata_hash() {
         .expect_success()
         .commit();
 
-    // TODO check
     let minting_contract_hash: ContractHash = get_minting_contract_hash(&builder).into();
     let contract_whitelist = vec![Key::from(minting_contract_hash)];
 
@@ -556,7 +655,6 @@ fn should_revert_minting_token_metadata_hash_twice() {
         .expect_success()
         .commit();
 
-    // TODO check
     let minting_contract_hash: ContractHash = get_minting_contract_hash(&builder).into();
     let contract_whitelist = vec![Key::from(minting_contract_hash)];
 
@@ -658,7 +756,6 @@ fn should_get_metadata_using_custom_token_hash() {
         .expect_success()
         .commit();
 
-    // TODO check
     let minting_contract_hash: ContractHash = get_minting_contract_hash(&builder).into();
     let contract_whitelist = vec![Key::from(minting_contract_hash)];
 
@@ -730,6 +827,106 @@ fn should_get_metadata_using_custom_token_hash() {
 }
 
 #[test]
+fn should_update_metadata_using_custom_token_hash() {
+    let mut builder = genesis();
+
+    let install_request = InstallerRequestBuilder::new(*DEFAULT_ACCOUNT_ADDR, NFT_CONTRACT_WASM)
+        .with_total_token_supply(100u64)
+        .with_identifier_mode(NFTIdentifierMode::Hash)
+        .with_metadata_mutability(MetadataMutability::Mutable)
+        .with_holder_mode(NFTHolderMode::Accounts)
+        .with_ownership_mode(OwnershipMode::Transferable)
+        .with_reporting_mode(OwnerReverseLookupMode::Complete)
+        .with_nft_metadata_kind(NFTMetadataKind::CEP78)
+        .build();
+
+    builder.exec(install_request).expect_success().commit();
+
+    let nft_contract_key: Key = get_nft_contract_hash_key(&builder);
+
+    let mint_runtime_args = runtime_args! {
+        ARG_NFT_CONTRACT_HASH => nft_contract_key,
+        ARG_TOKEN_OWNER => *DEFAULT_ACCOUNT_KEY,
+        ARG_TOKEN_HASH => TOKEN_HASH.to_string(),
+        ARG_TOKEN_META_DATA => TEST_PRETTY_CEP78_METADATA.to_string(),
+        ARG_REVERSE_LOOKUP => true
+    };
+
+    let mint_request = ExecuteRequestBuilder::standard(
+        *DEFAULT_ACCOUNT_ADDR,
+        MINT_SESSION_WASM,
+        mint_runtime_args,
+    )
+    .build();
+
+    builder.exec(mint_request).expect_success().commit();
+
+    let minted_metadata: String = support::get_dictionary_value_from_key(
+        &builder,
+        &nft_contract_key,
+        METADATA_CEP78,
+        TOKEN_HASH,
+    );
+    assert_eq!(minted_metadata, TEST_PRETTY_CEP78_METADATA);
+
+    let query_result: u64 =
+        support::query_stored_value(&builder, nft_contract_key, NUMBER_OF_MINTED_TOKENS);
+
+    assert_eq!(
+        query_result, 1u64,
+        "number_of_minted_tokens after at mint should be 1"
+    );
+
+    assert_ne!(minted_metadata, TEST_PRETTY_UPDATED_CEP78_METADATA);
+
+    let update_metadata_runtime_args = runtime_args! {
+        ARG_TOKEN_META_DATA => TEST_PRETTY_UPDATED_CEP78_METADATA,
+        ARG_TOKEN_HASH => TOKEN_HASH
+    };
+
+    let update_metadata_request = ExecuteRequestBuilder::contract_call_by_hash(
+        *DEFAULT_ACCOUNT_ADDR,
+        support::get_nft_contract_hash(&builder),
+        ENTRY_POINT_SET_TOKEN_METADATA,
+        update_metadata_runtime_args,
+    )
+    .build();
+
+    builder
+        .exec(update_metadata_request)
+        .expect_success()
+        .commit();
+
+    let actual_updated_metadata: String = support::get_dictionary_value_from_key(
+        &builder,
+        &nft_contract_key,
+        METADATA_CEP78,
+        TOKEN_HASH,
+    );
+
+    assert_eq!(actual_updated_metadata, TEST_PRETTY_UPDATED_CEP78_METADATA);
+
+    // Expect MetadataUpdated event.
+    let expected_event = MetadataUpdated::new(
+        &TokenIdentifier::Hash(TOKEN_HASH.to_string()),
+        actual_updated_metadata.to_string(),
+    );
+    let actual_event: MetadataUpdated = support::get_event(&builder, &nft_contract_key, 1).unwrap();
+    assert_eq!(
+        actual_event, expected_event,
+        "Expected MetadataUpdated event."
+    );
+
+    let query_result: u64 =
+        support::query_stored_value(&builder, nft_contract_key, NUMBER_OF_MINTED_TOKENS);
+
+    assert_eq!(
+        query_result, 1u64,
+        "number_of_minted_tokens after at mint should be 1"
+    );
+}
+
+#[test]
 fn should_revert_minting_custom_token_hash_identifier_twice() {
     let mut builder = genesis();
 
@@ -745,7 +942,6 @@ fn should_revert_minting_custom_token_hash_identifier_twice() {
         .expect_success()
         .commit();
 
-    // TODO check
     let minting_contract_hash: ContractHash = get_minting_contract_hash(&builder).into();
     let contract_whitelist = vec![Key::from(minting_contract_hash)];
 
