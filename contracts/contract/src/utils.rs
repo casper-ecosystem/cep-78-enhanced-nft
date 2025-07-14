@@ -262,7 +262,6 @@ fn get_key_with_user_errors(name: &str, missing: NFTCoreError, invalid: NFTCoreE
 
 pub fn get_immediate_caller() -> (Key, Option<Key>) {
     const ACCOUNT: u8 = 0;
-    const PACKAGE: u8 = 1;
     const CONTRACT_PACKAGE: u8 = 2;
     const ENTITY: u8 = 3;
     const CONTRACT: u8 = 4;
@@ -278,39 +277,6 @@ pub fn get_immediate_caller() -> (Key, Option<Key>) {
                 .unwrap_or_revert()
                 .unwrap_or_revert_with(NFTCoreError::UnexpectedKeyVariant);
             (Key::from(account_hash), None)
-        }
-        PACKAGE => {
-            let package_hash = caller_info
-                .get_field_by_index(PACKAGE)
-                .unwrap()
-                .to_t::<Option<PackageHash>>()
-                .unwrap_or_revert()
-                .unwrap_or_revert_with(NFTCoreError::UnexpectedKeyVariant);
-            let contract_hash = caller_info
-                .get_field_by_index(CONTRACT)
-                .unwrap()
-                .to_t::<Option<ContractHash>>()
-                .unwrap_or_revert()
-                .unwrap_or_revert_with(NFTCoreError::UnexpectedKeyVariant);
-            (Key::from(contract_hash), Some(Key::from(package_hash)))
-        }
-        CONTRACT_PACKAGE => {
-            let contract_package_hash = caller_info
-                .get_field_by_index(CONTRACT_PACKAGE)
-                .unwrap()
-                .to_t::<Option<ContractPackageHash>>()
-                .unwrap_or_revert()
-                .unwrap_or_revert_with(NFTCoreError::UnexpectedKeyVariant);
-            let contract_hash = caller_info
-                .get_field_by_index(CONTRACT)
-                .unwrap()
-                .to_t::<Option<ContractHash>>()
-                .unwrap_or_revert()
-                .unwrap_or_revert_with(NFTCoreError::UnexpectedKeyVariant);
-            (
-                Key::from(contract_hash),
-                Some(Key::from(contract_package_hash)),
-            )
         }
         ENTITY => {
             let entity_addr = caller_info
