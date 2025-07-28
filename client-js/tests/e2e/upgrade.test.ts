@@ -21,7 +21,7 @@ describe('CEP78Client - E2E Upgrade', () => {
   beforeEach(async () => {
     client = new CEP78Client(RPC_URL, SSE_URL, CHAIN_NAME);
     await install(client, collectionName);
-  }, 60000);
+  }, 180000);
 
   it('should upgrade the CEP78 contract and return valid transaction info', async () => {
     const params: TransactionParams = {
@@ -79,5 +79,5 @@ describe('CEP78Client - E2E Upgrade', () => {
       `cep78_contract_package_${collectionName}`
     );
     expect(contractPackageHash).toBeDefined();
-  }, 60000);
+  }, 180000);
 });

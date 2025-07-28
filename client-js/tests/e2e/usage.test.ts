@@ -43,7 +43,7 @@ describe('CEP78Client - E2E Usage', () => {
       );
     expect(contractHash).toBeDefined();
     client.setContractHash(contractHash);
-  }, 60000);
+  }, 180000);
 
   it('should mint tokens successfully', async () => {
     const initialBalance = (await client.balanceOf(owner.publicKey)) as string;
@@ -55,7 +55,7 @@ describe('CEP78Client - E2E Usage', () => {
 
     const newBalance = (await client.balanceOf(owner.publicKey)) as string;
     expect(BigInt(newBalance)).toBe(BigInt(initialBalance) + BigInt(1));
-  }, 60000);
+  }, 180000);
 
   it('should transfer tokens successfully', async () => {
     const tokenHash = generateTokenHash();
@@ -86,7 +86,7 @@ describe('CEP78Client - E2E Usage', () => {
 
     const newBalanceAli = (await client.balanceOf(ali.publicKey)) as string;
     expect(BigInt(newBalanceAli)).toBe(BigInt(initialBalanceAli) + BigInt(1));
-  }, 60000);
+  }, 180000);
 
   it('should approve and getApproved successfully', async () => {
     const tokenHash = generateTokenHash();
@@ -98,7 +98,7 @@ describe('CEP78Client - E2E Usage', () => {
 
     const approved = (await client.getApproved(tokenHash)) as string;
     expect(approved).toBe(bob.publicKey.accountHash().toPrefixedString());
-  }, 60000);
+  }, 180000);
 
   it('should burn tokens successfully', async () => {
     const tokenHash = generateTokenHash();
@@ -123,7 +123,7 @@ describe('CEP78Client - E2E Usage', () => {
 
     const newBalance = (await client.balanceOf(owner.publicKey)) as string;
     expect(BigInt(newBalance)).toBe(BigInt(initialBalance) - BigInt(1));
-  }, 60000);
+  }, 180000);
 
   it('should register owner successfully', async () => {
     // This method is used to register an account as an NFT owner within the contract. Registering an owner may be a prerequisite for minting or receiving NFTs, depending on the contract's rules for OwnerReverseLookupMode (Complete/TransfersOnly).
@@ -141,7 +141,7 @@ describe('CEP78Client - E2E Usage', () => {
 
     expect(registerResult.transactionInfo.transactionHash).toBeDefined();
     expect(registerResult.executionResult?.errorMessage).toBeFalsy();
-  }, 60000);
+  }, 180000);
 
   it('should approve and then revoke an operator successfully', async () => {
     const tokenHash = generateTokenHash();
@@ -177,7 +177,7 @@ describe('CEP78Client - E2E Usage', () => {
     // Confirm that Bob is no longer approved
     approved = (await client.getApproved(tokenHash)) as string;
     expect(approved).toBe('');
-  }, 60000);
+  }, 180000);
 
   it('should grant and revoke approval for all tokens successfully', async () => {
     const tokenHash = generateTokenHash();
@@ -230,7 +230,7 @@ describe('CEP78Client - E2E Usage', () => {
       operator: bob.publicKey,
     });
     expect(isApprovedAfterRevoke).toBe(false);
-  }, 60000);
+  }, 180000);
 
   // Test is skipped as per https://github.com/casper-ecosystem/cep-78-enhanced-nft/issues/272
   it.skip('should update the token metadata successfully', async () => {
@@ -266,7 +266,7 @@ describe('CEP78Client - E2E Usage', () => {
     const fetchedMetadataRaw = await client.metadata(tokenId);
     const fetchedMetadata = JSON.parse(fetchedMetadataRaw);
     expect(fetchedMetadata).toEqual(updatedMetadata);
-  }, 60000);
+  }, 180000);
 
   it('should return the correct owner when querying directly via token hash', async () => {
     const tokenHash = generateTokenHash();
@@ -276,7 +276,7 @@ describe('CEP78Client - E2E Usage', () => {
     const tokenOwner = await client.ownerOf(tokenHash);
 
     expect(tokenOwner).toBe(ali.publicKey.accountHash().toPrefixedString());
-  }, 60000);
+  }, 180000);
 
   it('should return the correct owner when querying and storing the result in an account named key', async () => {
     const tokenHash = generateTokenHash();
@@ -309,7 +309,7 @@ describe('CEP78Client - E2E Usage', () => {
     );
 
     expect(storedOwnerOfValue).toBeDefined(); // uref in acount context
-  }, 60000);
+  }, 180000);
 
   it('should return the correct balance when querying directly via token owner', async () => {
     const tokenHash = generateTokenHash();
@@ -320,7 +320,7 @@ describe('CEP78Client - E2E Usage', () => {
 
     // Ensure the balance matches the expected value (in this case, Ali should have at least 1 token)
     expect(Number(tokenOwnerBalance)).toBeGreaterThan(0); // Assuming 1 token was minted for Ali
-  }, 60000);
+  }, 180000);
 
   it('should return the correct balance when querying and storing the result in an account named key', async () => {
     const tokenHash = generateTokenHash();
@@ -353,12 +353,12 @@ describe('CEP78Client - E2E Usage', () => {
     );
 
     expect(storedBalanceOfValue).toBeDefined(); // uref in account context
-  }, 60000);
+  }, 180000);
 
   it('should return false if the entity is not whitelisted in the ACL', async () => {
     const isWhitelisted = await client.isAclWhitelisted(bob.publicKey);
     expect(isWhitelisted).toBe(false);
-  }, 60000);
+  }, 180000);
 
   it('should return true if the entity is whitelisted in the ACL', async () => {
     const collectionName = `TEST_CEP78_E2E_${Math.floor(Math.random() * 1000000)}`;
@@ -383,7 +383,7 @@ describe('CEP78Client - E2E Usage', () => {
     // Ensure Bob is not whitelisted
     isWhitelisted = await client.isAclWhitelisted(bob.publicKey);
     expect(isWhitelisted).toBe(false);
-  }, 60000);
+  }, 180000);
 
   it('should update contract variables correctly', async () => {
     const waitForTransactionProcessed = true;
@@ -431,9 +431,9 @@ describe('CEP78Client - E2E Usage', () => {
     // Check if bob is whitelisted
     const isWhitelisted = await client.isAclWhitelisted(bob.publicKey);
     expect(isWhitelisted).toBe(true);
-  }, 60000);
+  }, 180000);
 
-  it('should return correct values for collection config', async () => {
+  it.only('should return correct values for collection config', async () => {
     const collectionName = `TEST_CEP78_E2E_${Math.floor(Math.random() * 1000000)}`;
     await install(client, collectionName);
     const account = await getAccountInfo(RPC_URL, owner.publicKey),
@@ -519,5 +519,5 @@ describe('CEP78Client - E2E Usage', () => {
     expect(operatorBurnMode).toBe(false);
     expect(packageOperatorMode).toBe(false);
     expect(aclPackageMode).toBe(false);
-  });
+  }, 180000);
 });

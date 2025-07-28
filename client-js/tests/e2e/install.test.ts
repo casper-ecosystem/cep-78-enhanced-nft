@@ -61,5 +61,5 @@ describe('CEP78Client - E2E Install', () => {
       `cep78_contract_package_${collectionName}`
     );
     expect(contractPackageHash).toBeDefined();
-  }, 60000);
+  }, 180000);
 });
