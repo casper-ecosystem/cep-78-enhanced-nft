@@ -433,7 +433,7 @@ describe('CEP78Client - E2E Usage', () => {
     expect(isWhitelisted).toBe(true);
   }, 180000);
 
-  it.only('should return correct values for collection config', async () => {
+  it('should return correct values for collection config', async () => {
     const collectionName = `TEST_CEP78_E2E_${Math.floor(Math.random() * 1000000)}`;
     await install(client, collectionName);
     const account = await getAccountInfo(RPC_URL, owner.publicKey),
