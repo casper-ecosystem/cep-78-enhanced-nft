@@ -68,7 +68,6 @@ pub const ALLOW_MINTING: &str = "allow_minting";
 pub const APPROVED: &str = "approved";
 pub const BURN_MODE: &str = "burn_mode";
 pub const BURNT_TOKENS: &str = "burnt_tokens";
-pub const CASPER_2: &str = "casper_2";
 pub const COLLECTION_NAME: &str = "collection_name";
 pub const COLLECTION_SYMBOL: &str = "collection_symbol";
 pub const CONTRACT_WHITELIST: &str = "contract_whitelist";
