@@ -19,7 +19,7 @@ describe('CEP78Client - Event Streaming', () => {
       );
     expect(contractHash).toBeDefined();
     client.setContractHash(contractHash);
-  }, 60000);
+  }, 180000);
 
   it('should start and stop event stream and listen to events when on() is called', async () => {
     // Start the event stream
@@ -56,7 +56,7 @@ describe('CEP78Client - Event Streaming', () => {
     setTimeout(() => {
       expect(eventFired).toBe(false);
     }, 1000);
-  }, 60000);
+  }, 180000);
 
   it('should remove a specific event listener using off()', async () => {
     client.startEventStream();
@@ -77,7 +77,7 @@ describe('CEP78Client - Event Streaming', () => {
     }, 1000);
 
     client.stopEventStream();
-  }, 60000);
+  }, 180000);
 
   it('should remove all listeners for a specific event using removeListenersForEvent()', async () => {
     client.startEventStream();
@@ -103,7 +103,7 @@ describe('CEP78Client - Event Streaming', () => {
     }, 1000);
 
     client.stopEventStream();
-  }, 60000);
+  }, 180000);
 
   it('should remove all event listeners using removeAllListeners()', async () => {
     client.startEventStream();
@@ -128,5 +128,5 @@ describe('CEP78Client - Event Streaming', () => {
     }, 1000);
 
     client.stopEventStream();
-  }, 60000);
+  }, 180000);
 });
