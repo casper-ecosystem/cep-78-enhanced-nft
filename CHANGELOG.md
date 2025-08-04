@@ -1,6 +1,9 @@
 # Changelog
 
-All notable changes to this project will be documented in this file. The format is based on [Keep a Changelog].
+All notable changes to this project will be documented in this file.
+
+The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
+and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 [comment]: <> (Added: new features)
 [comment]: <> (Changed: changes in existing functionality)
@@ -11,9 +14,42 @@ All notable changes to this project will be documented in this file. The format 
 
 ## [Unreleased]
 
-### Changed
+## [2.0.0] - 2025-08-05
 
 ### Added
+
+- Added full workflow in the docs ([#269](https://github.com/casper-ecosystem/cep-78-enhanced-nft/pull/269)) — Adds Quickstart, full installation guide, and updated tutorials.
+- Native eventing ([#286](https://github.com/casper-ecosystem/cep-78-enhanced-nft/pull/286)) — Introduces native events feature, enables migration to 2.0 network, and adds test fixtures.
+
+### Changed
+
+- Disabled integer sign extensions ([#274](https://github.com/casper-ecosystem/cep-78-enhanced-nft/pull/274), [#279](https://github.com/casper-ecosystem/cep-78-enhanced-nft/pull/279)) — Modifies the WASM build to omit unsupported opcodes (fixes opcode-192 issue).
+- Migration support for 2.0 ([#291](https://github.com/casper-ecosystem/cep-78-enhanced-nft/pull/291)) — Updates internals for 2.0 network compatibility.
+- JavaScript client updated for 2.0 ([#301](https://github.com/casper-ecosystem/cep-78-enhanced-nft/pull/301)) — Updates JS SDK and adds tests.
+
+### Deprecated
+
+- Deprecated `EntryPoint` in favor of `EntityEntryPoint` ([#294](https://github.com/casper-ecosystem/cep-78-enhanced-nft/pull/294)).
+
+### Removed
+
+- Removed legacy CI workflows ([#307](https://github.com/casper-ecosystem/cep-78-enhanced-nft/pull/307)).
+- Removed `entry_point`, `condor`, and `casper_2` named keys ([#316](https://github.com/casper-ecosystem/cep-78-enhanced-nft/pull/316), [#317](https://github.com/casper-ecosystem/cep-78-enhanced-nft/pull/317)) — Cleans up 2.0-specific keys and logic.
+
+### Fixed
+
+- Fixed outdated links in documentation ([#268](https://github.com/casper-ecosystem/cep-78-enhanced-nft/pull/268)).
+- Made `nft_kind` optional on install ([#267](https://github.com/casper-ecosystem/cep-78-enhanced-nft/pull/267)).
+- Ensured proper error handling in `get_optional_named_arg_with_user_errors` ([#270](https://github.com/casper-ecosystem/cep-78-enhanced-nft/pull/270)) — Backports fix from CEP-18.
+- Various events-related fixes ([#289](https://github.com/casper-ecosystem/cep-78-enhanced-nft/pull/289)).
+- Native events no longer commit state on failure ([#295](https://github.com/casper-ecosystem/cep-78-enhanced-nft/pull/295)).
+- Fixed broken Discord link in full installation guide ([#308](https://github.com/casper-ecosystem/cep-78-enhanced-nft/pull/308)).
+- Updated outdated URLs for documentation and RPC endpoints ([#309](https://github.com/casper-ecosystem/cep-78-enhanced-nft/pull/309)).
+- Bumped versions and updated JS SDK ([#310](https://github.com/casper-ecosystem/cep-78-enhanced-nft/pull/310)).
+
+### Security
+
+_(No entries)_
 
 ## Release 1.5.1
 
