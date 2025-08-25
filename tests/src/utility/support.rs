@@ -15,8 +15,9 @@ use blake2::{
     VarBlake2b,
 };
 use casper_engine_test_support::{
-    utils::create_run_genesis_request, ChainspecConfig, ExecuteRequestBuilder, LmdbWasmTestBuilder,
-    DEFAULT_ACCOUNT_ADDR, DEFAULT_ACCOUNT_PUBLIC_KEY,
+    utils::{create_run_genesis_request, create_run_genesis_request_with_chainspec_config},
+    ChainspecConfig, ExecuteRequestBuilder, LmdbWasmTestBuilder, DEFAULT_ACCOUNT_ADDR,
+    DEFAULT_ACCOUNT_PUBLIC_KEY,
 };
 use casper_execution_engine::{engine_state::Error as EngineStateError, execution::ExecError};
 use casper_types::{
@@ -33,32 +34,41 @@ use serde::{Deserialize, Serialize};
 use sha256::digest;
 use std::fmt::Debug;
 
+pub(crate) fn get_enable_addressable_entity() -> bool {
+    cfg!(feature = "test-enable-addressable-entity")
+}
+
 pub(crate) fn genesis() -> LmdbWasmTestBuilder {
-    let mut builder = LmdbWasmTestBuilder::default();
-    // TODO Set enable_addressable_entity as param
-    builder.with_chainspec(ChainspecConfig::default().with_enable_addressable_entity(false));
-    builder.run_genesis(create_run_genesis_request(vec![
-        GenesisAccount::Account {
-            public_key: DEFAULT_ACCOUNT_PUBLIC_KEY.clone(),
-            balance: Motes::new(U512::from(5_000_000_000_000_u64)),
-            validator: None,
-        },
-        GenesisAccount::Account {
-            public_key: ACCOUNT_1_PUBLIC_KEY.clone(),
-            balance: Motes::new(U512::from(5_000_000_000_000_u64)),
-            validator: None,
-        },
-        GenesisAccount::Account {
-            public_key: ACCOUNT_2_PUBLIC_KEY.clone(),
-            balance: Motes::new(U512::from(5_000_000_000_000_u64)),
-            validator: None,
-        },
-        GenesisAccount::Account {
-            public_key: ACCOUNT_3_PUBLIC_KEY.clone(),
-            balance: Motes::new(U512::from(5_000_000_000_000_u64)),
-            validator: None,
-        },
-    ]));
+    let chainspec =
+        ChainspecConfig::default().with_enable_addressable_entity(get_enable_addressable_entity());
+
+    let mut builder = LmdbWasmTestBuilder::new_temporary_with_config(chainspec.clone());
+
+    builder.run_genesis(create_run_genesis_request_with_chainspec_config(
+        vec![
+            GenesisAccount::Account {
+                public_key: DEFAULT_ACCOUNT_PUBLIC_KEY.clone(),
+                balance: Motes::new(U512::from(5_000_000_000_000_u64)),
+                validator: None,
+            },
+            GenesisAccount::Account {
+                public_key: ACCOUNT_1_PUBLIC_KEY.clone(),
+                balance: Motes::new(U512::from(5_000_000_000_000_u64)),
+                validator: None,
+            },
+            GenesisAccount::Account {
+                public_key: ACCOUNT_2_PUBLIC_KEY.clone(),
+                balance: Motes::new(U512::from(5_000_000_000_000_u64)),
+                validator: None,
+            },
+            GenesisAccount::Account {
+                public_key: ACCOUNT_3_PUBLIC_KEY.clone(),
+                balance: Motes::new(U512::from(5_000_000_000_000_u64)),
+                validator: None,
+            },
+        ],
+        chainspec,
+    ));
     builder
 }
 
@@ -77,9 +87,10 @@ pub(crate) fn get_nft_contract_hash(builder: &LmdbWasmTestBuilder) -> Addressabl
 
 pub(crate) fn get_nft_contract_hash_key(builder: &LmdbWasmTestBuilder) -> Key {
     let nft_contract_hash: ContractHash = get_nft_contract_hash(builder).into();
-    // With entities enabled
-    //  let nft_contract_key: Key = Key::contract_entity_key(nft_contract_hash.into()); // As AddressableEntityHash
-    Key::Hash(nft_contract_hash.value()) // As Key::Hash
+    match builder.chainspec().core_config.enable_addressable_entity {
+        true => Key::contract_entity_key(nft_contract_hash.into()),
+        false => Key::Hash(nft_contract_hash.value()),
+    }
 }
 
 pub(crate) fn get_nft_contract_package_hash(builder: &LmdbWasmTestBuilder) -> ContractPackageHash {
@@ -123,9 +134,10 @@ pub(crate) fn get_minting_contract_hash(builder: &LmdbWasmTestBuilder) -> Addres
 
 pub(crate) fn get_minting_contract_hash_key(builder: &LmdbWasmTestBuilder) -> Key {
     let minting_contract_hash: ContractHash = get_minting_contract_hash(builder).into();
-    // With entities enabled
-    // let minting_contract_key: Key = Key::contract_entity_key(minting_contract_hash.into());
-    Key::Hash(minting_contract_hash.value())
+    match builder.chainspec().core_config.enable_addressable_entity {
+        true => Key::contract_entity_key(minting_contract_hash.into()),
+        false => Key::Hash(minting_contract_hash.value()),
+    }
 }
 
 pub(crate) fn get_minting_contract_package_hash(builder: &LmdbWasmTestBuilder) -> PackageHash {

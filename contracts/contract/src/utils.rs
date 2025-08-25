@@ -51,7 +51,53 @@ use hex::encode;
 // to ease the math around addressing newly minted tokens.
 pub const PAGE_SIZE: u64 = 1000;
 
-pub fn upsert_dictionary_value_from_key<T: CLTyped + FromBytes + ToBytes>(
+/// Trait for transforming values before inserting them into a dictionary.
+///
+/// For most types, the default implementation does nothing.
+/// For `Key` and `Option<Key>`, it normalizes the key into a canonical form:
+/// - `AddressableEntity` → `Account` or `Hash`
+/// - `SmartContract` → `Hash`
+/// This ensures consistency when storing keys in the contract storage.
+pub trait UpsertTransform: Sized {
+    fn key_as_account_or_contract_or_package(self) -> Self {
+        self
+    }
+}
+
+impl UpsertTransform for Key {
+    fn key_as_account_or_contract_or_package(self) -> Self {
+        key_as_account_or_contract_or_package(self)
+    }
+}
+
+impl UpsertTransform for Option<Key> {
+    fn key_as_account_or_contract_or_package(self) -> Self {
+        self.map(key_as_account_or_contract_or_package)
+    }
+}
+
+// Default implementations for other common types
+impl UpsertTransform for bool {}
+impl UpsertTransform for u32 {}
+impl UpsertTransform for u64 {}
+impl UpsertTransform for String {}
+impl UpsertTransform for () {}
+
+/// Inserts or updates a dictionary value, applying any necessary transformations
+/// (e.g., normalizing `Key`s) before storage.
+///
+/// # Arguments
+/// * `dictionary_name` - The name of the on-chain dictionary to update.
+/// * `key` - The dictionary key under which the value should be stored.
+/// * `value` - The value to store. Can be any type implementing `CLTyped + FromBytes + ToBytes +
+///   UpsertTransform`.
+///
+/// # Behavior
+/// 1. Retrieves the URef for the dictionary, reverting if missing or invalid.
+/// 2. Transforms the value using `UpsertTransform::key_as_account_or_contract_or_package`.
+/// 3. Stores the transformed value in the dictionary, overwriting any existing value.
+/// 4. Reverts if `dictionary_get` fails.
+pub fn upsert_dictionary_value_from_key<T: CLTyped + FromBytes + ToBytes + UpsertTransform>(
     dictionary_name: &str,
     key: &str,
     value: T,
@@ -62,8 +108,10 @@ pub fn upsert_dictionary_value_from_key<T: CLTyped + FromBytes + ToBytes>(
         NFTCoreError::InvalidStorageUref,
     );
 
+    let transformed = value.key_as_account_or_contract_or_package();
+
     match dictionary_get::<T>(seed_uref, key) {
-        Ok(None | Some(_)) => dictionary_put(seed_uref, key, value),
+        Ok(None | Some(_)) => dictionary_put(seed_uref, key, transformed),
         Err(error) => revert(error),
     }
 }
@@ -260,15 +308,31 @@ fn get_key_with_user_errors(name: &str, missing: NFTCoreError, invalid: NFTCoreE
     deserialize(key_bytes).unwrap_or_revert_with(invalid)
 }
 
+/// Retrieves the immediate caller of the current contract execution context as a [`Key`]
+/// and optionally a package [`Key`], suitable for CEP-78 contracts.
+///
+/// This function abstracts over the different kinds of entities that may invoke a contract:
+/// legacy accounts, legacy contract packages, or new-style entities.
+///
+/// # Behavior
+///
+/// * **ACCOUNT (legacy or new entity account)** Returns a `Key::Account` wrapping the
+///   `AccountHash`, package is `None`.
+/// * **CONTRACT (legacy contract package)** Returns a `Key::Hash` wrapping the
+///   `ContractPackageHash`, package is `Some(Key::from(ContractPackageHash))`.
+/// * **ENTITY (new entity)** Returns a `Key::Hash` wrapping the `EntityAddr`, package is
+///   `Some(Key::from(PackageHash))`.
+/// * **Other / unexpected kinds** Reverts with [`NFTCoreError::UnexpectedKeyVariant`].
 pub fn get_immediate_caller() -> (Key, Option<Key>) {
     const ACCOUNT: u8 = 0;
+    const PACKAGE: u8 = 1;
     const CONTRACT_PACKAGE: u8 = 2;
     const ENTITY: u8 = 3;
     const CONTRACT: u8 = 4;
 
     let caller_info = casper_get_immediate_caller().unwrap_or_revert();
 
-    match caller_info.kind() {
+    let (caller, package): (Key, Option<Key>) = match caller_info.kind() {
         ACCOUNT => {
             let account_hash = caller_info
                 .get_field_by_index(ACCOUNT)
@@ -285,7 +349,13 @@ pub fn get_immediate_caller() -> (Key, Option<Key>) {
                 .to_t::<Option<EntityAddr>>()
                 .unwrap_or_revert()
                 .unwrap_or_revert_with(NFTCoreError::UnexpectedKeyVariant);
-            (Key::from(entity_addr), None)
+            let package_hash = caller_info
+                .get_field_by_index(PACKAGE)
+                .unwrap()
+                .to_t::<Option<PackageHash>>()
+                .unwrap_or_revert()
+                .unwrap_or_revert_with(NFTCoreError::UnexpectedKeyVariant);
+            (Key::from(entity_addr), Some(Key::from(package_hash)))
         }
         CONTRACT => {
             let contract_hash = caller_info
@@ -306,6 +376,53 @@ pub fn get_immediate_caller() -> (Key, Option<Key>) {
             )
         }
         _ => revert(NFTCoreError::UnexpectedKeyVariant),
+    };
+
+    // Transform the caller Key to a legacy-compatible form (Account or Hash) for consistent
+    // on-chain usage. Apply the same transformation to the optional package Key, returning
+    // (caller, package) ready for CEP-78 logic.
+    // ⚠️ Strongly recommended: apply `key_as_account_or_contract_or_package()` to any `Key`
+    // retrieved from named arguments before comparing with the caller. This ensures consistent
+    // normalization between user input and immediate caller, preventing mismatches.
+    let transformed_caller = key_as_account_or_contract_or_package(caller);
+    let transformed_package = package.map(key_as_account_or_contract_or_package);
+    (transformed_caller, transformed_package)
+}
+
+/// Converts a new-style [`Key`] returned by [`get_immediate_caller`] into a legacy-compatible
+/// [`Key`].
+///
+/// This function ensures backward compatibility with legacy expectations,
+/// where only `Account` or `Hash` were used for access control.
+///
+/// # Behavior
+///
+/// * **`Key::AddressableEntity`**
+///   - If the entity is an **account**, returns `Key::Account`.
+///   - If the entity is not an account (e.g., smart contract or system entity), returns
+///     `Key::Hash`.
+/// * **`Key::SmartContract`** Converts directly into a legacy `Key::Hash` using the `PackageHash`.
+/// * **Other legacy keys** (`Key::Account`, `Key::Hash`) Returned unchanged.
+///
+/// # Notes
+///
+/// - This function is mostly used in CEP-78 contracts for dictionary keys, ownership lookups, and
+///   other storage/access operations.
+pub fn key_as_account_or_contract_or_package(key: Key) -> Key {
+    match key {
+        Key::AddressableEntity(entity_addr) => {
+            if entity_addr.is_account() {
+                let account_hash = AccountHash::new(entity_addr.value());
+                Key::Account(account_hash)
+            } else {
+                Key::Hash(entity_addr.value())
+            }
+        }
+        // Manage PackageHash from `get_immediate_caller` ENTITY case
+        Key::SmartContract(package_addr) => Key::Hash(package_addr),
+        // Legacy cases Account + ContractPackageHash from `get_immediate_caller` ACCOUNT + CONTRACT
+        // cases
+        legacy => legacy,
     }
 }
 

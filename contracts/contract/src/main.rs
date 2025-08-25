@@ -13,6 +13,7 @@ mod utils;
 
 extern crate alloc;
 
+use crate::utils::UpsertTransform;
 use alloc::{
     boxed::Box,
     collections::BTreeMap,
@@ -1055,13 +1056,14 @@ pub extern "C" fn approve() {
         ARG_OPERATOR, // Deprecated in favor of ARG_SPENDER
         NFTCoreError::InvalidApprovedAccountHash,
     ) {
-        Some(deprecated_operator) => deprecated_operator,
+        Some(deprecated_operator) => deprecated_operator.key_as_account_or_contract_or_package(),
         None => utils::get_named_arg_with_user_errors::<Key>(
             ARG_SPENDER,
             NFTCoreError::MissingSpenderAccountHash,
             NFTCoreError::InvalidSpenderAccountHash,
         )
-        .unwrap_or_revert(),
+        .unwrap_or_revert()
+        .key_as_account_or_contract_or_package(),
     };
 
     // If token owner or operator tries to approve itself that's probably a mistake and we revert.
@@ -1205,7 +1207,8 @@ pub extern "C" fn set_approval_for_all() {
         NFTCoreError::MissingOperator,
         NFTCoreError::InvalidOperator,
     )
-    .unwrap_or_revert();
+    .unwrap_or_revert()
+    .key_as_account_or_contract_or_package();
 
     // If caller tries to approve itself as operator that's probably a mistake and we revert.
     if caller == operator {
@@ -1231,14 +1234,16 @@ pub extern "C" fn is_approved_for_all() {
         NFTCoreError::MissingAccountHash,
         NFTCoreError::InvalidAccountHash,
     )
-    .unwrap_or_revert();
+    .unwrap_or_revert()
+    .key_as_account_or_contract_or_package();
 
     let operator = utils::get_named_arg_with_user_errors::<Key>(
         ARG_OPERATOR,
         NFTCoreError::MissingOperator,
         NFTCoreError::InvalidOperator,
     )
-    .unwrap_or_revert();
+    .unwrap_or_revert()
+    .key_as_account_or_contract_or_package();
 
     let owner_operator_item_key = utils::make_dictionary_item_key(&owner_key, &operator);
 
@@ -1293,7 +1298,8 @@ pub extern "C" fn transfer() {
         NFTCoreError::MissingAccountHash,
         NFTCoreError::InvalidAccountHash,
     )
-    .unwrap_or_revert();
+    .unwrap_or_revert()
+    .key_as_account_or_contract_or_package();
 
     if source_owner_key != owner {
         runtime::revert(NFTCoreError::InvalidTokenOwner);
@@ -1381,7 +1387,8 @@ pub extern "C" fn transfer() {
         NFTCoreError::MissingAccountHash,
         NFTCoreError::InvalidAccountHash,
     )
-    .unwrap_or_revert();
+    .unwrap_or_revert()
+    .key_as_account_or_contract_or_package();
 
     if NFTIdentifierMode::Hash == identifier_mode && runtime::get_key(OWNED_TOKENS).is_some() {
         if utils::should_migrate_token_hashes(source_owner_key) {
@@ -1392,8 +1399,6 @@ pub extern "C" fn transfer() {
             utils::migrate_token_hashes(target_owner_key)
         }
     }
-
-    let target_owner_item_key = utils::encode_dictionary_item_key(target_owner_key);
 
     // Updated token_owners dictionary. Revert if token_owner not found.
     utils::upsert_dictionary_value_from_key(
@@ -1425,6 +1430,8 @@ pub extern "C" fn transfer() {
         &source_owner_item_key,
         updated_from_account_balance,
     );
+
+    let target_owner_item_key = utils::encode_dictionary_item_key(target_owner_key);
 
     // Update the to_account balance
     let updated_to_account_balance =
@@ -1488,7 +1495,8 @@ pub extern "C" fn balance_of() {
         NFTCoreError::MissingAccountHash,
         NFTCoreError::InvalidAccountHash,
     )
-    .unwrap_or_revert();
+    .unwrap_or_revert()
+    .key_as_account_or_contract_or_package();
 
     let owner_key_item_string = utils::encode_dictionary_item_key(owner_key);
 
@@ -1994,6 +2002,7 @@ pub extern "C" fn register_owner() {
                     NFTCoreError::InvalidTokenOwner,
                 )
                 .unwrap_or_revert()
+                .key_as_account_or_contract_or_package()
             }
         };
 

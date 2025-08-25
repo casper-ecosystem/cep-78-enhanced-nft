@@ -323,7 +323,6 @@ fn should_allow_contract_to_burn_token() {
         .expect_success()
         .commit();
 
-    // TODO check
     let minting_contract_hash: ContractHash = get_minting_contract_hash(&builder).into();
     let contract_whitelist = vec![Key::from(minting_contract_hash)];
 

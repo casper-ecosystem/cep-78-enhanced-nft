@@ -45,7 +45,6 @@ fn should_install_with_acl_whitelist() {
         .expect_success()
         .commit();
 
-    // TODO check
     let minting_contract_hash: ContractHash = get_minting_contract_hash(&builder).into();
     let contract_whitelist = vec![Key::from(minting_contract_hash)];
 
@@ -89,7 +88,6 @@ fn should_install_with_deprecated_contract_whitelist() {
         .expect_success()
         .commit();
 
-    // TODO check
     let minting_contract_hash: ContractHash = get_minting_contract_hash(&builder).into();
     let contract_whitelist = vec![minting_contract_hash];
 
@@ -333,7 +331,6 @@ fn should_allow_whitelisted_contract_to_mint() {
         .expect_success()
         .commit();
 
-    // TODO check
     let minting_contract_hash: ContractHash = get_minting_contract_hash(&builder).into();
     let contract_whitelist = vec![Key::from(minting_contract_hash)];
 
@@ -661,7 +658,6 @@ fn should_disallow_unlisted_account_from_minting_with_mixed_account_contract() {
         .expect_success()
         .commit();
 
-    // TODO check
     let minting_contract_hash: ContractHash = get_minting_contract_hash(&builder).into();
     let mixed_whitelist = vec![
         Key::from(minting_contract_hash),
@@ -735,7 +731,6 @@ fn should_disallow_listed_account_from_minting_with_nftholder_contract() {
         .expect_success()
         .commit();
 
-    // TODO check
     let minting_contract_hash: ContractHash = get_minting_contract_hash(&builder).into();
     let mixed_whitelist = vec![
         Key::from(minting_contract_hash),
