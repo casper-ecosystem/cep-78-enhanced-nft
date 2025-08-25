@@ -2,7 +2,10 @@ use std::collections::BTreeMap;
 
 use casper_engine_test_support::{ExecuteRequestBuilder, DEFAULT_ACCOUNT_ADDR};
 use casper_event_standard::EVENTS_DICT;
-use casper_types::{addressable_entity::EntityKindTag, runtime_args, AddressableEntityHash, Key};
+use casper_types::{
+    account::AccountHash, addressable_entity::EntityKindTag, runtime_args, AddressableEntityHash,
+    Key,
+};
 
 use cep78::{
     constants::{
@@ -129,10 +132,13 @@ fn should_record_cep47_dictionary_style_transfer_token_event_in_hash_identifier_
     let token_hash: String =
         base16::encode_lower(&support::create_blake2b_hash(TEST_PRETTY_721_META_DATA));
 
-    let owner = Key::addressable_entity_key(
-        EntityKindTag::Account,
-        AddressableEntityHash::new([3u8; 32]),
-    );
+    let owner = match builder.chainspec().core_config.enable_addressable_entity {
+        true => Key::addressable_entity_key(
+            EntityKindTag::Account,
+            AddressableEntityHash::new([3u8; 32]),
+        ),
+        false => Key::Account(AccountHash::new([3u8; 32])),
+    };
 
     let register_request = ExecuteRequestBuilder::contract_call_by_hash(
         *DEFAULT_ACCOUNT_ADDR,
@@ -178,9 +184,12 @@ fn should_record_cep47_dictionary_style_transfer_token_event_in_hash_identifier_
 
     let mut expected_event: BTreeMap<String, String> = BTreeMap::new();
 
+    // Event is always as legacy Key for recipient
+    let recipient = Key::Account(AccountHash::new([3u8; 32]));
+
     expected_event.insert(EVENT_TYPE.to_string(), "Transfer".to_string());
     expected_event.insert(PREFIX_HASH_KEY_NAME.to_string(), package);
-    expected_event.insert(RECIPIENT.to_string(), owner.to_string());
+    expected_event.insert(RECIPIENT.to_string(), recipient.to_string());
     expected_event.insert(SENDER.to_string(), DEFAULT_ACCOUNT_KEY.to_string());
     expected_event.insert(
         TOKEN_ID.to_string(),
@@ -479,10 +488,13 @@ fn should_cep47_dictionary_style_approve_event_in_hash_identifier_mode() {
     let token_hash: String =
         base16::encode_lower(&support::create_blake2b_hash(TEST_PRETTY_721_META_DATA));
 
-    let spender = Key::addressable_entity_key(
-        EntityKindTag::Account,
-        AddressableEntityHash::new([7u8; 32]),
-    );
+    let spender = match builder.chainspec().core_config.enable_addressable_entity {
+        true => Key::addressable_entity_key(
+            EntityKindTag::Account,
+            AddressableEntityHash::new([7u8; 32]),
+        ),
+        false => Key::Account(AccountHash::new([7u8; 32])),
+    };
 
     let approve_request = ExecuteRequestBuilder::contract_call_by_hash(
         *DEFAULT_ACCOUNT_ADDR,
@@ -504,7 +516,10 @@ fn should_cep47_dictionary_style_approve_event_in_hash_identifier_mode() {
         &token_hash,
     );
 
-    assert_eq!(maybe_approved_spender, Some(spender));
+    assert_eq!(
+        maybe_approved_spender.map(|key| key.into_entity_hash()),
+        Some(spender.into_entity_hash())
+    );
 
     let event = get_dictionary_value_from_key::<BTreeMap<String, String>>(
         &builder,
@@ -521,6 +536,10 @@ fn should_cep47_dictionary_style_approve_event_in_hash_identifier_mode() {
         nft_contract_key,
         &format!("{PREFIX_CEP78}_{collection_name}"),
     );
+
+    // Event is always as legacy Key for spender
+    let spender = Key::Account(AccountHash::new([7u8; 32]));
+
     let mut expected_event: BTreeMap<String, String> = BTreeMap::new();
     expected_event.insert(EVENT_TYPE.to_string(), "Approve".to_string());
     expected_event.insert(PREFIX_HASH_KEY_NAME.to_string(), package);

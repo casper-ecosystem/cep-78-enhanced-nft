@@ -51,7 +51,31 @@ use hex::encode;
 // to ease the math around addressing newly minted tokens.
 pub const PAGE_SIZE: u64 = 1000;
 
-pub fn upsert_dictionary_value_from_key<T: CLTyped + FromBytes + ToBytes>(
+pub trait UpsertTransform: Sized {
+    fn key_as_account_or_contract_or_package(self) -> Self {
+        self
+    }
+}
+
+impl UpsertTransform for Key {
+    fn key_as_account_or_contract_or_package(self) -> Self {
+        key_as_account_or_contract_or_package(self)
+    }
+}
+
+impl UpsertTransform for Option<Key> {
+    fn key_as_account_or_contract_or_package(self) -> Self {
+        self.map(key_as_account_or_contract_or_package)
+    }
+}
+
+impl UpsertTransform for bool {}
+impl UpsertTransform for u32 {}
+impl UpsertTransform for u64 {}
+impl UpsertTransform for String {}
+impl UpsertTransform for () {}
+
+pub fn upsert_dictionary_value_from_key<T: CLTyped + FromBytes + ToBytes + UpsertTransform>(
     dictionary_name: &str,
     key: &str,
     value: T,
@@ -62,8 +86,10 @@ pub fn upsert_dictionary_value_from_key<T: CLTyped + FromBytes + ToBytes>(
         NFTCoreError::InvalidStorageUref,
     );
 
+    let transformed = value.key_as_account_or_contract_or_package();
+
     match dictionary_get::<T>(seed_uref, key) {
-        Ok(None | Some(_)) => dictionary_put(seed_uref, key, value),
+        Ok(None | Some(_)) => dictionary_put(seed_uref, key, transformed),
         Err(error) => revert(error),
     }
 }
@@ -262,13 +288,14 @@ fn get_key_with_user_errors(name: &str, missing: NFTCoreError, invalid: NFTCoreE
 
 pub fn get_immediate_caller() -> (Key, Option<Key>) {
     const ACCOUNT: u8 = 0;
+    const PACKAGE: u8 = 1;
     const CONTRACT_PACKAGE: u8 = 2;
     const ENTITY: u8 = 3;
     const CONTRACT: u8 = 4;
 
     let caller_info = casper_get_immediate_caller().unwrap_or_revert();
 
-    match caller_info.kind() {
+    let (caller, package): (Key, Option<Key>) = match caller_info.kind() {
         ACCOUNT => {
             let account_hash = caller_info
                 .get_field_by_index(ACCOUNT)
@@ -285,7 +312,13 @@ pub fn get_immediate_caller() -> (Key, Option<Key>) {
                 .to_t::<Option<EntityAddr>>()
                 .unwrap_or_revert()
                 .unwrap_or_revert_with(NFTCoreError::UnexpectedKeyVariant);
-            (Key::from(entity_addr), None)
+            let package_hash = caller_info
+                .get_field_by_index(PACKAGE)
+                .unwrap()
+                .to_t::<Option<PackageHash>>()
+                .unwrap_or_revert()
+                .unwrap_or_revert_with(NFTCoreError::UnexpectedKeyVariant);
+            (Key::from(entity_addr), Some(Key::from(package_hash)))
         }
         CONTRACT => {
             let contract_hash = caller_info
@@ -306,6 +339,29 @@ pub fn get_immediate_caller() -> (Key, Option<Key>) {
             )
         }
         _ => revert(NFTCoreError::UnexpectedKeyVariant),
+    };
+
+    let transformed_caller = key_as_account_or_contract_or_package(caller);
+    let transformed_package = package.map(key_as_account_or_contract_or_package);
+
+    (transformed_caller, transformed_package)
+}
+
+pub fn key_as_account_or_contract_or_package(key: Key) -> Key {
+    match key {
+        Key::AddressableEntity(entity_addr) => {
+            if entity_addr.is_account() {
+                let account_hash = AccountHash::new(entity_addr.value());
+                Key::Account(account_hash)
+            } else {
+                Key::Hash(entity_addr.value())
+            }
+        }
+        // Manage PackageHash from `get_immediate_caller` ENTITY case
+        Key::SmartContract(package_addr) => Key::Hash(package_addr),
+        // Legacy cases Account + ContractPackageHash from `get_immediate_caller` ACCOUNT + CONTRACT
+        // cases
+        legacy => legacy,
     }
 }
 

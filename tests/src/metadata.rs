@@ -400,7 +400,6 @@ fn should_get_metadata_using_token_id() {
         .expect_success()
         .commit();
 
-    // TODO check
     let minting_contract_hash: ContractHash = get_minting_contract_hash(&builder).into();
     let contract_whitelist = vec![Key::from(minting_contract_hash)];
 
@@ -485,7 +484,6 @@ fn should_get_metadata_using_token_metadata_hash() {
         .expect_success()
         .commit();
 
-    // TODO check
     let minting_contract_hash: ContractHash = get_minting_contract_hash(&builder).into();
     let contract_whitelist = vec![Key::from(minting_contract_hash)];
 
@@ -574,7 +572,6 @@ fn should_revert_minting_token_metadata_hash_twice() {
         .expect_success()
         .commit();
 
-    // TODO check
     let minting_contract_hash: ContractHash = get_minting_contract_hash(&builder).into();
     let contract_whitelist = vec![Key::from(minting_contract_hash)];
 
@@ -676,7 +673,6 @@ fn should_get_metadata_using_custom_token_hash() {
         .expect_success()
         .commit();
 
-    // TODO check
     let minting_contract_hash: ContractHash = get_minting_contract_hash(&builder).into();
     let contract_whitelist = vec![Key::from(minting_contract_hash)];
 
@@ -763,7 +759,6 @@ fn should_revert_minting_custom_token_hash_identifier_twice() {
         .expect_success()
         .commit();
 
-    // TODO check
     let minting_contract_hash: ContractHash = get_minting_contract_hash(&builder).into();
     let contract_whitelist = vec![Key::from(minting_contract_hash)];
 

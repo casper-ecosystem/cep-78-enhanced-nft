@@ -993,7 +993,6 @@ fn should_transfer_between_contract_to_account() {
         .expect_success()
         .commit();
 
-    // TODO check
     let minting_contract_hash: ContractHash = get_minting_contract_hash(&builder).into();
     let contract_whitelist = vec![Key::from(minting_contract_hash)];
 
@@ -1048,7 +1047,10 @@ fn should_transfer_between_contract_to_account() {
         &token_id.to_string(),
     );
 
-    assert_eq!(minting_contract_key, actual_token_owner);
+    assert_eq!(
+        minting_contract_key.into_entity_hash(),
+        actual_token_owner.into_entity_hash()
+    );
 
     let register_request = ExecuteRequestBuilder::contract_call_by_hash(
         *DEFAULT_ACCOUNT_ADDR,

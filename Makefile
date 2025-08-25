@@ -51,6 +51,7 @@ setup-test: build-all-contracts
 .PHONY: test
 test: setup-test
 	cargo test -p tests --lib
+	cargo test -p tests --lib --features test-enable-addressable-entity
 
 .PHONY: clippy
 clippy:

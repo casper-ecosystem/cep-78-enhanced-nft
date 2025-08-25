@@ -423,8 +423,6 @@ fn should_prevent_double_install_but_upgrade_instead() {
 
     let first_nft_contract_package_hash = get_nft_contract_package_hash_cep78(&builder);
 
-    dbg!(first_nft_contract_package_hash);
-
     let install_request = InstallerRequestBuilder::new(*DEFAULT_ACCOUNT_ADDR, NFT_CONTRACT_WASM)
         .with_collection_name(NFT_TEST_COLLECTION.to_string())
         .with_collection_symbol(NFT_TEST_SYMBOL.to_string())
@@ -440,6 +438,4 @@ fn should_prevent_double_install_but_upgrade_instead() {
         first_nft_contract_package_hash,
         last_nft_contract_package_hash
     );
-
-    dbg!(last_nft_contract_package_hash);
 }
