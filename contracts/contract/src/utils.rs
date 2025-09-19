@@ -57,7 +57,7 @@ pub const PAGE_SIZE: u64 = 1000;
 /// For `Key` and `Option<Key>`, it normalizes the key into a canonical form:
 /// - `AddressableEntity` → `Account` or `Hash`
 /// - `SmartContract` → `Hash`
-/// This ensures consistency when storing keys in the contract storage.
+///   This ensures consistency when storing keys in the contract storage.
 pub trait UpsertTransform: Sized {
     fn key_as_account_or_contract_or_package(self) -> Self {
         self
