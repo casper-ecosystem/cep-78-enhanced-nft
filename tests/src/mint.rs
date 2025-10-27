@@ -10,7 +10,6 @@ use cep78::{
     events::events_ces::{ApprovalForAll, Mint, RevokedForAll},
     modalities::TokenIdentifier,
 };
-use serde::{Deserialize, Serialize};
 
 use casper_engine_test_support::{
     ExecuteRequestBuilder, LmdbWasmTestBuilder, DEFAULT_ACCOUNT_ADDR,
@@ -37,13 +36,6 @@ use crate::utility::{
         get_token_page_by_hash,
     },
 };
-
-#[derive(Serialize, Deserialize, Debug)]
-struct Metadata {
-    name: String,
-    symbol: String,
-    token_uri: String,
-}
 
 fn setup_nft_contract(
     total_token_supply: Option<u64>,
