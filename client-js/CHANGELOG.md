@@ -7,57 +7,65 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.0.0] - 2025-08-05
+
+### Changed
+
+- Updated JavaScript client for 2.0 network support and added tests ([#161](https://github.com/casper-ecosystem/cep-78-enhanced-nft/pull/161))
+
 ## [1.5.1] - 2023-11-20
 
 ### Fixed
 
-- Add ACL in types of js_client (#256)
+- Added ACL types in `js_client` ([#256](https://github.com/casper-ecosystem/cep-78-enhanced-nft/pull/256))
 
 ## [1.5.0] - 2023-10-05
 
 ### Fixed
 
-- Changed `@make-software/ces-js-parser` version to support future versions. [#246](https://github.com/casper-ecosystem/cep-78-enhanced-nft/pull/246)
+- Updated `@make-software/ces-js-parser` version to support future releases ([#246](https://github.com/casper-ecosystem/cep-78-enhanced-nft/pull/246))
 
 ## [1.4.0] - 2023-05-26
 
 ### Fixed
 
-- Fixed the package.json paths
+- Fixed invalid paths in `package.json`
 
 ## [1.3.0] - 2023-04-03
 
 ### Added
 
-- Support for browsers (as WASM are now converted to JS modules and bundled that way).
+- Browser support: WASM modules are now bundled as JS
+- Added `casper-js-sdk` and `@make-software/ces-js-parser` as peer dependencies
+- Enabled support for peer dependency resolution
 
 ### Changed
 
-- Added `casper-js-sdk` and `@make-software/ces-js-parser` as peer dependencies. This will prevent conflicts between multiple versions of dependencies.
+- Restructured project to prevent dependency version conflicts
 
 ## [1.2.0] - 2023-03-16
 
 ### Added
 
-- Added support for CEP47 Events
-- Added support for CES events basing on ces-js-parser
-- Some small code cleanups (added typings etc)
-- Some changes in `examples/`
-- Added `OwnerReverseLookupMode.TransfersOnly` modality
-- Added `revoke` entrypoint support
+- Support for CEP-47 events
+- Support for CES events using `ces-js-parser`
+- `OwnerReverseLookupMode.TransfersOnly` modality
+- `revoke` entrypoint support
+- Typing improvements and various small cleanups
+- Examples updated
 
 ### Fixed
 
-- Added missing `collectionName` argument in mint when using a sessionCode: true
-- `contract_whitelist` is now build with Hashes rather then Keys
-- Fixed inconsistency in `getBurnModeConfig()` (now it returns Number as other similar methods)
+- Added missing `collectionName` argument when using `sessionCode: true` in `mint`
+- `contract_whitelist` now built using hashes instead of keys
+- `getBurnModeConfig()` now returns a `Number` for consistency
 
 ## [1.1.0] - 2023-01-10
 
 ### Added
 
-- Added support for NamedKeyConventionMode
+- Support for `NamedKeyConventionMode`
 
 ### Fixed
 
-- Fixed how the `migrate` deploy is constructed.
+- Corrected construction of the `migrate` deploy
