@@ -1,3 +1,21 @@
+use cep78::{
+    constants::{
+        APPROVED, ARG_APPROVE_ALL, ARG_COLLECTION_NAME, ARG_MINTING_MODE, ARG_OPERATOR,
+        ARG_SOURCE_KEY, ARG_SPENDER, ARG_TARGET_KEY, ARG_TOKEN_HASH, ARG_TOKEN_ID,
+        ARG_TOKEN_META_DATA, ARG_TOKEN_OWNER, BALANCES, ENTRY_POINT_APPROVE, ENTRY_POINT_MINT,
+        ENTRY_POINT_REGISTER_OWNER, ENTRY_POINT_SET_APPROVALL_FOR_ALL, METADATA_CEP78,
+        METADATA_CUSTOM_VALIDATED, METADATA_NFT721, METADATA_RAW, NUMBER_OF_MINTED_TOKENS,
+        PAGE_TABLE, RECEIPT_NAME, TOKEN_ISSUERS, TOKEN_OWNERS,
+    },
+    events::events_ces::{ApprovalForAll, Mint, RevokedForAll},
+    modalities::TokenIdentifier,
+};
+
+use casper_engine_test_support::{
+    ExecuteRequestBuilder, LmdbWasmTestBuilder, DEFAULT_ACCOUNT_ADDR,
+};
+use casper_types::{account::AccountHash, runtime_args, CLValue, Key};
+
 use crate::utility::{
     constants::{
         ACCOUNT_1_ADDR, ACCOUNT_1_KEY, ACCOUNT_2_ADDR, ACCOUNT_3_ADDR, ACCOUNT_3_KEY, ARG_KEY_NAME,
@@ -17,22 +35,6 @@ use crate::utility::{
         get_dictionary_value_from_key, get_nft_contract_hash, get_nft_contract_hash_key,
         get_token_page_by_hash,
     },
-};
-use casper_engine_test_support::{
-    ExecuteRequestBuilder, LmdbWasmTestBuilder, DEFAULT_ACCOUNT_ADDR,
-};
-use casper_types::{account::AccountHash, runtime_args, CLValue, Key};
-use cep78::{
-    constants::{
-        APPROVED, ARG_APPROVE_ALL, ARG_COLLECTION_NAME, ARG_MINTING_MODE, ARG_OPERATOR,
-        ARG_SOURCE_KEY, ARG_SPENDER, ARG_TARGET_KEY, ARG_TOKEN_HASH, ARG_TOKEN_ID,
-        ARG_TOKEN_META_DATA, ARG_TOKEN_OWNER, BALANCES, ENTRY_POINT_APPROVE, ENTRY_POINT_MINT,
-        ENTRY_POINT_REGISTER_OWNER, ENTRY_POINT_SET_APPROVALL_FOR_ALL, METADATA_CEP78,
-        METADATA_CUSTOM_VALIDATED, METADATA_NFT721, METADATA_RAW, NUMBER_OF_MINTED_TOKENS,
-        PAGE_TABLE, RECEIPT_NAME, TOKEN_ISSUERS, TOKEN_OWNERS,
-    },
-    events::events_ces::{ApprovalForAll, Mint, RevokedForAll},
-    modalities::TokenIdentifier,
 };
 
 fn setup_nft_contract(
